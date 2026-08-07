@@ -1,12 +1,12 @@
-const CACHE_VERSION = 'brinesearch-v17-1-0';
+const CACHE_VERSION = 'brinesearch-v17-2-0';
 const DIRECTION_DATA_FILES = __DIRECTION_DATA_FILES__;
 const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',
   './app/brinesearch-app.js', './app/weather-feature.js',
-  './app/root-scroll-guard.js', './app/field-mark-runtime.js',
+  './app/root-scroll-guard.js', './app/field-mark-runtime.js', './app/front-sign-structured.js',
   './manifest.webmanifest', './pad-fallback-data.json',
   './road-database.js', './road-manager.js', './front-sign-scanner.js',
-  './v16-25-hotfix.js', './road-database.schema.json', './road_name_review.csv',
+  './road-database.schema.json', './road_name_review.csv',
   './icons/fm-home-inactive.svg', './icons/fm-search-inactive.svg', './icons/fm-feed-inactive.svg',
   './icons/fm-back-inactive.svg', './icons/fm-capture-gps.svg', './icons/fm-favorites-inactive.svg',
   './icons/fm-add-inactive.svg', './icons/fm-offline-inactive.svg', './icons/fm-refresh-inactive.svg',
