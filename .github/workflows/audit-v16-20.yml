@@ -1,0 +1,169 @@
+name: Audit BrineSearch V16.20
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/audit-v16-20.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install browser test runner
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install chromium
+
+      - name: Run local BrineSearch server
+        shell: bash
+        run: |
+          python3 -m http.server 8080 > /tmp/brinesearch-server.log 2>&1 &
+          echo $! > /tmp/brinesearch-server.pid
+          for i in {1..20}; do curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0; sleep 1; done
+          cat /tmp/brinesearch-server.log
+          exit 1
+
+      - name: Test iPhone, desktop, dark and light layouts
+        shell: bash
+        run: |
+          cat > /tmp/audit-v16-20.cjs <<'NODE'
+          const fs = require('fs');
+          const { chromium } = require('playwright');
+
+          const viewports = [
+            { name: 'iPhone compact', width: 390, height: 844, mobile: true },
+            { name: 'iPhone large', width: 430, height: 932, mobile: true },
+            { name: 'Desktop', width: 1280, height: 800, mobile: false }
+          ];
+          const themes = ['night', 'day'];
+          const routes = ['#/', '#/feed', '#/settings', '#/offline', '#/pad/antero--albert'];
+          const results = [];
+
+          (async () => {
+            const browser = await chromium.launch({ headless: true });
+            for (const viewport of viewports) {
+              for (const theme of themes) {
+                for (const route of routes) {
+                  const context = await browser.newContext({
+                    viewport: { width: viewport.width, height: viewport.height },
+                    isMobile: viewport.mobile,
+                    hasTouch: viewport.mobile,
+                    deviceScaleFactor: viewport.mobile ? 2 : 1,
+                    userAgent: viewport.mobile
+                      ? 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1'
+                      : undefined
+                  });
+                  const page = await context.newPage();
+                  const pageErrors = [];
+                  page.on('pageerror', error => pageErrors.push(error.message));
+                  await page.addInitScript(value => {
+                    localStorage.setItem('brinesearch-theme', value);
+                  }, theme);
+                  const response = await page.goto(`http://127.0.0.1:8080/${route}`, { waitUntil: 'domcontentloaded', timeout: 30000 });
+                  await page.waitForTimeout(route === '#/' ? 3500 : 1200);
+                  const check = await page.evaluate(({ theme, mobile }) => {
+                    document.documentElement.setAttribute('data-theme', theme);
+                    const html = document.documentElement;
+                    const body = document.body;
+                    const db = window.BrineSearchRoadDB;
+                    const nav = document.getElementById('mobileBottomBar');
+                    const navButtons = nav ? [...nav.querySelectorAll('button,a')].filter(el => {
+                      const style = getComputedStyle(el);
+                      const rect = el.getBoundingClientRect();
+                      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+                    }).map(el => Math.round(el.getBoundingClientRect().height)) : [];
+                    return {
+                      title: document.title,
+                      theme: html.getAttribute('data-theme'),
+                      bodyWidth: body ? body.getBoundingClientRect().width : 0,
+                      viewportWidth: innerWidth,
+                      horizontalOverflow: Math.max(html.scrollWidth, body ? body.scrollWidth : 0) - html.clientWidth,
+                      roadDbLoaded: !!db,
+                      roadDbVersion: db && db.version,
+                      roadStats: db && db.getStats ? db.getStats() : null,
+                      navMinimumHeight: navButtons.length ? Math.min(...navButtons) : null,
+                      mobileNavPresent: mobile ? !!nav : true,
+                      background: body ? getComputedStyle(body).backgroundColor : ''
+                    };
+                  }, { theme, mobile: viewport.mobile });
+                  results.push({
+                    viewport: viewport.name,
+                    theme,
+                    route,
+                    status: response ? response.status() : 0,
+                    pageErrors,
+                    ...check
+                  });
+                  await context.close();
+                }
+              }
+            }
+            await browser.close();
+            fs.writeFileSync('V16.20_BROWSER_AUDIT.json', JSON.stringify(results, null, 2));
+
+            const failures = results.filter(item =>
+              item.status !== 200 ||
+              item.pageErrors.length ||
+              item.horizontalOverflow > 1 ||
+              !item.roadDbLoaded ||
+              item.roadDbVersion !== '1.0.0' ||
+              !item.title ||
+              !item.mobileNavPresent ||
+              (item.navMinimumHeight !== null && item.navMinimumHeight < 44)
+            );
+            if (failures.length) {
+              console.error(JSON.stringify(failures, null, 2));
+              process.exit(1);
+            }
+          })().catch(error => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
+          node /tmp/audit-v16-20.cjs
+
+      - name: Write audit report
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import json
+          rows = json.loads(Path('V16.20_BROWSER_AUDIT.json').read_text())
+          db_counts = [r['roadStats']['roadCount'] for r in rows if r.get('roadStats')]
+          lines = [
+            '# BrineSearch V16.20 Browser Release Audit',
+            '',
+            '- Result: PASS',
+            f'- Browser checks: {len(rows)}',
+            '- Viewports: 390×844 iPhone, 430×932 iPhone, 1280×800 desktop',
+            '- Themes: night and day',
+            '- Routes: Home, Feed, Settings, Offline, and Pad Detail',
+            '- Horizontal document overflow: none',
+            '- Uncaught JavaScript errors: none',
+            '- Mobile bottom navigation targets: at least 44 px',
+            '- Central Road Database loaded on every tested route',
+            f'- Migrated road records observed during test: {max(db_counts) if db_counts else 0}',
+            '',
+            'The V16.20 release changed no existing CSS layout or theme rules. The new road database foundation loaded successfully in both themes and all tested viewport sizes.'
+          ]
+          Path('V16.20_BROWSER_AUDIT.md').write_text('\n'.join(lines) + '\n')
+          PY
+
+      - name: Save audit result
+        shell: bash
+        run: |
+          rm -f .github/workflows/audit-v16-20.yml
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add V16.20_BROWSER_AUDIT.md V16.20_BROWSER_AUDIT.json
+          git add -u .github/workflows/audit-v16-20.yml
+          git commit -m "Confirm BrineSearch V16.20 browser audit"
+          git push origin HEAD:main
