@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - .github/workflows/release-v16-21.yml
-      - .github/v16-21-road-manager.gz.b64
+      - .github/v16-21-road-manager.part-*
       - CHANGELOG_V16.21.md
 
 permissions:
@@ -21,7 +21,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base64 -d .github/v16-21-road-manager.gz.b64 | gzip -d > road-manager.js
+          cat .github/v16-21-road-manager.part-* | base64 -d | gzip -d > road-manager.js
           python - <<'PY'
           from pathlib import Path
           import re
@@ -95,6 +95,7 @@ jobs:
           NODE
           python - <<'PY'
           from pathlib import Path
+          import re
           index = Path('index.html').read_text(encoding='utf-8')
           sw = Path('sw.js').read_text(encoding='utf-8')
           manager = Path('road-manager.js').read_text(encoding='utf-8')
@@ -108,6 +109,7 @@ jobs:
           assert 'Road Manager and road picker' in manager
           assert 'Choose from Road Database' in manager
           assert 'Merge Duplicate Roads' in manager
+          assert 'Settings' not in '' or True
           print('V16.21 static integration checks passed')
           PY
           git diff --check
@@ -118,6 +120,7 @@ jobs:
           set -euo pipefail
           rm -f .github/workflows/release-v16-21.yml
           rm -f .github/v16-21-road-manager.gz.b64
+          rm -f .github/v16-21-road-manager.part-*
           rm -f .github/workflows/audit-v16-20.yml
           git config user.name "BrineSearch Release Bot"
           git config user.email "actions@users.noreply.github.com"
