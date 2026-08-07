@@ -92,9 +92,9 @@ async function noOverflow(page, label) {
         assert.strictEqual(await page.locator('[data-bss-select="wellName"]').count(), 1);
         await noOverflow(page, `${device.name}/${theme} review screen`);
 
-        const applyText = await page.locator('[data-bss-apply]').innerText();
+        const applyText = await page.locator('#bssApplyButton').innerText();
         assert(/Fill Edit Pad Form/i.test(applyText), `${device.name}/${theme}: Edit Pad apply action is incorrect`);
-        await page.locator('[data-bss-apply]').click();
+        await page.locator('#bssApplyButton').click();
         await page.waitForTimeout(100);
         assert.strictEqual(await page.locator('#liveEditorForm [name="company"]').inputValue(), 'Ascent Resources');
         assert(/Miller Pad/i.test(await page.locator('#liveEditorForm [name="padName"]').inputValue()));
