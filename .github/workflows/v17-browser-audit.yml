@@ -56,6 +56,16 @@ jobs:
           cat /tmp/v17-preview.log
           exit 1
 
+      - name: Include browser error stacks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('v17/scripts/browser-smoke.mjs')
+          text = path.read_text()
+          text = text.replace("pageErrors.push(error.message)", "pageErrors.push(error.stack || error.message)")
+          path.write_text(text)
+          PY
+
       - name: Audit iPhone and desktop layouts
         env:
           V17_PREVIEW_URL: http://127.0.0.1:4173
