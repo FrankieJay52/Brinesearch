@@ -1,0 +1,77 @@
+name: Deploy BrineSearch V17.2 to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brinesearch-github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build GitHub Pages site
+    runs-on: ubuntu-latest
+    env:
+      PAGES_BASE_PATH: /${{ github.event.repository.name }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Verify and build BrineSearch V17.2
+        run: npm run build
+
+      - name: Prepare repository-path assets for GitHub Pages
+        run: node v17/scripts/prepare-pages.mjs
+
+      - name: Verify deployable files
+        run: |
+          test -f dist-pages/index.html
+          test -f dist-pages/404.html
+          test -f dist-pages/.nojekyll
+          test -f dist-pages/app/front-sign-structured.js
+          test -f dist-pages/pages-deployment.json
+          grep -q "/${{ github.event.repository.name }}/app/brinesearch-app.js" dist-pages/index.html
+          grep -q "/${{ github.event.repository.name }}/styles/app.css" dist-pages/index.html
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist-pages
+
+  deploy:
+    name: Deploy live site
+    if: github.event_name != 'pull_request'
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Deploy BrineSearch
+        id: deployment
+        uses: actions/deploy-pages@v4
