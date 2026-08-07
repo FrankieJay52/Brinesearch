@@ -6,6 +6,11 @@ on:
     paths:
       - '.github/v17-refactor/create_v17.py'
       - '.github/workflows/apply-v17-refactor.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/v17-refactor/create_v17.py'
+      - '.github/workflows/apply-v17-refactor.yml'
 
 permissions:
   contents: write
