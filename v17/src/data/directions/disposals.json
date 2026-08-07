@@ -1,0 +1,34 @@
+{
+  "disposals--antero-pioneer": {
+    "s": "From New Martinsville, take WV-2 South and turn left onto WV-180 South. At the stop-sign T, turn left onto WV-18 South. Go through Middlebourne, turn right onto the bridge/Bridgeway Road, then turn left onto Wick Road. Follow Wick Road to Pioneer on the right at the top of the hill. Spotters will assign a lane. Follow the site SOP, including whip checks, hose and truck grounding, bucket, duck ponds, and face shield.",
+    "r": "Road sequence reference:\nWV-2 SOUTH → WV-180 SOUTH → WV-18 SOUTH → BRIDGEWAY ROAD → WICK ROAD → DISPOSAL\n\nStep-by-step directions:\n1. From New Martinsville.\n2. Take WV-2 South and.\n3. Turn left onto WV-180 South At the stop-sign T.\n4. Turn left onto WV-18 South.\n5. Go through Middlebourne.\n6. Turn right onto the bridge/Bridgeway Road, then.\n7. Turn left onto Wick Road.\n8. Follow Wick Road to Pioneer on the right at the top of the hill Spotters will assign a lane.\n9. Follow the site SOP, including whip checks, hose and truck grounding, bucket, duck ponds, and face shield."
+  },
+  "disposals--belden-blake": {
+    "s": "From Louisville, take State Route 44 north. Turn right onto State Route 619. The disposal is about one-quarter mile on the right, before Cutty's Sunset Campground.",
+    "r": "Road sequence reference:\nSR-44 → SR-619 → SR-616\n\nStep-by-step directions:\n1. From Louisville, take State Route 44 north.\n2. Turn right onto State Route 619 The disposal is about one-quarter mile on the right, before Cutty's Sunset Campground."
+  },
+  "disposals--ego": {
+    "s": "Take I-77 North to exit 65 and turn left. The disposal is approximately 1.3 miles on the right.",
+    "r": "Road sequence reference:\nI-77 NORTH → EXIT 65 → LEFT → DISPOSAL\n\nStep-by-step directions:\n1. Take I-77 North to exit 65 and.\n2. Turn left The disposal is approximately 1.3 miles on the right."
+  },
+  "disposals--mud-master": {
+    "s": "Phone: 412-506-8250. Stay on WV-2 South. Turn left onto Industrial Park Road; it is the next left after Industrial. Get on the scale, turn around, and drive back to offload. CB channel 1.",
+    "r": "Road sequence reference:\nWV-2 SOUTH → INDUSTRIAL PARK ROAD → DISPOSAL\n\nStep-by-step directions:\n1. Phone: 412-506-8250.\n2. Stay on WV-2 South.\n3. Turn left onto Industrial Park Road.\n4. It is the next left after Industrial Get on the scale, turn around, and.\n5. Drive back to offload CB channel 1."
+  },
+  "disposals--pattison": {
+    "s": "Take I-70 West to exit 164 and turn right. Take the first road on the right. The site is on the right.",
+    "r": "Road sequence reference:\nI-70 WEST → EXIT 164 → RIGHT → FIRST ROAD RIGHT → DISPOSAL\n\nStep-by-step directions:\n1. Take I-70 West to exit 164 and.\n2. Turn right Take the first road on the right The site is on the right."
+  },
+  "disposals--sos": {
+    "s": "From I-70 in Ohio, take exit 178 and go south on State Route 209. The disposal is on the left past Verizon.",
+    "r": "Road sequence reference:\nI-70 → EXIT 178 → SR-209 SOUTH → DISPOSAL\n\nStep-by-step directions:\n1. From I-70 in Ohio.\n2. Take exit 178 and.\n3. Go south on State Route 209 The disposal is on the left past Verizon."
+  },
+  "disposals--spartan-sugar-tree": {
+    "s": "From Wheeling, take Ohio Route 7 South to Route 78 and turn right. The disposal is approximately 15 minutes away on the left. From Woodsfield, go east on Route 78 approximately one mile; the entrance is on the right about 50 feet east of County Road 41.",
+    "r": "Road sequence reference:\nOH-7 SOUTH → OH-78 WEST → WOODSFIELD → DISPOSAL\n\nStep-by-step directions:\n1. From Wheeling, take Ohio Route 7 South to Route 78 and.\n2. Turn right The disposal is approximately 15 minutes away on the left From Woodsfield.\n3. Go east on Route 78 approximately one mile.\n4. The entrance is on the right about 50 feet east of County Road 41."
+  },
+  "disposals--valley-grove": {
+    "s": "Head east on I-70. Take exit 11 for Dallas Pike toward County Road 41. Turn right onto Dallas Pike. The destination is approximately 0.2 mile ahead on the left.",
+    "r": "Road sequence reference:\nI-70 EAST → EXIT 11 DALLAS PIKE / CR-41 → RIGHT → DISPOSAL\n\nStep-by-step directions:\n1. Head east on I-70.\n2. Take exit 11 for Dallas Pike toward County Road 41.\n3. Turn right onto Dallas Pike The destination is approximately for 0.2 miles ahead on the left."
+  }
+}

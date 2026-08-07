@@ -1,0 +1,52 @@
+/* Source style block: pad-verification-v161-styles */
+.pad-quality-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;display:grid;gap:14px;box-shadow:var(--shadow)}
+.pad-quality-head{display:flex;align-items:center;justify-content:space-between;gap:14px}.pad-quality-head h2{margin:0;font-size:1.08rem}.pad-quality-score{width:64px;height:64px;border-radius:50%;display:grid;place-items:center;background:conic-gradient(var(--accent) calc(var(--score)*1%),rgba(128,145,160,.18) 0);position:relative;flex:0 0 auto}.pad-quality-score:before{content:"";position:absolute;inset:7px;border-radius:50%;background:var(--card)}.pad-quality-score strong{position:relative;font-size:.95rem}.pad-quality-status{font-size:.8rem;color:var(--muted);margin-top:4px}.pad-quality-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.pad-quality-item{display:flex;align-items:center;gap:9px;padding:10px;border:1px solid var(--line);border-radius:13px;background:var(--surface)}.pad-quality-item .mark{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;background:rgba(255,190,70,.12);color:#d79a18;font-weight:900}.pad-quality-item.ok .mark{background:rgba(41,190,141,.14);color:#1ca976}.pad-quality-item span:last-child{font-size:.8rem;font-weight:750}.pad-quality-warning{padding:10px 12px;border-radius:12px;border:1px solid rgba(244,169,60,.35);background:rgba(244,169,60,.09);font-size:.8rem}.pad-quality-actions{display:flex;gap:8px;flex-wrap:wrap}.pad-quality-actions button{min-height:42px;border-radius:12px}.pad-quality-history{border-top:1px solid var(--line);padding-top:10px}.pad-quality-history summary{cursor:pointer;font-weight:800}.pad-quality-history-list{display:grid;gap:8px;margin-top:10px}.pad-quality-history-row{padding:9px 10px;border-radius:11px;background:var(--surface);border:1px solid var(--line);font-size:.76rem}.pad-quality-history-row small{display:block;color:var(--muted);margin-top:3px}.pad-quality-loading{color:var(--muted);font-size:.82rem}.pad-quality-note{font-size:.78rem;color:var(--muted)}
+@media(max-width:520px){.pad-quality-grid{grid-template-columns:1fr}.pad-quality-actions{display:grid;grid-template-columns:1fr 1fr}.pad-quality-actions .wide{grid-column:1/-1}}
+
+/* Source style block: brinesearch-v16-14-editor-wizard */
+/* V16.14: Add Pad direct step navigation and matching five-step live pad editor. */
+.live-editor-wizard-panel{width:min(860px,100%)}
+.live-editor-steps{position:sticky;top:82px;z-index:3;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;width:100%;padding:10px 16px 12px;border-bottom:1px solid var(--line);background:rgba(13,25,41,.98)}
+.live-editor-step{width:100%;min-width:0;min-height:52px;padding:8px 4px;border:1px solid var(--line);border-radius:13px;background:var(--panel-2);color:var(--muted);font:inherit;font-size:clamp(.6rem,2.2vw,.78rem);font-weight:900;line-height:1.15;white-space:normal;cursor:pointer}
+.live-editor-step.active{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 15%,var(--panel-2));color:var(--text)}
+.live-editor-step.done{border-color:color-mix(in srgb,var(--success) 55%,var(--line));color:var(--success)}
+.live-editor-wizard-title{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:0 0 16px}
+.live-editor-wizard-title>div{min-width:0}.live-editor-wizard-title h3{margin:0;font-size:1.08rem}.live-editor-wizard-title p{margin:4px 0 0;color:var(--muted);font-size:.86rem;line-height:1.45}.live-editor-wizard-title>span{flex:0 0 auto;color:var(--accent);font-weight:900;white-space:nowrap}
+.live-editor-step-panel{display:none}.live-editor-step-panel.active{display:block;animation:liveEditorStepIn .16s ease-out}@keyframes liveEditorStepIn{from{opacity:.35;transform:translateY(4px)}to{opacity:1;transform:none}}
+.live-editor-empty-step{display:grid;gap:5px;padding:18px;border:1px solid var(--line);border-radius:16px;background:var(--panel-2)}.live-editor-empty-step span{color:var(--muted);line-height:1.45}
+.live-editor-review-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:16px}.live-editor-review-card{min-width:0;padding:13px;border:1px solid var(--line);border-radius:15px;background:var(--panel-2)}.live-editor-review-card strong{display:block;margin-bottom:5px}.live-editor-review-card span{display:block;color:var(--muted);font-size:.84rem;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+.live-editor-review-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--line)}.live-editor-review-section h3{margin:0 0 10px;font-size:1rem}.live-editor-history-card{padding:14px;border:1px solid var(--line);border-radius:15px;background:var(--panel-2);color:var(--muted);font-size:.84rem;line-height:1.55}
+.live-editor-wizard-foot{justify-content:space-between}.live-editor-foot-group{display:flex;gap:9px}.live-editor-wizard-foot .btn{min-width:118px}
+html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
+.fm-capture-gps{--fm-icon:url('./icons/fm-capture-gps.svg')}.fm-verified{--fm-icon:url('./icons/fm-check.svg')}
+@media(max-width:700px){.live-editor-wizard-shell{place-items:end center;padding:0}.live-editor-wizard-panel{width:100%;max-height:96dvh;border-radius:25px 25px 0 0;border-left:0;border-right:0;border-bottom:0}.live-editor-steps{top:76px;padding-inline:8px;gap:4px}.live-editor-step{min-height:50px;padding-inline:2px;font-size:clamp(.56rem,2.55vw,.7rem)}.live-editor-review-grid{grid-template-columns:1fr}.live-editor-wizard-foot{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.live-editor-foot-group{display:contents}.live-editor-wizard-foot .btn{width:100%;min-width:0}.live-editor-wizard-foot #cancelLiveEditor{order:1}.live-editor-wizard-foot #saveLiveEditor{order:2}.live-editor-wizard-foot #liveEditorBack{order:3}.live-editor-wizard-foot #liveEditorNext{order:4}.live-editor-wizard-foot.first-step #liveEditorNext{grid-column:1/-1}.live-editor-wizard-foot.last-step #liveEditorBack{grid-column:1/-1}.live-editor-body{padding-bottom:16px}}
+@media(max-width:360px){.live-editor-steps{gap:3px;padding-inline:5px}.live-editor-step{font-size:.54rem;padding-inline:1px}.live-editor-wizard-title{gap:6px}.live-editor-wizard-title>span{font-size:.78rem}}
+
+/* Source style block: brinesearch-v16-16-install-guide */
+/* V16.16: Device-and-browser-specific Add to Home Screen guide. */
+.install-guide-page{max-width:760px;margin:0 auto;padding:14px 12px 110px}
+.install-guide-back{margin-bottom:10px}
+.install-guide-hero,.install-guide-card,.install-instructions{border:1px solid var(--line);background:var(--panel);border-radius:20px;padding:17px;margin-bottom:12px}
+.install-guide-hero{display:grid;grid-template-columns:48px minmax(0,1fr);gap:13px;align-items:center}
+.install-guide-hero-icon{width:48px;height:48px;border-radius:15px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 15%,var(--panel-2));border:1px solid color-mix(in srgb,var(--accent) 45%,var(--line));color:var(--accent)}
+.install-guide-hero-icon .fm-icon{width:27px!important;height:27px!important}
+.install-guide-hero h1{margin:0;font-size:1.42rem;line-height:1.15}
+.install-guide-hero p{margin:5px 0 0;color:var(--muted);font-size:.81rem;line-height:1.45}
+.install-guide-detected{grid-column:1/-1;padding:9px 11px;border-radius:12px;background:var(--panel-2);color:var(--muted);font-size:.74rem;line-height:1.4}
+.install-guide-card h2,.install-instructions h2{margin:0 0 10px;font-size:1rem}
+.install-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.install-choice-grid.browser-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.install-choice{min-height:48px;border:1px solid var(--line);border-radius:13px;background:var(--panel-2);color:var(--text);font:inherit;font-size:.83rem;font-weight:900;padding:9px 11px;display:flex;align-items:center;justify-content:center;text-align:center}
+.install-choice.active{background:var(--accent);color:#061411;border-color:transparent;box-shadow:0 6px 18px color-mix(in srgb,var(--accent) 22%,transparent)}
+.install-guide-subtitle{margin:15px 0 8px;color:var(--muted);font-size:.72rem;font-weight:900;letter-spacing:.08em;text-transform:uppercase}
+.install-instructions-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px}
+.install-instructions-head h2{margin:0}.install-browser-badge{flex:0 0 auto;padding:6px 9px;border-radius:999px;background:var(--panel-2);border:1px solid var(--line);color:var(--accent);font-size:.68rem;font-weight:950}
+.install-step-list{display:grid;gap:9px;list-style:none;margin:0;padding:0;counter-reset:install-step}
+.install-step{counter-increment:install-step;display:grid;grid-template-columns:34px minmax(0,1fr);gap:10px;align-items:start;padding:11px;border:1px solid var(--line);border-radius:14px;background:var(--panel-2)}
+.install-step:before{content:counter(install-step);width:34px;height:34px;border-radius:11px;display:grid;place-items:center;background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--accent);font-weight:950}
+.install-step strong{display:block;margin-bottom:3px;font-size:.84rem}.install-step span{display:block;color:var(--muted);font-size:.76rem;line-height:1.45;overflow-wrap:anywhere}
+.install-guide-note,.install-guide-installed{margin-top:11px;padding:11px 12px;border-radius:13px;font-size:.75rem;line-height:1.5}
+.install-guide-note{background:color-mix(in srgb,#e4ad45 10%,var(--panel-2));border:1px solid color-mix(in srgb,#e4ad45 42%,var(--line));color:var(--muted)}
+.install-guide-installed{background:color-mix(in srgb,var(--accent) 11%,var(--panel-2));border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));color:var(--text);font-weight:800}
+@media(max-width:520px){.install-guide-page{padding-inline:9px}.install-guide-hero,.install-guide-card,.install-instructions{padding:14px;border-radius:18px}.install-guide-hero{grid-template-columns:42px minmax(0,1fr)}.install-guide-hero-icon{width:42px;height:42px;border-radius:13px}.install-guide-hero h1{font-size:1.22rem}.install-choice-grid.browser-grid{grid-template-columns:1fr 1fr}.install-choice{min-height:46px;padding:8px;font-size:.78rem}.install-step{grid-template-columns:31px minmax(0,1fr);padding:10px;gap:9px}.install-step:before{width:31px;height:31px}}
+@media(max-width:340px){.install-choice-grid.browser-grid{grid-template-columns:1fr}}

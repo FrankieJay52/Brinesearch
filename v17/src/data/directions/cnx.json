@@ -1,0 +1,74 @@
+{
+  "cnx--bp6": {
+    "s": "70.East.To 66.North 380.East towards.Saltsville Left onto 819.Turn onto.Bellpoint Road onto",
+    "r": "Road sequence reference:\nRoute 819 → Bellpoint Rd\n\nStep-by-step directions:\n1. Follow 70 East To 66 North 380 East towards Saltsville.\n2. Turn left onto 819 Turn onto Bellpoint Road onto."
+  },
+  "cnx--dayhill": {
+    "s": "21 west.To Graysville.Pa Turn right onto.Martin Road.Turn right onto.Akley Creek.Road To.Sawmill Road 2 mile.To Day road.Left",
+    "r": "Road sequence reference:\nRoute 21 → Martin Rd → Akley Creek Rd\n\nStep-by-step directions:\n1. Follow 21 west To Graysville Pa.\n2. Turn right onto Martin Road.\n3. Turn right onto Akley Creek Road To Sawmill Road for 2 miles To Day road Left."
+  },
+  "cnx--magnum": {
+    "s": "79 exit 14 21 to.Waynesburg Left on.Oak Forrest.Left on.Maple run 1.4 miles on right",
+    "r": "Road sequence reference:\nExit 14 → Forrest Left On Maple Run → Oak Forrest\n\nStep-by-step directions:\n1. Follow 79.\n2. Exit 14 21 to Waynesburg.\n3. Turn left on Oak Forrest.\n4. Turn left on Maple run for 1.4 miles on right."
+  },
+  "cnx--maj-12": {
+    "s": "Turn onto Dodds ridge off of PA 21",
+    "r": "Step-by-step directions:\n1. Turn onto Dodds ridge off of PA-21."
+  },
+  "cnx--mam16": {
+    "s": "Same as BP6",
+    "r": "Step-by-step directions:\n1. Same as BP6."
+  },
+  "cnx--mamont-6": {
+    "s": "70 west 66 north 380 west 819 west Bellpoint Lane",
+    "r": "Road sequence reference:\nRoute 70 → Route 66 → Route 380 → Route 819 → Bellpoint Ln\n\nStep-by-step directions:\n1. Follow 70 west 66 north 380 west 819 west Bellpoint Lane."
+  },
+  "cnx--mor-40": {
+    "s": "70 west To 18 south To Graysville PA Turn right onto Ackely Road Next right onto Martins Road Following this road to Mor 40 lease",
+    "r": "Road sequence reference:\nRoute 70 → Route 18 → Ackely Rd → Martins Rd\n\nStep-by-step directions:\n1. Follow 70 west To 18 south To Graysville PA.\n2. Turn right onto Ackely Road Next.\n3. Turn right onto Martins Road Following this road to Mor 40 lease."
+  },
+  "cnx--mor-9": {
+    "s": "From Washington PA Take SR 18 south Turn right onto Booth School Road Follow signs to pad",
+    "r": "Road sequence reference:\nSR-18 → Booth School Rd → Pad\n\nStep-by-step directions:\n1. From Washington PA.\n2. Take State Route 18 south.\n3. Turn right onto Booth School Road.\n4. Follow signs to pad."
+  },
+  "cnx--nv-62": {
+    "s": "From Prosperity, PA take sr221 north toward Taylorstown for 2.9 miles. Then turn left on Pleasent Grove road (SR4029) for 2.6 miles. Turn right onto B O Lane follow to end of road for access road",
+    "r": "Road sequence reference:\nSR-221 → Pleasent Grove Rd → B O Ln → End Of Rd → Access Road\n\nStep-by-step directions:\n1. From Prosperity, PA.\n2. Take State Route 221 north toward Taylorstown for 2.9 miles Then.\n3. Turn left on Pleasent Grove road (State Route 4029) for 2.6 miles.\n4. Turn right onto B O Lane.\n5. Follow to end of road for access road."
+  },
+  "cnx--shirley-37": {
+    "s": "From New Martinsville Take RT 2 south to ST 180 South Take 180 South to Route 18 East Follow 18 East through Alma past 74 and follow to Ducksworth Ridge",
+    "r": "Road sequence reference:\nRt 2 South To St → Route 2 → Route 180 → Route 18 → Ducksworth Ridge\n\nStep-by-step directions:\n1. From New Martinsville.\n2. Take RT 2 south to ST 180 South.\n3. Take 180 South to Route 18 East.\n4. Follow 18 East through Alma past 74 and.\n5. Follow to Ducksworth Ridge."
+  },
+  "cnx--switz-18": {
+    "s": "Right 7 to 556",
+    "r": "Step-by-step directions:\n1. Right 7 to 556."
+  },
+  "cnx--switz-26": {
+    "s": "From I70 take exit 204 Barnesville. 800 South to Malaga. Turn left on OH 145 at flashing light. Continue to Beallsville. Straight thru stop sign at 4 way stop. Follow 556 east out of Beallsville 3.1 miles. Turn right onto Headley Ridge rd or County Rd 38. Big sign that says Switz 26 Continue 1.9 miles, lease rd is on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → Route 800 → OH-145 → Route 556 → Headley Ridge Rd → OR → CR-38 → Lease Road\n\nStep-by-step directions:\n1. From I-70 take exit 204 Barnesville 800 South to Malaga.\n2. Turn left on OH-145 at flashing light.\n3. Continue to Beallsville Straight thru stop sign at 4 way stop.\n4. Follow 556 east out of Beallsville for 3.1 miles.\n5. Turn right onto Headley Ridge Road or County Road 38 Big sign that says Switz 26.\n6. Continue 1.9 miles.\n7. Lease Road is on left."
+  },
+  "cnx--switz-6": {
+    "s": "Route 7 North or South to Clarington. 556 W for 5.5 miles. Right at SWITZ 6 sign",
+    "r": "Road sequence reference:\nRoute 7 → OR → Route 556\n\nStep-by-step directions:\n1. Follow Route 7 North or South to Clarington 556 W for 5.5 miles.\n2. Turn right at SWITZ 6 sign."
+  },
+  "cnx--switz-7": {
+    "s": "Boltz hill to township 913",
+    "r": "Step-by-step directions:\n1. Boltz hill to township 913."
+  },
+  "cnx--switz-9": {
+    "s": "From I-70E exit 219 I-470E towards Washington PA/Bellaire, go 6.3 miles to exit 6 Ohio River Byway/OH-7 T/R, go 25 miles south to OH-556 T/R, go 5.2 miles to german ridge rd VEER/R, go .5 miles stay left on german ridge rd, go 3.75 miles to Township road 207 T/R, go .5 miles to lease rd on left.",
+    "r": "Road sequence reference:\nI-70E → Exit 219 → I-470E → Exit 6 → German Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From I-70E exit 219 I-470E towards Washington PA/Bellaire.\n2. Go 6.3 miles to exit 6 Ohio River Byway/OH-7 T/R.\n3. Go 25 miles south to OH-556 T/R.\n4. Go 5.2 miles to german ridge Road VEER/R.\n5. Go 5 miles.\n6. Stay.\n7. Turn left on german ridge Road.\n8. Go 3.75 miles to Township road 207 T/R.\n9. Go 5 miles to lease Road on left."
+  },
+  "cnx--wdtn-9": {
+    "s": "79 south To 21 west Left onto 18 south Turn right onto 7 S Turn right onto- Wise Run Road",
+    "r": "Road sequence reference:\nRoute 79 → Route 21 → Route 18 → Route 7 → Wise Run Rd\n\nStep-by-step directions:\n1. Follow 79 south To 21 west.\n2. Turn left onto 18 south.\n3. Turn right onto 7 S.\n4. Turn right onto- Wise Run Road."
+  },
+  "cnx--wfn-2": {
+    "s": "From 70 west Exit 11 Go south to 221(3.97mi.) Turn right onto Pleasant Grove for 4.3 Turn left onto SR 3029- Burnsville Ridge Road. Go approximately 6.0 miles Pad is on left. Note :Gravel Roads are 15 mph. Curfew: 6:45- 730 am. 315 pm.- 420 pm",
+    "r": "Road sequence reference:\nRoute 70 → Exit 11 → Pleasant Grove → Sr 3029- Burnsville Ridge Rd → SR-3029 → Pad\n\nStep-by-step directions:\n1. From 70 west.\n2. Exit 11.\n3. Go south to 221(3.97mi ).\n4. Turn right onto Pleasant Grove for 4.3.\n5. Turn left onto State Route 3029- Burnsville Ridge Road.\n6. Go approximately 6.0 miles.\n7. Pad is on left Note :Gravel Roads are 15 mph Curfew: 6:45- 730 am 315 pm - 420 pm."
+  },
+  "cnx--wylie-dennis": {
+    "s": "18 south 844 - split Left to Smiley Road (4055) Right to Rural Valley Rd Left to Ashmore road Right to Kelly Road",
+    "r": "Road sequence reference:\nRoute 18 → Split Left To Smiley Rd → Rural Valley Rd → Ashmore Rd → Kelly Rd\n\nStep-by-step directions:\n1. Follow 18 south 844 - split Left to Smiley Road (4055) Right to Rural Valley Road Left to Ashmore road Right to Kelly Road."
+  }
+}

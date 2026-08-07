@@ -1,0 +1,33 @@
+{
+  "version": "17.0.0",
+  "files": [
+    "antero.json",
+    "ascent-1.json",
+    "ascent-2.json",
+    "ascent-3.json",
+    "ascent-4.json",
+    "chesapeake.json",
+    "cnx.json",
+    "disposals.json",
+    "eclipse.json",
+    "eog-1.json",
+    "eog-2.json",
+    "eqt.json",
+    "expand-1.json",
+    "expand-2.json",
+    "expand-3.json",
+    "fresh-water.json",
+    "gulfport-1.json",
+    "gulfport-2.json",
+    "hg.json",
+    "hilcorp.json",
+    "infinity.json",
+    "lola.json",
+    "montage.json",
+    "penn-energy.json",
+    "range.json",
+    "swn.json",
+    "xto.json"
+  ],
+  "recordCount": 1160
+}

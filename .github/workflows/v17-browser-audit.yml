@@ -1,0 +1,76 @@
+name: Audit BrineSearch V17 preview
+
+on:
+  push:
+    branches: [v17-refactor]
+    paths:
+      - 'v17/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'netlify.toml'
+      - '.github/workflows/v17-browser-audit.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'v17/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'netlify.toml'
+      - '.github/workflows/v17-browser-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Verify and build V17
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start production preview
+        run: |
+          npx vite preview --config v17/vite.config.js --host 127.0.0.1 --port 4173 > /tmp/v17-preview.log 2>&1 &
+          echo $! > /tmp/v17-preview.pid
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/v17-preview.log
+          exit 1
+
+      - name: Include browser error stacks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('v17/scripts/browser-smoke.mjs')
+          text = path.read_text()
+          text = text.replace("pageErrors.push(error.message)", "pageErrors.push(error.stack || error.message)")
+          path.write_text(text)
+          PY
+
+      - name: Audit iPhone and desktop layouts
+        env:
+          V17_PREVIEW_URL: http://127.0.0.1:4173
+        run: node v17/scripts/browser-smoke.mjs
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/v17-preview.log || true

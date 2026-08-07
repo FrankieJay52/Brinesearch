@@ -1,0 +1,538 @@
+{
+  "eog--mangun": {
+    "s": "From.Carrollton take route 9.North.Before Augusta cross railroad tracks uphill.Down the other side at the bottom turn right on.Lustre rd.Right by a little quanset hutt",
+    "r": "Road sequence reference:\nRoute 9 → Lustre Rd\n\nStep-by-step directions:\n1. From Carrollton take route 9 North Before Augusta.\n2. Cross railroad tracks uphill Down the other side at the bottom.\n3. Turn right on Lustre Road Right by a little quanset hutt."
+  },
+  "eog--mangus": {
+    "s": "Take route 9 and route 14 straight through.Salem at the end of town.Go past.Walmart at the bottom of the.Hill.Turn right on.Egypt road.The stop sign, turn left on butcher.Pad is on the left",
+    "r": "Road sequence reference:\nRoute 9 → Route 14 → Egypt Rd → Pad\n\nStep-by-step directions:\n1. Take route 9 and route 14 straight through Salem at the end of town.\n2. Go past Walmart at the bottom of the Hill.\n3. Turn right on Egypt road The stop sign.\n4. Turn left on butcher.\n5. Pad is on the left."
+  },
+  "eog--maple": {
+    "s": "From 22 take the.Wintersville Street right.43 exit and head north and turn left onto 646 and then take a left onto county road 40/Kragel.Road.And go to the stop sign.Turn right and take.Route 40/Kragel.Road about 2 to three miles and the.Maple pad is on the right",
+    "r": "Road sequence reference:\nRoute 22 → Wintersville St → Route 646 → A Left Onto County Rd → CR-40 → Route 40 / Kragel Rd → Pad\n\nStep-by-step directions:\n1. From 22 take the Wintersville Street right 43.\n2. Exit and.\n3. Head north and.\n4. Turn left onto 646 and then.\n5. Take a.\n6. Turn left onto county road 40/Kragel Road And.\n7. Go to the stop sign.\n8. Turn right and.\n9. Take Route 40/Kragel Road about 2 to three miles and the Maple.\n10. Pad is on the right."
+  },
+  "eog--marsha": {
+    "s": "From.Carrollton take 39 towards.Delroy just passed.Griffith Rock.Yard turn left on.Chapel at stop sign right on.Antigua at the Y stay right on burrow pad is on the left",
+    "r": "Road sequence reference:\nRoute 39 → Pad\n\nStep-by-step directions:\n1. From Carrollton take 39 towards Delroy just passed Griffith Rock Yard.\n2. Turn left on Chapel at stop sign.\n3. Turn right on Antigua at the Y.\n4. Stay.\n5. Turn right on burrow.\n6. Pad is on the left."
+  },
+  "eog--maskaluk": {
+    "s": "From.Lisbon Go south on SR164 (10 miles) Turn.Left onto SR39 (.25 miles) Pad is on the right.From Steubenville.Go north on SR7 (18.75 miles) Turn left onto SR39 (8.8 miles) Pad will be on the left",
+    "r": "Road sequence reference:\nSR-164 → SR-39 → Pad → OR → SR-7 → SR-39 → Pad\n\nStep-by-step directions:\n1. From Lisbon Go south on State Route 164 (10 miles) Turn.\n2. Turn left onto State Route 39 ( for 25 miles).\n3. Pad is on the right From Steubenville.\n4. Go north on State Route 7 (18.75 miles).\n5. Turn left onto State Route 39 (8.8 miles).\n6. Pad will be on the left."
+  },
+  "eog--masters": {
+    "s": "From.Us 250 take SR646.East to.Gundy Ridge.Turn left on.Gundy Ridge and follow to the stop sign at.Beaver Dam.Road.Continue straight on.Gundy Ridge to.Havener Road.Turn left on.Havener and lease road will be on the left",
+    "r": "Road sequence reference:\nUS-250 → SR646 East To Gundy Ridge → SR-646 → Gundy Ridge → Havener → Lease Road\n\nStep-by-step directions:\n1. From US-250 take State Route 646 East to Gundy Ridge.\n2. Turn left on Gundy Ridge and.\n3. Follow to the stop sign at Beaver Dam Road.\n4. Continue straight on Gundy Ridge to Havener Road.\n5. Turn left on Havener and.\n6. Lease road will be on the left."
+  },
+  "eog--mattie": {
+    "s": "Right 151 east out of scio 2.6.MI past.Dollar General turnright on maple rd top of hill on left",
+    "r": "Road sequence reference:\nRoute 151 → General Turnright On Maple Rd\n\nStep-by-step directions:\n1. Follow Right 151 east out of scio 2.6 miles past Dollar General turnright on maple Road top of hill on left."
+  },
+  "eog--mcbride": {
+    "s": "From.Jewett take route 9.North turn right on 646 across from.Apex landfill access road.Turn right on county road 51.About 3/4 of a mile just before the little bridge turn left.Left at stop sign lease road 100 feet on left",
+    "r": "Road sequence reference:\nRoute 9 → Route 646 → CR-51 → Lease Road\n\nStep-by-step directions:\n1. From Jewett take route 9 North.\n2. Turn right on 646 across from Apex landfill access road.\n3. Turn right on county road 51 About 3/4 of a mile just before the little bridge.\n4. Turn left Left at stop sign.\n5. Lease road 100 feet on left."
+  },
+  "eog--mccoy": {
+    "s": "From right.9 in.Germanio take 646 to township.Road.51-A/CadizAmsterdam.Road.Go past.Apex landfill which turns into.Apex Amsterdam.Road go to 267 that only turns to the right and turn right, the pad is half a mile on the right",
+    "r": "Road sequence reference:\nRoute 646 → Pad\n\nStep-by-step directions:\n1. From right 9 in Germanio.\n2. Take 646 to township Road 51-A/CadizAmsterdam Road.\n3. Go past Apex landfill which turns into Apex Amsterdam Road.\n4. Go to 267 that only turns to the right and.\n5. Turn right, the pad is half a mile on the right."
+  },
+  "eog--mcmillen": {
+    "s": "800.South left on feed spring.Hill road right on latto.Right on.Sproul just passed the sproul pad on the right",
+    "r": "Road sequence reference:\nFeed Spring Hill Rd → Sproul → Pad\n\nStep-by-step directions:\n1. Follow 800 South.\n2. Turn left on feed spring Hill road.\n3. Turn right on latto.\n4. Turn right on Sproul just passed the sproul pad on the right."
+  },
+  "eog--meigs-23": {
+    "s": "Exit 28 take 821 N (right off exit from 77 north or south bound exits) Left on 340 stay on to stop sign Left at stop to stay on 340 (go approx. 3 1/2 miles) Pass 83 next left is continuation of 340 Left on Prouty rd (it’s a gravel road past the wilds and the next road after sias rd) Top of hill road splits go right (approx. 1/2 mile) Pad is in the left (approx. 1 mile)",
+    "r": "Road sequence reference:\nExit 28 → Route 821 → Route 77 → OR → Route 340 → Prouty Rd → Pad\n\nStep-by-step directions:\n1. Exit 28.\n2. Take 821 N (right off.\n3. Exit from 77 north or south bound exits).\n4. Turn left on 340.\n5. Stay on to stop sign.\n6. Turn left at stop to stay on 340 (go approx 3 1/2 miles).\n7. Pass 83 next left is continuation of 340.\n8. Turn left on Prouty Road (it’s a gravel road past the wilds and the next road after sias Road) Top of hill road splits.\n9. Go right (approx 1/2 miles).\n10. Pad is in the left (approx 1 mile)."
+  },
+  "eog--meister": {
+    "s": ".....",
+    "r": ""
+  },
+  "eog--mellenger": {
+    "s": "From right 30 and right 164 downtown.Lisbon follow right 164 north 6.7 miles take slight left on.Beeson Mills rd twp790 pad on left",
+    "r": "Road sequence reference:\nRoute 30 → Route 164 → Beeson Mills Rd → Pad\n\nStep-by-step directions:\n1. From right 30 and right 164 downtown Lisbon.\n2. Follow right 164 north for 6.7 miles.\n3. Take slight.\n4. Turn left on Beeson Mills Road twp790 pad on left."
+  },
+  "eog--mickey": {
+    "s": "From 22 take the 151.East exit in.Hopedale, take.Township Road 4 (miller station rd)north 4.7 miles,take left on.Township Road 164 (Toker rd) 0.3 miles access road is on the left.",
+    "r": "Road sequence reference:\nRoute 22 → TR-4 / Miller Station Rd → TR-164 / Toker Rd → Access Road\n\nStep-by-step directions:\n1. From 22 take the 151 East.\n2. Exit in Hopedale.\n3. Take Township Road 4 (miller station Road)north for 4.7 miles,take left on Township Road 164 (Toker Road) for 0.3 miles access road is on the left."
+  },
+  "eog--mills": {
+    "s": "From.Carrollton take right 9 north through.Augusta turn right on.Marble rd.1/4 mi on right",
+    "r": "Road sequence reference:\nRoute 9 → Marble Rd\n\nStep-by-step directions:\n1. From Carrollton take right 9 north through Augusta.\n2. Turn right on Marble Road 1/4 miles on right."
+  },
+  "eog--milltree": {
+    "s": "From kensington go east on 644.Turn left on route 518 turn feet on foundry hill rd.0.5 miles turn right on.Willard lease road is.On left",
+    "r": "Road sequence reference:\nRoute 644 → Route 518 → Lease Road\n\nStep-by-step directions:\n1. From kensington go east on 644.\n2. Turn left on route 518 turn feet on foundry hill Road for 0.5 miles.\n3. Turn right on Willard.\n4. Lease road is On left."
+  },
+  "eog--mitchell": {
+    "s": "From.Scio, 151 to 332 north.Algonquin Mill, turn right on.Autumn Road Southwest (cr19)follow to pad on left, if you go to.Alamo Road you went to far",
+    "r": "Road sequence reference:\nRoute 332 → Autumn Rd → Pad\n\nStep-by-step directions:\n1. From Scio, 151 to 332 north Algonquin Mill.\n2. Turn right on Autumn Road Southwest (County Road 19)follow to pad on left, if you.\n3. Go to Alamo Road you went to far."
+  },
+  "eog--moats": {
+    "s": "From minerva take right 30 east access rd on left just before kensington",
+    "r": "Road sequence reference:\nRoute 30 → Access Road\n\nStep-by-step directions:\n1. From minerva take right 30 east access Road on left just before kensington."
+  },
+  "eog--morsheiser": {
+    "s": "From the.North: OH542.South, take left onto.Avelon Road (CR20) for approximately 1.2 miles.Bear eight on.Avelon Road (CR20) for approximately.1.3 miles.At the T, take left on.Baxter Ridge.Road (CR20) for approx.0.1 miles.Lease road is on the left.From the.South: OH542 north out of.Delroy, after the bridge crossing the lake, immediately take right onto.Avelon Road (CR20) for approximately 1.2 miles.Bear eight on.Avelon Road (CR20) for approximately.1.3 miles.At the T, take left on.Baxter Ridge.Road (CR20) for approx.0.1 miles.Lease road is on the left.",
+    "r": "Road sequence reference:\nOH-542 → Avelon Rd → Eight On Avelon Rd → Baxter Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From the North: OH-542 South.\n2. Take left onto Avelon Road (County Road 20) for approximately for 1.2 miles.\n3. Bear eight on Avelon Road (County Road 20) for approximately for 1.3 miles At the T.\n4. Take left on Baxter Ridge Road (County Road 20) for approx for 0.1 miles.\n5. Lease road is on the left From the South: OH-542 north out of Delroy, after the bridge crossing the lake, immediately.\n6. Take right onto Avelon Road (County Road 20) for approximately for 1.2 miles.\n7. Lease road is on the left."
+  },
+  "eog--mountz": {
+    "s": "On TR839.Schneider.Road.Hanover.Township Approximately 7.65 miles.South of.Salem on SR9.Approximately 20.3 miles.North of.Carrollton on SR9.From the.South turn right off of SR9 onto TR839.Go.1 mile.Pad is on the left.From the.North turn left off of SR9 onto.Turn right 839.Go.1 mile.Pad is on the left",
+    "r": "Road sequence reference:\nTR839 Schneider Rd → TR-839 → SR-9 → OR → TR-839 → Pad → OR → Pad\n\nStep-by-step directions:\n1. Follow On Township Road 839 Schneider Road Hanover Township Approximately for 7.65 miles South of Salem on State Route 9 Approximately for 20.3 miles North of Carrollton on State Route 9 From the South.\n2. Turn right off of State Route 9 onto Township Road 839.\n3. Go 1 mile.\n4. Pad is on the left From the North.\n5. Turn left off of State Route 9 onto Turn right 839.\n6. Pad is on the left."
+  },
+  "eog--mrugala": {
+    "s": "From the.West: From the inetersection of OH-9 and OH-172 in.New Garden, travel east OH-172 (New.Garden Avenue) (3.7 miles) Make sharp left on.Depot Road (County Road-410) (1.8 miles).Turn right on.Teegarden Road (County Road-411) (0.4 miles) Access road will be on the right.-OR From the.East: From the intersection of US-30 and OH-172, travel west on OH-172 (State.Route 172) (3.4 miles) Turn right on.Depot Road (County Road-410) (1.8 miles).Turn right on.Teegarden Road (County Road-411) (0.4 miles) Access road will be on the right.",
+    "r": "Road sequence reference:\nDepot Rd → Teegarden Rd → Access Road → OR → OH-172 → Depot Rd → Teegarden Rd → Access Road\n\nStep-by-step directions:\n1. From the West: From the inetersection of OH-9 and OH-172 in New Garden, travel east OH-172 (New Garden Avenue) (3.7 miles) Make sharp.\n2. Turn left on Depot Road (County Road-410) (1.8 miles).\n3. Turn right on Teegarden Road (County Road-411) (0.4 miles) Access road will be on the right -OR From the East: From the intersection of US-30 and OH-172, travel west on OH-172 (State Route 172) (3.4 miles).\n4. Turn right on Depot Road (County Road-410) (1.8 miles).\n5. Turn right on Teegarden Road (County Road-411) (0.4 miles) Access road will be on the right."
+  },
+  "eog--mueller": {
+    "s": "FROM OH-45, 5.0 miles northwest of.Lisbon 1.Head southwest on.Teegarden Road toward.McCracken.Road(1.3 miles) 2.Slight right.McCracken.Road (0.7 miles)",
+    "r": "Road sequence reference:\nOH-45 → Southwest On Teegarden Rd → Mccracken Rd\n\nStep-by-step directions:\n1. FROM OH-45, 5.0 miles northwest of Lisbon 1.\n2. Head southwest on Teegarden Road toward McCracken Road(1.3 miles) 2 Slight right McCracken Road (0.7 miles)."
+  },
+  "eog--murray": {
+    "s": "From cadiz.And route 9.Take route 22.East to.The hope.Dale exit for route 151.At the stop sign turn left.On county 4.Miller station road.Cross tracks turn right on.Blue Ridge road.Turn right on.Murray road.Access is on the right",
+    "r": "Road sequence reference:\nRoute 9 → Route 22 → County 4 Miller Station Rd → Blue Ridge Rd → Murray Rd\n\nStep-by-step directions:\n1. From cadiz And route 9.\n2. Take route 22 East to The hope Dale.\n3. Exit for route 151 At the stop sign.\n4. Turn left On county 4 Miller station road.\n5. Cross tracks.\n6. Turn right on Blue Ridge road.\n7. Turn right on Murray road Access is on the right."
+  },
+  "eog--navy": {
+    "s": "From.Carrolton Take State Route 43.North for 9.3 miles.Left at the light for 1.5 miles right onto.Wicker Road for 0.1 miles.Left onto.Citrus Road Northwest Pad will be on the.Right First opening.Enter, second.Exit.",
+    "r": "Road sequence reference:\nSR-43 → Wicker Rd → Citrus Rd → Pad\n\nStep-by-step directions:\n1. From Carrolton Take State Route 43 North for 9.3 miles.\n2. Turn left at the light for 1.5 miles.\n3. Turn right onto Wicker Road for 0.1 miles.\n4. Turn left onto Citrus Road Northwest.\n5. Pad will be on the Right First opening.\n6. Enter, second.\n7. Exit."
+  },
+  "eog--neider-pad": {
+    "s": "From Carrollton take Rt 9/39 at the split stay left on Rt 39.. go approximately 5.2 miles lease road will be on your right.",
+    "r": "Road sequence reference:\nRoute 39 → Lease Road\n\nStep-by-step directions:\n1. From Carrollton take Rt 9/39 at the split.\n2. Stay.\n3. Turn left on Rt 39.\n4. Go approximately 5.2 miles.\n5. Lease road will be on your right."
+  },
+  "eog--newburn": {
+    "s": "From 22 take 43.North to State Route 646.West and.Follow to stop sign.Follow SR646 across SR152 for 2.9 miles and 211 is on left.Turn onto 211 and follow to top of hill and pad is on right",
+    "r": "Road sequence reference:\nRoute 22 → Route 43 → SR-646 → Route 211 → Pad\n\nStep-by-step directions:\n1. From 22 take 43 North to State Route 646 West and.\n2. Follow to stop sign.\n3. Follow State Route 646 across State Route 152 for 2.9 miles and 211 is on left Turn onto 211 and.\n4. Follow to top of hill and.\n5. Pad is on right."
+  },
+  "eog--nm-harrison": {
+    "s": "-From Scio take SR 151 to SR 9. Turn Right on SR 9. Follow SR 9 to Hanover Ridge Rd. Turn Right on Hanover Ridge Rd. Lease Road is on the Left Hand side. -OR- -From Jewett take SR 151 to SR 9. Turn Left on SR 9. Follow SR 9 to Hanover Ridge Rd. Turn Right on Hanover Ridge Rd. Lease Road is on the Left Hand side. -OR- -From Cadiz take SR 9 towards SR 151. Follow SR 9 to Hanover Ridge Rd. Turn Left on Hanover Ridge Rd. Lease Road is on the Left Hand side.",
+    "r": "Road sequence reference:\nSR-151 → SR-9 → Hanover Ridge Rd → Lease Road → OR → SR-9 → Hanover Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From Scio.\n2. Take State Route 151 to State Route 9.\n3. Turn Right on State Route 9.\n4. Follow State Route 9 to Hanover Ridge Road.\n5. Turn Right on Hanover Ridge Road.\n6. Lease Road is on the Left Hand side -OR- -From Jewett.\n7. Turn Left on State Route 9.\n8. Lease Road is on the Left Hand side -OR- -From Cadiz.\n9. Take State Route 9 towards State Route 151.\n10. Turn Left on Hanover Ridge Road.\n11. Lease Road is on the Left Hand side."
+  },
+  "eog--norris": {
+    "s": "From US 30.East and.Walker Road, (40.7442030,-81.0769280) Turn onto.Walker rd, stay left onto.Major Road.Ne, pad is on left.",
+    "r": "Road sequence reference:\nUS-30 → Walker Rd → Major Rd → Pad\n\nStep-by-step directions:\n1. From US-30 East and Walker Road, (40.7442030,-81.0769280) Turn onto Walker Road.\n2. Stay.\n3. Turn left onto Major Road Ne.\n4. Pad is on left."
+  },
+  "eog--old-oak-farms": {
+    "s": "Sr 43 in east Springfield go north on county rd 60 0.9 miles. Turn right on county rd 59 for 3.3 miles Trun right on county rd 54 Turn left on county rd 56 for 2.1 miles Turn right on township rd 259 1.25 miles. Access road is on the right.",
+    "r": "Road sequence reference:\nSR-43 → CR-60 → CR-59 → Trun Right On County Rd → CR-54 → CR-56 → TR-259 → Access Road\n\nStep-by-step directions:\n1. Follow State Route 43 in east Springfield.\n2. Go north on county Road 60 for 0.9 miles.\n3. Turn right on county Road 59 for 3.3 miles Trun.\n4. Turn right on county Road 54.\n5. Turn left on county Road 56 for 2.1 miles.\n6. Turn right on township Road 259 for 1.25 miles Access road is on the right."
+  },
+  "eog--oliver-cr-mon": {
+    "s": "212 Left on to deer rd @ the Leesville Lake sign Make an immediate left onto Caddy Rd Go to stop sign make a right onto Antigua Rd Make right onto Eagle Rd Pad is on the right.",
+    "r": "Road sequence reference:\nDeer Rd → Immediate Left Onto Caddy Rd → A Right Onto Antigua Rd → Eagle Rd → Pad\n\nStep-by-step directions:\n1. Follow 212.\n2. Turn left on to deer Road @ the Leesville Lake sign Make an immediate.\n3. Turn left onto Caddy Road.\n4. Go to stop sign make a.\n5. Turn right onto Antigua Road Make.\n6. Turn right onto Eagle Road.\n7. Pad is on the right."
+  },
+  "eog--ott": {
+    "s": "From magnolia goes south on route 542 go 6.13 miles.Turn left on.Fargo.0.5mi.Pad on, right?From.Dellroy Go north on route 542,go 4.3mi.Turn right on fargone half mile on right L",
+    "r": "Road sequence reference:\nRoute 542 → Fargo → Pad → OR → Route 542\n\nStep-by-step directions:\n1. From magnolia goes south on route 542.\n2. Go 6.13 miles.\n3. Turn left on Fargo 0.5mi Pad on, right?From Dellroy.\n4. Go north on route 542,go 4.3mi.\n5. Turn right on fargone half mile on right L."
+  },
+  "eog--ourland": {
+    "s": "From.Oh-151.Scio/Bowerstown.Road go south on.County.Road 25.Connton.Road (0.9 miles) Turn right onto.County.Road 43.Bower.Road (1.2.Miles) Lease rd is on left",
+    "r": "Road sequence reference:\nOH-151 / Scio/bowerstown Rd → Lease Road\n\nStep-by-step directions:\n1. From OH-151 Scio/Bowerstown Road.\n2. Go south on County Road 25 Connton Road (0.9 miles).\n3. Turn right onto County Road 43 Bower Road (1.2 miles).\n4. Lease Road is on left."
+  },
+  "eog--paige": {
+    "s": "North on sr644 out of.Salineville Pad will be on the left 0.3miles past lumber yard",
+    "r": "Road sequence reference:\nSR-644 → Pad\n\nStep-by-step directions:\n1. North on State Route 644 out of Salineville.\n2. Pad will be on the left for 0.3 miles past lumber yard."
+  },
+  "eog--palmer": {
+    "s": "From 164 if u came from right 9 itll be the 2nd pad on the right once you turn on.Bear Road ,the first is the palmer fresh water impoundment",
+    "r": "Road sequence reference:\nRoute 164 → Route 9 → Pad\n\nStep-by-step directions:\n1. From 164 if u came from right 9 itll be the 2nd pad on the right once you turn on Bear Road ,the first is the palmer fresh water impoundment."
+  },
+  "eog--parker": {
+    "s": "From 70.Exit 202.Follow right 800.North to.Freeport.At stop sign by.Freeport Press, turn left and follow right 342.Continue straight onto right 258 for about 3.2 miles.Pad will be on.Right",
+    "r": "Road sequence reference:\nRoute 70 → Exit 202 → Route 800 → Route 258 → Pad\n\nStep-by-step directions:\n1. From 70 Exit 202.\n2. Follow right 800 North to Freeport At stop sign by Freeport Press.\n3. Turn left and.\n4. Follow right 342.\n5. Continue straight onto right 258 for about for 3.2 miles.\n6. Pad will be on Right."
+  },
+  "eog--paul-brown": {
+    "s": "From Carrollton Rt 43 South. Just before Harlem springs turn right on Apollo Rd. Pad is on out there on the right 40.504000n -80.999400w",
+    "r": "Road sequence reference:\nRoute 43 → Apollo Rd → Pad\n\nStep-by-step directions:\n1. From Carrollton Rt 43 South Just before Harlem springs.\n2. Turn right on Apollo Road.\n3. Pad is on out there on the right 40.504000n -80.999400w."
+  },
+  "eog--pearley": {
+    "s": "From 800 & 258 in.Stillwater: go up 258 south 7.4 miles.Turn right on.Sandy Ridge.Road go 1.7 miles down the hill and over the skinny bridge.Turn left on.Laurel Valley.Road Pad is a quarter mile back on the right.",
+    "r": "Road sequence reference:\nRoute 800 → Route 258 → Sandy Ridge Rd → Laurel Valley Rd → Pad\n\nStep-by-step directions:\n1. From 800 & 258 in Stillwater.\n2. Go up 258 south 7.4 miles.\n3. Turn right on Sandy Ridge Road.\n4. Go 1.7 miles down the hill and over the skinny bridge.\n5. Turn left on Laurel Valley Road.\n6. Pad is a quarter mile back on the right."
+  },
+  "eog--peckens": {
+    "s": "Turn left on 152 off State Route 22 stay on 152 to 646.Turn left on 646 about 1/2 mile lease.Road is on the right",
+    "r": "Road sequence reference:\nRoute 152 → SR-22 → Route 646 → Lease Road\n\nStep-by-step directions:\n1. Turn left on 152 off State Route 22.\n2. Stay on 152 to 646.\n3. Turn left on 646 about 1/2 miles.\n4. Lease Road is on the right."
+  },
+  "eog--pelegreen-farms": {
+    "s": "Approved.Route: From.West: From.Hopedale OH-151.Turn onto US-22E Turn right onto.County Line.Road Turn left onto County Road- 22A Access road is 0.8.Miles on the left OR From.East: From.Bloomingdale OH-152.Turn onto US-22E Turn left onto.County Line.Road Turn left onto County Road- 22A Access road is 0.8.Miles on the left https://maps.App.Goo.Gl/MwobvZRdVUuKKsDZA",
+    "r": "Road sequence reference:\nUS-22E → CR-22A → Access Road\n\nStep-by-step directions:\n1. Approved Route: From West: From Hopedale OH-151 Turn onto US-22E.\n2. Turn right onto County Line Road.\n3. Turn left onto County Road- 22A Access road is for 0.8 miles on the left OR From East: From Bloomingdale OH-152 Turn onto US-22E.\n4. Turn left onto County Line Road.\n5. Turn left onto County Road- 22A Access road is for 0.8 miles on the left https://maps App Goo Gl/MwobvZRdVUuKKsDZA."
+  },
+  "eog--pelletier": {
+    "s": "From.Steubenville continue onto.Woodmont Avenue.In 250 ft, turn right onto.Pottery Road.In 525 ft, turn right onto.Kingsdale Road.In 1.2 mi, turn right onto State Route 213.In 225 ft, continue.In 5.0 mi, keep right.In 0.4 mi, turn right onto.Canton Road, State Route 43.In 0.3 mi, turn left onto State Route 646.In 4.1 mi, turn right onto State Route 152.In 50 ft, turn left onto State Route 646.In 4.3 mi, turn right onto.Unionport Road.In 0.4 mi, arrive at destination https://www.Google.Com/maps/dir//Encino+Pelletier+JN+SAL,+7479+County+Road+3 9,+Bloomingdale,+OH+43910/@40.4128764,-80.8408493,10450m/data=!3m1!1e3!4m9!4m8!1m0!1m5!1m1!1s0x883681604225b2bb:0xc645665c5655920b!2m2!1d- 80.8656473!2d40.416486!3e0?Entry=ttu",
+    "r": "Road sequence reference:\nSteubenville Continue Onto Woodmont Ave → Pottery Rd → Kingsdale Rd → SR-213 → Canton Rd → SR-646 → SR-152 → Unionport Rd\n\nStep-by-step directions:\n1. From Steubenville continue onto Woodmont Avenue In 250 feet.\n2. Turn right onto Pottery Road In 525 feet.\n3. Turn right onto Kingsdale Road In 1.2 miles.\n4. Turn right onto State Route 213 In 225 feet.\n5. Continue In 5.0 miles.\n6. Keep right In 0.4 miles.\n7. Turn right onto Canton Road, State Route 43 In 0.3 miles.\n8. Turn left onto State Route 646 In 4.1 miles.\n9. Turn right onto State Route 152 In 50 feet.\n10. Turn left onto State Route 646 In 4.3 miles.\n11. Turn right onto Unionport Road In 0.4 miles, arrive at destination https://www Google Com/maps/dir//Encino+Pelletier+JN+SAL,+7479+County+Road+3 9,+Bloomingdale,+OH+43910/@40.4128764,-80.8408493,10450m/data=!3m1!1e3!4m9!4m8!1m0!1m5!1m1!1s0x883681604225b2bb:0xc645665c5655920b!2m2!1d- 80.8656473!2d40.416486!3e0?Entry=ttu."
+  },
+  "eog--pickens": {
+    "s": "77 south 250 east 151 east 9 north 646 east approximately 1.5 mi.Pad on left side",
+    "r": "Road sequence reference:\nRoute 77 → Route 250 → Route 151 → Route 9 → Route 646 → Pad\n\nStep-by-step directions:\n1. 77 south 250 east 151 east 9 north 646 east approximately 1.5 miles Pad on left side."
+  },
+  "eog--pigeon-a": {
+    "s": "From Carrollton take route 9 North into Augusta at the 2nd turn stay straight on Aurora road About 1/2 mile on the right",
+    "r": "Road sequence reference:\nRoute 9 → Aurora Rd\n\nStep-by-step directions:\n1. From Carrollton take route 9 North into Augusta at the 2nd turn.\n2. Stay straight on Aurora road About 1/2 miles on the right."
+  },
+  "eog--pitts": {
+    "s": "From salineville 644 north, past.Lumber yard , bear left onto 847(Lewis rd) to first right onto.Emerick rd (cr50), then left at church onto.Ackerman rd (cr845), then right on.Nature rd Northeast (cr 748), pad on right",
+    "r": "Road sequence reference:\nRoute 644 → Route 847 → Emerick Rd → Church Onto Ackerman Rd → Nature Rd → Pad\n\nStep-by-step directions:\n1. From salineville 644 north, past Lumber yard.\n2. Bear.\n3. Turn left onto 847(Lewis Road) to first.\n4. Turn right onto Emerick Road (County Road 50), then.\n5. Turn left at church onto Ackerman Road (County Road 845), then.\n6. Turn right on Nature Road Northeast (County Road 748), pad on right."
+  },
+  "eog--poinsetta": {
+    "s": "From 250 take 151.East to 332.North trun right on 164 n pad is on the left.From.Carrollton tak 332.South turn left on 164.North pad is on the left",
+    "r": "Road sequence reference:\nRoute 250 → Route 151 → Route 164 → Pad\n\nStep-by-step directions:\n1. From 250 take 151 East to 332 North trun.\n2. Turn right on 164 n.\n3. Pad is on the left From Carrollton tak 332 South.\n4. Turn left on 164 North.\n5. Pad is on the left."
+  },
+  "eog--putnam": {
+    "s": "From.Kilgore take 164.South right on.Aster Road slight right on.Alamo 3.8.MI on the right.-OR- Take 332 from.Carrollton, left on.Autumn road, turn left on.Alamo.Pad is on your right.-OR- Take 332 from.Perrysville, right on.Autumn road, turn left on.Alamo.Pad is on your right.",
+    "r": "Road sequence reference:\nRoute 164 → Aster Rd → Alamo → Route 332 → Autumn Rd → Pad → OR → Autumn Rd → Pad\n\nStep-by-step directions:\n1. From Kilgore take 164 South.\n2. Turn right on Aster Road slight.\n3. Turn right on Alamo for 3.8 miles on the right -OR.\n4. Take 332 from Carrollton.\n5. Turn left on Autumn road.\n6. Turn left on Alamo.\n7. Pad is on your right -OR.\n8. Take 332 from Perrysville.\n9. Turn right on Autumn road.\n10. Pad is on your right."
+  },
+  "eog--r-alan": {
+    "s": "151 Scio, right on 332 pads is immediately on left before Yoder north From 250 take 151 turn left on 332 pad is immediately on your left",
+    "r": "Road sequence reference:\nRoute 332 → Route 250 → Route 151 → Pad\n\nStep-by-step directions:\n1. Follow 151 Scio.\n2. Turn right on 332 pads is immediately on left before Yoder north From 250.\n3. Take 151.\n4. Turn left on 332.\n5. Pad is immediately on your left."
+  },
+  "eog--r-kirk": {
+    "s": "Route 43 East Springfield turn onto CR 60 go 2.7 miles turn right on CR58 (timothy ridge rd)go .5 miles pad on right. Right on twp263",
+    "r": "Road sequence reference:\nRoute 43 → CR-60 → CR-58 / Timothy Ridge Rd → TR-263 → Pad\n\nStep-by-step directions:\n1. Route 43 East Springfield turn onto County Road 60.\n2. Go 2.7 miles.\n3. Turn right on County Road 58 (timothy ridge Road)go for 5 miles pad on right.\n4. Turn right on twp263."
+  },
+  "eog--ray-hayley": {
+    "s": "From Scio take RT 332 N to Perrysville where RT 164 crosses. Turn left on 164 and go about 2 miles. Pad is at the top of hill on the left side.",
+    "r": "Road sequence reference:\nRoute 332 → Route 164 → Pad\n\nStep-by-step directions:\n1. From Scio take RT 332 N to Perrysville where RT 164 crosses.\n2. Turn left on 164 and.\n3. Go about 2 miles.\n4. Pad is at the top of hill on the left side."
+  },
+  "eog--rensi": {
+    "s": "Take 646 out of scio turn left on.Gundy Ridge take the first right.Flaherty rd near the top of the hill keep bearing right.Pad is on the.Left on.Morrow Road just past the.Wright well pad",
+    "r": "Road sequence reference:\nRoute 646 → Gundy Ridge → Flaherty Rd → Morrow Rd → Pad\n\nStep-by-step directions:\n1. Take 646 out of scio.\n2. Turn left on Gundy Ridge.\n3. Take the first right Flaherty Road near the top of the hill.\n4. Keep bearing right.\n5. Pad is on the Left on Morrow Road just past the Wright well pad."
+  },
+  "eog--richland-trust": {
+    "s": "From 644 on 39 west… go through Summmitville Pass under the bridge Turn right on to Summitville Rd Turn Right onto Briceland Rd (Meister Rd) Destination will be on your left after the green barn",
+    "r": "Road sequence reference:\nRoute 644 → Route 39 → Summitville Rd → Briceland Rd\n\nStep-by-step directions:\n1. From 644 on 39 west….\n2. Go through Summmitville.\n3. Pass under the bridge.\n4. Turn right on to Summitville Road.\n5. Turn Right onto Briceland Road (Meister Road) Destination will be on your left after the green barn."
+  },
+  "eog--riffle-pad": {
+    "s": "45 South out of Salem well on the left on Ski slope hill",
+    "r": "Road sequence reference:\nRoute 45 → Ski Slope Hill\n\nStep-by-step directions:\n1. Follow 45 South out of Salem well on the left on Ski slope hill."
+  },
+  "eog--rogers": {
+    "s": "From intersection of SR151 and SR332… Take 332 north for about 1.4 mile.Turn.Right onto.Germantown Road, then keep right to stay on.Germantown.Turn left onto.Kilgore Ridge and travel for about 3/4 mile.Pad on left.",
+    "r": "Road sequence reference:\nSR-151 → SR-332 → Germantown Rd → Kilgore Ridge → Pad\n\nStep-by-step directions:\n1. From intersection of State Route 151 and State Route 332….\n2. Take 332 north for about for 1.4 miles Turn.\n3. Turn right onto Germantown Road, then.\n4. Keep right to stay on Germantown.\n5. Turn left onto Kilgore Ridge and travel for about 3/4 miles Pad on left."
+  },
+  "eog--rogue": {
+    "s": "Take 800.South out of.Dennison go through.Stillwater 2.4 miles turn left on 290.Ferguson road up the hill turn right on.Laughlin 291 pad will be on the right",
+    "r": "Road sequence reference:\nRoute 800 → Ferguson Rd → Route 290 → Pad\n\nStep-by-step directions:\n1. Take 800 South out of Dennison.\n2. Go through Stillwater 2.4 miles.\n3. Turn left on 290 Ferguson road up the hill.\n4. Turn right on Laughlin 291.\n5. Pad will be on the right."
+  },
+  "eog--rose": {
+    "s": "Exit 81.New.Philadelphia turn right onto 39.Follow 39 through.New Philadelphia to.Dellroy.Go straight at the 4 way in.Dellroy onto 542.Follow 542 until you come to.Bark Road.Turn right onto.Bark Road across from the.Marina.Follow.Bark Road to.Holiday Road turn right onto.Holiday Road pad is at the top of the.Hill.",
+    "r": "Road sequence reference:\nExit 81 → Route 39 → Route 542 → Come To Bark Rd → Bark Rd → Marina Follow Bark Rd → Holiday Rd → Pad\n\nStep-by-step directions:\n1. Exit 81 New Philadelphia.\n2. Turn right onto 39.\n3. Follow 39 through New Philadelphia to Dellroy.\n4. Go straight at the 4 way in Dellroy onto 542.\n5. Follow 542 until you come to Bark Road.\n6. Turn right onto Bark Road across from the Marina.\n7. Follow Bark Road to Holiday Road.\n8. Turn right onto Holiday Road.\n9. Pad is at the top of the Hill."
+  },
+  "eog--roy-d": {
+    "s": "FROM: OH 172 1. Head north on Depot Rd toward Parkview Ave 2.7 mi 2. Turn right onto Winona Rd 0.5 mi",
+    "r": "Road sequence reference:\nOH-172 → Depot Rd → Winona Rd\n\nStep-by-step directions:\n1. FROM: OH-172 1.\n2. Head north on Depot Road toward Parkview Avenue for 2.7 miles 2.\n3. Turn right onto Winona Road for 0.5 miles."
+  },
+  "eog--ruby": {
+    "s": "From.Scio take 646.East to new rumley turn left on.Dutch Ridge rd (cr136), then bear left on burrier rd (cr135),down the hill to the stop sign and turn right about three quarters of a mile on the right",
+    "r": "Road sequence reference:\nRoute 646 → Dutch Ridge Rd → Burrier Rd\n\nStep-by-step directions:\n1. From Scio take 646 East to new rumley.\n2. Turn left on Dutch Ridge Road (County Road 136), then.\n3. Bear.\n4. Turn left on burrier Road (County Road 135),down the hill to the stop sign and.\n5. Turn right about three quarters of a mile on the right."
+  },
+  "eog--rutledge": {
+    "s": "From oh 39 approximately 2.5 miles of west of carrollton.Go east on chapel rd.Southwest toward antigua rd 0.4 miles.Turn right on antigua rd sw for 3.1 miles.Turn left on canyon rd sw for 1.1 miles.Pad is the 1st driveway on the.Left past.Empire Road Southwest (136)",
+    "r": "Road sequence reference:\nOH-39 → Chapel Rd → Antigua Rd → Canyon Rd → Empire Rd → Pad\n\nStep-by-step directions:\n1. From OH-39 approximately 2.5 miles of west of carrollton.\n2. Go east on chapel Road Southwest toward antigua Road for 0.4 miles.\n3. Turn right on antigua Road sw for 3.1 miles.\n4. Turn left on canyon Road sw for 1.1 miles.\n5. Pad is the 1st driveway on the Left past Empire Road Southwest (136)."
+  },
+  "eog--s-farms": {
+    "s": "From Carrollton take 39 to mechanicstown at the crossroads turn left on County 14 stay left Lease Road is on the right about three or four miles out",
+    "r": "Road sequence reference:\nRoute 39 → CR-14 → Lease Road\n\nStep-by-step directions:\n1. From Carrollton take 39 to mechanicstown at the crossroads.\n2. Turn left on County 14.\n3. Stay left.\n4. Lease Road is on the right about three or four miles out."
+  },
+  "eog--sable": {
+    "s": "10871 chapel drive.Cumberland Ohio 43732",
+    "r": "Step-by-step directions:\n1. 10871 chapel.\n2. Drive Cumberland Ohio 43732."
+  },
+  "eog--sadie": {
+    "s": "From 22 out of.Cadiz take rt9.North 6 miles turn right.Hanover Ridge.Road.Go 3.7 miles lease.Road is on the right.You will come up on a four-way stop 2.2 miles from rt9, stay straight through.Go 1.5 miles to the lease.Road on the right.",
+    "r": "Road sequence reference:\nRoute 22 → Route 9 → Hanover Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From 22 out of Cadiz.\n2. Take rt9 North for 6 miles.\n3. Turn right Hanover Ridge Road.\n4. Go 3.7 miles.\n5. Lease Road is on the right You will come up on a four-way stop for 2.2 miles from rt9.\n6. Stay straight through.\n7. Go 1.5 miles to the lease Road on the right."
+  },
+  "eog--sandra-farms": {
+    "s": "From Minerva take route 183 North Turn right on route 172 Left on county 402 (Rochester Rd) 3.8 miles, Left on county 400( Georgetown Rd). pad is on right. From Carrollton take route 9 North turn left on route 172, Right on county 402 3.8 mileft on county 400 (Georgetown Td), Pad is on right",
+    "r": "Road sequence reference:\nRoute 183 → Route 172 → Pad → OR → Route 9 → Route 172 → CR-402 → Pad\n\nStep-by-step directions:\n1. From Minerva take route 183 North.\n2. Turn right on route 172.\n3. Turn left on county 402 (Rochester Road) for 3.8 miles.\n4. Turn left on county 400( Georgetown Road).\n5. Pad is on right From Carrollton.\n6. Take route 9 North.\n7. Turn left on route 172.\n8. Turn right on county 402 3.8 mileft on county 400 (Georgetown Td).\n9. Pad is on right."
+  },
+  "eog--sanor-farms": {
+    "s": "From Minerva take 183 North Turn right on 172 A new Alexander Turn left on county 402 At the next stop sign turn left on county 400 About one mile on the right",
+    "r": "Road sequence reference:\nRoute 183 → Route 172 → CR-400\n\nStep-by-step directions:\n1. From Minerva take 183 North.\n2. Turn right on 172 A new Alexander.\n3. Turn left on county 402 At the next stop sign.\n4. Turn left on county 400 About one mile on the right."
+  },
+  "eog--sauers": {
+    "s": "From.North-From.Carrollton Turn onto OH-332S Turn right onto.Autumn Road.Access road is 0.9 miles on the right OR From.South-From OH-164.Turn onto OH-332N Toward.Carrollton Turn left onto.Autumn Road.Access road is 0.9.Miles on the right",
+    "r": "Road sequence reference:\nOH-332S → Autumn Rd → Access Road → OR → OH-164 → OH-332N → Autumn Rd → Access Road\n\nStep-by-step directions:\n1. From North-From Carrollton Turn onto OH-332S.\n2. Turn right onto Autumn Road Access road is for 0.9 miles on the right OR From South-From OH-164 Turn onto OH-332N Toward Carrollton.\n3. Turn left onto Autumn Road Access road is for 0.9 miles on the right."
+  },
+  "eog--schiappa-trust-a": {
+    "s": "From 22 turn onto 43 North and go to second redlight (just past walmart distribution center) and turn right on County road 45 and the lease road is on right past walmart",
+    "r": "Road sequence reference:\nRoute 22 → Route 43 → CR-45 → Lease Road\n\nStep-by-step directions:\n1. From 22 turn onto 43 North and.\n2. Go to second redlight (just past walmart distribution center) and.\n3. Turn right on County road 45 and the lease road is on right past walmart."
+  },
+  "eog--schiappa-trust-b": {
+    "s": "From 22 take 43 North and go to County road 43 and follow it past the industrial park and the lease is on the right",
+    "r": "Road sequence reference:\nRoute 22 → Route 43\n\nStep-by-step directions:\n1. From 22 take 43 North and.\n2. Go to County road 43 and.\n3. Follow it past the industrial park and the lease is on the right."
+  },
+  "eog--schmuck": {
+    "s": "Encino schmuck https://goo.Gl/maps/FAgKkBU4QLbT3Gd18.From OH-39 in.Mechanicstown, take.County Highway 12 (Apollo.Road) north for 0.7 miles to the intersection with.Mystic Road.Northeast.Continue straight at this intersection onto.County Highway 14 (Arbor.Road.) and follow for 1.3 miles to the intersection with.Mountain Road.Northeast.Follow.Arbor Road left around the bend and arrive at the.Schmuck access road in 0.2 miles on the right.",
+    "r": "Road sequence reference:\nOH-39 → County Hwy → CR-12 / Apollo Rd → This Intersection Onto County Hwy → CR-14 / Arbor Rd → Northeast Follow Arbor Rd → Access Road\n\nStep-by-step directions:\n1. Encino schmuck https://goo Gl/maps/FAgKkBU4QLbT3Gd18 From OH-39 in Mechanicstown.\n2. Take County Highway 12 (Apollo Road) north for 0.7 miles to the intersection with Mystic Road Northeast.\n3. Continue straight at this intersection onto County Highway 14 (Arbor Road ) and.\n4. Follow for 1.3 miles to the intersection with Mountain Road Northeast.\n5. Follow Arbor Road left around the bend and arrive at the Schmuck access road in 0.2 miles on the right."
+  },
+  "eog--schmuck-farms": {
+    "s": "From Carrollton, Follow Route 9 north past power plant. Turn right onto Cobbler Rd (across from ST RT 171. Turn right on Andora. Pad is 3/4 mile on the right",
+    "r": "Road sequence reference:\nRoute 9 → Cobbler Rd → Andora → Pad\n\nStep-by-step directions:\n1. From Carrollton, Follow Route 9 north past power plant.\n2. Turn right onto Cobbler Road (across from ST RT 171.\n3. Turn right on Andora.\n4. Pad is 3/4 miles on the right."
+  },
+  "eog--scott": {
+    "s": "Going south out of of.Kilgore go right onto.Aster Road then turn left onto.Ponder Road.Ponder.Road(cr380)runs into the pad -OR- From.Carrollton take 332 towards.Scio.Turn.Left on.Autmn Road Southeast.Turn.Right on.Alamo Road Southeast.Turn.Left on.Aster Road.Turn.Right on.Ponder Road.Scott.Lease is at the END of.Ponder Road.",
+    "r": "Road sequence reference:\nAster Rd → Ponder Rd → Route 332 → Autmn Rd → Alamo Rd → Pad\n\nStep-by-step directions:\n1. Going south out of of Kilgore.\n2. Go.\n3. Turn right onto Aster Road then.\n4. Turn left onto Ponder Road Ponder Road(County Road 380)runs into the pad -OR- From Carrollton.\n5. Take 332 towards Scio Turn.\n6. Turn left on Autmn Road Southeast Turn.\n7. Turn right on Alamo Road Southeast Turn.\n8. Turn left on Aster Road Turn.\n9. Turn right on Ponder Road Scott Lease is at the END of Ponder Road."
+  },
+  "eog--seifer": {
+    "s": "From US-250/OH-800 intersection: Head east on US-250 for 5.1 miles and turn left onto.Reed Road.Lease road 0.2 miles ahead on left, shares a lease road with.Stocker Pad.Drive onto.Stocker Pad and keep to the right to begin.Seifer lease road.",
+    "r": "Road sequence reference:\nUS-250 → OH-800 → Reed Rd → Lease Road\n\nStep-by-step directions:\n1. From US-250/OH-800 intersection.\n2. Head east on US-250 for 5.1 miles and.\n3. Turn left onto Reed Road.\n4. Lease road 0.2 miles ahead on left, shares a.\n5. Lease road with Stocker Pad.\n6. Drive onto Stocker Pad and.\n7. Keep to the right to begin Seifer.\n8. Lease road."
+  },
+  "eog--sevek": {
+    "s": "Take 39 west off of rt7 go 8.5 miles then turn left on clarks mills rd.Drive.5 miles pad will be on left",
+    "r": "Road sequence reference:\nRoute 39 → Route 7 → Clarks Mills Rd → Pad\n\nStep-by-step directions:\n1. Take 39 west off of rt7.\n2. Go 8.5 miles then.\n3. Turn left on clarks mills Road.\n4. Drive 5 miles.\n5. Pad will be on left."
+  },
+  "eog--shadow": {
+    "s": "77n exit 83.Take 800N to 183E turn left onto.Lee rd stay straight on.Lee until you get to the lease rd.",
+    "r": "Road sequence reference:\nRoute 77 → Exit 83 → Route 800 → Route 183 → Lee Rd → Lease Road\n\nStep-by-step directions:\n1. 77n.\n2. Exit 83.\n3. Take 800N to 183E.\n4. Turn left onto Lee Road.\n5. Stay straight on Lee until you get to the lease Road."
+  },
+  "eog--shannon": {
+    "s": "43 to 152 north to 213 north pass.Stanton elementary next.Left on 72 stay on 72 up the hill 2nd left litt white church right after your turn",
+    "r": "Road sequence reference:\nRoute 152 → Route 213 → Route 72\n\nStep-by-step directions:\n1. Follow 43 to 152 north to 213 north.\n2. Pass Stanton elementary next.\n3. Turn left on 72.\n4. Stay on 72 up the hill 2nd left litt white church right after your turn."
+  },
+  "eog--shaw": {
+    "s": "From.Carrollton take 39 toward mechanicstown about 1and 1/2 mi lease road on the left",
+    "r": "Road sequence reference:\nRoute 39 → Lease Road\n\nStep-by-step directions:\n1. From Carrollton take 39 toward mechanicstown about 1and 1/2 miles.\n2. Lease road on the left."
+  },
+  "eog--shaw-properties": {
+    "s": "This is shaw property’s not the Shaw From Amsterdam, take 43 northwest towards Harlem springs, turn right just before town.",
+    "r": "Step-by-step directions:\n1. This is shaw property’s not the Shaw From Amsterdam.\n2. Take 43 northwest towards Harlem springs.\n3. Turn right just before town."
+  },
+  "eog--shc-enterprise": {
+    "s": "From Cadiz: Take 250 west to 151, turn right. Follow approximately 3.3 miles then turn right onto Gundy Ridge Rd (CR44). Lease road is on the left at top of the hill.",
+    "r": "Road sequence reference:\nRoute 250 → Gundy Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From Cadiz: Take 250 west to 151.\n2. Turn right Follow approximately for 3.3 miles then.\n3. Turn right onto Gundy Ridge Road (County Road 44).\n4. Lease road is on the left at top of the hill."
+  },
+  "eog--shugert": {
+    "s": "I77.South to US40 exit for.Old Washington, turn left.Go 3.1 miles on US 40 and turn sharp left on 2nd entrance of.Old National.Road.Go 1/4 mile turn sharp right on.Endley Road, go 1 mile and turn left on.Wolf Den.Road.Go 1/4 mile and lease road is on left.",
+    "r": "Road sequence reference:\nI-77 → US-40 → Old National Rd → Endley Rd → Wolf Den Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 South to US-40.\n2. Exit for Old Washington.\n3. Turn left Go 3.1 miles on US-40 and turn sharp.\n4. Turn left on 2nd entrance of Old National Road.\n5. Go 1/4 miles turn sharp.\n6. Turn right on Endley Road.\n7. Go 1 mile and.\n8. Turn left on Wolf Den Road.\n9. Go 1/4 miles and.\n10. Lease road is on left."
+  },
+  "eog--shultz": {
+    "s": "From.Amsterdam take 43.South to.East Springfield turn left on.County 60 about 1 mi turn right on.County 59 past the cemetery.Lees road on the right",
+    "r": "Road sequence reference:\nRoute 43 → CR-60 → CR-59\n\nStep-by-step directions:\n1. From Amsterdam take 43 South to East Springfield.\n2. Turn left on County 60 about for 1 mile.\n3. Turn right on County 59 past the cemetery Lees road on the right."
+  },
+  "eog--slates": {
+    "s": "From.Ohio 164 head south to castle road toward branch road.Pad will be on the left.2 miles (on castle) NOT CASTLE/KILGORE RIDGE ROAD From 332 take 164 5 miles to top of hill on a turn 2nd.Caslte road on right county rd 59 turn right.2 mile pad on the left",
+    "r": "Road sequence reference:\nCastle Rd → Route 332 → Route 164 → A Turn 2nd Caslte Rd → Pad\n\nStep-by-step directions:\n1. From Ohio 164.\n2. Head south to castle road toward branch road.\n3. Pad will be on the left for 2 miles (on castle) NOT CASTLE/KILGORE RIDGE ROAD From 332.\n4. Take 164 for 5 miles to top of hill on a turn 2nd Caslte road on right county Road 59.\n5. Turn right 2 miles pad on the left."
+  },
+  "eog--smeltz": {
+    "s": "From.Carrollton take 43 south to canyon RD Southeast (Garner auction house sign).Turn on canyon RD...First pad on the left.",
+    "r": "Road sequence reference:\nRoute 43 → Canyon Rd → Pad\n\nStep-by-step directions:\n1. From Carrollton take 43 south to canyon Road Southeast (Garner auction house sign) Turn on canyon Road First pad on the left."
+  },
+  "eog--smith": {
+    "s": "From US22.Turn onto.Arnold Road for 1.1 miles, Turn.Left onto.Pipeline Road for.Approximately 1.1 miles, Turn.Right onto.Kanoski Road.For.Approximately 0.8.Miles.Lease Road.Will be on the.Right",
+    "r": "Road sequence reference:\nUS22 Turn Onto Arnold Rd → US-22 → Pipeline Rd → Kanoski Rd → Lease Road\n\nStep-by-step directions:\n1. From US-22 Turn onto Arnold Road for 1.1 miles, Turn.\n2. Turn left onto Pipeline Road for Approximately for 1.1 miles, Turn.\n3. Turn right onto Kanoski Road For Approximately for 0.8 miles.\n4. Lease Road Will be on the Right."
+  },
+  "eog--smith-nursery": {
+    "s": "From 151 turn on 332 go 1 mile past 164 turn right on aster rd go 3.5 mile turn left on plane rd lease rd on left",
+    "r": "Road sequence reference:\nRoute 151 → Route 332 → Aster Rd → Plane Rd → Lease Road\n\nStep-by-step directions:\n1. From 151 turn on 332.\n2. Go 1 mile past 164.\n3. Turn right on aster Road.\n4. Go 3.5 miles.\n5. Turn left on plane Road.\n6. Lease Road on left."
+  },
+  "eog--snoddy": {
+    "s": "From 22 west.Go north on 43.Right on 620 to pad.620 is the lease rd.Google maps coordinates 40.5311437, -81.0164341",
+    "r": "Road sequence reference:\nRoute 22 → Route 43 → Route 620 → Lease Road\n\nStep-by-step directions:\n1. From 22 west.\n2. Go north on 43.\n3. Turn right on 620 to pad 620 is the lease Road Google maps coordinates 40.5311437, -81.0164341."
+  },
+  "eog--snyder": {
+    "s": "From the intersection of 39 and route 43 in.Carrollton travel 4.6 mi west on 39 turn left on county road 47 burrow road travel 0.4 mi pad is on the right.From the intersection of 39 and route 542 in dellroy travel 2.8 mi east on 39 turn right on county road 47 burrow road travel 0.4 mi pad on the right",
+    "r": "Road sequence reference:\nRoute 39 → CR-47 → Pad\n\nStep-by-step directions:\n1. From the intersection of 39 and route 43 in Carrollton travel 4.6 miles west on 39.\n2. Turn left on county road 47 burrow road travel for 0.4 miles.\n3. Pad is on the right From the intersection of 39 and route 542 in dellroy travel for 2.8 miles east on 39.\n4. Turn right on county road 47 burrow road travel for 0.4 miles pad on the right."
+  },
+  "eog--sparkman": {
+    "s": "***From the intersection of I-77 and I-70 near.Cambridge Travel 6.7 miles east on I-70.Exit right onto SR285 (.2 miles) Right onto institute rd(1.75 miles) Left onto calico (500 feet) Pad is on the right ***From the intersection of I-70 and I-470 near.Street.Clairsville.Travel 28.2 miles west on I-70.Exit right then left onto SR285 (.3 miles) Right onto CR57 (1.75 miles) Left onto TR4575 (500 feet) Pad is on the right.",
+    "r": "Road sequence reference:\nI-70 → SR-285 → Institute Rd → Pad → OR → I-70 / I-470 Near St → SR-285 → CR-57 → TR-4575 → Pad\n\nStep-by-step directions:\n1. ***From the intersection of I-77 and I-70 near Cambridge Travel 6.7 miles east on I-70.\n2. Exit right onto State Route 285 ( for 2 miles).\n3. Turn right onto institute Road(1.75 miles).\n4. Turn left onto calico (500 feet).\n5. Pad is on the right ***From the intersection of I-70 and I-470 near Street Clairsville Travel for 28.2 miles west on I-70.\n6. Exit right then.\n7. Turn left onto State Route 285 ( for 3 miles).\n8. Turn right onto County Road 57 (1.75 miles).\n9. Turn left onto Township Road 4575 (500 feet).\n10. Pad is on the right."
+  },
+  "eog--sproul-tc-rsh": {
+    "s": "State Rt 250 to 800 South - Take 800 South. Turn onto Feed Springs Rd South East CR 36 to Latto Rd SE CR 30-turn right onto Latto Rd SE and travel to Sproul Rd SE- Turn right onto Sproul Rd SE and go 1/8 of a mile to Entrance on left.",
+    "r": "Road sequence reference:\nRoute 250 → Route 800 → Feed Springs Rd → Latto Rd → Sproul Rd\n\nStep-by-step directions:\n1. Follow State Route 250 to 800 South.\n2. Take 800 South Turn onto Feed Springs Road South East County Road 36 to Latto Road SE County Road 30-turn.\n3. Turn right onto Latto Road SE and travel to Sproul Road SE.\n4. Turn right onto Sproul Road SE and.\n5. Go 1/8 of a mile to Entrance on left."
+  },
+  "eog--stalker": {
+    "s": "On 250.East from.Dennison pass 151 go 1.3 miles east in 250.Left on.Reed rd.Up the hill 1 st pad",
+    "r": "Road sequence reference:\nRoute 250 → Reed Rd → Pad\n\nStep-by-step directions:\n1. On 250 East from Dennison.\n2. Pass 151.\n3. Go 1.3 miles east in 250.\n4. Turn left on Reed Road Up the hill 1 st pad."
+  },
+  "eog--stanton": {
+    "s": "From.Street.Right.43 north/south, turn onto.Canyon Road Southeast.Pad is 0.9 mile on left.",
+    "r": "Road sequence reference:\nRoute 43 → Canyon Rd → Pad\n\nStep-by-step directions:\n1. From Street Right 43 north/south, turn onto Canyon Road Southeast.\n2. Pad is 0.9 miles on left."
+  },
+  "eog--starkey": {
+    "s": "From the intersection of right.9 and right.39 in carrollton: right.39 east for 8.7 miles.Turn left on.Apollo rd.(Directly across from state route 524) Drive for 0.7 miles on.Apollo to the intersection of apollo/mystic/arbor.Continue straight through the intersection onto arbor rd and drive on arbor for 2 miles.Lease road will be on your left.From the intersection of right.39 and right.644 in salineville: right.39 west for 6.1 miles.Turn right on.Apollo rd.(Directly across from state right.524) Drive for 0.7 miles on.Apollo to the intersection of apollo/mystic/arbor.Continue straight through the intersection onto arbor rd and drive on arbor for 2 miles.Lease road will be on your left",
+    "r": "Road sequence reference:\nApollo Rd → SR-524 → Intersection Onto Arbor Rd → Lease Road\n\nStep-by-step directions:\n1. From the intersection of right 9 and right 39 in carrollton: right 39 east for 8.7 miles.\n2. Turn left on Apollo Road (Directly across from State Route 524).\n3. Drive for 0.7 miles on Apollo to the intersection of apollo/mystic/arbor.\n4. Continue straight through the intersection onto arbor Road and.\n5. Drive on arbor for 2 miles.\n6. Lease road will be on your left From the intersection of right 39 and right 644 in salineville: right 39 west for 6.1 miles.\n7. Turn right on Apollo Road (Directly across from state right 524).\n8. Lease road will be on your left."
+  },
+  "eog--stewart": {
+    "s": "Take OH646 to.Fairview Road, just east of.New Rumley, OH, turn.South.In 0.4 miles, take right onto.Lockman Road.In 0.4 miles, take left onto.Scott Road.In 0.7 miles, take left onto lease road.This is the only approved route!",
+    "r": "Road sequence reference:\nOH646 To Fairview Rd → OH-646 → Lockman Rd → Scott Rd → Lease Road\n\nStep-by-step directions:\n1. Take OH-646 to Fairview Road, just east of New Rumley, OH, turn South In 0.4 miles.\n2. Take right onto Lockman Road In 0.4 miles.\n3. Take left onto Scott Road In 0.7 miles.\n4. Take left onto lease road This is the only approved route!"
+  },
+  "eog--stitt": {
+    "s": "From.Carrollton 332.South 1.5 mi left on.Penney Lane about.5 mi pad on the right.From 151 in scio 332.North 11.25 mi right on.Penney Lane about.5 mi pad on the right",
+    "r": "Road sequence reference:\nMi Left On Penney Ln → Route 151 → Mi Right On Penney Ln → Pad\n\nStep-by-step directions:\n1. From Carrollton 332 South 1.5 miles.\n2. Turn left on Penney Lane about for 5 miles pad on the right From 151 in scio 332 North for 11.25 miles.\n3. Turn right on Penney Lane about for 5 miles pad on the right."
+  },
+  "eog--sto": {
+    "s": "250.East turn right onto.Barrick rd just past.Piergallini Equipment.Continue until the T turn right onto.Deersville rd.Drive roughly 3 miles to.Slab Camp rd.Continue straight until you come to T turn right onto.Brushy Fork rd and go to amish school house on your oeft.Turn right onto.Ourant rd HN STO lease road on the right at top of the hil",
+    "r": "Road sequence reference:\nBarrick Rd → Deersville Rd → Slab Camp Rd → Brushy Fork Rd → Ourant Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 250 East.\n2. Turn right onto Barrick Road just past Piergallini Equipment.\n3. Continue until the T.\n4. Turn right onto Deersville Road.\n5. Drive roughly 3 miles to Slab Camp Road.\n6. Continue straight until you come to T.\n7. Turn right onto Brushy Fork Road and.\n8. Go to amish school house on your oeft.\n9. Turn right onto Ourant Road HN STO.\n10. Lease road on the right at top of the hil."
+  },
+  "eog--stocker": {
+    "s": "From.New Philadelphia: On US 250 go approximately 16 miles.Southeast and turn left onto County Road 503.Travel 0.2 miles and the pad is on the left.From.Cadiz: On US 250 go approximately 16 miles.Northwest and turn right onto County Road 503.Travel 0.2 miles and the pad is on the left.",
+    "r": "Road sequence reference:\nUS-250 → CR-503 → Pad\n\nStep-by-step directions:\n1. From New Philadelphia: On US-250.\n2. Go approximately 16 miles Southeast and.\n3. Turn left onto County Road 503 Travel for 0.2 miles and the pad is on the left From Cadiz: On US-250.\n4. Go approximately 16 miles Northwest and.\n5. Turn right onto County Road 503 Travel for 0.2 miles and the pad is on the left."
+  },
+  "eog--striped-bass": {
+    "s": "Owned by EOG (EOG bought Encino) Approved Route - 7/10/2024 From the east at the intersection of IR70 and SR285 Right onto SR285 (0.4 mile) Left onto US40 (3.7 miles) Right onto CR450 (Old National Road) (0.9 mile) Right onto CR53 (Larrick Ridge Road) (1.35 miles) Pad is on the left. From the west at the intersection of IR77 and US40 Travel on US40 (3.1 miles) Left onto CR450 (Old National Road) (0.9 mile) Right onto CR53 (Larrick Ridge Road) (1.35 miles) Pad is on the left",
+    "r": "Road sequence reference:\nSR-285 → US-40 → CR-450 / Old National Rd → CR-53 / Larrick Ridge Rd → Pad → OR → US-40 → CR-450 / Old National Rd → CR-53 / Larrick Ridge Rd → Pad\n\nStep-by-step directions:\n1. Owned by EOG (EOG bought Encino) Approved Route - 7/10/2024 From the east at the intersection of IR70 and State Route 285.\n2. Turn right onto State Route 285 (0.4 miles).\n3. Turn left onto US-40 (3.7 miles).\n4. Turn right onto County Road 450 (Old National Road) (0.9 miles).\n5. Turn right onto County Road 53 (Larrick Ridge Road) (1.35 miles).\n6. Pad is on the left From the west at the intersection of IR77 and US-40 Travel on US-40 (3.1 miles).\n7. Turn left onto County Road 450 (Old National Road) (0.9 miles).\n8. Pad is on the left."
+  },
+  "eog--stuart-henderson": {
+    "s": "From 250: Head to intersection of 646 and 250, turn on 646 east Follow approximately 1.8 miles to henderson rd (twnshp rd 225) turn left Go about half a mile and lease is on your right.",
+    "r": "Road sequence reference:\nRoute 250 → Route 646 → Henderson Rd\n\nStep-by-step directions:\n1. From 250: Head to intersection of 646 and 250, turn on 646 east.\n2. Follow approximately for 1.8 miles to henderson Road (twnshp Road 225).\n3. Turn left Go about half a mile and lease is on your right."
+  },
+  "eog--sugert": {
+    "s": "From I77 & Sr 40, go east on 40 for 3.1 miles.Turn left on County Road 450 (Old.National Road) for.28 miles.Turn right on County Road 54 (Endly.Road) for 1.3 miles.Turn left on.Turn right 5621 (Wolfden.Road) for.27 miles.Lease.Road will be on the left.",
+    "r": "Road sequence reference:\nI-77 → SR-40 → CR-450 / Old National Rd → CR-54 / Endly Rd → Lease Road\n\nStep-by-step directions:\n1. From I-77 & State Route 40.\n2. Go east on 40 for 3.1 miles.\n3. Turn left on County Road 450 (Old National Road) for 28 miles.\n4. Turn right on County Road 54 (Endly Road) for 1.3 miles.\n5. Turn left on Turn right 5621 (Wolfden Road) for 27 miles.\n6. Lease Road will be on the left."
+  },
+  "eog--summitcrest": {
+    "s": "From.Kensington Take OH-644.East for 8 miles (pass thru.Summitville) Turn right on.Lewis Road.Pad is 0.4 miles on the left",
+    "r": "Road sequence reference:\nOH-644 → Lewis Rd → Pad\n\nStep-by-step directions:\n1. From Kensington Take OH-644 East for 8 miles (pass thru Summitville).\n2. Turn right on Lewis Road.\n3. Pad is 0.4 miles on the left."
+  },
+  "eog--sunfish": {
+    "s": "From.Exit 46 (46A if going north) on I-77 head east on US-40 for 2.8 miles and turn left onto.Old National.Road.Pad entrance is on the left in 0.4 miles.",
+    "r": "Road sequence reference:\nExit 46 → I-77 → US-40 → Old National Rd → Pad\n\nStep-by-step directions:\n1. From Exit 46 (46A if going north) on I-77.\n2. Head east on US-40 for 2.8 miles and.\n3. Turn left onto Old National Road Pad entrance is on the left in 0.4 miles."
+  },
+  "eog--sunnybrook": {
+    "s": "43.South to route 9.South just before.Kilgore left on bear road.Approximately four and a halfsmile on the right",
+    "r": "Road sequence reference:\nRoute 9 → Kilgore Left On Bear Rd\n\nStep-by-step directions:\n1. Follow 43 South to route 9 South just before Kilgore.\n2. Turn left on bear road Approximately four and a halfsmile on the right."
+  },
+  "eog--tanner": {
+    "s": "From.Carrollton take 39.East to mechanicstown.And turn right on 524 go through the little town of wattsville.And turn right on.Bay road go to top of the hill pad is on left",
+    "r": "Road sequence reference:\nRoute 39 → Route 524 → Bay Rd → Pad\n\nStep-by-step directions:\n1. From Carrollton take 39 East to mechanicstown And.\n2. Turn right on 524.\n3. Go through the little town of wattsville And.\n4. Turn right on Bay road.\n5. Go to top of the hill.\n6. Pad is on left."
+  },
+  "eog--the-wright-way": {
+    "s": "From SR 43 in malvern turn on to Lemon Road (turn is .6 miles south of the red light by crossroads pizza/ SR 183) Go 1.6 miles and stay left at the Y (road becomes Lilly) .1 mile turn left to stay on Lilly 1.4 miles (you will go past the Bowling pad) Pad is on the left.",
+    "r": "Road sequence reference:\nSR-43 → Lemon Rd → Pad\n\nStep-by-step directions:\n1. From State Route 43 in malvern turn on to Lemon Road (turn is for 6 miles south of the red light by crossroads pizza/ State Route 183).\n2. Go 1.6 miles and.\n3. Stay.\n4. Turn left at the Y (road becomes Lilly) 1 mile.\n5. Turn left to stay on Lilly for 1.4 miles (you will.\n6. Go past the Bowling pad).\n7. Pad is on the left."
+  },
+  "eog--timberwolf": {
+    "s": "43 out of.Carrollton to 183 turn right onto 183 go about 1 mile cross railroad tracks turn right at first rd then lease road is on the right",
+    "r": "Road sequence reference:\nRoute 183 → Lease Road\n\nStep-by-step directions:\n1. Follow 43 out of Carrollton to 183.\n2. Turn right onto 183.\n3. Go about 1 mile.\n4. Cross railroad tracks.\n5. Turn right at first Road then.\n6. Lease road is on the right."
+  },
+  "eog--toot": {
+    "s": "From 39, 212 east from sherrodsville.Take left on deer rd, then immediate left onto caddy rd.Follow caddy rd to.Antigua Road.Right on.Antigua rd.Roughly a mile or so, turn left onto cactus rd.Pad will be on the left.",
+    "r": "Road sequence reference:\nRoute 39 → Route 212 → Deer Rd → Immediate Left Onto Caddy Rd → Caddy Rd To Antigua Rd → Antigua Rd → OR → Cactus Rd → Pad\n\nStep-by-step directions:\n1. From 39, 212 east from sherrodsville.\n2. Take left on deer Road, then immediate.\n3. Turn left onto caddy Road.\n4. Follow caddy Road to Antigua Road.\n5. Turn right on Antigua Road Roughly a mile or so.\n6. Turn left onto cactus Road.\n7. Pad will be on the left."
+  },
+  "eog--towe-hn-mon": {
+    "s": "From route 800 Travel East on State route 250 7.8 miles turn left On township 213 Willis Run road. Travel 1.55 miles Turn left on township 212 Oak Hill road 0.6 Miles pad is on the left",
+    "r": "Road sequence reference:\nRoute 800 → SR-250 → Township 213 Willis Run Rd → Township 212 Oak Hill Rd → Pad\n\nStep-by-step directions:\n1. From route 800 Travel East on State Route 250 for 7.8 miles.\n2. Turn left On township 213 Willis Run road Travel for 1.55 miles.\n3. Turn left on township 212 Oak Hill road for 0.6 miles.\n4. Pad is on the left."
+  },
+  "eog--triplett": {
+    "s": "250 to deersville rd into deersville go to the split bear right the immediate left onto barber hill rd lease rd down on the left",
+    "r": "Road sequence reference:\nDeersville Rd → Barber Hill Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 250 to deersville Road into deersville.\n2. Go to the split.\n3. Bear right the immediate.\n4. Turn left onto barber hill Road.\n5. Lease Road down on the left."
+  },
+  "eog--trushell": {
+    "s": "From.Bowerston (OH-21) Turn onto OH 151.East towards.Scio.Access road is on the.Right.From.Scio (OH-646/332) Turn onto OH 151.West towards.Bowerston.Access road is on the left.Pad entrance is at the 9 mile marker exactly.",
+    "r": "Road sequence reference:\nOH-21 → OH-151 → Access Road → OR → OH-151 → Access Road\n\nStep-by-step directions:\n1. From Bowerston (OH-21) Turn onto OH-151 East towards Scio Access road is on the Right From Scio (OH-646/332) Turn onto OH-151 West towards Bowerston Access road is on the left Pad entrance is at the for 9 miles marker exactly."
+  },
+  "eog--tuckosh": {
+    "s": "From.Carrollton: From the intersection of.Route 9 and.Route 39/43 in downtown.Carrollton proceed southeast on OH-39.East/?OH-43.South/?OH-9.South/?East Main.Street toward South Lisbon.Street, Continue to follow OH-39.East/?OH-43.South/?OH-9.South (0.5 mi).Slight right onto OH-43.South/?OH-9.South/?Steubenville.Road Southeast, Continue to follow OH-9.South (11.8 mi).Turn left onto.Quince Road (0.2 mi).Access.Road on.Left.",
+    "r": "Road sequence reference:\nOH-39 → OH-43 → OH-9 → Quince Rd → Access Road\n\nStep-by-step directions:\n1. From Carrollton: From the intersection of Route 9 and Route 39/43 in downtown Carrollton.\n2. Proceed southeast on OH-39 East/?OH-43 South/?OH-9 South/?East Main Street toward South Lisbon Street.\n3. Continue to follow OH-39 East/?OH-43 South/?OH-9 South (0.5 miles) Slight.\n4. Turn right onto OH-43 South/?OH-9 South/?Steubenville Road Southeast.\n5. Continue to follow OH-9 South (11.8 miles).\n6. Turn left onto Quince Road (0.2 miles) Access Road on Left."
+  },
+  "eog--tygers": {
+    "s": "77.South exit 37 route 313 turn left about 1 mi on the right",
+    "r": "Road sequence reference:\nExit 37 → Route 313\n\nStep-by-step directions:\n1. Follow 77 South.\n2. Exit 37 route 313.\n3. Turn left about 1 mile on the right."
+  },
+  "eog--vahalik": {
+    "s": "Take.Township Road 273A off State Route 43 go about 1 mile to stop sign turn left.Go about 1 mile and lease road is on your left",
+    "r": "Road sequence reference:\nTR-273A → Lease Road\n\nStep-by-step directions:\n1. Take Township Road 273A off State Route 43.\n2. Go about 1 mile to stop sign.\n3. Turn left Go about 1 mile and.\n4. Lease road is on your left."
+  },
+  "eog--valdinger": {
+    "s": "From.Cadiz- Take 22.West to.State Route 250.West.Take 250.West and take 646.North.Take 646.North 4.6 miles and turn left onto.Gundy Ridge.Ridge Pad is about 3 miles out.Gundy Ridge on.Right",
+    "r": "Road sequence reference:\nRoute 22 → SR-250 → Route 646 → Gundy Ridge → Pad\n\nStep-by-step directions:\n1. From Cadiz- Take 22 West to State Route 250 West.\n2. Take 250 West and.\n3. Take 646 North.\n4. Take 646 North for 4.6 miles and.\n5. Turn left onto Gundy Ridge Ridge.\n6. Pad is about 3 miles out Gundy Ridge on Right."
+  },
+  "eog--vanfossen": {
+    "s": "From the intersection of route 9 and route 30 in.Kensington travel 9.25 mi south on route 9 turn on township road 277 moccasin road travel 0.45 mi pad is on the left from the intersection of route 9 and 39 in.Carrollton travel 5.6 mi north on 9 turn on moccasin road township 277 travel 0.45 mi pads on the left",
+    "r": "Road sequence reference:\nRoute 9 → TR-277 → Pad → OR → Route 9 → Moccasin Rd\n\nStep-by-step directions:\n1. From the intersection of route 9 and route 30 in Kensington travel 9.25 miles south on route 9 turn on township road 277 moccasin road travel for 0.45 miles.\n2. Pad is on the left from the intersection of route 9 and 39 in Carrollton travel for 5.6 miles north on 9 turn on moccasin road township 277 travel for 0.45 miles pads on the left."
+  },
+  "eog--wagner": {
+    "s": "State Route 250 out of.Dennison just past State Route 151 on the right",
+    "r": "Step-by-step directions:\n1. Follow State Route 250 out of Dennison just past State Route 151 on the right."
+  },
+  "eog--wagner-gy-gen": {
+    "s": "Off of us-22 turn onto Sundew Road (1 mile) pad on right66039",
+    "r": "Road sequence reference:\nUS-22 → Pad\n\nStep-by-step directions:\n1. Off of US-22 turn onto Sundew Road (1 mile) pad on right66039."
+  },
+  "eog--walker": {
+    "s": "Take 151 to 164 turn right follow down till you see a compressor station then take the next right onto branch rd lease rd is on the first one on the left.From.Carrollton take 332 south to.Perrysville Turn left on 164 toward.Kilgore Go 6 miles, turn right onto.Branch Road.Pad is immediately the left.",
+    "r": "Road sequence reference:\nRoute 151 → Route 164 → Branch Rd → Route 332 → Lease Road\n\nStep-by-step directions:\n1. Take 151 to 164.\n2. Turn right follow down till you see a compressor station then.\n3. Take the next.\n4. Turn right onto branch Road.\n5. Lease Road is on the first one on the left From Carrollton.\n6. Take 332 south to Perrysville.\n7. Turn left on 164 toward Kilgore.\n8. Go 6 miles.\n9. Pad is immediately the left."
+  },
+  "eog--walters": {
+    "s": "From.Kilgore Take 164.South.Slight right on aster road.About 4 miles.Left on cashmere road.About half a mile up the hill.Lease.Road is on the left in the Y of.Cashmere and.Pomona road",
+    "r": "Road sequence reference:\nRoute 164 → Aster Rd → Cashmere Rd → Lease Road\n\nStep-by-step directions:\n1. From Kilgore Take 164 South Slight.\n2. Turn right on aster road About for 4 miles.\n3. Turn left on cashmere road About half a mile up the hill.\n4. Lease Road is on the left in the Y of Cashmere and Pomona road."
+  },
+  "eog--watkins": {
+    "s": "From the intersection of SR212 and SR39 in.Sherrodsville travel approximately 2.4 miles Southeast to.Deer Road.From the intersection of SR212 and SR151 in.Bowerston travel approximately 3.9 miles north to.Deer Road.Turn onto.Deer Road (300 feet) Turn left onto.Caddy Road - CR52 (3.4 miles) Turn right onto CR11 (0.9 miles) Pad is on the left.",
+    "r": "Road sequence reference:\nSoutheast To Deer Rd → Deer Rd → Caddy Rd → CR-11 → Pad\n\nStep-by-step directions:\n1. From the intersection of State Route 212 and State Route 39 in Sherrodsville travel approximately 2.4 miles Southeast to Deer Road From the intersection of State Route 212 and State Route 151 in Bowerston travel approximately 3.9 miles north to Deer Road Turn onto Deer Road (300 feet).\n2. Turn left onto Caddy Road - County Road 52 (3.4 miles).\n3. Turn right onto County Road 11 (0.9 miles).\n4. Pad is on the left."
+  },
+  "eog--weaver": {
+    "s": "164.North out of.Lisbon to.State right 558 & turn left, well pad is on right 1/2 mile past.Grafton Road",
+    "r": "Step-by-step directions:\n1. Follow 164 North out of Lisbon to State right 558 &.\n2. Turn left, well.\n3. Pad is on right 1/2 miles past Grafton Road."
+  },
+  "eog--wehr-springs": {
+    "s": "Take route 9 north towards Salem Turn left on SR 45 for 3.1 miles Turn right onto 62/45/9 ramp 0.5 miles Turn left to stay on SR 45 5.3 miles Pad is on the corner of SR 45 and Leffingwell Road",
+    "r": "Road sequence reference:\nRoute 9 → SR-45 → Route 62 → Pad\n\nStep-by-step directions:\n1. Take route 9 north towards Salem.\n2. Turn left on State Route 45 for 3.1 miles.\n3. Turn right onto 62/45/9 ramp for 0.5 miles.\n4. Turn left to stay on State Route 45 for 5.3 miles.\n5. Pad is on the corner of State Route 45 and Leffingwell Road."
+  },
+  "eog--wendell": {
+    "s": "Take 212 through.Leesville.Go past the school.And over the railroad tracks.Take a right onto.Deer rd and then an immediate left on to.Caddy.Follow to top of the hill.Just past the silo.On the left side.",
+    "r": "Road sequence reference:\nRoute 212 → A Right Onto Deer Rd → Caddy\n\nStep-by-step directions:\n1. Take 212 through Leesville.\n2. Go past the school And over the railroad tracks.\n3. Take a.\n4. Turn right onto Deer Road and then an immediate.\n5. Turn left on to Caddy.\n6. Follow to top of the hill Just past the silo On the left side."
+  },
+  "eog--west": {
+    "s": "From.Minerva travel east on route 30 to.East Rochester at the.Blinking light turn right.At top of hill go straight through stop sign well is about one mile on the left",
+    "r": "Step-by-step directions:\n1. From Minerva travel east on route 30 to East Rochester at the Blinking light.\n2. Turn right At top of hill.\n3. Go straight through stop sign well is about one mile on the left."
+  },
+  "eog--whitacre": {
+    "s": "From the.West: From the intersection of OH-183 and OH-171 in.Waynesburg, travel east on.Waynesburg Road Northwest (OH-171)(1.1 miles) Turn left on.Knight Road Northwest (0.6 miles) Access road will be on the left.-OR From the.East: From the intersection of OH-43 and OH-171, travel west on.Waynesburg Road Northwest (OH-171)(8.6 miles) Make sharp right on.Knight Road Northwest (0.6 miles).Access road will be on the left",
+    "r": "Road sequence reference:\nWaynesburg Rd → Knight Rd → Access Road\n\nStep-by-step directions:\n1. From the West: From the intersection of OH-183 and OH-171 in Waynesburg, travel east on Waynesburg Road Northwest (OH-171)(1.1 miles).\n2. Turn left on Knight Road Northwest (0.6 miles) Access road will be on the left -OR From the East: From the intersection of OH-43 and OH-171, travel west on Waynesburg Road Northwest (OH-171)(8.6 miles) Make sharp.\n3. Turn right on Knight Road Northwest (0.6 miles) Access road will be on the left."
+  },
+  "eog--white": {
+    "s": "From.Carrollton, take 43.South about 3/4 of a mile before the route 9 split pad is on the right.",
+    "r": "Road sequence reference:\nRoute 43 → Pad\n\nStep-by-step directions:\n1. From Carrollton, take 43 South about 3/4 of a mile before the route 9 split.\n2. Pad is on the right."
+  },
+  "eog--white-rhino": {
+    "s": "Same lease road as the.Brookfield just drive past.Brookefield lease https://maps.App.Goo.Gl/KWMkHM7cErmYQd936",
+    "r": "Step-by-step directions:\n1. Same.\n2. Lease road as the Brookfield just.\n3. Drive past Brookefield lease https://maps App Goo Gl/KWMkHM7cErmYQd936."
+  },
+  "eog--whitehill": {
+    "s": "From.Richmond follow 152.North past 213 left on.County 68 1.2.MI on the left",
+    "r": "Step-by-step directions:\n1. From Richmond follow 152 North past 213.\n2. Turn left on County 68 for 1.2 miles on the left."
+  },
+  "eog--wiandt": {
+    "s": "332 north go 7.8 miles turn left on autumn rd county rd 19.Then go 0.5 tens of a mile turn left on desert rd township 120.Stay on desert rd for 2.5miles pads gates on ur left.(1st.Road on.Left after passing 6 car.Garage on.Right Hand.Side)",
+    "r": "Road sequence reference:\nRoute 332 → Autumn Rd → Desert Rd\n\nStep-by-step directions:\n1. Follow 332 north.\n2. Go 7.8 miles.\n3. Turn left on autumn Road county Road 19 Then.\n4. Go 0.5 tens of a mile.\n5. Turn left on desert Road township 120.\n6. Stay on desert Road for 2.5 miles pads gates on ur left (1st Road on Left after passing 6 car Garage on Right Hand Side)."
+  },
+  "eog--william-denoon": {
+    "s": "From scio Take 646 right on gundy ridge left on Buxton Pad is on the left",
+    "r": "Road sequence reference:\nRoute 646 → Gundy Ridge → Pad\n\nStep-by-step directions:\n1. From scio Take 646.\n2. Turn right on gundy ridge.\n3. Turn left on Buxton.\n4. Pad is on the left."
+  },
+  "eog--william-phillips": {
+    "s": "From Carrollton Take OH 43 Take OH 332 to OH 151 Turn Left towards Scio Turn Right on 646 Turn Right on Gundy Ridge Rd Turn Right on Bower Rd Stay straight on Grandview Rd Go 0.2 miles Turn Right on Lease Rd keep to the Right continue on to Pad",
+    "r": "Road sequence reference:\nOH-43 → OH-332 → Route 646 → Gundy Ridge Rd → Bower Rd → Grandview Rd → Lease Road\n\nStep-by-step directions:\n1. From Carrollton Take OH-43.\n2. Take OH-332 to OH-151.\n3. Turn Left towards Scio.\n4. Turn Right on 646.\n5. Turn Right on Gundy Ridge Road.\n6. Turn Right on Bower Road.\n7. Stay straight on Grandview Road.\n8. Go 0.2 miles.\n9. Turn Right on Lease Road.\n10. Keep to the Right.\n11. Continue on to Pad."
+  },
+  "eog--williams-cr": {
+    "s": "From dellroy on 39 go 2.5 miles on the right.From Carrollton take 39 west 5.1 miles.Lease is on the left just pass sharp.Burrow RD.",
+    "r": "Step-by-step directions:\n1. From dellroy on 39.\n2. Go 2.5 miles on the right From Carrollton.\n3. Take 39 west for 5.1 miles Lease is on the left just.\n4. Pass sharp Burrow Road."
+  },
+  "eog--windy-ridge": {
+    "s": "From.Bowerston: take route 212 into.Leesville at the traffic circle go 3/4 around and up the hill on.Azalea pad is on the left.Encino Instructions: Off of SR212 in.Leesville Turn west onto CR22/Azalea.Road (1.9 miles)",
+    "r": "Road sequence reference:\nSR-212 → Cr22/azalea Rd → CR-22 → Pad\n\nStep-by-step directions:\n1. From Bowerston: take route 212 into Leesville at the traffic circle.\n2. Go 3/4 around and up the hill on Azalea.\n3. Pad is on the left Encino Instructions: Off of State Route 212 in Leesville Turn.\n4. Continue west onto County Road 22/Azalea Road (1.9 miles)."
+  },
+  "eog--woodland": {
+    "s": "From the bottom of rt43 and 164.Amsterdam go rt43 up the hill and at the very top on left is the access road from the 43 and right 9 split take rt43 towards.Amsterdam and pad on right in about a mile",
+    "r": "Road sequence reference:\nRoute 43 → Access Road → OR → Route 43 → Pad\n\nStep-by-step directions:\n1. From the bottom of rt43 and 164 Amsterdam.\n2. Go rt43 up the hill and at the very top on left is the access road from the 43 and right 9 split.\n3. Take rt43 towards Amsterdam and pad on right in about a mile."
+  },
+  "eog--wright": {
+    "s": "From.State Route 250 go 646 east to.Gundy Ridge.Road and turn right.From.Scio take 646.West turn left on.Gundy Ridge near top of hill take first right bare right pad is on the right about 2 miles out",
+    "r": "Road sequence reference:\nSR-250 → Route 646 → Gundy Ridge Rd → Pad\n\nStep-by-step directions:\n1. From State Route 250.\n2. Go 646 east to Gundy Ridge Road and.\n3. Turn right From Scio.\n4. Take 646 West.\n5. Turn left on Gundy Ridge near top of hill.\n6. Take first right bare right.\n7. Pad is on the right about for 2 miles out."
+  },
+  "eog--wunnenberg": {
+    "s": "250 west or east to.Harrison county home lease road goes up on the hill behind county home",
+    "r": "Road sequence reference:\nRoute 250 → OR → Goes Up On The Hill → Lease Road\n\nStep-by-step directions:\n1. Follow 250 west or east to Harrison county home.\n2. Lease road goes up on the hill behind county home."
+  },
+  "eog--xavier": {
+    "s": "State Route 800 out of.Freeport on the left right before State Route 799",
+    "r": "Step-by-step directions:\n1. Follow State Route 800 out of Freeport on the left right before State Route 799."
+  },
+  "eog--yockey": {
+    "s": "From interstate 70, take the exit for 513.South.Turn left on.Oxford road.",
+    "r": "Road sequence reference:\nI-70 → Oxford Rd\n\nStep-by-step directions:\n1. From interstate 70.\n2. Take the exit for 513 South.\n3. Turn left on Oxford road."
+  },
+  "eog--yoder": {
+    "s": "From.Carrollton 332 pad is just after.Germantown road on your right.From scio 151 to 332 pad is just before.Germantown road on your left.The.Yoder and.Yoder North are the same pad",
+    "r": "Road sequence reference:\nGermantown Rd → Pad → OR → Route 332 → Pad\n\nStep-by-step directions:\n1. From Carrollton 332.\n2. Pad is just after Germantown road on your right From scio 151 to 332.\n3. Pad is just before Germantown road on your left The Yoder and Yoder North are the same pad."
+  }
+}

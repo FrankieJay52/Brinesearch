@@ -1,0 +1,430 @@
+{
+  "gulfport--alpha": {
+    "s": "Building code 3911 470E to 7.South to 148.West about 3.8 miles lease rd on the left.From st.C 9 south to.Armstrong mills turn left onto 148 go 6.3 miles pad on right",
+    "r": "Road sequence reference:\nRoute 470 → Route 148 → Route 9 → Lease Road\n\nStep-by-step directions:\n1. Building code 3911 470E to 7 South to 148 West about 3.8 miles.\n2. Lease Road on the left From st C 9 south to Armstrong mills.\n3. Turn left onto 148.\n4. Go 6.3 miles pad on right."
+  },
+  "gulfport--amanda": {
+    "s": "From I-70 1.Take exit 202 and go south on OH-800 2.Follow 800 to.Barnesville 3.Turn right onto OH-147 4.Follow to 147/265 split and turn left to stay on 147 5.Follow 147 and turn left on 379 6.Follow 379 to top of hill and turn left on 128 7.Follow 128 to.Boston and follow 147 around little church and turn left onto.Rock River rd 8.Follow about 1 mile to access.Road on left (past the inherst pad)",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → OH-147 → Route 379 → Route 128 → Rock River Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on OH-800 2.\n4. Follow 800 to Barnesville 3.\n5. Turn right onto OH-147 4.\n6. Follow to 147/265 split and.\n7. Turn left to stay on 147 5.\n8. Follow 147 and.\n9. Turn left on 379 6.\n10. Follow 379 to top of hill and.\n11. Turn left on 128 7.\n12. Follow 128 to Boston and.\n13. Follow 147 around little church and.\n14. Turn left onto Rock River Road 8.\n15. Follow about for 1 mile to access Road on left (past the inherst pad)."
+  },
+  "gulfport--angelo": {
+    "s": "7.North to.Yorkville Public.Road Exit.Turn left and follow to top of hill to.Jones Road.Turn.Right and pad will be on right hand side",
+    "r": "Road sequence reference:\nYorkville Public Rd → Pad\n\nStep-by-step directions:\n1. Follow 7 North to Yorkville Public Road.\n2. Exit Turn left and.\n3. Follow to top of hill to Jones Road.\n4. Turn Right and.\n5. Pad will be on right hand side."
+  },
+  "gulfport--arnold": {
+    "s": "I 70 to exit 202,800.South to.Malaga turn left at flashing light,145,take 145 to.Beallsville.At four way stop,turns into 556 follow 556 for 3.1 miles turn right onto.Headley Ridge, also has cnx sign for switz 26 follow past switz 26,Arnold will be on the right side.Door code: 3915",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Beallsville At Four Way → Route 145 → Route 556 → Headley Ridge\n\nStep-by-step directions:\n1. I-70 to exit 202,800 South to Malaga.\n2. Turn left at flashing light,145,take 145 to Beallsville At four way stop,turns into 556.\n3. Follow 556 for 3.1 miles.\n4. Turn right onto Headley Ridge, also has cnx sign for switz 26.\n5. Follow past switz 26,Arnold will be on the right side Door code: 3915."
+  },
+  "gulfport--bahmer": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 2.Follow to.Barnesville and turn right on OH- 147 3.Follow 147 to 147/265 split and turn left to stay on 147 4.Follow appox 1/4 mile and turn left on dog hollow rd 5.Follow and stay left at fork to access rd which is past the.Brothers pad.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → OH-147 → Dog Hollow Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 2.\n4. Follow to Barnesville and.\n5. Turn right on OH-147 3.\n6. Follow 147 to 147/265 split and.\n7. Turn left to stay on 147 4.\n8. Follow appox 1/4 miles and.\n9. Turn left on dog hollow Road 5.\n10. Follow and.\n11. Stay.\n12. Turn left at fork to access Road which is past the Brothers pad."
+  },
+  "gulfport--barber-ridge": {
+    "s": "From Interstate 70 take Exit 202 and follow 800 South to Woodsfield and turn right on to State Route 78 west and lease road will be on the left",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Lease Road\n\nStep-by-step directions:\n1. From Interstate 70.\n2. Take Exit 202 and.\n3. Follow 800 South to Woodsfield and.\n4. Turn right on to State Route 78 west and.\n5. Lease road will be on the left."
+  },
+  "gulfport--barton": {
+    "s": "CONTROL ROOM ACCESS CODE:4180(Followed by checkmark button) From the.East 1.Take I-70.To exit 218 and turn left at light 2.Go 0.2 miles and turn left at t he light (2nd light after turn) onto US-40.3.Go 1 mile and turn right onto County Road-4.BARTON RD 4.Go 0.4 miles to access.Road on left.From the west 1.Take I-70.To exit 218 and turn right at light.2.Go 0.5 miles and turn left at light (3rd light after turn) onto US-40 3.Go 1 mile and turn right onto County Road-4 (BARTON rd) 4.Go 0.4 miles to access.Road on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 218 → CR-4 → Access Road → OR → I-70 → Exit 218 → US-40 → CR-4 / Barton Rd → Access Road\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:4180(Followed by checkmark button) From the East 1.\n2. Take I-70 To exit 218 and.\n3. Turn left at light 2.\n4. Go 0.2 miles and.\n5. Turn left at t he light (2nd light after turn) onto US-40.3.\n6. Go 1 mile and.\n7. Turn right onto County Road-4 BARTON Road 4.\n8. Go 0.4 miles to access Road on left From the west 1.\n9. Turn right at light 2.\n10. Go 0.5 miles and.\n11. Turn left at light (3rd light after turn) onto US-40 3.\n12. Go 0.4 miles to access Road on left."
+  },
+  "gulfport--bk-stephens": {
+    "s": "From I-77 1. Take exit for US-22E 2. Follow 22E thru town of piedmont. 3. You will see a sign for the town of Moorefield. After that sign turn right on next road.(Ramsey rd.) 4. Follow to split and go straight to red gate.",
+    "r": "Road sequence reference:\nI-77 → Route 22\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22E thru town of piedmont 3 You will see a sign for the town of Moorefield After that sign.\n4. Turn right on next road (Ramsey Road ) 4.\n5. Follow to split and.\n6. Go straight to red gate."
+  },
+  "gulfport--bolton": {
+    "s": "From I-70 1.Take exit 202 and go south on OH-800 2.Follow 800 into.Barnesville 3.Turn right on OH-147 4.Follow to 147/265 split and turn left on 147 5.Follow 147 and turn left on OH-379 6.Follow up hill and turn left on County Road-128 7.Take first road to the left 8.Follow approx 1/4 miles and access.Road on left",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → OH-147 → OH-379 → CR-128 → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on OH-800 2.\n4. Follow 800 into Barnesville 3.\n5. Turn right on OH-147 4.\n6. Follow to 147/265 split and.\n7. Turn left on 147 5.\n8. Follow 147 and.\n9. Turn left on OH-379 6.\n10. Follow up hill and.\n11. Turn left on County Road-128 7.\n12. Take first road to the left 8.\n13. Follow approx 1/4 miles and access Road on left."
+  },
+  "gulfport--boyscout": {
+    "s": "From US-250 1.Turn south onto deersville rd (white sign for.Tappan lake state park) 2.Follow to stop sign in.Deersvillle and go straight.3.As you leave.Deersville turn left onto.Adams rd.4.Follow to stop sign and go straight.Follow to access.Road on right.Pad visible from rd.Â Â Â",
+    "r": "Road sequence reference:\nUS-250 → Deersville Rd → Adams Rd → Access Road\n\nStep-by-step directions:\n1. From US-250 1 Turn.\n2. Continue south onto deersville Road (white sign for Tappan lake state park) 2.\n3. Follow to stop sign in Deersvillle and.\n4. Go straight 3 As you leave Deersville.\n5. Turn left onto Adams Road 4.\n6. Follow to stop sign and.\n7. Go straight.\n8. Follow to access Road on right Pad visible from Road Â Â Â."
+  },
+  "gulfport--brothers": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 2.Follow to.Barnesville and turn right on OH- 147 3.Follow 147 to 147/265 split and turn left to stay on 147 4.Follow appox 1/4 mile and turn left on dog hollow rd 5.Follow to top of hill and access.Road on.Right",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → OH-147 → Dog Hollow Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 2.\n4. Follow to Barnesville and.\n5. Turn right on OH-147 3.\n6. Follow 147 to 147/265 split and.\n7. Turn left to stay on 147 4.\n8. Follow appox 1/4 miles and.\n9. Turn left on dog hollow Road 5.\n10. Follow to top of hill and access Road on Right."
+  },
+  "gulfport--brown": {
+    "s": "From I-70.Take exit 202.OH 800(Barnesville/ Dennison) Head south OH 800 (Barnesville) turn right (West) onto OH147 for 3.4 miles.Turn left onto oh 147 for 1.1 miles.At the intersection, turn right to continue on oh 147 for 3 miles.Turn left onto cr19,Calais rd.For 0.7 miles.Turn left onto tr182.Calis rd (Melrose.Road.)for 0.4 miles.Entrance will be on your left.Door code-3942",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → OH-147 → CR-19 → TR182 Calis Rd → TR-182\n\nStep-by-step directions:\n1. From I-70 Take exit 202 OH-800(Barnesville/ Dennison).\n2. Head south OH-800 (Barnesville).\n3. Turn right (West) onto OH-147 for 3.4 miles.\n4. Turn left onto OH-147 for 1.1 miles At the intersection.\n5. Turn right to continue on OH-147 for 3 miles.\n6. Turn left onto County Road 19,Calais Road For 0.7 miles.\n7. Turn left onto Township Road 182 Calis Road (Melrose Road )for 0.4 miles Entrance will be on your left Door code-3942."
+  },
+  "gulfport--campbell": {
+    "s": "From.Barnesville OH 1.Take 800 south to.Malaga and turn left onto 145 east.2.Follow 145.East to town of.Beallsville.3.Turn right at stop sign (main st).4.Follow about 1000 yards to stop sign and go straight onto.Kings Highway.Turn right onto.Turn right-127 7.Go 0.7 miles to access.Road on left.",
+    "r": "Road sequence reference:\nOH-1 → Route 800 → Route 145 → Kings Hwy → Access Road\n\nStep-by-step directions:\n1. From Barnesville OH-1.\n2. Take 800 south to Malaga and.\n3. Turn left onto 145 east 2.\n4. Follow 145 East to town of Beallsville 3.\n5. Turn right at stop sign (main st) 4.\n6. Follow about 1000 yards to stop sign and.\n7. Go straight onto Kings Highway.\n8. Turn right onto Turn right-127 7.\n9. Go 0.7 miles to access Road on left."
+  },
+  "gulfport--cattle": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 toward.Barnesville.2.Follow 800 about 1-2 miles and turn left onto.Muscrat rd.3.Follow.Muscat rd to top of hill.4.At top of hill the road will bend to the right.Then stay straight and turn left at next rd.5.Follow to access rd on right.Door code- 3950!LOAD OUT IS A 4in FEMALE!",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Muscrat Rd → Muscat Rd → Route 4I → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 toward Barnesville 2.\n4. Follow 800 about 1-2 miles and.\n5. Turn left onto Muscrat Road 3.\n6. Follow Muscat Road to top of hill 4 At top of hill the road will bend to the right Then.\n7. Stay straight and.\n8. Turn left at next Road 5.\n9. Follow to access Road on right Door code- 3950!LOAD OUT IS A 4in FEMALE!"
+  },
+  "gulfport--charlie": {
+    "s": "Door 3953 70 east to exit 202 800 south.Follow 800 south outside of.Barnesville make a left on route 148 follow 25 miles and lease road will be on right.About 2.4 mi.On 148 out of powhatan on left.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 202 → Route 800 → Route 148 → Route 25 → Lease Road\n\nStep-by-step directions:\n1. Door 3953 70 east to exit 202 800 south.\n2. Follow 800 south outside of Barnesville make a.\n3. Turn left on route 148.\n4. Follow 25 miles and.\n5. Lease road will be on right About for 2.4 miles On 148 out of powhatan on left."
+  },
+  "gulfport--charlotte": {
+    "s": "From the intersection of OH9 and OH147 in.Centerville south of.Street.Clairsville, drive 2.4 miles east on OH147.Turn right onto TR237, Shepherd.Hill Road.Drive 2.3 miles.Access will be on the left.Door Code 7125",
+    "r": "Road sequence reference:\nOH-147 → TR-237\n\nStep-by-step directions:\n1. Follow From the intersection of OH-9 and OH-147 in Centerville south of Street Clairsville.\n2. Drive 2.4 miles east on OH-147.\n3. Turn right onto Township Road 237, Shepherd Hill Road.\n4. Drive 2.3 miles Access will be on the left Door Code 7125."
+  },
+  "gulfport--clark": {
+    "s": "From.Barnesville OH 1.Follow 800 south thru town of.Somerton.2.After you leave.Somerton going south look for.Gulfport sign on right for access rd.",
+    "r": "Road sequence reference:\nOH-1 → Route 800 → Access Road\n\nStep-by-step directions:\n1. From Barnesville OH-1.\n2. Follow 800 south thru town of Somerton 2 After you leave Somerton going south look for Gulfport sign on right for access Road."
+  },
+  "gulfport--claugus": {
+    "s": "From shop take 70 east to exit 202.Barnesville.At the end of.Ramp turn (right) and follow.Street.Right.800.South for 24 miles.To woodsfield.Turn (right) on.Main Street.For 0.2.Miles to intersection of 800/78.Turn (left) on.Street.Right.78 and.Follow for 1.7 mile and turn right onto.Sugartree-cranesnest.Follow 1.1 mile.Turn (right) on.Neuhart Follow 0.6 mile turn left on township road 2303.Lease road is straight ahead.Room 4131?",
+    "r": "Road sequence reference:\nRoute 70 → Exit 202 → Main St → Sugartree-cranesnest → TR-2303 → Lease Road\n\nStep-by-step directions:\n1. From shop take 70 east to exit 202 Barnesville At the end of Ramp turn (right) and.\n2. Follow Street Right 800 South for 24 miles To woodsfield Turn (right) on Main Street For 0.2 miles to intersection of 800/78 Turn (left) on Street Right 78 and.\n3. Follow for 1.7 miles and.\n4. Turn right onto Sugartree-cranesnest.\n5. Follow 1.1 miles Turn (right) on Neuhart.\n6. Follow 0.6 miles.\n7. Turn left on township road 2303.\n8. Lease road is straight ahead Room 4131?"
+  },
+  "gulfport--clay": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow 22E thru town of.Smyrna.3.As you leave.Smyrna 800 will go left.Stay straight on 22E for about 1/8 mile and turn right by house with an orange cone out front.(swing wide) 4.Follow rd right next to garage to pad.",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Pad\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22E thru town of Smyrna 3 As you leave Smyrna 800 will.\n4. Go left.\n5. Stay straight on 22E for about 1/8 miles and.\n6. Turn right by house with an orange cone out front (swing wide) 4.\n7. Follow Road right next to garage to pad."
+  },
+  "gulfport--conway": {
+    "s": "148 east out of barnesville all the way into.Armstrong mills 1.5 miles before right.9 by the red church turn right on twsp rd 101 go to top of hill pad is on right.——————————————— From.Powhatan point 7 north left on 148 for 10.2 miles.Left Saffel.Church rd for 1mile.On right.4 inch female on the load out",
+    "r": "Road sequence reference:\nRoute 148 → Twsp Rd → Route 7 → Saffel Church Rd → Pad\n\nStep-by-step directions:\n1. Follow 148 east out of barnesville all the way into Armstrong mills 1.5 miles before right 9 by the red church.\n2. Turn right on twsp Road 101.\n3. Go to top of hill.\n4. Pad is on right ——————————————— From Powhatan point 7 north.\n5. Turn left on 148 for 10.2 miles Left Saffel Church Road for 1 mile On right 4 inch female on the load out."
+  },
+  "gulfport--darla": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow 22E past the town of.Moorefield to 519.3.Turn right on 519.4.Follow 519 1-2 miles to.Muntz rd and turn right.5.Follow muntz rd until you see 2nd rd to your left and turn left onto.Flushing water works rd.6.Follow to T and turn left.7.Follow to.Wagner pad and go through pad to road on ot her side.8.Stay straight on this road to.Darla pad.",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Route 519 → Flushing Water Works Rd → This Rd → Pad\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22E past the town of Moorefield to 519.3.\n4. Turn right on 519.4.\n5. Follow 519 1-2 miles to Muntz Road and.\n6. Turn right 5.\n7. Follow muntz Road until you see 2nd Road to your left and.\n8. Turn left onto Flushing water works Road 6.\n9. Follow to T and.\n10. Turn left 7.\n11. Follow to Wagner pad and.\n12. Go through pad to road on ot her side 8.\n13. Stay straight on this road to Darla pad."
+  },
+  "gulfport--davidson": {
+    "s": "From.Smyrna OH 2.Take 800.North to.Freeport OH 2.Follow 800 north thru.Freeport to 799 3.Turn right on 799 and follow to.Scott Hill.Road.4.Turn right on.Scott Hill.Road.5.Follow.Scott Hill.Road 0.3 miles and then turn.Right onto.McElhaney rd.6.Follow.McElhaney.Road 1.1 miles to access rd on left.H2O hookup is 4\" male.",
+    "r": "Road sequence reference:\nOH-2 → Route 800 → Route 799 → Scott Hill Rd → Mcelhaney Rd → Access Road\n\nStep-by-step directions:\n1. From Smyrna OH-2.\n2. Take 800 North to Freeport OH-2.\n3. Follow 800 north thru Freeport to 799 3.\n4. Turn right on 799 and.\n5. Follow to Scott Hill Road 4.\n6. Turn right on Scott Hill Road 5.\n7. Follow Scott Hill Road for 0.3 miles and then turn.\n8. Turn right onto McElhaney Road 6.\n9. Follow McElhaney Road for 1.1 miles to access Road on left H2O hookup is 4\" male."
+  },
+  "gulfport--donato": {
+    "s": "From 70 east & 800 head south through.Barnesville.Continue south through.Woodsfield to the 26 south.Follow threw greysville to the intersection of oh-26 & oh 537 on your right, go.West on oh 537 for 0.8 miles.Turn right onto cr73,Pleasant.Ridge Road for 0.6 mile.Access on the left.Code 3980 / Washington township, Monroe co.",
+    "r": "Road sequence reference:\nRoute 70 → OH-26 → OH-537 → CR-73\n\nStep-by-step directions:\n1. From 70 east & 800.\n2. Head south through Barnesville.\n3. Continue south through Woodsfield to the 26 south.\n4. Follow threw greysville to the intersection of OH-26 & OH-537 on your right.\n5. Go West on OH-537 for 0.8 miles.\n6. Turn right onto County Road 73,Pleasant Ridge Road for 0.6 miles Access on the left Code 3980 / Washington township, Monroe co."
+  },
+  "gulfport--dornon": {
+    "s": "CONTROL ROOM CODE: 5876.Exit 216 st right 9 go to bottom of ramp go right south on st right 9 7.6miles.Left at stop sign to continue on right 9.Approximately 4 miles from stop sign.Pass ogilbee rd, lease road is on left about 1 mile past ogilbee at top of hill.In curve.Pad is roughly.5 mile back.From 148 to right 9 north pad is approximately 3 miles on right",
+    "r": "Road sequence reference:\nExit 216 → SR-9 → Route 148 → Route 9 → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE: 5876.\n2. Exit 216 st right 9.\n3. Go to bottom of ramp.\n4. Go right south on st right 9 for 7.6 miles.\n5. Turn left at stop sign to continue on right 9 Approximately for 4 miles from stop sign.\n6. Pass ogilbee Road.\n7. Lease road is on left about for 1 mile past ogilbee at top of hill In curve.\n8. Pad is roughly 5 miles back From 148 to right 9 north.\n9. Pad is approximately 3 miles on right."
+  },
+  "gulfport--dorsey": {
+    "s": "From the shop take 70.East.To exit 218.Mall.Road At the end of ramp turn left go to third traffic light.At the top of hill.And turn left onto.Route 40.Follow.Route 40 approximately one mile.Turn right onto.Barton Road.Followed Barton.Road for 1.6 miles.Dorsey Lease.Road will be on your right.Door code 3981",
+    "r": "Road sequence reference:\nRoute 70 → Exit 218 Mall Rd → Exit 218 → Route 40 → Barton Rd → Lease Road\n\nStep-by-step directions:\n1. From the shop.\n2. Take 70 East To exit 218 Mall Road At the end of ramp.\n3. Turn left go to third traffic light At the top of hill And.\n4. Turn left onto Route 40.\n5. Follow Route 40 approximately one mile.\n6. Turn right onto Barton Road Followed Barton Road for 1.6 miles Dorsey.\n7. Lease Road will be on your right Door code 3981."
+  },
+  "gulfport--duvall": {
+    "s": "From I-70 1.Take exit 202 and go south on US-800 2.Follow 800 thru.Barnesville and turn left on.Flat Rock road.3.Stay on.Flat Rock rd approx 2.2 mi to access rd on right just past the.Stronz pad.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → US-800 → Flat Rock Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on US-800 2.\n4. Follow 800 thru Barnesville and.\n5. Turn left on Flat Rock road 3.\n6. Stay on Flat Rock Road approx for 2.2 miles to access Road on right just past the Stronz pad."
+  },
+  "gulfport--eagle-creek": {
+    "s": "From I-70 west to east 1. Take exit 204 and turn right at bottom of ramp 2. Follow to stop sign and go straight(Egypt north rd) 3. Follow about 2 miles to Shephard rd and turn right. Bear right on coal run rd, pad is on left. Note - Shepard rd is right before old bridge pillars 4. Follow approx 2.0 mile to access Rd on left",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → Shephard Rd → Coal Run Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 west to east 1.\n2. Take exit 204 and.\n3. Turn right at bottom of ramp 2.\n4. Follow to stop sign and.\n5. Go straight(Egypt north Road) 3.\n6. Follow about for 2 miles to Shephard Road and.\n7. Turn right Bear.\n8. Turn right on coal run Road.\n9. Pad is on left Note - Shepard Road is right before old bridge pillars 4.\n10. Follow approx for 2.0 miles to access Road on left."
+  },
+  "gulfport--edge": {
+    "s": "From.Barnesville OH 1.Follow 800 south to.Malaga and turn left onto 145.2.Follow 145 thru town of.Beallsville.3.Turn left onto County Road-23 (Pugh.Ridge Road) 4.Follow County Road-23 1.8 mi to access rd on left just past.Dairy Farm.",
+    "r": "Road sequence reference:\nOH-1 → Route 800 → Route 145 → CR-23 / Pugh Ridge Rd → Access Road\n\nStep-by-step directions:\n1. From Barnesville OH-1.\n2. Follow 800 south to Malaga and.\n3. Turn left onto 145.2.\n4. Follow 145 thru town of Beallsville 3.\n5. Turn left onto County Road-23 (Pugh Ridge Road) 4.\n6. Follow County Road-23 for 1.8 miles to access Road on left just past Dairy Farm."
+  },
+  "gulfport--evans": {
+    "s": "From state right 22 in.Piedmont take 331 south about 5.5 miles just through.Holloway pad entrance is on the right.From I-70 take.Exit 208 up to right-40.Turn left the take a.Right onto right-149 when you get to.Flushing stay straight onto 331 towards.Holloway pad entrance on the.Right before you get into town",
+    "r": "Road sequence reference:\nRoute 331 → Pad → OR → I-70 → Exit 208 → Route 331 → Pad\n\nStep-by-step directions:\n1. From state right 22 in Piedmont.\n2. Take 331 south about for 5.5 miles just through Holloway pad entrance is on the right From I-70.\n3. Take Exit 208 up to right-40.\n4. Turn left the take a.\n5. Turn right onto right-149 when you get to Flushing.\n6. Stay straight onto 331 towards Holloway pad entrance on the Right before you get into town."
+  },
+  "gulfport--extreme": {
+    "s": "70east to 7 north.To state route 150 west towards rayland.Stay on sr 150 west to cr rd 15 turn right and go up to cr rd 14 make a left.Go past the kinyo and lease rd will be at the bottom of the hill on right.",
+    "r": "Road sequence reference:\nRoute 70 → Route 7 → SR-150 → Cr Rd → Lease Road\n\nStep-by-step directions:\n1. 70east to 7 north To State Route 150 west towards rayland.\n2. Stay on State Route 150 west to cr Road 15.\n3. Turn right and.\n4. Go up to cr Road 14 make a left.\n5. Go past the kinyo and.\n6. Lease Road will be at the bottom of the hill on right."
+  },
+  "gulfport--family": {
+    "s": "From I-70 1.Take exit 204 and turn left at bottom of ramp.2.Follow to first crossroad (cr 98) and turn left.3.Follow and stay left past split.4.Access rd on left.5.Lease road will split at the big barnhead through the red cattle gate to the left.It goes up hill.",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → Goes Up Hill → Lease Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 204 and.\n3. Turn left at bottom of ramp 2.\n4. Follow to first crossroad (County Road 98) and.\n5. Turn left 3.\n6. Follow and.\n7. Stay left past split 4 Access Road on left 5.\n8. Lease road will split at the big barnhead through the red cattle gate to the left It goes up hill."
+  },
+  "gulfport--fankhauser": {
+    "s": "CONTROL ROOM ACCESS CODE:2429(Followed by checkmark button) From.Centerville on 147 east go to shepherd hill rd approx 2 mile out of.Centerville road.Will be on right 1 mile back road pad will be on right",
+    "r": "Road sequence reference:\nRoute 147 → Shepherd Hill Rd → Back Rd → Pad\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:2429(Followed by checkmark button) From Centerville on 147 east.\n2. Go to shepherd hill Road approx 2 miles out of Centerville road Will be on right for 1 mile back road.\n3. Pad will be on right."
+  },
+  "gulfport--faye": {
+    "s": "From.Powhatan take.Street.Route 148.Follow.Street.Route 148 past 145 and keep going to.County Road.92 and turn left and then right and pad is on the right",
+    "r": "Road sequence reference:\nPowhatan Take St → Route 148 → Pad\n\nStep-by-step directions:\n1. From Powhatan take Street Route 148.\n2. Follow Street Route 148 past 145 and.\n3. Keep going to County Road 92 and.\n4. Turn left and then right and.\n5. Pad is on the right."
+  },
+  "gulfport--followay": {
+    "s": "CONTROL ROOM CODE: 4004.From I70 take exit 202.Barnesville.800.South to.Malaga.Turn left on OH 145 at flashing light.Continue to.Beallsville.Straight thru stop sign at 4 way stop.Follow 556 east out of.Beallsville 3.1 miles.Turn right onto.Headley Ridge rd or.County Road 38.Big sign that says.Switz 26.Continue 1.9 miles, lease rd is on left.CNX well.Switz 26 is on same lease rd.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-145 → Route 556 → Headley Ridge Rd → OR → CR-38 → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE: 4004 From I-70.\n2. Take exit 202 Barnesville 800 South to Malaga.\n3. Turn left on OH-145 at flashing light.\n4. Continue to Beallsville Straight thru stop sign at 4 way stop.\n5. Follow 556 east out of Beallsville for 3.1 miles.\n6. Turn right onto Headley Ridge Road or County Road 38 Big sign that says Switz 26.\n7. Continue 1.9 miles.\n8. Lease Road is on left CNX well Switz 26 is on same.\n9. Lease Road."
+  },
+  "gulfport--francis": {
+    "s": "From oh800 in.Barnsville, turn.West onto oh147 for 3.4 miles.Turn left onto oh147 for 1 mile.Turn left onto oh379 for 5 miles.Access on left.Room code:4006 4\" load out you will need 4/3 fitting or 4\" line with sight tube (No.Porta-John on location) 54469.Temperanceville hwy.Barnesville ohio 43713",
+    "r": "Road sequence reference:\nOH-800 → OH-147 → OH-379\n\nStep-by-step directions:\n1. From OH-800 in Barnsville, turn.\n2. Continue west onto OH-147 for 3.4 miles.\n3. Turn left onto OH-147 for 1 mile.\n4. Turn left onto OH-379 for 5 miles Access on left Room code:4006 4\" load out you will need 4/3 fitting or 4\" line with sight tube (No Porta-John on location) 54469 Temperanceville Highway Barnesville ohio 43713."
+  },
+  "gulfport--fruend": {
+    "s": "From State Route 7.TURN ON TO OH 250.DRIVE 3.2.MILES.TURN LEFT ONTO WOODS ROAD.CONTINUE ABOUT 0.7.MILES.LEASE ROAD ON YOUR RIGHT.",
+    "r": "Road sequence reference:\nSR-7 → Oh 250 Dr → Woods Rd → Lease Road\n\nStep-by-step directions:\n1. From State Route 7 TURN ON TO OH-250.\n2. DRIVE 3.2 miles.\n3. TURN LEFT ONTO WOODS ROAD.\n4. CONTINUE ABOUT 0.7 miles.\n5. LEASE ROAD ON YOUR RIGHT."
+  },
+  "gulfport--gary": {
+    "s": "Door code 4011.From the intersection of oh 145 & oh 556 in.Beallsville,go east on oh 556 for 1.7 miles.Turn right into cr 31,Mellott.Ridge for 2.7 miles (@ the split,you will need to go left.Entrance will be on your left.",
+    "r": "Step-by-step directions:\n1. Door code 4011 From the intersection of OH-145 & OH-556 in Beallsville,go east on OH-556 for 1.7 miles.\n2. Turn right into County Road 31,Mellott Ridge for 2.7 miles (@ the split,you will need to go left Entrance will be on your left."
+  },
+  "gulfport--gary-greene": {
+    "s": "Door code 4012 checkmark From the intersection of oh 800 & oh 26 south of Woodsfield, Go West on oh 26 for 5.8 miles. Turn right onto Cr12, Hartshorn Ridge Road for 0.5 mile. Entrance will be on the left.",
+    "r": "Road sequence reference:\nOH-26 → CR-12\n\nStep-by-step directions:\n1. Door code 4012 checkmark From the intersection of OH-800 & OH-26 south of Woodsfield.\n2. Go West on OH-26 for 5.8 miles.\n3. Turn right onto County Road 12, Hartshorn Ridge Road for 0.5 miles Entrance will be on the left."
+  },
+  "gulfport--gehrig": {
+    "s": "DOOR CODE 7699.Route 800 between.Woodsfield and.Monroe lake",
+    "r": "Step-by-step directions:\n1. DOOR CODE 7699 Route 800 between Woodsfield and Monroe lake."
+  },
+  "gulfport--george": {
+    "s": "I70 east to rte.800 south.Left on 148 east.Go 1/4 mile past rte.145 and make a left on cr86.It use the same road as the old coal mine.Pad is on the right DOOR CODE 5480 4” HOOK UP!!Will need a PIPE WRENCH!.Key way valves on the tanks with no handles.",
+    "r": "Road sequence reference:\nI-70 → Route 800 → Route 148 → CR-86 → Pad\n\nStep-by-step directions:\n1. Follow I-70 east to rte 800 south.\n2. Turn left on 148 east.\n3. Go 1/4 miles past rte 145 and make a.\n4. Turn left on County Road 86 It use the same road as the old coal mine.\n5. Pad is on the right DOOR CODE 5480 4” HOOK UP!!Will need a PIPE WRENCH! Key way valves on the tanks with no handles."
+  },
+  "gulfport--groh": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow 22 east for 12.1 miles until you go past.Fairgrounds Road then go thru big curve to left and.Intersection of 22/285.North of.Old Washington go east 3.1 miles.Pad on left start up the hill.Pad is on left at top of hill.You can see pad from road.",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Pad\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22 east for 12.1 miles until you.\n4. Go past Fairgrounds Road then.\n5. Go thru big curve to left and Intersection of 22/285 North of Old Washington.\n6. Go east 3.1 miles Pad on left start up the hill.\n7. Pad is on left at top of hill You can see pad from road."
+  },
+  "gulfport--gustina-bear": {
+    "s": "From I-77 1. Take exit for US-22E 2. Follow 22E thru town of Piedmont. 3. As you leave Piedmont you will start up hill. Access rd is on the right almost to the top of hill.Â",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Access Road\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22E thru town of Piedmont 3 As you leave Piedmont you will start up hill Access Road is on the right almost to the top of hill Â."
+  },
+  "gulfport--hartley": {
+    "s": "Channel 12.Route 7 south from 470.Inbound traffic - Turn right onto 54.Pipe.Creek 1.25 miles turn right onto 293.Kirkland.Hill Road.Approximately 1 mile from.Tiger pad, on the right",
+    "r": "Road sequence reference:\nRoute 7 → Route 470 → Pipe Creek → Route 54 → Kirkland Hill Rd → Route 293 → Pad\n\nStep-by-step directions:\n1. Channel 12 Route 7 south from 470 Inbound traffic.\n2. Turn right onto 54 Pipe Creek for 1.25 miles.\n3. Turn right onto 293 Kirkland Hill Road Approximately for 1 mile from Tiger pad, on the right."
+  },
+  "gulfport--hayes": {
+    "s": "I70.EAST 1.Take exit 204 and turn left at bottom of ramp.If traveling west on I70 go to 202exit and head.Back east on I70 to exit 204 and turn left.Go.08 mi turn right across from cr 98.3.Go up hill.06 mi and access road is on right.",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → Access Road\n\nStep-by-step directions:\n1. Follow I-70 EAST 1.\n2. Take exit 204 and.\n3. Turn left at bottom of ramp If traveling west on I-70.\n4. Go to 202exit and.\n5. Head Back east on I-70 to exit 204 and.\n6. Turn left Go 08 miles.\n7. Turn right across from County Road 98.3.\n8. Go up hill 06 miles and access road is on right."
+  },
+  "gulfport--hendershot": {
+    "s": "Oh 7 south 5.8 miles past.Moundsville Bridge make RIGHT on.Little Captiva rd.(Turn right rd 132) Follow for 1.6 miles.Lease road is on RIGHT.4032",
+    "r": "Road sequence reference:\nOH-7 → Little Captiva Rd → Lease Road\n\nStep-by-step directions:\n1. Follow OH-7 south 5.8 miles past Moundsville Bridge make.\n2. Turn right on Little Captiva Road (Turn right Road 132).\n3. Follow for 1.6 miles.\n4. Lease road is on RIGHT 4032."
+  },
+  "gulfport--hogston": {
+    "s": "4034.Door code.From North 1.From I-70 take exit 216 and go south on OH-9 2.Follow 7.8 miles and turn left at the stop sign to continue on OH-9.3.Follow 1.9 miles and turn right onto.Turn right-116, Ogilbee.Road.4.Follow 1.9 miles and access road is on the right.------------------------- From the.South 1.From the intersection of OH-148 and OH-9 west of.Powhatan Point, head north on OH-9.2.Follow 4.7 miles and turn left onto.Turn right-116, Ovilbee.Road.3.Follow 1.9 miles and access road is on the right.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → OH-9 → TR-116 → Access Road → OR → TR-116 → Access Road\n\nStep-by-step directions:\n1. 4034 Door code From North 1 From I-70.\n2. Take exit 216 and.\n3. Go south on OH-9 2.\n4. Follow 7.8 miles and.\n5. Turn left at the stop sign to continue on OH-9.3.\n6. Follow 1.9 miles and.\n7. Turn right onto Turn right-116, Ogilbee Road 4.\n8. Follow 1.9 miles and access road is on the right ------------------------- From the South 1 From the intersection of OH-148 and OH-9 west of Powhatan Point.\n9. Head north on OH-9.2.\n10. Follow 4.7 miles and.\n11. Turn left onto Turn right-116, Ovilbee Road 3.\n12. Follow 1.9 miles and access road is on the right."
+  },
+  "gulfport--horsemill": {
+    "s": "From the north & south.From the intersection of oh 9 & oh 147 in centerville, south of.Street.Clairsville,drive 6 miles east on oh 147.Turn right onto cr 48,Wegee.Road for 0.9 mile.Turn right onto.Turn right 296,Cash.Ridge for 1.4 miles.Turn right onto.Turn right 298,Lockwood.Run Road for 2 miles to the intersection with.Turn right 501,Horsemill.Hill Road.Continue straight for 0.6 mile.Access will be on the right.From the south.From the intersection of oh 148 & oh 7 in.Powhatan Point,drive 4.8 miles north on oh 7.Turn left onto cr 54,Pipe.Creek Road for 1.4 miles.Turn right onto.Turn right 293,Kirkland.Hill Road.Drive 2.5 miles.Turn right onto.Turn right 298,Lockwood.Run Road.Drive 2 miles to the intersection with.Turn right 501,Horsemill.Hill Road.Continue straight for 0.6 mile.Access will be on the right.",
+    "r": "Road sequence reference:\nOH-147 → CR-48 → OR → OH-7 → CR-54\n\nStep-by-step directions:\n1. From the north & south From the intersection of OH-9 & OH-147 in centerville, south of Street Clairsville,drive 6 miles east on OH-147.\n2. Turn right onto County Road 48,Wegee Road for 0.9 miles.\n3. Turn right onto Turn right 296,Cash Ridge for 1.4 miles.\n4. Turn right onto Turn right 298,Lockwood Run Road for 2 miles to the intersection with.\n5. Turn right 501,Horsemill Hill Road.\n6. Continue straight for 0.6 miles Access will be on the right From the south From the intersection of OH-148 & OH-7 in Powhatan Point,drive for 4.8 miles north on OH-7.\n7. Turn left onto County Road 54,Pipe Creek Road for 1.4 miles.\n8. Turn right onto Turn right 293,Kirkland Hill Road.\n9. Drive 2.5 miles.\n10. Turn right onto Turn right 298,Lockwood Run Road.\n11. Drive 2 miles to the intersection with.\n12. Continue straight for 0.6 miles Access will be on the right."
+  },
+  "gulfport--horseshoe": {
+    "s": "148 east from route 800 south out of barnesville...Right before.Armstrong mills..Turn right on 101..Climb hill and turn around at.Conway lease rd...Come back to 121 on right..Follow to lease road on the left...From powhatan point west on 148 10 miles.Turn left on 101 after st right 9 proceed to top top of hill.Code 3907",
+    "r": "Road sequence reference:\nRoute 148 → Route 800 → Mills..turn Right On 101..climb Hill → Route 101 → Lease Road → OR → Route 148 → Route 101\n\nStep-by-step directions:\n1. Follow 148 east from route 800 south out of barnesville Right before Armstrong mills.\n2. Turn right on 101 Climb hill and turn around at Conway.\n3. Lease Road Come back to 121 on right.\n4. Follow to lease road on the left From powhatan point west on 148 for 10 miles.\n5. Turn left on 101 after st right 9.\n6. Proceed to top top of hill Code 3907."
+  },
+  "gulfport--howell": {
+    "s": "CONTROL ROOM CODE: 4037.From.Barnesville OH 1.Take 800 south to.Malaga and turn left onto 145 east.2.Follow 145.East to town of.Beallsville.3.Turn right at stop sign (main st).4.Follow about 1000 yards to stop sign and go straight onto.Kings Highway.5.Go 0.4 miles and turn left at top of hill onto township 124 6.Follow to y in road twp 145 bares to left stay 0n 145 ends on pad",
+    "r": "Road sequence reference:\nRoute 800 → Route 145 → Kings Hwy → Y In Rd → Pad\n\nStep-by-step directions:\n1. CONTROL ROOM CODE: 4037 From Barnesville OH-1.\n2. Take 800 south to Malaga and.\n3. Turn left onto 145 east 2.\n4. Follow 145 East to town of Beallsville 3.\n5. Turn right at stop sign (main st) 4.\n6. Follow about 1000 yards to stop sign and.\n7. Go straight onto Kings Highway 5.\n8. Go 0.4 miles and.\n9. Turn left at top of hill onto township 124 6.\n10. Follow to y in road twp 145 bares to left.\n11. Stay 0n 145 ends on pad."
+  },
+  "gulfport--inherst": {
+    "s": "From I-70 1.Take exit 202 and go south on OH-800 2.Follow 800 to.Barnesville 3.Turn right onto OH-147 4.Follow to 147/265 split and turn left to stay on 147 5.Follow 147 and turn left on 379 6.Follow 379 to top of hill and turn left on 128 7.Follow 128 to.Boston and follow 147 around little church and turn left onto.Rock River rd 8.Follow about 1/2 miles to access.Road on left",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → OH-147 → Route 379 → Route 128 → Rock River Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on OH-800 2.\n4. Follow 800 to Barnesville 3.\n5. Turn right onto OH-147 4.\n6. Follow to 147/265 split and.\n7. Turn left to stay on 147 5.\n8. Follow 147 and.\n9. Turn left on 379 6.\n10. Follow 379 to top of hill and.\n11. Turn left on 128 7.\n12. Follow 128 to Boston and.\n13. Follow 147 around little church and.\n14. Turn left onto Rock River Road 8.\n15. Follow about 1/2 miles to access Road on left."
+  },
+  "gulfport--irons": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 2.Go thru.Barnesville and follow to 148 and turn left 3.Stay on 148 for 17.3 miles/Go past right 9 1.8 miles & Lease rd will be on your right side.4.After you go thru.Armstrong mills and cross railroad tracks and golf course start looking for old railroad tressel across road then begin looking for pad on the right.If you go under 2nd old tressel then you went to far.Tank 2 is a 3\" male connection.Tank 3 is a 4\" female connection.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Route 148 → Lease Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 2.\n4. Go thru Barnesville and.\n5. Follow to 148 and.\n6. Turn left 3.\n7. Stay on 148 for 17.3 miles/Go past right 9 for 1.8 miles &.\n8. Lease Road will be on your right side 4 After you.\n9. Go thru Armstrong mills and.\n10. Cross railroad tracks and golf course start looking for old railroad tressel across road then begin looking for pad on the right If you.\n11. Go under 2nd old tressel then you went to far Tank 2 is a 3\" male connection Tank 3 is a 4\" female connection."
+  },
+  "gulfport--jac": {
+    "s": "State route 800 south from.Barnesville to state route 148 east for 5 and 1/2 miles turn left on county rd 26 approx.3 miles lease road and pad on the left WAYNE TOWNSHIP",
+    "r": "Road sequence reference:\nSR-800 → CR-26 → Lease Road\n\nStep-by-step directions:\n1. Follow State Route 800 south from Barnesville to State Route 148 east for 5 and 1/2 miles.\n2. Turn left on county Road 26 approx for 3 miles.\n3. Lease road and pad on the left WAYNE TOWNSHIP."
+  },
+  "gulfport--jacobs": {
+    "s": "Rte.800 south to woodfield..Turn on rte 26 south of woodsfield..Pad is about 5.8 miles on left",
+    "r": "Road sequence reference:\nRoute 800 → Route 26 → Pad\n\nStep-by-step directions:\n1. Rte 800 south to woodfield Turn on rte 26 south of woodsfield.\n2. Pad is about 5.8 miles on left."
+  },
+  "gulfport--jade": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 toward.Barnesville.2.Follow 800 about 1-2 miles and turn left onto.Muscrat rd.3.Follow.Muscat rd to top of hill.4.At top of hill the road will bend to the right.Then stay straight and turn left at next rd.5.Follow to T and turn left.6.Follow to access rd on right, past the.Swallie pad.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Muscrat Rd → Muscat Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 toward Barnesville 2.\n4. Follow 800 about 1-2 miles and.\n5. Turn left onto Muscrat Road 3.\n6. Follow Muscat Road to top of hill 4 At top of hill the road will bend to the right Then.\n7. Stay straight and.\n8. Turn left at next Road 5.\n9. Follow to T and.\n10. Turn left 6.\n11. Follow to access Road on right, past the Swallie pad."
+  },
+  "gulfport--john": {
+    "s": "CONTROL ROOM ACCESS CODE:4051(Followed by checkmark) From I-70.Take exit 202.OH800.Barnesville/Dennison.Follow 800 south through.Barnesville.From 2nd stop light in.Barnesville travel 3.5 miles, lease rd is on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:4051(Followed by checkmark) From I-70.\n2. Take exit 202 OH-800 Barnesville/Dennison.\n3. Follow 800 south through Barnesville From 2nd stop light in Barnesville travel for 3.5 miles.\n4. Lease Road is on left."
+  },
+  "gulfport--jones": {
+    "s": "From.Barnesville OH 1.Take 800 south to 145 in.Malaga and turn left.2.Follow 145 to town of.Jerusalem.3.As you leave.Jerusalem turn right on 26 south.4.Follow 26 south (4.5 miles)to.Kings Highway and turn right.Monroe county.Road 1 5.Follow.Kings Highway (1.1 miles)to access rd on right.*** 4” Connections NEEDED TO PULL PRODUCTION***",
+    "r": "Road sequence reference:\nOH-1 → Route 800 → Route 145 → Route 26 → Monroe County Rd → Kings Hwy → Access Road\n\nStep-by-step directions:\n1. From Barnesville OH-1.\n2. Take 800 south to 145 in Malaga and.\n3. Turn left 2.\n4. Follow 145 to town of Jerusalem 3 As you leave Jerusalem.\n5. Turn right on 26 south 4.\n6. Follow 26 south (4.5 miles)to Kings Highway and.\n7. Turn right Monroe county Road 1 5.\n8. Follow Kings Highway (1.1 miles)to access Road on right *** 4” Connections NEEDED TO PULL PRODUCTION***."
+  },
+  "gulfport--kage": {
+    "s": "From 4.Way.Stop on OH 800 in.Freeport, Go.North on OH 800 for 8.2.Miles.Turn.Right onto.Turn right 290(Ferguson.Road) for 1.2.Miles.Turn Right onto.Turn right 291(Laughlin.Road) for 0.7.Miles.Lease Road on the.Left",
+    "r": "Road sequence reference:\nRoute 4 → OH-800 → Lease Road\n\nStep-by-step directions:\n1. From 4 Way Stop on OH-800 in Freeport.\n2. Go North on OH-800 for 8.2 miles Turn.\n3. Turn right onto Turn right 290(Ferguson Road) for 1.2 miles.\n4. Turn Right onto Turn right 291(Laughlin Road) for 0.7 miles.\n5. Lease Road on the Left."
+  },
+  "gulfport--karen": {
+    "s": "From I-70 1.Take exit 193 (513 south) 2.Go south on 513 2.3 miles to.Oxford rd.3.Turn left on.Oxford rd and follow to access.Road on right.",
+    "r": "Road sequence reference:\nI-70 → Exit 193 → Route 513 → Oxford Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 193 (513 south) 2.\n3. Go south on 513 for 2.3 miles to Oxford Road 3.\n4. Turn left on Oxford Road and.\n5. Follow to access Road on right."
+  },
+  "gulfport--kilburn": {
+    "s": "Take right 800 south to.Malaga.Turn right onto 145 south go about 5 mile to co rd 44.Turn left onto co rd 44 and lease rd will be.01 miles on the right",
+    "r": "Road sequence reference:\nRoute 800 → Route 145 → Co Rd → CR-44 → Lease Road\n\nStep-by-step directions:\n1. Take right 800 south to Malaga.\n2. Turn right onto 145 south.\n3. Go about 5 miles to County Road 44.\n4. Turn left onto County Road 44 and.\n5. Lease Road will be 01 mile on the right."
+  },
+  "gulfport--kinyo": {
+    "s": "Take.County 15 headed toward the limestone and turn left on to.County road 14 and pad will be on the right.",
+    "r": "Step-by-step directions:\n1. Take County 15 headed toward the limestone and.\n2. Turn left on to County road 14 and.\n3. Pad will be on the right."
+  },
+  "gulfport--krupa": {
+    "s": "Room code 4060.South on.Route 7 to CR534 turn right.Follow 2.2 miles,to stop sign turn left onto.Cash Ridge road white fence next to road follow for 2.2 miles lease road on left.Coming from the south on.Street right 7 it is 8.5 miles north of st right 148 and right 7 intersection in powhatan point to the left turn on 534, go 2.2 miles left at stop sign onto cash ridge rd.Go another 2.2 miles to lease rd on left.",
+    "r": "Road sequence reference:\nRoute 7 → Cash Ridge Rd → Lease Road → OR → Route 534 → Cash Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Follow Room code 4060 South on Route 7 to County Road 534.\n2. Turn right Follow 2.2 miles,to stop sign.\n3. Turn left onto Cash Ridge road white fence next to road.\n4. Follow for 2.2 miles.\n5. Lease road on left Coming from the south on Street right 7 it is for 8.5 miles north of st right 148 and right 7 intersection in powhatan point to the left turn on 534.\n6. Go 2.2 miles.\n7. Turn left at stop sign onto cash ridge Road.\n8. Go another 2.2 miles to lease Road on left."
+  },
+  "gulfport--lake-vio": {
+    "s": "Lake VII State Route 250 to.Deersville Road.Follow to.Adams road, and turn left.At.Stop sign, turn right onto YMCA Camp.Road.This road leads right to pad on the right.Still a drill rig at time I made this.Https://maps.App.Goo.Gl/ya6RgWtrQvUbniTJA?G_st=ic",
+    "r": "Road sequence reference:\nSR-250 → Adams Rd → Ymca Camp Rd → Pad\n\nStep-by-step directions:\n1. Follow Lake VII State Route 250 to Deersville Road.\n2. Follow to Adams road, and.\n3. Turn left At Stop sign.\n4. Turn right onto YMCA Camp Road This road leads right to pad on the right Still a drill rig at time I made this Https://maps App Goo Gl/ya6RgWtrQvUbniTJA?G_st=ic."
+  },
+  "gulfport--lance": {
+    "s": "CONTROL ROOM ACCESS CODE:7646 (Followed by check mark button) (Porta-John on pad at the entrance) From I-70 7 north.Turn left on CR4 take for.5 miles.Turn right on nixon.Run Road.Go 1.8 miles and lease road is on the left.",
+    "r": "Road sequence reference:\nI-70 → Route 7 → CR-4 → Nixon Run Rd → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:7646 (Followed by check mark button) (Porta-John on pad at the entrance) From I-70 7 north.\n2. Turn left on County Road 4.\n3. Take for 5 miles.\n4. Turn right on nixon Run Road.\n5. Go 1.8 miles and.\n6. Lease road is on the left."
+  },
+  "gulfport--lepley": {
+    "s": "Door code 4067.From.Barnesville OH 1.Follow 800 south to.Malaga and 2.Follow 556 thru town of.Beallsville.3.Turn left onto County Road-23 (Pugh.Ridge Road) 4.Follow County Road-23 a couple miles to access rd on right.(You will pass the.Edge and.Winesburg pads on left)",
+    "r": "Road sequence reference:\nRoute 800 → Route 556 → CR-23 / Pugh Ridge Rd → Access Road\n\nStep-by-step directions:\n1. Door code 4067 From Barnesville OH-1.\n2. Follow 800 south to Malaga and 2.\n3. Follow 556 thru town of Beallsville 3.\n4. Turn left onto County Road-23 (Pugh Ridge Road) 4.\n5. Follow County Road-23 a couple miles to access Road on right (You will.\n6. Pass the Edge and Winesburg pads on left)."
+  },
+  "gulfport--limestone": {
+    "s": "From.Rayland take.County Road 15 out past.County Road 16 and lease road will be on right just through the s turns",
+    "r": "Road sequence reference:\nRayland Take County Rd → CR-15 → Lease Road\n\nStep-by-step directions:\n1. From Rayland take County Road 15 out past County Road 16 and.\n2. Lease road will be on right just through the s turns."
+  },
+  "gulfport--lorna": {
+    "s": "From I-70 1.Take exit 202 (800 south) and go south.2.Follow 800 thru.Barnesville to 148 east and turn left.3.Follow 148 east until you pass first section of coal plant on right.4.After you pass the.Perkins access rd on the left the next road is lorna (approx 10.6 mi) 5.From I70 go right.9 south to.Armstrong mills then 148 west approx 4.6 mi.Pad on right, next rd.On right is perkins pad.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Route 148 → Access Road → OR → I-70 → Route 9 → Route 148 → Pad\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 (800 south) and.\n3. Go south 2.\n4. Follow 800 thru Barnesville to 148 east and.\n5. Turn left 3.\n6. Follow 148 east until you.\n7. Pass first section of coal plant on right 4 After you.\n8. Pass the Perkins access Road on the left the next road is lorna (approx for 10.6 miles) 5 From I-70.\n9. Go right 9 south to Armstrong mills then 148 west approx 4.6 miles Pad on right, next Road On right is perkins pad."
+  },
+  "gulfport--luyster": {
+    "s": "800 north off 70 or 22 through.Freeport to state route 799.Turn right on 799 pad will be 2.5 miles on the left right off 799 6905",
+    "r": "Road sequence reference:\nRoute 800 → OR → SR-799 → Pad\n\nStep-by-step directions:\n1. Follow 800 north off 70 or 22 through Freeport to State Route 799.\n2. Turn right on 799.\n3. Pad will be 2.5 miles on the left right off 799 6905."
+  },
+  "gulfport--lyon": {
+    "s": "From.Smyrna OH 1.Take 800.North to.Freeport OH 2.Follow 800 north thru.Freeport past 799, 1.1 miles past 799 3.Turn left on.Friendly Ridge.Road (County Road-61) 4.Follow 3.2 miles to access rd on right.",
+    "r": "Road sequence reference:\nOH-1 → Route 800 → Friendly Ridge Rd → Access Road\n\nStep-by-step directions:\n1. From Smyrna OH-1.\n2. Take 800 North to Freeport OH-2.\n3. Follow 800 north thru Freeport past 799, for 1.1 miles past 799 3.\n4. Turn left on Friendly Ridge Road (County Road-61) 4.\n5. Follow 3.2 miles to access Road on right."
+  },
+  "gulfport--mccort": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 2.Follow 800 into.Barnesville and turn right onto 147.3.Follow 147 to the 147/265 split and turn left to stay on 147.4.Follow 147 to 379 and turn left 5.Follow 379 up hill and turn left onto County Road- 128 6.Follow 128 about 1/2 mile to access road on right.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Route 147 → Route 379 → CR-128 → Route 128 → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 2.\n4. Follow 800 into Barnesville and.\n5. Turn right onto 147.3.\n6. Follow 147 to the 147/265 split and.\n7. Turn left to stay on 147.4.\n8. Follow 147 to 379 and.\n9. Turn left 5.\n10. Follow 379 up hill and.\n11. Turn left onto County Road- 128 6.\n12. Follow 128 about 1/2 miles to access road on right."
+  },
+  "gulfport--mckeegan": {
+    "s": "CONTROL ROOM CODE: 7658 (No.Porta-John on location) OH 7.North thru.Martins Ferry.Left on County Road 4.Continue.5 miles and turn right on County Road 16 (Nixon.Run rd) drive to truck turnaround, head back towards OH 7.County Road rd 2 on left A few miles and left on blacktop lease road.Pad lease will be on right past.Starvaggi",
+    "r": "Road sequence reference:\nFerry Left On County Rd → CR-4 → CR-16 / Nixon Run Rd → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE: 7658 (No Porta-John on location) OH-7 North thru Martins Ferry.\n2. Turn left on County Road 4.\n3. Continue 5 miles and.\n4. Turn right on County Road 16 (Nixon Run Road).\n5. Drive to truck turnaround.\n6. Head back towards OH-7 County Road Road 2 on left A few miles and.\n7. Turn left on blacktop.\n8. Lease road Pad lease will be on right past Starvaggi."
+  },
+  "gulfport--mclaughlin": {
+    "s": "From I-70 1.Take exit 202 and go south on 800 2.Follow 800 into.Barnesville and turn right onto 147.3.Follow 147 to the 147/265 split and turn left to stay on 147.4.Follow 147 to 379 and turn left 5.Follow 379 up hill and turn left onto County Road- 128 6.Follow 128 2 mile to 2nd rd on left.Wheatley rd.7.Turn left on rt503 \"Wheatley.Road\" and immediate right onto access rd.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Route 147 → Route 379 → CR-128 → Route 128 → 2nd Rd → Wheatley Rd → Route 503\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 2.\n4. Follow 800 into Barnesville and.\n5. Turn right onto 147.3.\n6. Follow 147 to the 147/265 split and.\n7. Turn left to stay on 147.4.\n8. Follow 147 to 379 and.\n9. Turn left 5.\n10. Follow 379 up hill and.\n11. Turn left onto County Road- 128 6.\n12. Follow 128 for 2 miles to 2nd Road on left Wheatley Road 7.\n13. Turn left on rt503 \"Wheatley Road\" and immediate.\n14. Turn right onto access Road."
+  },
+  "gulfport--michael": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow US-22E to town of.Moorefield.3.As soon as you see sign for.Moorefield turn right on the next road to the right.4.Access road will be on left.",
+    "r": "Road sequence reference:\nI-77 → US-22E → Access Road\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow US-22E to town of Moorefield 3 As soon as you see sign for Moorefield.\n4. Turn right on the next road to the right 4 Access road will be on left."
+  },
+  "gulfport--miklovic": {
+    "s": "Https://maps.App.Goo.Gl/wKk465Hx649RzAsK9?G_st=com.Google.Maps.Preview.Copy 331 toward.Holloway from.Flushing.Turn right onto.Reservoir Road.Pad is on right just past.Ascent Anchors pad.That picture you sent me said water only goes to staging if told to.Gps will take you all the way til.Route 331 (Holloway.Road) I-77.North to I-70.East Exit 204.Go right off exit on route 40.Left 149 (Morristown/Flushing rd) 6.8 miles.Left 331 (Holloway.Road) 3 miles.Right 371 (Reservoir.Road) 1.2 miles.Pad is on the right CB Chanel 12.There are 5 call out points inbound and outbound",
+    "r": "Road sequence reference:\nReservoir Rd → Exit 204 → Route 40 → Pad\n\nStep-by-step directions:\n1. Https://maps App Goo Gl/wKk465Hx649RzAsK9?G_st=com Google Maps Preview Copy 331 toward Holloway from Flushing.\n2. Turn right onto Reservoir Road.\n3. Pad is on right just past Ascent Anchors pad That picture you sent me said water only goes to staging if told to Gps will.\n4. Take you all the way til Route 331 (Holloway Road) I-77 North to I-70 East.\n5. Exit 204.\n6. Go right off.\n7. Exit on route 40 Left 149 (Morristown/Flushing Road) for 6.8 miles Left 331 (Holloway Road) 3 miles Right 371 (Reservoir Road) 1.2 miles.\n8. Pad is on the right CB Chanel 12 There are 5 call out points inbound and outbound."
+  },
+  "gulfport--miller": {
+    "s": "From I-77 1.Take exit for 22E 2.Follow to.Jasper rd on right however the turn is to sharp coming from west.You will have to pass it then turn around and come back from the east.(Going.East the next rd after.Jasper is shipley)Â Â Â....Water loadout is 4 inch male",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Jasper Rd → OR → Going East The Next Rd\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for 22E 2.\n3. Follow to Jasper Road on right however the turn is to sharp coming from west You will have to pass it then turn around and come back from the east (Going East the next Road after Jasper is shipley)Â Â Â Water loadout is 4 inch male."
+  },
+  "gulfport--milliken": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow US-22E to town of.Smyrna.3.Milliken access.Road is on right before 800 splits off to go north.",
+    "r": "Road sequence reference:\nI-77 → US-22E → Access Road\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow US-22E to town of Smyrna 3 Milliken access Road is on right before 800 splits off to go north."
+  },
+  "gulfport--morris": {
+    "s": "At.Woodsfield head north on 26 at.School turn left onto.County Airport.Road(CR91) follow to.End about 1 1/4 mi turn right.Moore Ridge.Road follow about 1 1/2 mi you will go past a NO Semi sign lease rd is about 500 ft on right past the sign",
+    "r": "Road sequence reference:\nRoute 26 → County Airport Rd → Moore Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. At Woodsfield.\n2. Head north on 26 at School.\n3. Turn left onto County Airport Road(County Road 91).\n4. Follow to End about 1 1/4 miles.\n5. Turn right Moore Ridge Road.\n6. Follow about 1 1/2 miles you will.\n7. Go past a NO Semi sign.\n8. Lease Road is about 500 feet on right past the sign."
+  },
+  "gulfport--neal": {
+    "s": "Building code 4111.From.Barnesville Rt800 to 148E go 4.1 miles.Turn left on cr 102 (right across from the.Amish auction) go about 1.1 miles.Turn left on 677 go about.01 mile.Turn right on lease rd.NEAL is to the left.Warrick is to the right.Door code: 4111",
+    "r": "Road sequence reference:\nRoute 148 → CR-102 → Route 677 → Lease Road\n\nStep-by-step directions:\n1. Building code 4111 From Barnesville Rt800 to 148E.\n2. Go 4.1 miles.\n3. Turn left on County Road 102 (right across from the Amish auction).\n4. Go about 1.1 miles.\n5. Turn left on 677.\n6. Go about 01 mile.\n7. Turn right on lease Road NEAL is to the left Warrick is to the right Door code: 4111."
+  },
+  "gulfport--norma": {
+    "s": "CONTROL ROOM ACCESS CODE:4113.From I-70.Exit 202 (Barnesville) From the intersection of OH800 & OH148 south of.Barnesville, drive 1.8 miles south on OH800.Turn left onto.Township Road 29,Flat.Rock Road.Drive 0.5 mile & turn left onto.Township Road 30, Oakes.Place Road.Drive 0.6 miles.Access will be on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → OH-800 → TR-29 → TR-30\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:4113 From I-70.\n2. Exit 202 (Barnesville) From the intersection of OH-800 & OH-148 south of Barnesville.\n3. Drive 1.8 miles south on OH-800.\n4. Turn left onto Township Road 29,Flat Rock Road.\n5. Drive 0.5 miles &.\n6. Turn left onto Township Road 30, Oakes Place Road.\n7. Drive 0.6 miles Access will be on the left."
+  },
+  "gulfport--orc": {
+    "s": "Take mall exit to 40 turn right onto 40 and go just past.Knights Inn to.Hindman on the left.Go to bottom of.Hill lease road on the left",
+    "r": "Road sequence reference:\nRoute 40 → Lease Road\n\nStep-by-step directions:\n1. Take mall.\n2. Exit to 40.\n3. Turn right onto 40 and.\n4. Go just past Knights Inn to Hindman on the left.\n5. Go to bottom of Hill.\n6. Lease road on the left."
+  },
+  "gulfport--paulus": {
+    "s": "CONTROL ROOM CODE:4133.From the intersection of oh 26 & oh 78 in the middle of.Woodsfield by the courthouse drive east on oh 78 past the pond on the right, pasted the garage on the left, to the next.Road on the right (Paulus.Ridge Road, cr85).Follow.Road to lease.Road on the right",
+    "r": "Road sequence reference:\nOH-78 → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE:4133 From the intersection of OH-26 & OH-78 in the middle of Woodsfield by the courthouse.\n2. Drive east on OH-78 past the pond on the right, pasted the garage on the left, to the next Road on the right (Paulus Ridge Road, County Road 85).\n3. Follow Road to lease Road on the right."
+  },
+  "gulfport--perkins": {
+    "s": "From I-70 1.Take exit 202 (800 south) and go south.2.Follow 800 thru.Barnesville to 148 east and turn left.3.Follow 148 east until you pass first section of coal plant on right.10.4 miles 4.Then look for.Perkins access rd on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Route 148 → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 (800 south) and.\n3. Go south 2.\n4. Follow 800 thru Barnesville to 148 east and.\n5. Turn left 3.\n6. Follow 148 east until you.\n7. Pass first section of coal plant on right for 10.4 miles 4 Then look for Perkins access Road on the left."
+  },
+  "gulfport--phillips": {
+    "s": "From st clairsville go I70 west to exit 202 (Barnesville exit) to 800south to route 148 turn left go 5.2 miles to township rd 54 turn left go.03 miles pad on right.Code 4130",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Pad\n\nStep-by-step directions:\n1. From st clairsville.\n2. Go I-70 west to exit 202 (Barnesville.\n3. Exit) to 800south to route 148.\n4. Turn left go 5.2 miles to township Road 54.\n5. Turn left go 03 miles pad on right Code 4130."
+  },
+  "gulfport--potter": {
+    "s": "Room code 4132?From the intersection of oh 26 & oh 78 in the middle of.Woodsfield by the courthouse drive east on oh 78 for 1.6 miles.Turn right onto.Cr41, Sugartree.Cranesnest Road.Drive 1.3 miles and bear left onto.Cr85, Paulie.Ridge Road.Drive 0.3 miles.Access will be on the right.",
+    "r": "Road sequence reference:\nOH-78 → CR-41 → CR-85\n\nStep-by-step directions:\n1. Room code 4132?From the intersection of OH-26 & OH-78 in the middle of Woodsfield by the courthouse.\n2. Drive east on OH-78 for 1.6 miles.\n3. Turn right onto County Road 41, Sugartree Cranesnest Road.\n4. Drive 1.3 miles and.\n5. Bear.\n6. Turn left onto County Road 85, Paulie Ridge Road.\n7. Drive 0.3 miles Access will be on the right."
+  },
+  "gulfport--puskarich": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow US-22E to town of.Moorefield.3.As you get to other end of.Moorefield look to left for a service rd that angles off of road,that road is.Kirkpatrick 4.Stay to the right on.Kirkpatrick Road and follow to stop sign.5.At stop sign go straight then turn left onto access.Road.",
+    "r": "Road sequence reference:\nI-77 → US-22E → A Service Rd → Kirkpatrick Rd\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow US-22E to town of Moorefield 3 As you get to other end of Moorefield look to left for a service Road that angles off of road,that road is Kirkpatrick 4.\n4. Stay to the right on Kirkpatrick Road and.\n5. Follow to stop sign 5 At stop sign.\n6. Go straight then.\n7. Turn left onto access Road."
+  },
+  "gulfport--ridgetop": {
+    "s": "CONTROL ROOM CODE: 7648.From the intersection of oh 647 & County Road 2; Deep.Run Road south of.Mt.Pleasant ,drive Southeast on cCR 2 for 1.8 miles, bear left onto County Road 16.Dixon.Run, drive 0.5 miles.Lease road will be on the LHS.470 east to.State Route 7.North through.Martins Ferry: Turn.Left off State Route 7 onto county rd 4 for about 1/2 mile, turn.Right on County Road 16 and follow past.Lance pad.Ridge.Top lease rd is on the RHS just past the.Lance pad.",
+    "r": "Road sequence reference:\nCR-16 → Route 470 → SR-7 → CR-4 → Lance Pad Ridge → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE: 7648 From the intersection of OH-647 & County Road 2.\n2. Deep Run Road south of Mt Pleasant ,drive Southeast on cCR 2 for 1.8 miles.\n3. Bear.\n4. Turn left onto County Road 16 Dixon Run.\n5. Drive 0.5 miles.\n6. Lease road will be on the LHS 470 east to State Route 7 North through Martins Ferry.\n7. Turn Left off State Route 7 onto county Road 4 for about 1/2 miles, turn.\n8. Turn right on County Road 16 and.\n9. Follow past Lance pad Ridge Top.\n10. Lease Road is on the RHS just past the Lance pad."
+  },
+  "gulfport--ripley": {
+    "s": "From I-70.East Get off exit OH-193.Quaker.City Turn left onto OH-513.Follow to stop sign, approx 6 mi.Turn right onto OH-22E Follow to.Shipley rd on right.Approx 4 mi.Turn right.Lease rd on left approx.3 mile.From I-77 1.Take exit for 22E for 16.5 miles 2.Follow to.Shipley rd and turn right.(several miles before londonderry) 3.Access rd on left",
+    "r": "Road sequence reference:\nI-70 → OH-513 → OH-22E → Lease Road → OR → I-77 → Route 22 → Shipley Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 East Get off.\n2. Exit OH-193 Quaker City.\n3. Turn left onto OH-513.\n4. Follow to stop sign, approx for 6 miles.\n5. Turn right onto OH-22E.\n6. Follow to Shipley Road on right Approx for 4 miles.\n7. Turn right Lease Road on left approx for 3 miles From I-77 1.\n8. Take exit for 22E for 16.5 miles 2.\n9. Follow to Shipley Road and.\n10. Turn right (several miles before londonderry) 3 Access Road on left."
+  },
+  "gulfport--robert": {
+    "s": "Control room code is:4162.From.Woodsfield OH Take OH-78 east for 4.3 miles.Turn left on State Route-30/MT Carrick.Road.Go 0.3 miles and turn left onto.Turn right-2308 go 0.4 miles to access road on left NOTE County Road-30 is also 11.5 miles west of OH-7 in.Clarington on OH- 78",
+    "r": "Road sequence reference:\nOH-78 → State Route-30/mt Carrick Rd → SR-30 → TR-2308 → Note County Rd → Access Road\n\nStep-by-step directions:\n1. Control room code is:4162 From Woodsfield OH.\n2. Take OH-78 east for 4.3 miles.\n3. Turn left on State Route 30/MT Carrick Road.\n4. Go 0.3 miles and.\n5. Turn left onto Turn right-2308.\n6. Go 0.4 miles to access road on left NOTE County Road-30 is also for 11.5 miles west of OH-7 in Clarington on OH-78."
+  },
+  "gulfport--robinette": {
+    "s": "This.Pad requires 4\" male connection to load.From Beallsville OH 1.Take 556 east leaving.Beallsville 2.Follow 556 about 2 miles to County Road-31 and turn right.3.Follow County Road-31 to the first road on right and turn right.4.Follow and turn left after church.5.Access rd is on the left.",
+    "r": "Road sequence reference:\nRoute 556 → CR-31 → Access Road\n\nStep-by-step directions:\n1. This Pad requires 4\" male connection to load From Beallsville OH-1.\n2. Take 556 east leaving Beallsville 2.\n3. Follow 556 about for 2 miles to County Road-31 and.\n4. Turn right 3.\n5. Follow County Road-31 to the first road on right and.\n6. Turn right 4.\n7. Follow and.\n8. Turn left after church 5 Access Road is on the left."
+  },
+  "gulfport--roger-brown": {
+    "s": "From the intersection of oh 800 & oh 26 south of woodsfield, Go south on oh 26 for 5.8 miles. Turn right onto Cr12,Hartshorn Ridge Road go 2.5 mi (skyvue elementary school sign) Turn right onto Cr42, Conner Ridge Road Drive 1 mile. entrance on the right. Code 3944",
+    "r": "Road sequence reference:\nOH-26 → CR-12 → CR-42\n\nStep-by-step directions:\n1. From the intersection of OH-800 & OH-26 south of woodsfield.\n2. Go south on OH-26 for 5.8 miles.\n3. Turn right onto County Road 12,Hartshorn Ridge Road.\n4. Go 2.5 miles (skyvue elementary school sign).\n5. Turn right onto County Road 42, Conner Ridge Road.\n6. Drive 1 mile entrance on the right Code 3944."
+  },
+  "gulfport--routh": {
+    "s": "Room code 4165?From.Beallsville OH 1.Take 556 east leaving.Beallsville 2.Follow 556 about 2 miles to County Road-31 (Mellot-Ridge.Road.) and turn right.3.Follow County Road-31 to the first road on right and turn right.4.Follow and turn left after church.5.Access rd is on the right after the.Robinette lease road.From south: 556 west out of.Clarington @10 mi turn left on County Road 31 2 mi turn right left after church follow to lease",
+    "r": "Road sequence reference:\nRoute 556 → CR-31 → Lease Road → OR → Route 556 → CR-31\n\nStep-by-step directions:\n1. Room code 4165?From Beallsville OH-1.\n2. Take 556 east leaving Beallsville 2.\n3. Follow 556 about for 2 miles to County Road-31 (Mellot-Ridge Road ) and.\n4. Turn right 3.\n5. Follow County Road-31 to the first road on right and.\n6. Turn right 4.\n7. Follow and.\n8. Turn left after church 5 Access Road is on the right after the Robinette.\n9. Lease road From south: 556 west out of Clarington @10 miles.\n10. Turn left on County Road 31 for 2 miles.\n11. Turn right left after church.\n12. Follow to lease."
+  },
+  "gulfport--ryser": {
+    "s": "From I-77 1.Take exit for US-22E 2.Follow 22E to.Piedmont and turn left on 16 (old.Piedmont rd.) 3.Follow 16 to.Scott hill rd and turn left.4.Go up hill and access.Road is on left.",
+    "r": "Road sequence reference:\nI-77 → Route 22 → Route 16 → Scott Hill Rd → Access Road\n\nStep-by-step directions:\n1. From I-77 1.\n2. Take exit for US-22E 2.\n3. Follow 22E to Piedmont and.\n4. Turn left on 16 (old Piedmont Road ) 3.\n5. Follow 16 to Scott hill Road and.\n6. Turn left 4.\n7. Go up hill and access Road is on left."
+  },
+  "gulfport--safreed": {
+    "s": "From the intersection of OH 800 and OH 145 in.Malaga (South of.Barnesville), drive south on OH 145 for 5 miles.Turn right onto County Road 61, Egger.Ridge Road.Drive 1.3 mile.Access will be on the left.",
+    "r": "Road sequence reference:\nOH-145 → CR-61\n\nStep-by-step directions:\n1. From the intersection of OH-800 and OH-145 in Malaga (South of Barnesville).\n2. Drive south on OH-145 for 5 miles.\n3. Turn right onto County Road 61, Egger Ridge Road.\n4. Drive 1.3 miles Access will be on the left."
+  },
+  "gulfport--sandra": {
+    "s": "From I-70 east 1.Take exit 204 and turn left at bottom of ramp.2.Follow to crossroad that is not marked and go straight.3.Access road will be on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → Access Road\n\nStep-by-step directions:\n1. From I-70 east 1.\n2. Take exit 204 and.\n3. Turn left at bottom of ramp 2.\n4. Follow to crossroad that is not marked and.\n5. Go straight 3 Access road will be on left."
+  },
+  "gulfport--schubert": {
+    "s": "Gate.Code:6905.From the intersection of us 250 & oh 150 west of mt.Pleasant,drive east o oh 150 for 4.1 miles into mt.Pleasant.Continue straight on oh 647 for.25 miles.Bear left onto cr 1a , mt.Pleasant- glen.Robbins Road.Drive 1.6 miles & turn right onto tr107,oak grove road.Drive 0.9 miles.Access will be on the right.",
+    "r": "Road sequence reference:\nOH-647 → CR-1A → TR-107\n\nStep-by-step directions:\n1. Gate Code:6905 From the intersection of US-250 & OH-150 west of mt Pleasant,drive east o OH-150 for 4.1 miles into mt Pleasant.\n2. Continue straight on OH-647 for 25 miles.\n3. Bear.\n4. Turn left onto cr 1a , mt Pleasant- glen Robbins Road.\n5. Drive 1.6 miles &.\n6. Turn right onto Township Road 107,oak grove road.\n7. Drive 0.9 miles Access will be on the right."
+  },
+  "gulfport--schumacher": {
+    "s": "800 south from exit 202.I 79, to 145 in.Malaga, left- north on 145 to 26 south, right, ten miles, lease road on right.From 800 in.Woodsfield, at the stop light with.Mac Donalds on corner, north on 26 two miles, past fair grounds lease on left.DOOR CODE 6553",
+    "r": "Road sequence reference:\nRoute 800 → Exit 202 → I-79 → Route 145 → Route 26 → Lease Road\n\nStep-by-step directions:\n1. 800 south from exit 202 I-79, to 145 in Malaga, left- north on 145 to 26 south, right, ten miles.\n2. Lease road on right From 800 in Woodsfield, at the stop light with Mac Donalds on corner, north on 26 two miles, past fair grounds lease on left DOOR CODE 6553."
+  },
+  "gulfport--shannon": {
+    "s": "Little.Captaina creek rd (not 148) drive all the way to the peak of the hill your see.Yankee pad to the right.At 1st stop sign.Make a left on.Mt Victory rd about 2 miles make left at 2nd stop sign lok at left.Door code 3991",
+    "r": "Road sequence reference:\nLittle Captaina Creek Rd → Mt Victory Rd → Pad\n\nStep-by-step directions:\n1. Follow Little Captaina creek Road (not 148).\n2. Drive all the way to the peak of the hill your see Yankee pad to the right At 1st stop sign Make a.\n3. Turn left on Mt Victory Road about for 2 miles make.\n4. Turn left at 2nd stop sign lok at left Door code 3991."
+  },
+  "gulfport--shimble": {
+    "s": "From 470 east take exit 3, county road 214 exit, turn left on 214 and continue to county road 30, turn left on county road 30 and cross bridge over 470.At the end of the bridge is.McGregor.Road, turn right on.McGregor.Road and follow to lease road on the right.From the south...Right 7 north.Interstate 470 west.Take exit 3 cr214.Right off exit 1.0 miles left onto cr30 0.1 miles right onto.McGregor rd.0.5 right onto.Shimble lease rd.Door code 7523 checkmark",
+    "r": "Road sequence reference:\nRoute 470 → Exit 3 → Route 214 → CR-30 → Mcgregor Rd → Lease Road → OR → Route 7 → Exit 3 → Exit 1 → CR-30 → Mcgregor Rd → Lease Road\n\nStep-by-step directions:\n1. From 470 east.\n2. Take exit 3, county road 214.\n3. Exit.\n4. Turn left on 214 and.\n5. Continue to county road 30.\n6. Turn left on county road 30 and.\n7. Cross bridge over 470 At the end of the bridge is McGregor Road.\n8. Turn right on McGregor Road and.\n9. Follow to lease road on the right From the south Right 7 north Interstate 470 west.\n10. Take exit 3 County Road 214 Right off.\n11. Exit 1.0 mile.\n12. Turn left onto County Road 30 for 0.1 miles.\n13. Turn right onto McGregor Road 0.5.\n14. Turn right onto Shimble.\n15. Lease Road Door code 7523 checkmark."
+  },
+  "gulfport--shriver": {
+    "s": "From.Barnesville OH Door.Code is 4177 1.Take 800 south to.Malaga and turn left onto 145 east.2.Follow 145.East to town of.Beallsville.3.Turn right at stop sign (main st).4.Follow about.2 miles.Turn right and a quick left onto.Kings Highway.5.Go 0.8 miles and turn right onto.Turn right-127 (Eberle.Road) 6.Go 0.8 miles to pad 7.When you see the sign for.Campbell pad stay to the right for another 0.4 miles",
+    "r": "Road sequence reference:\nRoute 800 → Route 145 → Quick Left Onto Kings Hwy → Pad\n\nStep-by-step directions:\n1. From Barnesville OH Door Code is 4177 1.\n2. Take 800 south to Malaga and.\n3. Turn left onto 145 east 2.\n4. Follow 145 East to town of Beallsville 3.\n5. Turn right at stop sign (main st) 4.\n6. Follow about for 2 miles.\n7. Turn right and a quick.\n8. Turn left onto Kings Highway 5.\n9. Go 0.8 miles and.\n10. Turn right onto Turn right-127 (Eberle Road) 6.\n11. Go 0.8 miles to pad 7 When you see the sign for Campbell pad.\n12. Stay to the right for another 0.4 miles."
+  },
+  "gulfport--shugert-1": {
+    "s": "From I-70 west 1. Take exit 204 and turn left at bottom of ramp. 2. Follow to crossroad that is not marked and turn right. 3. Go up hill and at top of hill the access road is on the right after the Hayes pad.",
+    "r": "Road sequence reference:\nI-70 → Exit 204 → 3. Go Up Hill → Access Road\n\nStep-by-step directions:\n1. From I-70 west 1.\n2. Take exit 204 and.\n3. Turn left at bottom of ramp 2.\n4. Follow to crossroad that is not marked and.\n5. Turn right 3.\n6. Go up hill and at top of hill the access road is on the right after the Hayes pad."
+  },
+  "gulfport--shugert-12": {
+    "s": "From I-70 1. Take exit 202 and go south on 800 toward Barnesville. 2. Follow 800 about 1-2 miles and turn left onto Muskrat rd. 3. Follow Muskat rd to top of hill. 4. At top of hill the road will bend to the Left. Then stay straight to the gate of access rd.",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 800 → Muskrat Rd → 3. Follow Muskat Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on 800 toward Barnesville 2.\n4. Follow 800 about 1-2 miles and.\n5. Turn left onto Muskrat Road 3.\n6. Follow Muskat Road to top of hill 4 At top of hill the road will bend to the Left Then.\n7. Stay straight to the gate of access Road."
+  },
+  "gulfport--snodgrass": {
+    "s": "Control room-4184.From shop take 70 east to exit#218.Mall.Road.Exit.At the end of ramp turn right and.Follow to top of hill third light right.40 take another right!Follow to next light in front of BP gas.Station, and state trooper barracks!Turn right at that light!!Stay straight for about 150-200 yards.And take the first left after 70 east bound on ramp.South.Ebbert.Road.Follow.Ebbert Road.For about 1 1/2 miles and.Lease Road.Will be on the right.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 218 → Ramp South Ebbert Rd → Ebbert Rd → Lease Road\n\nStep-by-step directions:\n1. Control room-4184 From shop.\n2. Take 70 east to exit#218 Mall Road.\n3. Exit At the end of ramp.\n4. Turn right and.\n5. Follow to top of hill third light right 40.\n6. Take another right!Follow to next light in front of BP gas Station, and state trooper barracks!Turn.\n7. Turn right at that light!!Stay straight for about 150-200 yards And.\n8. Take the first left after 70 east bound on ramp South Ebbert Road.\n9. Follow Ebbert Road For about 1 1/2 miles and.\n10. Lease Road Will be on the right."
+  },
+  "gulfport--sproul": {
+    "s": "From state route 800 and state rout 250.Go south on 800 3.8 miles turn left on cr 36 0.4.Mi turn right on.Turn right 30.Latto rd 1.9.MI.Turn right on.Latto / Sproul rd 0.2mi pad on left",
+    "r": "Road sequence reference:\nSR-800 → CR-36 → Latto Rd → Pad\n\nStep-by-step directions:\n1. From State Route 800 and state rout 250.\n2. Go south on 800 for 3.8 miles.\n3. Turn left on County Road 36 for 0.4 miles.\n4. Turn right on Turn right 30 Latto Road for 1.9 miles.\n5. Turn right on Latto / Sproul Road 0.2mi pad on left."
+  },
+  "gulfport--starr": {
+    "s": "CONTROL ROOM ACCESS CODE:4191 (Followed by checkmark button) (Porta-John on location) From I-70.Take exit 202.Barnesville/Dennison.Head south(Barnesville) Follow to.Barnesville.Go through 3 lights.At top of hill beside.Starrs Auto.Sales turn RIGHT ON 147.West.Follow approx 3.5 to.Bailey Mills.Turn LEFT to stay on 147.Follow approx 1.2.M to OH379 south thru.Temperanceville top of hill on right",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → Route 147\n\nStep-by-step directions:\n1. CONTROL ROOM ACCESS CODE:4191 (Followed by checkmark button) (Porta-John on location) From I-70.\n2. Take exit 202 Barnesville/Dennison.\n3. Head south(Barnesville).\n4. Follow to Barnesville.\n5. Go through 3 lights At top of hill beside Starrs Auto Sales.\n6. Turn RIGHT ON 147 West.\n7. Follow approx 3.5 to Bailey Mills.\n8. Turn LEFT to stay on 147.\n9. Follow approx 1.2 M to OH-379 south thru Temperanceville top of hill on right."
+  },
+  "gulfport--starvaggi": {
+    "s": "CONTROL ROOM CODE:7659 (Porta-John on pad beside control room) Cry.Rd.4 off of 7 north in.Martins Ferry...Turn right onto rte.16...To the truck turnaround...Turn back to city and bear left onto.Road.2.A few miles and make a left right after reduced speed limit sign.Up the hill, pad lease road on the left",
+    "r": "Road sequence reference:\nRoute 7 → Lease Road\n\nStep-by-step directions:\n1. CONTROL ROOM CODE:7659 (Porta-John on pad beside control room) Cry Road 4 off of 7 north in Martins Ferry.\n2. Turn right onto rte 16 To the truck turnaround Turn back to city and.\n3. Bear.\n4. Turn left onto Road 2 A few miles and make a left right after reduced speed limit sign Up the hill, pad.\n5. Lease road on the left."
+  },
+  "gulfport--stephens": {
+    "s": "From the intersection of oh 147 & oh 800 in.Barnsville,turn.West onto oh 147 for 3.4 miles.Turn left onto oh 147 for 1.1 miles.Turn left onto oh 379 for 1.4 miles.Turn left onto cr 128,Boston.Road/Main st.For 2.4 miles.Turn right onto.Turn right 2 for 0.3 miles.Access is on left.Door code 4194",
+    "r": "Road sequence reference:\nOH-147 → OH-379 → CR-128\n\nStep-by-step directions:\n1. From the intersection of OH-147 & OH-800 in Barnsville,turn.\n2. Continue west onto OH-147 for 3.4 miles.\n3. Turn left onto OH-147 for 1.1 miles.\n4. Turn left onto OH-379 for 1.4 miles.\n5. Turn left onto County Road 128,Boston Road/Main st For 2.4 miles.\n6. Turn right onto Turn right 2 for 0.3 miles Access is on left Door code 4194."
+  },
+  "gulfport--stout": {
+    "s": "County.Highway 10, Piedmont, OH 43983 https://maps.App.Goo.Gl/XQgdkQ7pu51yKhXX7.From I-77 1.Take exit for US-22.East 2.Follow 22.East to town of.Piedmont 3.Turn right onto.County road 16.Old.Piedmont road.(At the impoundment in piedmont) 4.Follow for about 1 and half miles and turn left onto access road.",
+    "r": "Road sequence reference:\nCounty Hwy → I-77 → US-22 → CR-16\n\nStep-by-step directions:\n1. Follow County Highway 10, Piedmont, OH-43983 https://maps App Goo Gl/XQgdkQ7pu51yKhXX7 From I-77 1.\n2. Take exit for US-22 East 2.\n3. Follow 22 East to town of Piedmont 3.\n4. Turn right onto County road 16 Old Piedmont road (At the impoundment in piedmont) 4.\n5. Follow for about 1 and half miles and.\n6. Turn left onto access road."
+  },
+  "gulfport--stronz": {
+    "s": "From I-70 1.Take exit 202 and go south on US-800 2.Follow 800 thru.Barnesville and turn left on.Flat Rock road.3.Stay left on.Flat Rock road about 2 miles.Pad is on the left just after.Flat Rock farm",
+    "r": "Road sequence reference:\nI-70 → Exit 202 → US-800 → Flat Rock Rd → Pad\n\nStep-by-step directions:\n1. From I-70 1.\n2. Take exit 202 and.\n3. Go south on US-800 2.\n4. Follow 800 thru Barnesville and.\n5. Turn left on Flat Rock road 3.\n6. Stay.\n7. Turn left on Flat Rock road about for 2 miles.\n8. Pad is on the left just after Flat Rock farm."
+  }
+}

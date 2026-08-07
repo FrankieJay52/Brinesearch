@@ -1,0 +1,27 @@
+{
+  "version": "17.0.0",
+  "wrapperStart": "(async () => {",
+  "wrapperEnd": "});",
+  "parts": [
+    "00-core-data.js",
+    "01-add-pad-wizard.js",
+    "02-pad-location-branding.js",
+    "03-global-search.js",
+    "04-dashboard-favorites-offline.js",
+    "05-company-search-routing.js",
+    "06-directions-navigation.js",
+    "07-pad-editor-core.js",
+    "08-editor-auth-account.js",
+    "09-editor-dashboard-rewrite.js",
+    "10-live-pad-editor.js",
+    "11-pad-page.js",
+    "12-verification-queue.js",
+    "13-verification-detail.js",
+    "14-field-feed-profile.js",
+    "15-settings-road-tools.js",
+    "16-router-assistant-shell.js",
+    "17-assistant-answers.js",
+    "18-account-theme-startup.js"
+  ],
+  "assembledSha256": "b5e559b832594202f7695b37ed878c08ab20f67bae751366fdce73c4db461ec6"
+}

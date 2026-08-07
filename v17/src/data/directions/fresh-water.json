@@ -1,0 +1,6 @@
+{
+  "fresh-water--cadiz-municipal-tap": {
+    "s": "From the West: Take US 22 East to Industrial Park Rd Turn right onto Industrial Park Rd Follow until it terminates at OH 9 Turn left onto OH 9 North Drive 1.3 miles and turn left onto Park Rd At the fork bear right After 0.2 miles Tap will be on the left. From the East: Take US 22 West to Industrial Park Rd Turn left onto Industrial Park Rd Follow until it terminates at OH 9 Turn left onto OH 9 North Drive 1.3 miles and turn left onto Park Rd At the fork bear right After 0.2 miles Tap will be on the left",
+    "r": "Road sequence reference:\nUS-22 → Industrial Park Rd → Oh 9 North Dr → OH-9 → Park Rd\n\nStep-by-step directions:\n1. From the West.\n2. Take US-22 East to Industrial Park Road.\n3. Turn right onto Industrial Park Road.\n4. Follow until it terminates at OH-9.\n5. Turn left onto OH-9 North.\n6. Drive 1.3 miles and.\n7. Turn left onto Park Road At the fork.\n8. Bear right After 0.2 miles Tap will be on the left From the East.\n9. Take US-22 West to Industrial Park Road.\n10. Turn left onto Industrial Park Road.\n11. Bear right After 0.2 miles Tap will be on the left."
+  }
+}

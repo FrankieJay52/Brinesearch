@@ -1,0 +1,22 @@
+{
+  "hilcorp--elkrun-baker": {
+    "s": "From the west: On US 30, drive into Lisbon. Stay straight onto OH 154. In Elkton, take left to stay on OH 154. In approximately 5 miles, take right onto CR 890 (Riffle Rd). At stop sign, take right onto CR 891 (Pine Hollow Rd). Approximately 0.9 miles, take left onto CR 906 (Lusk Lock Rd). Approximately 0.4 miles, the pad entrance is on the southwest corner of the intersection of CR 892 (Fairmont Rd).",
+    "r": "Road sequence reference:\nUS-30 → OH-154 → CR-890 / Riffle Rd → CR-891 / Pine Hollow Rd → CR-906 / Lusk Lock Rd → Pad\n\nStep-by-step directions:\n1. From the west: On US-30.\n2. Drive into Lisbon.\n3. Stay straight onto OH-154 In Elkton.\n4. Take left to stay on OH-154 In approximately for 5 miles.\n5. Take right onto County Road 890 (Riffle Road) At stop sign.\n6. Take right onto County Road 891 (Pine Hollow Road) Approximately for 0.9 miles.\n7. Take left onto County Road 906 (Lusk Lock Road) Approximately for 0.4 miles, the pad entrance is on the southwest corner of the intersection of County Road 892 (Fairmont Road)."
+  },
+  "hilcorp--elkrun-johnston": {
+    "s": "From ohio 7 north or south go to Ohio 154 west appx .75 miles to Riffle Rd on Left follow to T intersection go left appx .75 miles to lease road on right. !!! DO NOT ENTER PINE HOLLOW FROM ROUTE 7!!!!",
+    "r": "Road sequence reference:\nRoute 7 → OR → Route 154 → Lease Road\n\nStep-by-step directions:\n1. From ohio 7 north or south.\n2. Go to Ohio 154 west appx 75 miles to Riffle Road on Left.\n3. Follow to T intersection.\n4. Go left appx 75 miles to lease road on right !!! DO NOT.\n5. ENTER PINE HOLLOW FROM ROUTE 7!!!!"
+  },
+  "hilcorp--fairfield-phoenix": {
+    "s": "Take Ohio Rt 7 North,South to Columbiana, Ohio. turn on Middleton Rd. Lease Road will be on right. THIS SITE REQUIRES JSA, sign in or no entry safety on site at gate.",
+    "r": "Road sequence reference:\nRoute 7 → Middleton Rd → Lease Road\n\nStep-by-step directions:\n1. Take Ohio Rt 7 North,South to Columbiana, Ohio turn on Middleton Road.\n2. Lease Road will be on right THIS SITE REQUIRES JSA, sign in or no entry safety on site at gate."
+  },
+  "hilcorp--fairmont": {
+    "s": "From the west: On US 30, drive into.Lisbon.Stay straight onto OH 154.In.Elkton, take left to stay on OH 154.In approximately 5 miles, take right onto County Road 890 (Riffle.Road).At stop sign, take right onto County Road 891 (Pine.Hollow Road).Approximately 0.9 miles, take left onto County Road 906 (Lusk.Lock Road).Approximately 0.4 miles turn right onto.Fairmont Road.Fairmont Pad will be on the left.",
+    "r": "Road sequence reference:\nUS-30 → OH-154 → CR-890 / Riffle Rd → CR-891 / Pine Hollow Rd → CR-906 / Lusk Lock Rd → Fairmont Rd → Pad\n\nStep-by-step directions:\n1. From the west: On US-30.\n2. Drive into Lisbon.\n3. Stay straight onto OH-154 In Elkton.\n4. Take left to stay on OH-154 In approximately for 5 miles.\n5. Take right onto County Road 890 (Riffle Road) At stop sign.\n6. Take right onto County Road 891 (Pine Hollow Road) Approximately for 0.9 miles.\n7. Take left onto County Road 906 (Lusk Lock Road) Approximately for 0.4 miles.\n8. Turn right onto Fairmont Road Fairmont.\n9. Pad will be on the left."
+  },
+  "hilcorp--scheel": {
+    "s": "Located on.Street.Right.517",
+    "r": "Step-by-step directions:\n1. Follow Located on Street Right 517."
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "penn-energy--w-56": {
+    "s": "From intersection of Route 28 and Route 356, Head Northwest on Rt 356 for 6 miles and pad is on Left",
+    "r": "Road sequence reference:\nRoute 28 → Route 356 → Pad\n\nStep-by-step directions:\n1. From intersection of Route 28 and Route 356.\n2. Head Northwest on Rt 356 for 6 miles and.\n3. Pad is on Left."
+  },
+  "penn-energy--w-58": {
+    "s": "From intersection of Route 28 and Route 356, Head Northwest on Rt 356 for 6.3 miles to Winfield Road. Turn Right onto Winfield Rd and head East for 2.1 miles to Bear Creek Road. Turn Right on Bear Creek Road and head South for 1.1 miles to Stoney Hollow Road. Turn Right on Stoney Hollow Road and head West for 0.4 miles to the Access Road on the right.",
+    "r": "Road sequence reference:\nRoute 28 → Route 356 → Winfield Rd → Creek Rd → Stoney Hollow Rd → Access Road\n\nStep-by-step directions:\n1. From intersection of Route 28 and Route 356.\n2. Head Northwest on Rt 356 for 6.3 miles to Winfield Road.\n3. Turn Right onto Winfield Road and.\n4. Head East for 2.1 miles to Bear Creek Road.\n5. Turn Right on Bear Creek Road and.\n6. Head South for 1.1 miles to Stoney Hollow Road.\n7. Turn Right on Stoney Hollow Road and.\n8. Head West for 0.4 miles to the Access Road on the right."
+  }
+}

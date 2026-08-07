@@ -1,0 +1,106 @@
+{
+  "chesapeake--albaneso": {
+    "s": "From 644.South from 30.West.Turn left onto 518.East.Turn Right onto.Meister Road & go 1/4 mile, continue left onto.Foundry Hill.Follow to pad entrance on the left.From 518 & 164… continue onto 518.Turn left on to.Foundry Hill (before you get to 644) 1/4 mile, continue left onto.Foundry Hill.Follow to pad entrance on the left",
+    "r": "Road sequence reference:\nRoute 644 → Route 30 → Route 518 → Meister Rd → Foundry Hill → Pad\n\nStep-by-step directions:\n1. From 644 South from 30 West.\n2. Turn left onto 518 East.\n3. Turn Right onto Meister Road &.\n4. Go 1/4 miles.\n5. Continue.\n6. Turn left onto Foundry Hill.\n7. Follow to pad entrance on the left From 518 & 164….\n8. Continue onto 518.\n9. Turn left on to Foundry Hill (before you get to 644) 1/4 miles.\n10. Follow to pad entrance on the left."
+  },
+  "chesapeake--anderson": {
+    "s": "Right 9 towards.Kilgore.Left on bear.Road.Right on trench.Road.",
+    "r": "Road sequence reference:\nKilgore Left On Bear Rd → Trench Rd\n\nStep-by-step directions:\n1. Right 9 towards Kilgore.\n2. Turn left on bear Road.\n3. Turn right on trench Road."
+  },
+  "chesapeake--appalachian": {
+    "s": "40.440457n 81.024232 w.Off of right 332 take 164 towards.Kilgore to.Poppy Road right across the compressor station.And turn right on.Poppy Road go past the South curve.Pad is on the left",
+    "r": "Road sequence reference:\nRoute 164 → Kilgore To Poppy Rd → Poppy Rd → Pad\n\nStep-by-step directions:\n1. Follow 40.440457n 81.024232 w Off of right 332.\n2. Take 164 towards Kilgore to Poppy Road right across the compressor station And.\n3. Turn right on Poppy Road.\n4. Go past the South curve.\n5. Pad is on the left."
+  },
+  "chesapeake--beadnell": {
+    "s": "From.Carrollton take 39 toward salineville go through mechanicstown.Turn left on.April road.At bottom of hill across from church.About one mile just before a little bridge.Turn right into what looks like a driveway.About 3/10 of 1 mile.Lease road will be on left",
+    "r": "Road sequence reference:\nRoute 39 → April Rd → Lease Road\n\nStep-by-step directions:\n1. From Carrollton take 39 toward salineville.\n2. Go through mechanicstown.\n3. Turn left on April road At bottom of hill across from church About one mile just before a little bridge.\n4. Turn right into what looks like a driveway About 3/10 of 1 mile.\n5. Lease road will be on left."
+  },
+  "chesapeake--beadnell-a": {
+    "s": "None 524 to Satin Road",
+    "r": "Step-by-step directions:\n1. Follow None 524 to Satin Road."
+  },
+  "chesapeake--booth": {
+    "s": "None.From route nine in.Germano take 646.East to cr 51 turn left toward.Apex landfill turns into cr 75 past.Apex turn left on.Cr.267 well pad is on the left",
+    "r": "Road sequence reference:\nRoute 646 → Pad\n\nStep-by-step directions:\n1. None From route nine in Germano.\n2. Take 646 East to County Road 51.\n3. Turn left toward Apex landfill turns into County Road 75 past Apex.\n4. Turn left on County Road 267 well.\n5. Pad is on the left."
+  },
+  "chesapeake--bucey": {
+    "s": "Take 644 towards.Summitville at the not blinking light turn right on.Smith Road go till you see a church and turn right on.Akers Road take.Akers Road to the 1st stop sign and turn right on.Nature Road Northeast at the bottom of the 2nd hill just before the bridge lease rd is on the.Left",
+    "r": "Road sequence reference:\nRoute 644 → Smith Rd → Akers Rd → Nature Rd → Lease Road\n\nStep-by-step directions:\n1. Take 644 towards Summitville at the not blinking light.\n2. Turn right on Smith Road.\n3. Go till you see a church and.\n4. Turn right on Akers Road.\n5. Take Akers Road to the 1st stop sign and.\n6. Turn right on Nature Road Northeast at the bottom of the 2nd hill just before the bridge.\n7. Lease Road is on the Left."
+  },
+  "chesapeake--cain": {
+    "s": "Right 43 to.Amsterdam and turn left on 164 turn left @ elkhorn valley sign on county.Road 49 lease.Road is on the left",
+    "r": "Road sequence reference:\nRoute 164 → Valley Sign On County Rd → Lease Road\n\nStep-by-step directions:\n1. Right 43 to Amsterdam and.\n2. Turn left on 164.\n3. Turn left @ elkhorn valley sign on county Road 49.\n4. Lease Road is on the left."
+  },
+  "chesapeake--david-burdick": {
+    "s": "40.716100n 80.497475w",
+    "r": "Step-by-step directions:\n1. Follow 40.716100n 80.497475w."
+  },
+  "chesapeake--elwood": {
+    "s": "From.Carrollton take 43.South through.Harlem Springs go down the long hill and up the other side.Once you hit the top about 1/4 mile.Turn right on.Senlac road.Follow to the end",
+    "r": "Road sequence reference:\nRoute 43 → Senlac Rd\n\nStep-by-step directions:\n1. From Carrollton take 43 South through Harlem Springs.\n2. Go down the long hill and up the other side Once you hit the top about 1/4 miles.\n3. Turn right on Senlac road.\n4. Follow to the end."
+  },
+  "chesapeake--evans": {
+    "s": "Take 43 to.Amsterdam & turn left on 164 about 2 miles turn left on township.Road 265 later turns into.Pearl Road, lease.Road is on the right just passed a farm",
+    "r": "Road sequence reference:\nRoute 43 → Route 164 → Lease Road\n\nStep-by-step directions:\n1. Take 43 to Amsterdam &.\n2. Turn left on 164 about for 2 miles.\n3. Turn left on township Road 265 later turns into Pearl Road.\n4. Lease Road is on the right just passed a farm."
+  },
+  "chesapeake--h-ruby-farms": {
+    "s": "From Kensington 644 east to Bethesda rd & turn right pad is just past the Bethesda church on the right",
+    "r": "Road sequence reference:\nRoute 644 → Bethesda Rd → Pad\n\nStep-by-step directions:\n1. Follow From Kensington 644 east to Bethesda Road &.\n2. Turn right pad is just past the Bethesda church on the right."
+  },
+  "chesapeake--henceroth": {
+    "s": "From.Hanoverton take 30 towards.Lisbon turn right on gavers.Road Follow that to the Y bear left on.Lisbon Dungannon.Road pad will be on the left",
+    "r": "Road sequence reference:\nRoute 30 → Gavers Rd → Lisbon Dungannon Rd → Pad\n\nStep-by-step directions:\n1. From Hanoverton take 30 towards Lisbon.\n2. Turn right on gavers Road.\n3. Follow that to the Y.\n4. Bear.\n5. Turn left on Lisbon Dungannon Road.\n6. Pad will be on the left."
+  },
+  "chesapeake--huffman-trust": {
+    "s": "From Hanover ton take Route 9 North in New Garden turn right on 172 follow that to Depot Road turn left take depot to Winona rd turn left pad will be on left",
+    "r": "Road sequence reference:\nRoute 9 → Route 172 → That To Depot Rd → Depot To Winona Rd → Pad\n\nStep-by-step directions:\n1. From Hanover ton.\n2. Take Route 9 North in New Garden.\n3. Turn right on 172.\n4. Follow that to Depot Road.\n5. Turn left take depot to Winona Road.\n6. Turn left pad will be on left."
+  },
+  "chesapeake--judy-brown": {
+    "s": "Take route 30 toward Lisbon One and a 1/2 miles outside Hanoverton Turn right on gavers road Bottom of the hill right on Haessly rd 1/4 mile on the right",
+    "r": "Road sequence reference:\nRoute 30 → Gavers Rd → Haessly Rd\n\nStep-by-step directions:\n1. Take route 30 toward Lisbon One and a 1/2 miles outside Hanoverton.\n2. Turn right on gavers road Bottom of the hill.\n3. Turn right on Haessly Road 1/4 miles on the right."
+  },
+  "chesapeake--klodt": {
+    "s": "From.Scio take 646.West toward route 250 turn left on.Gundy Ridge pad is one mile on the right",
+    "r": "Road sequence reference:\nRoute 646 → Gundy Ridge → Pad\n\nStep-by-step directions:\n1. From Scio take 646 West toward route 250.\n2. Turn left on Gundy Ridge.\n3. Pad is one mile on the right."
+  },
+  "chesapeake--morsheiser": {
+    "s": "From 542 turn right on country rd 20 at 1.5 turn right stay on 20 go 1.5 where the road makes hard left.Well is left",
+    "r": "Road sequence reference:\nRoute 542 → Country Rd → Route 20 → Where The Rd\n\nStep-by-step directions:\n1. From 542 turn.\n2. Turn right on country Road 20 at 1.5.\n3. Turn right stay on 20.\n4. Go 1.5 where the road makes hard left Well is left."
+  },
+  "chesapeake--neider": {
+    "s": "43.South out of.Carrollton,turn east on 39.Pad is about 5 miles on the right.Coordinates are for entrance off of 39",
+    "r": "Road sequence reference:\nRoute 39 → Pad\n\nStep-by-step directions:\n1. 43 South out of Carrollton,turn east on 39.\n2. Pad is about 5 miles on the right Coordinates are for entrance off of 39."
+  },
+  "chesapeake--nmharrison": {
+    "s": "None.From 151 take.Route 9.South towards.Cadiz turn right on.Hanover Ridge.Road access road is on the left about a half mile or so",
+    "r": "Road sequence reference:\nRoute 151 → Route 9 → Hanover Ridge Rd → Access Road\n\nStep-by-step directions:\n1. None From 151.\n2. Take Route 9 South towards Cadiz.\n3. Turn right on Hanover Ridge Road access road is on the left about a half mile or so."
+  },
+  "chesapeake--peterson": {
+    "s": "43 to bay road follow bay road to.Apollo Continue on.Apollo past park road about 3 miles.Next road is chase turn right....Pad is on your right",
+    "r": "Road sequence reference:\nBay Rd Follow Bay Rd → Pad\n\nStep-by-step directions:\n1. Follow 43 to bay road.\n2. Follow bay road to Apollo.\n3. Continue on Apollo past park road about for 3 miles Next road is chase.\n4. Turn right Pad is on your right."
+  },
+  "chesapeake--r-miller": {
+    "s": "From Kilgore take 164 west/ north. Bare right onto Aster rd. 3.5 miles to the lease road on left side",
+    "r": "Road sequence reference:\nRoute 164 → Bare Right Onto Aster Rd → Lease Road\n\nStep-by-step directions:\n1. From Kilgore take 164 west/ north Bare.\n2. Turn right onto Aster Road for 3.5 miles to the lease road on left side."
+  },
+  "chesapeake--sadie": {
+    "s": "77 south 250 east 151 east 9 south.Hanover Ridge.Cr 17 east.Approximately 4 mi, right hand side is pad",
+    "r": "Road sequence reference:\nRoute 77 → Route 250 → Route 151 → Route 9 → Hanover Ridge → Pad\n\nStep-by-step directions:\n1. 77 south 250 east 151 east 9 south Hanover Ridge County Road 17 east Approximately 4 miles, right hand side is pad."
+  },
+  "chesapeake--scrivener": {
+    "s": "Google 160.Reynolds rd.It actually ran all ruma route for me.Just compare them while going.:)",
+    "r": "Step-by-step directions:\n1. Follow Google 160 Reynolds Road It actually ran all ruma route for me Just compare them while going :)."
+  },
+  "chesapeake--tritten": {
+    "s": "From rt9 and 172 go east on 172 for 5.8 miles.Pad on left.",
+    "r": "Road sequence reference:\nRoute 9 → Route 172 → Pad\n\nStep-by-step directions:\n1. From rt9 and 172.\n2. Go east on 172 for 5.8 miles Pad on left."
+  },
+  "chesapeake--walker": {
+    "s": "From OH 164 0.4 miles west of.Kilgore Head south on branch road first pad on your left.",
+    "r": "Road sequence reference:\nOH-164 → Branch Rd → Pad\n\nStep-by-step directions:\n1. From OH-164 0.4 miles west of Kilgore.\n2. Head south on branch road first pad on your left."
+  },
+  "chesapeake--woodland": {
+    "s": "From 164 and 43 in.Amsterdam go 43 north 1.4 miles pad on left",
+    "r": "Road sequence reference:\nRoute 164 → Route 43 → Pad\n\nStep-by-step directions:\n1. From 164 and 43 in Amsterdam.\n2. Go 43 north 1.4 miles pad on left."
+  }
+}
