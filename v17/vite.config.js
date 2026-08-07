@@ -11,7 +11,7 @@ const releaseHtml = {
       .replace(/<link\s+rel=["']apple-touch-icon["']\s+sizes=["']180x180["']\s+href=["']\.\/brand-kit\/brinesearch-apple-touch-icon\.png["']\s*\/?>/i, '')
       .replace(/<div class="legal-footer-brand" aria-label="BrineSearch"><img class="footer-logo footer-logo-dark"[^>]*><img class="footer-logo footer-logo-day"[^>]*><\/div>/i, '<div class="legal-footer-brand" aria-label="BrineSearch"><span class="fm-icon fm-pad" aria-hidden="true"></span><strong>BrineSearch</strong></div>')
       .replace(/ · V 16\.21<\/div>/g, ' · V 17.2</div>')
-      .replace(/<script\s+src=["']\/v16-25-hotfix\.js[^"']*["']><\/script>/i, '<script src="/app/front-sign-structured.js?v=17.2.0"></script>')
+      .replace(/<script\s+src=["']\/v16-25-hotfix\.js[^"']*["']><\/script>/i, '<script src="/app/front-sign-structured.js?v=17.2.0"></script>\n<script src="/app/front-sign-hidden.js?v=17.2.1"></script>')
       .replaceAll('?v=17.0.0', '?v=17.2.0');
   }
 };

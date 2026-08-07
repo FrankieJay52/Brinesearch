@@ -4,6 +4,7 @@ const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',
   './app/brinesearch-app.js', './app/weather-feature.js',
   './app/root-scroll-guard.js', './app/field-mark-runtime.js', './app/front-sign-structured.js',
+  './app/front-sign-hidden.js',
   './manifest.webmanifest', './pad-fallback-data.json',
   './road-database.js', './road-manager.js', './front-sign-scanner.js',
   './road-database.schema.json', './road_name_review.csv',

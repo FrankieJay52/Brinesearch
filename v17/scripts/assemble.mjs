@@ -42,7 +42,7 @@ const fieldMarkSource = await fs.readFile(path.join(srcRoot, 'styles', '09-field
 const fieldMarkAbsolute = fieldMarkSource.replaceAll("url('./icons/", "url('/icons/");
 await fs.writeFile(path.join(stylesRoot, 'field-mark-icons.css'), fieldMarkAbsolute);
 
-for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js', 'front-sign-structured.js']) {
+for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js', 'front-sign-structured.js', 'front-sign-hidden.js']) {
   await fs.copyFile(path.join(srcRoot, 'runtime', file), path.join(appRoot, file));
 }
 const directionManifest = await readJson(path.join(srcRoot, 'data', 'directions', 'index.json'));
