@@ -33,6 +33,15 @@ const styleManifest = await readJson(path.join(srcRoot, 'styles', 'style-order.j
 const styles = await Promise.all(styleManifest.styles.map(name => fs.readFile(path.join(srcRoot, 'styles', name), 'utf8')));
 const assembledCss = styles.map(value => value.trimEnd()).join('\n\n') + '\n';
 await fs.writeFile(path.join(stylesRoot, 'app.css'), assembledCss);
+
+// Field Mark definitions were originally written while CSS lived at the site root.
+// V17 serves app.css from /styles, so ./icons incorrectly becomes /styles/icons.
+// Keep the hashed source CSS untouched and generate a small post-build override with
+// absolute icon URLs. This preserves source-integrity hashes while fixing real browsers.
+const fieldMarkSource = await fs.readFile(path.join(srcRoot, 'styles', '09-field-mark-icons.css'), 'utf8');
+const fieldMarkAbsolute = fieldMarkSource.replaceAll("url('./icons/", "url('/icons/");
+await fs.writeFile(path.join(stylesRoot, 'field-mark-icons.css'), fieldMarkAbsolute);
+
 for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js']) {
   await fs.copyFile(path.join(srcRoot, 'runtime', file), path.join(appRoot, file));
 }
@@ -55,6 +64,7 @@ const report = {
   directionDataFiles: directionManifest.files.length,
   appBytes: Buffer.byteLength(assembledApp),
   cssBytes: Buffer.byteLength(assembledCss),
+  fieldMarkCssBytes: Buffer.byteLength(fieldMarkAbsolute),
   appSha256: sha256(assembledApp),
   cssSha256: sha256(assembledCss)
 };
