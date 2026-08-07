@@ -65,6 +65,7 @@ jobs:
       contents: read
       pages: write
       id-token: write
+      statuses: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -75,3 +76,28 @@ jobs:
       - name: Deploy BrineSearch
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Record deployment result on the commit
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DEPLOY_OUTCOME: ${{ steps.deployment.outcome }}
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+          FALLBACK_PAGE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            STATE="success"
+            DESCRIPTION="BrineSearch V17.2 is live"
+            TARGET_URL="${PAGE_URL:-$FALLBACK_PAGE_URL}"
+          else
+            STATE="failure"
+            DESCRIPTION="GitHub Pages deployment needs attention"
+            TARGET_URL="$RUN_URL"
+          fi
+          gh api --method POST "repos/${GITHUB_REPOSITORY}/statuses/${GITHUB_SHA}" \
+            -f state="$STATE" \
+            -f context="BrineSearch / GitHub Pages" \
+            -f description="$DESCRIPTION" \
+            -f target_url="$TARGET_URL"
