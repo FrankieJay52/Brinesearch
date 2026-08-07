@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - v17.3-full-product-audit
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -50,7 +53,6 @@ jobs:
           grep -q 'favorites-page' /tmp/app.css
           grep -q 'renderDriverDashboard' /tmp/app.js
           grep -q 'renderFavoritesPage' /tmp/app.js
-          grep -q '93 distinct' /tmp/app.css || true
 
       - name: Record production verification
         shell: bash
