@@ -33,9 +33,11 @@ V17.3 is the first whole-product pass after the modular V17 rebuild. It corrects
 
 ## Visual system
 - Added one final V17.3 product-polish layer for consistent spacing, typography, radii, borders, shadows, buttons, icon sizing, night mode, daylight mode, small iPhones, desktop, and reduced-motion users.
+- Replaced the old placeholder SVG groups with distinct Field Mark artwork for profile, notifications, rules, settings, weather, offline, road, pad, wells, companies, editing, sharing, moderation, and other app actions.
 - Corrected icon asset URLs so Netlify, GitHub Pages, and offline builds resolve the same artwork.
+- Corrected the iPhone dashboard totals, Feed sort control, and desktop header controls so labels no longer wrap or clip.
 - Added automated iPhone and desktop route screenshots to release checks.
 
 ## Deployment and verification
 - Bumped the app, service-worker cache, build report, package, Pages preparation, and release artifacts to V17.3.
-- Added automated checks for the Favorites route, non-blocking public Feed, inline guest banner, owner-only Road Manager placement, Storage-backed profile photos, and V17.3 visual layer.
+- Added automated checks for the Favorites route, non-blocking public Feed, inline guest banner, owner-only Road Manager placement, Storage-backed profile photos, distinct icon artwork, and the V17.3 visual layer.
