@@ -18,15 +18,51 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Verify and build current audit branch
+        run: npm run build
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start production preview
+        run: |
+          nohup npm run preview -- --host 127.0.0.1 --port 4173 >/tmp/brinesearch-v17-3-preview.log 2>&1 &
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:4173 >/dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/brinesearch-v17-3-preview.log
+          exit 1
+
+      - name: Capture every core screen
+        run: node v17/scripts/visual-capture.mjs
+
       - name: Package source tree
         run: |
           zip -r BrineSearch-V17.3-audit-source.zip . \
-            -x '.git/*' 'node_modules/*' 'dist-v17/*' 'dist-pages/*' '*.DS_Store'
+            -x '.git/*' 'node_modules/*' 'dist-v17/*' 'dist-pages/*' 'visual-audit/*' '*.DS_Store'
 
       - name: Upload source archive
         uses: actions/upload-artifact@v4
         with:
           name: BrineSearch-V17.3-audit-source
           path: BrineSearch-V17.3-audit-source.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload visual audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrineSearch-V17.3-visual-audit
+          path: visual-audit
           if-no-files-found: error
           retention-days: 7
