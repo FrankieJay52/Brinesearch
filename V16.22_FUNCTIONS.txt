@@ -1,0 +1,716 @@
+
+====================================================================================================
+openPadEditor
+====================================================================================================
+function openPadEditor(id) {
+      const p = padById(id);
+      if (!p) return;
+
+      closePadEditor();
+      document.body.style.overflow = "hidden";
+
+      const shell = document.createElement("div");
+      shell.className = "pad-editor-shell";
+      shell.id = "padEditorShell";
+      shell.innerHTML = `
+        <div class="pad-editor-backdrop" data-close-editor></div>
+        <section class="pad-editor-panel" role="dialog" aria-modal="true" aria-label="Edit pad">
+          <header class="pad-editor-header">
+            <div>
+              <div class="pad-editor-kicker">Pad editor</div>
+              <h2>${esc(display(p.padName))}</h2>
+              <div class="pad-editor-dirty" id="padEditorDirty">Unsaved changes</div>
+            </div>
+            <button class="pad-editor-close" type="button" data-close-editor aria-label="Close editor"><span class="fm-icon fm-close"></span></button>
+          </header>
+
+          <nav class="pad-editor-tabs" aria-label="Editor sections">
+            <button class="pad-editor-tab active" type="button" data-editor-tab="general">General</button>
+            <button class="pad-editor-tab" type="button" data-editor-tab="directions">Directions</button>
+            <button class="pad-editor-tab" type="button" data-editor-tab="roads">Roads</button>
+            ${p.recordType !== "disposal" ? `<button class="pad-editor-tab" type="button" data-editor-tab="wells">Wells</button>` : ""}
+            <button class="pad-editor-tab" type="button" data-editor-tab="coordinates">Coordinates</button>
+            <button class="pad-editor-tab" type="button" data-editor-tab="verification">Verification</button>
+            <button class="pad-editor-tab" type="button" data-editor-tab="history">History</button>
+          </nav>
+
+          <form class="pad-editor-form" id="padEditorForm">
+            <p class="pad-editor-note">Edit one section at a time. Save Changes applies everything across all tabs.</p>
+
+            <section class="pad-editor-panel-page active" data-editor-panel="general">
+              <h3 class="pad-editor-section-title">General information</h3>
+              <div class="pad-editor-grid">
+                <div class="pad-editor-field"><label for="editPadName">Pad name</label><input id="editPadName" name="padName" value="${esc(editTextValue(p.padName))}" required></div>
+                <div class="pad-editor-field"><label for="editCompany">Company</label><input id="editCompany" name="company" value="${esc(editTextValue(p.company))}"></div>
+                <div class="pad-editor-field"><label for="editState">State</label><input id="editState" name="state" value="${esc(editTextValue(p.state))}"></div>
+                <div class="pad-editor-field"><label for="editCounty">County</label><input id="editCounty" name="county" value="${esc(editTextValue(p.county))}"></div>
+                <div class="pad-editor-field"><label for="editTownship">Township / city</label><input id="editTownship" name="township" value="${esc(editTextValue(p.township))}"></div>
+                <div class="pad-editor-field"><label for="editAddress">Address</label><input id="editAddress" name="address" value="${esc(editTextValue(p.address))}"></div>
+              </div>
+            </section>
+
+            <section class="pad-editor-panel-page" data-editor-panel="directions">
+              <h3 class="pad-editor-section-title">Directions</h3>
+              <p class="pad-editor-section-copy">Update the route sequence and saved field directions.</p>
+              <div class="pad-editor-grid">
+                <div class="pad-editor-field wide"><label for="editRoadSequence">Road sequence</label><textarea id="editRoadSequence" name="Structured_Road_Sequence">${esc(editTextValue(p.Structured_Road_Sequence))}</textarea><div class="pad-editor-help">Use arrows or put each road on its own line.</div></div>
+                <div class="pad-editor-field wide"><label for="editWrittenDirections">Written directions</label><textarea class="tall" id="editWrittenDirections" name="writtenDirections">${esc(editTextValue(p.writtenDirections))}</textarea></div>
+              </div>
+            </section>
+
+
+            <section class="pad-editor-panel-page" data-editor-panel="roads">
+              <h3 class="pad-editor-section-title">Roads</h3>
+              <p class="pad-editor-section-copy">Choose standardized road records instead of retyping the same road on every pad. Adding a road also appends its official display name to the road sequence.</p>
+              <div class="road-picker-box">
+                <h4>Road Database</h4>
+                <input class="road-picker-search" id="padRoadPickerSearch" placeholder="Search OH-800, CR-5, Denham Rd…" autocomplete="off">
+                <div class="road-picker-results" id="padRoadPickerResults"><div class="pad-editor-help">Start typing to find a road.</div></div>
+                <div class="road-linked-list" id="padRoadLinkedList"></div>
+                <div style="margin-top:10px"><a class="btn secondary small" href="#/settings/roads">Open Road Manager</a></div>
+              </div>
+            </section>
+
+            ${p.recordType !== "disposal" ? `<section class="pad-editor-panel-page" data-editor-panel="wells">
+              <h3 class="pad-editor-section-title">Wells and identifiers</h3>
+              <div class="pad-editor-grid">
+                <div class="pad-editor-field"><label for="editWellName">Well names</label><textarea id="editWellName" name="wellName">${esc(editMultiValue(p.wellName))}</textarea><div class="pad-editor-help">One well per line.</div></div>
+                <div class="pad-editor-field"><label for="editApi">API numbers</label><textarea id="editApi" name="api">${esc(editMultiValue(p.api))}</textarea><div class="pad-editor-help">Keep lines in the same order as wells.</div></div>
+                <div class="pad-editor-field wide"><label for="editProperty">Property numbers</label><textarea id="editProperty" name="property">${esc(editMultiValue(p.property))}</textarea></div>
+              </div>
+            </section>` : ""}
+
+            <section class="pad-editor-panel-page" data-editor-panel="coordinates">
+              <h3 class="pad-editor-section-title">Coordinates</h3>
+              <p class="pad-editor-section-copy">Enter both values together. Use the GPS capture tool on the pad page for a fresh phone reading.</p>
+              <div class="pad-editor-grid">
+                <div class="pad-editor-field"><label for="editLatitude">Latitude</label><input id="editLatitude" name="latitude" inputmode="decimal" value="${esc(editTextValue(p.latitude))}"></div>
+                <div class="pad-editor-field"><label for="editLongitude">Longitude</label><input id="editLongitude" name="longitude" inputmode="decimal" value="${esc(editTextValue(p.longitude))}"></div>
+              </div>
+            </section>
+
+            <section class="pad-editor-panel-page" data-editor-panel="verification">
+              <h3 class="pad-editor-section-title">Verification</h3>
+              <div id="padEditorVerification"><div class="pad-quality-note">Loading verification status…</div></div>
+            </section>
+
+            <section class="pad-editor-panel-page" data-editor-panel="history">
+              <h3 class="pad-editor-section-title">Record history</h3>
+              <div class="pad-editor-history-card">
+                <strong>Created:</strong> ${esc(p.created_at ? padVerificationDate(p.created_at) : "Not recorded")}<br>
+                <strong>Last updated:</strong> ${esc(p.updated_at || p.lastUpdatedDate ? padVerificationDate(p.updated_at || p.lastUpdatedDate) : "Not recorded")}<br>
+                <strong>Last updated by:</strong> ${esc(display(p.lastUpdatedBy || "Not recorded"))}<br><br>
+                Verification activity is shown in the Verification tab. A complete before-and-after edit audit remains available through the owner/editor activity tools.
+              </div>
+            </section>
+
+            <div class="pad-editor-error" id="padEditorError"></div>
+          </form>
+
+          <footer class="pad-editor-footer">
+            <div class="pad-editor-footer-left">${savedPadEdits[id] ? `<button class="pad-editor-button danger" id="resetPadEdit" type="button">Reset pad</button>` : ""}</div>
+            <div class="pad-editor-footer-right">
+              <button class="pad-editor-button" type="button" data-close-editor>Cancel</button>
+              <button class="pad-editor-button primary" type="submit" form="padEditorForm">Save Changes</button>
+            </div>
+          </footer>
+        </section>`
+
+      document.body.appendChild(shell);
+      shell.dataset.dirty = "false";
+
+      const activateEditorTab = name => {
+        shell.querySelectorAll("[data-editor-tab]").forEach(btn => btn.classList.toggle("active", btn.dataset.editorTab === name));
+        shell.querySelectorAll("[data-editor-panel]").forEach(panel => panel.classList.toggle("active", panel.dataset.editorPanel === name));
+        shell.querySelector(".pad-editor-panel")?.scrollTo({ top: 0, behavior: "smooth" });
+        if (name === "verification" && p._dbId) loadPadVerification(p, document.getElementById("padEditorVerification"));
+      };
+      shell.querySelectorAll("[data-editor-tab]").forEach(btn => btn.addEventListener("click", () => activateEditorTab(btn.dataset.editorTab)));
+      setupPadRoadPicker(p);
+
+      shell.querySelectorAll("[data-close-editor]").forEach(element => {
+        element.addEventListener("click", () => closePadEditor(false));
+      });
+
+      document.getElementById("resetPadEdit")?.addEventListener("click", () => resetPadEdit(id));
+
+      const form = document.getElementById("padEditorForm");
+      const error = document.getElementById("padEditorError");
+      const dirtyLabel = document.getElementById("padEditorDirty");
+      form.addEventListener("input", () => { shell.dataset.dirty = "true"; dirtyLabel?.classList.add("show"); });
+      form.addEventListener("change", () => { shell.dataset.dirty = "true"; dirtyLabel?.classList.add("show"); });
+
+      form.addEventListener("submit", event => {
+        event.preventDefault();
+        error.classList.remove("show");
+        error.textContent = "";
+
+        const formData = new FormData(form);
+        const padName = normalize(formData.get("padName"));
+        const latitudeText = normalize(formData.get("latitude"));
+        const longitudeText = normalize(formData.get("longitude"));
+
+        if (!padName) {
+          error.textContent = "Pad name is required.";
+          error.classList.add("show");
+          return;
+        }
+
+        if ((latitudeText && !longitudeText) || (!latitudeText && longitudeText)) {
+          error.textContent = "Enter both latitude and longitude, or leave both blank.";
+          error.classList.add("show");
+          return;
+        }
+
+        const latitude = latitudeText ? Number(latitudeText) : null;
+        const longitude = longitudeText ? Number(longitudeText) : null;
+
+        if (latitudeText && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+          error.textContent = "Latitude must be a number between -90 and 90.";
+          error.classList.add("show");
+          return;
+        }
+
+        if (longitudeText && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+          error.textContent = "Longitude must be a number between -180 and 180.";
+          error.classList.add("show");
+          return;
+        }
+
+        const patch = {
+          padName,
+          company: normalize(formData.get("company")),
+          state: normalize(formData.get("state")),
+          county: normalize(formData.get("county")),
+          township: normalize(formData.get("township")),
+          address: normalize(formData.get("address")),
+          latitude,
+          longitude,
+          Structured_Road_Sequence: normalizeEditedRoute(formData.get("Structured_Road_Sequence")),
+          writtenDirections: normalize(formData.get("writtenDirections"))
+        };
+
+        if (p.recordType !== "disposal") {
+          patch.wellName = normalizeEditedMulti(formData.get("wellName"));
+          patch.api = normalizeEditedMulti(formData.get("api"));
+          patch.property = normalizeEditedMulti(formData.get("property"));
+        }
+
+        const persisted = persistPadEdit(id, patch);
+        Object.assign(p, patch);
+        shell.dataset.dirty = "false";
+        closePadEditor(true);
+        renderPad(id);
+        showToast(persisted ? "Pad updated" : "Updated for this session");
+      });
+
+      if (window.matchMedia("(min-width: 701px)").matches) setTimeout(() => document.getElementById("editPadName")?.focus(), 70);
+    }
+
+====================================================================================================
+persistPadEdit
+====================================================================================================
+function persistPadEdit(id, patch) {
+      savedPadEdits[id] = patch;
+      try {
+        localStorage.setItem(PAD_EDIT_STORAGE_KEY, JSON.stringify(savedPadEdits));
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+====================================================================================================
+padById
+====================================================================================================
+function padById(id) {
+      return pads.find(p => p._id === id);
+    }
+
+====================================================================================================
+renderPad
+====================================================================================================
+function renderPad(id) {
+      const p = padById(id);
+      if (!p) return renderNotFound();
+      rememberRecentPad(id);
+
+      const companyName = isDisposal(p) ? "Disposals" : display(p.company);
+      const companyLabel = companyName === "Hg" ? "HG Energy" : companyName;
+      const gmap = googleMapsUrl(p);
+      const amap = appleMapsUrl(p);
+      const navigationGps = padNavigationGps(p);
+      const usingOfficialGps = navigationGps?.source === "official";
+      const coordinateValue = padCoordinateText(p);
+      const official = fieldOfficialPad(p);
+      const officialPadName = normalize(official?.pad_name) || display(p.padName);
+      const officialOperator = normalize(official?.operator) || companyLabel;
+      const officialPadStatus = normalize(official?.pad_status) || normalize(p.operatingStatus) || "Status not listed";
+      const apiSummary = fieldApiSummary(p);
+      document.title = `${officialPadName} · ${officialOperator} · BrineSearch`;
+      const sourceRows = Array.isArray(p.researchSources) ? p.researchSources : [];
+      const cleanGeo = value => { const v = normalize(value); return v && v !== "." ? v : ""; };
+      const formatGeoLabel = (value, kind = "") => {
+        let v = cleanGeo(value);
+        if (!v) return "";
+        if (kind === "county") v = v.replace(/\s+county$/i, "");
+        if (kind === "township") v = v.replace(/\s+(?:township|twp\.?)$/i, "");
+        return v.toLowerCase().replace(/\b([a-z])/g, ch => ch.toUpperCase());
+      };
+      const location = [
+        formatGeoLabel(p.county, "county"),
+        formatGeoLabel(p.township, "township"),
+        formatGeoLabel(p.state, "state")
+      ].filter(Boolean).join(" · ");
+      const status = officialPadStatus;
+      const rawResearchStatus = normalize(p.researchStatus || p.verificationStatus);
+      const researchLabel = rawResearchStatus === "no_reliable_official_pad_match"
+        ? "Official match needs review"
+        : rawResearchStatus.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
+      const researchTone = /verified|active|exact/i.test(rawResearchStatus) ? "good" : "review";
+      const directionsText = has(p.directionsClear) ? p.directionsClear : "";
+      const copyDirectionsText = has(p.Structured_Road_Sequence) ? directionCopyText(p.Structured_Road_Sequence, p) : directionsText;
+      const wellRows = alignedWellRows(p);
+
+      const officialInfo = official ? `
+        <div class="field-official-grid">
+          <div class="field-official-item full"><div class="field-label">OFFICIAL PAD NAME</div><div class="field-value">${esc(official.pad_name)}</div></div>
+          <div class="field-official-item full"><div class="field-label">OFFICIAL OPERATOR</div><div class="field-value">${esc(official.operator)}</div></div>
+          <div class="field-official-item"><div class="field-label">PAD STATUS</div><div class="field-value">${esc(official.pad_status)}</div></div>
+          <div class="field-official-item"><div class="field-label">PAD PERMIT</div><div class="field-value">${esc(official.pad_permit ?? "Not listed")}</div></div>
+          <div class="field-official-item full"><div class="field-label">OFFICIAL PAD ID</div><div class="field-value mono">${esc(official.pad_id)}</div></div>
+          <div class="field-official-item"><div class="field-label">OFFICIAL COUNTY</div><div class="field-value">${esc(official.county)}</div></div>
+          <div class="field-official-item"><div class="field-label">OFFICIAL TOWNSHIP</div><div class="field-value">${esc(official.township)}</div></div>
+          <div class="field-official-item"><div class="field-label">OFFICIAL LATITUDE</div><div class="field-value mono">${esc(official.latitude)}</div></div>
+          <div class="field-official-item"><div class="field-label">OFFICIAL LONGITUDE</div><div class="field-value mono">${esc(official.longitude)}</div></div>
+          <div class="field-official-item"><div class="field-label">LOCATION SOURCE</div><div class="field-value">${esc(official.source_method)}</div></div>
+          <div class="field-official-item"><div class="field-label">DISTANCE FROM SAVED POINT</div><div class="field-value">${official.distance_from_saved_miles !== null && official.distance_from_saved_miles !== undefined ? `${esc(official.distance_from_saved_miles)} mi` : "Not compared"}</div></div>
+        </div>` : `<div class="empty">No official pad-level record is attached yet. Saved directions and field location remain available above.</div>`;
+
+      app.innerHTML = `
+        <div class="field-pad-page">
+          <nav class="breadcrumb"><a href="#/">Search</a><span>›</span><a href="${routeUrl(`company/${encodeURIComponent(companyName)}`)}">${esc(companyLabel)}</a><span>›</span><span>${esc(officialPadName)}</span></nav>
+
+          <section class="field-pad-hero">
+            <div class="field-pad-top"><div class="field-pad-title"><div class="field-official-kicker">OFFICIAL PAD</div><h1>${esc(officialPadName)}</h1><div class="field-pad-company">${esc(officialOperator)} · ${isDisposal(p) ? "Disposal" : "Pad"}</div><div class="field-pad-location">${esc(location || "Location not listed")}</div></div>${companyLogoHtml(companyName,"title-logo pad-hero-logo")}</div>
+            <div class="field-status-row"><span class="field-status-chip ${fieldOperatingTone(officialPadStatus)}">${esc(officialPadStatus)}</span>${researchLabel ? `<span class="field-status-chip ${researchTone}">${esc(researchLabel)}</span>` : ""}${usingOfficialGps ? `<span class="field-status-chip good">OFFICIAL GPS FALLBACK</span>` : ""}</div>
+            <div class="field-main-actions">
+              ${gmap ? `<a class="field-action primary field-action-visual field-action-directions" href="${esc(gmap)}" target="_blank" rel="noopener"><span class="field-action-emblem"><span class="fm-icon fm-directions-large"></span></span><span class="field-action-copy"><strong>Directions</strong><small>Open turn-by-turn navigation</small></span></a>` : `<span class="field-action is-unavailable"><span class="fm-icon fm-warning"></span> No GPS saved — use written directions below</span>`}
+              ${amap ? `<a class="field-action field-action-visual" href="${esc(amap)}" target="_blank" rel="noopener"><span class="field-action-emblem"><span class="fm-icon fm-apple-maps-large"></span></span><span class="field-action-copy"><strong>Apple Maps</strong><small>Open this saved location</small></span></a>` : ""}
+              <button class="field-action field-action-visual ${amap ? "" : "span-full"}" id="fieldSharePad" type="button"><span class="field-action-emblem"><span class="fm-icon fm-share-pad-large"></span></span><span class="field-action-copy"><strong>Share</strong><small>Post, send, or copy pad details</small></span></button>
+              <button class="field-action span-full field-action-visual field-favorite-button ${isFavoritePad(p._id) ? "active" : ""}" id="fieldFavoritePad" type="button"><span class="field-action-emblem"><span class="fm-icon ${isFavoritePad(p._id) ? "fm-favorite-active-large" : "fm-favorite-large"}"></span></span><span class="field-action-copy"><strong>${isFavoritePad(p._id) ? "Favorited" : "Favorite"}</strong><small>${isFavoritePad(p._id) ? "Saved for offline and quick access" : "Save for offline and quick access"}</small></span></button>
+              ${editorCanEdit() ? `<button class="field-action edit span-full field-action-visual" type="button" data-edit-section="all" data-pad-id="${esc(p._id)}"><span class="field-action-emblem"><span class="fm-icon fm-edit-pad-large"></span></span><span class="field-action-copy"><strong>Edit pad information</strong><small>Update directions, GPS, wells, and notes</small></span></button>` : ""}
+            </div>
+          </section>
+          <section class="pad-quality-card" id="padQualityPanel"><div class="pad-quality-loading">Loading pad verification…</div></section>
+
+          <details class="field-priority-card driver-directions compact-directions">
+            <summary><span><strong>Directions</strong><small>${esc(has(p.Structured_Road_Sequence) ? directionSequenceSummary(p.Structured_Road_Sequence, p) : (directionsText ? directionsText.split(/[.\n]/)[0] : "No approved directions saved"))}</small></span><span class="compact-toggle-label">Show</span></summary>
+            <div class="compact-directions-body">
+              <div class="field-priority-head"><h2 class="sr-only-head">Directions</h2><button class="field-copy-button" id="fieldCopyDirections" type="button">Copy directions</button></div>
+              ${fieldRoadStepsHtml(has(p.Structured_Road_Sequence) ? p.Structured_Road_Sequence : directionsText, p) || `<div class="empty">No approved route cards are available yet.</div>`}
+            </div>
+          </details>
+
+          ${!isDisposal(p) && wellRows.length ? `<section class="field-priority-card compact-wells-section"><div class="field-priority-head"><h2>Wells</h2><span class="field-status-chip">${wellRows.length}</span></div><div class="compact-well-head"><span></span><span>Well</span><span>API number</span><span>Property</span><span></span></div><div class="field-well-list">${fieldWellCards(p)}</div></section>` : ""}
+
+          <details class="field-reference-details">
+            <summary><span class="field-reference-summary">Saved Field Location<small>Address, latitude, longitude, county, township</small></span></summary>
+            <div class="field-reference-body">
+              <div class="field-priority-head"><h2 class="sr-only-head">Saved Field Location</h2><button class="field-copy-button" id="fieldCopyLocation" type="button">Copy</button></div>
+              <div class="field-location-mini">
+                <div class="field-official-item"><div class="field-label">ADDRESS / LOCATION</div><div class="field-value">${esc(p.address || "No street address saved")}</div></div>
+                <div class="field-official-item"><div class="field-label">LATITUDE</div><div class="field-value mono">${esc(p.latitude ?? "Not listed")}</div></div>
+                <div class="field-official-item"><div class="field-label">LONGITUDE</div><div class="field-value mono">${esc(p.longitude ?? "Not listed")}</div></div>
+                <div class="field-official-item"><div class="field-label">COUNTY</div><div class="field-value">${esc(cleanGeo(p.county) || "Not listed")}</div></div>
+                <div class="field-official-item"><div class="field-label">TOWNSHIP</div><div class="field-value">${esc(cleanGeo(p.township) || "Not listed")}</div></div>
+              </div>
+            </div>
+          </details>
+
+          <details class="field-reference-details">
+            <summary><span class="field-reference-summary">Official Public Pad Information<small>${official ? "Pad match found in the public record" : "No public pad record attached yet"}</small></span></summary>
+            <div class="field-reference-body">
+              <div class="field-priority-head"><h2 class="sr-only-head">Official Public Pad Information</h2><span class="field-status-chip ${official ? "good" : "review"}">${official ? "PAD MATCH FOUND" : "NOT ATTACHED"}</span></div>
+              ${officialInfo}
+              <p class="field-public-note">Official coordinates are used for map actions only when saved GPS is missing. They do not overwrite the lease entrance, driver route, or saved field location.</p>
+            </div>
+          </details>
+
+          <details class="field-reference-details">
+            <summary><span class="field-reference-summary">API Verification and Sources<small>${apiSummary.exact} of ${apiSummary.savedCount} saved API number${apiSummary.savedCount === 1 ? "" : "s"} matched to the public layer</small></span></summary>
+            <div class="field-reference-body">
+              <div class="field-priority-head"><h2 class="sr-only-head">API Verification and Sources</h2><span class="field-status-chip ${apiSummary.exact===apiSummary.savedCount && apiSummary.savedCount ? "good" : "review"}">${esc(researchLabel || "Review status")}</span></div>
+              <div class="field-api-summary"><div class="field-api-stat"><strong>${apiSummary.savedCount}</strong><span>Saved API numbers</span></div><div class="field-api-stat"><strong class="tone-good">${apiSummary.exact}</strong><span>Exact official API matches</span></div><div class="field-api-stat"><strong class="tone-warn">${apiSummary.unmatchedCount}</strong><span>Not in current public well-point layer</span></div></div>
+              ${has(p.researchNote) ? `<p class="field-public-note">${esc(p.researchNote)}</p>` : ""}
+              <div class="field-source-list">${sourceRows.length ? sourceRows.map(source => `<div class="field-source"><span class="field-source-check">✓</span><span>${esc(fieldSourceLabel(source))}</span></div>`).join("") : `<div class="field-source"><span class="field-source-check">•</span><span>No public research source is attached yet.</span></div>`}</div>
+            </div>
+          </details>
+
+          <section class="record-status-card"><h2>Record Status</h2><p class="record-status-note">This summary describes the information currently attached to this record. It does not guarantee present road or site conditions.</p><div class="record-status-grid"><div class="record-status-item"><small>Last reviewed or updated</small><strong>${esc(p.lastUpdatedDate || p.updatedAt || p.researchDate || "Not listed")}</strong></div><div class="record-status-item"><small>GPS status</small><strong>${navigationGps ? (usingOfficialGps ? "Official public GPS fallback" : "Saved GPS available") : "No verified GPS attached"}</strong></div><div class="record-status-item"><small>Directions status</small><strong>${has(p.Structured_Road_Sequence) || directionsText ? "Directions available · continuing review" : "Needs directions review"}</strong></div><div class="record-status-item"><small>Public-source status</small><strong>${official || sourceRows.length ? "Public-source information attached" : "No public source attached yet"}</strong></div></div><div class="source-notice"><strong>Source notice:</strong> This record may combine public records, independent research, field observations, and community-contributed information. Verify before use.</div><div class="record-status-actions"><a class="btn secondary" href="mailto:support@brinesearch.com?subject=${encodeURIComponent(`BrineSearch record concern: ${display(p.padName)}`)}&body=${encodeURIComponent(`Pad: ${display(p.padName)}\nCompany: ${companyLabel}\nURL: ${window.location.href}\n\nConcern type (incorrect directions, GPS, well information, company information, copyright, or other):\n`)}">Report a record concern</a>${editorCanEdit()?`<button class="btn secondary" type="button" data-edit-section="all" data-pad-id="${esc(p._id)}">Review or update record</button>`:""}${editorIsOwner()?`<a class="btn secondary" href="#/verification">Open verification review</a>`:""}</div></section>
+        </div>`;
+
+
+      loadPadVerification(p);
+
+            document.querySelectorAll(".compact-directions").forEach(section => {
+        section.addEventListener("toggle", () => {
+          const label = section.querySelector(".compact-toggle-label");
+          if (label) label.textContent = section.open ? "Hide" : "Show";
+        });
+      });
+
+      document.getElementById("fieldFavoritePad")?.addEventListener("click", event => {
+        const active = toggleFavoritePad(p._id);
+        event.currentTarget.classList.toggle("active", active);
+        const icon=event.currentTarget.querySelector(".fm-icon");
+        if(icon) icon.className=`fm-icon ${active ? "fm-favorite-active-large" : "fm-favorite-large"}`;
+        const strong=event.currentTarget.querySelector("strong");
+        const small=event.currentTarget.querySelector("small");
+        if(strong) strong.textContent=active ? "Favorited" : "Favorite";
+        if(small) small.textContent=active ? "Saved for offline and quick access" : "Save for offline and quick access";
+        showToast(active ? "Added to favorites" : "Removed from favorites");
+      });
+      document.getElementById("fieldSharePad")?.addEventListener("click", async () => {
+        const padLink = window.location.href;
+        const pinQuery = coordinateValue || p.address || [cleanGeo(p.county), cleanGeo(p.state)].filter(Boolean).join(", ");
+        const mapPin = pinQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(pinQuery)}` : "";
+        const shareText = [display(p.padName),companyLabel,location,mapPin ? `Map pin: ${mapPin}` : "",`BrineSearch pad: ${padLink}`].filter(Boolean).join("\n");
+        document.getElementById("padShareOverlay")?.remove();
+        const overlay=document.createElement("div");
+        overlay.id="padShareOverlay";overlay.className="pad-share-overlay";
+        overlay.innerHTML=`<section class="pad-share-sheet" role="dialog" aria-modal="true" aria-label="Share ${esc(display(p.padName))}"><h2>Share ${esc(display(p.padName))}</h2><p>Post an update about this pad or share its link and map pin.</p><div class="pad-share-actions"><button class="primary" id="sharePadToFeed">◉ Make a Field Feed post</button><button id="sharePadOutside">↗ Share link and map pin</button><button id="copyPadShare">⧉ Copy pad information</button><button class="cancel" id="cancelPadShare">Cancel</button></div></section>`;
+        document.body.appendChild(overlay);
+        const close=()=>overlay.remove();
+        overlay.addEventListener("click",e=>{if(e.target===overlay)close();});
+        overlay.querySelector("#cancelPadShare").onclick=close;
+        overlay.querySelector("#sharePadToFeed").onclick=()=>{
+          fieldStorePadPrefill(p);
+          close();
+          const feedHash = "#/feed";
+          if (location.hash === feedHash) {
+            router();
+          } else {
+            location.hash = feedHash;
+            setTimeout(() => {
+              if (location.hash === feedHash && !document.querySelector(".field-feed-page")) router();
+            }, 80);
+          }
+        };
+        overlay.querySelector("#copyPadShare").onclick=async()=>{await copyText(shareText,"Pad information copied");close();};
+        overlay.querySelector("#sharePadOutside").onclick=async()=>{
+          try{if(navigator.share){await navigator.share({title:`${display(p.padName)} · BrineSearch`,text:shareText});showToast("Pad shared");}else await copyText(shareText,"Pad link and map pin copied");}
+          catch(error){if(error?.name!=="AbortError")await copyText(shareText,"Pad link and map pin copied");}
+          close();
+        };
+      });
+      document.getElementById("fieldCopyLocation")?.addEventListener("click", () => copyText([p.address, coordinateValue, location].filter(has).join("\n"),"Location copied"));
+      document.getElementById("fieldCopyDirections")?.addEventListener("click", () => copyDirectionsText ? copyText(copyDirectionsText,"Directions copied") : showToast("No approved directions to copy"));
+
+      /* Point the contextual tab-bar button at this pad and reveal it. The
+         top-of-page Directions button stays exactly where it was; this only
+         adds a second, thumb-reachable way to fire the same link. */
+      const navBtn = document.getElementById("mobileNavigateBtn");
+      if (navBtn) {
+        if (gmap) {
+          navBtn.setAttribute("href", gmap);
+          navBtn.setAttribute("aria-label", `Open directions to ${display(p.padName)}`);
+          document.body.classList.add("pad-nav-active");
+        } else {
+          document.body.classList.remove("pad-nav-active");
+        }
+      }
+    }
+
+====================================================================================================
+router
+====================================================================================================
+function router() {
+      const mobileBackBtn = document.getElementById("mobileBackBtn");
+      const currentRoute = location.hash.replace(/^#\/?/, "");
+      if (mobileBackBtn) {
+        const onHome = !currentRoute;
+        mobileBackBtn.disabled = onHome;
+        mobileBackBtn.setAttribute("aria-disabled", onHome ? "true" : "false");
+        mobileBackBtn.title = onHome ? "Already at home" : "Go back one page";
+      }
+      document.body.classList.remove("alphabet-rail-active");
+      document.body.classList.remove("pad-nav-active");
+      if (window.__brineAlphabetScrollHandler) {
+        window.removeEventListener("scroll", window.__brineAlphabetScrollHandler);
+        window.removeEventListener("resize", window.__brineAlphabetScrollHandler);
+        window.__brineAlphabetScrollHandler = null;
+      }
+      const raw = location.hash.replace(/^#\/?/, "");
+      const parts = raw.split("/").filter(Boolean).map(decodeURIComponent);
+      // Full-page Settings screens must never remain underneath the account/editor modal.
+      if (parts[0] === "settings") closeEditorAuth();
+      window.scrollTo({top: 0, behavior: "instant"});
+      if (!parts.length) return renderHome();
+      if (parts[0] === "settings" && parts[1] === "access") return renderUserAccessSettings();
+      if (parts[0] === "settings" && parts[1] === "database") return renderDatabaseHealthSettings();
+      if (parts[0] === "settings" && parts[1] === "editor-activity") return renderEditorActivitySettings();
+      if (parts[0] === "settings" && parts[1] === "editor-tools") return renderEditorToolsSettings();
+      if (parts[0] === "settings" && parts[1] === "data-sources") return renderDataSourcesSettings();
+      if (parts[0] === "settings" && parts[1] === "copyright") return renderCopyrightSettings();
+      if (parts[0] === "settings" && parts[1] === "verification") return renderDataVerificationSettings();
+      if (parts[0] === "settings" && parts[1] === "roads") return renderRoadManagerSettings();
+      if (parts[0] === "settings" && parts[1] === "install") return renderInstallGuideSettings();
+      if (parts[0] === "settings") return renderSettings();
+      if (parts[0] === "offline") return renderOfflineMode();
+      if (parts[0] === "feed") return renderFieldFeed(parts[1] || "", parts[2] || "");
+      if (parts[0] === "verification" || parts[0] === "audit") return renderVerificationReview();
+      if (parts[0] === "quality" && parts[1]) return renderQualityPage(parts[1]);
+      if (parts[0] === "company" && parts[1] && parts[2] === "state" && parts[3]) {
+        return renderCompanyState(parts[1], parts.slice(3).join("/"));
+      }
+      if (parts[0] === "company" && parts[1]) return renderCompany(parts.slice(1).join("/"));
+      if (parts[0] === "pad" && parts[1]) return renderPad(parts.slice(1).join("/"));
+      renderNotFound();
+    }
+
+====================================================================================================
+openLivePadEditor
+====================================================================================================
+function openLivePadEditor(id, section = "all", clearerDraft = "") {
+      const p = padById(id);
+      if (!p) return;
+      if (!p._dbId || DATA_SOURCE_LABEL !== "Live database") {
+        showToast("Live database connection is required to edit.");
+        return;
+      }
+      if (!requireEditorAccess()) return;
+
+      closeLivePadEditor();
+      const stepForSection = {
+        identity:0, location:1, well:2, route:3, directions:3, all:0
+      };
+      let liveEditorStep = stepForSection[section] ?? 0;
+      const liveEditorSteps = [
+        { key:"basics", title:"Basic pad information", help:"Update the pad name, company, state, county, and township." },
+        { key:"location", title:"Entrance and location", help:"Update the truck entrance address or capture accurate coordinates." },
+        { key:"wells", title:"Wells and official numbers", help:isDisposal(p) ? "Well information is not required for a disposal location." : "Keep each well, API, and property number on matching lines." },
+        { key:"directions", title:"Roads and directions", help:"Build the road sequence and keep the saved driver directions clear." },
+        { key:"review", title:"Review and save", help:"Review the information, verification status, and record history before saving." }
+      ];
+
+      const shell = document.createElement("div");
+      shell.className = "live-editor-shell live-editor-wizard-shell";
+      shell.id = "liveEditorShell";
+      shell.innerHTML = `
+        <section class="live-editor-panel live-editor-wizard-panel" role="dialog" aria-modal="true" aria-label="Edit ${esc(display(p.padName))}">
+          <header class="live-editor-head">
+            <div>
+              <div class="eyebrow">Live database edit</div>
+              <h2>${esc(display(p.padName))}</h2>
+              <p>Update the pad one simple step at a time.</p>
+            </div>
+            <button class="icon-btn" id="closeLiveEditor" type="button" aria-label="Close editor"><span class="fm-icon fm-close"></span></button>
+          </header>
+          <form id="liveEditorForm" novalidate>
+            <nav class="live-editor-steps" id="liveEditorSteps" aria-label="Edit pad steps">
+              <button class="live-editor-step" type="button" data-live-editor-step="0" aria-label="Step 1: Basics"><span class="wizard-step-number">1</span><span class="wizard-step-label">Basics</span></button>
+              <button class="live-editor-step" type="button" data-live-editor-step="1" aria-label="Step 2: Location"><span class="wizard-step-number">2</span><span class="wizard-step-label">Location</span></button>
+              <button class="live-editor-step" type="button" data-live-editor-step="2" aria-label="Step 3: Wells"><span class="wizard-step-number">3</span><span class="wizard-step-label">Wells</span></button>
+              <button class="live-editor-step" type="button" data-live-editor-step="3" aria-label="Step 4: Directions"><span class="wizard-step-number">4</span><span class="wizard-step-label">Directions</span></button>
+              <button class="live-editor-step" type="button" data-live-editor-step="4" aria-label="Step 5: Review"><span class="wizard-step-number">5</span><span class="wizard-step-label">Review</span></button>
+            </nav>
+            <div class="live-editor-body">
+              <div class="live-editor-wizard-title">
+                <div><h3 id="liveEditorStepTitle"></h3><p id="liveEditorStepHelp"></p></div>
+                <span id="liveEditorStepCount">Step 1 of 5</span>
+              </div>
+
+              <section class="live-editor-step-panel" data-live-editor-panel="basics">
+                <div class="live-editor-grid">
+                  ${liveEditorField("Pad or facility name", "padName", p.padName, { required:true })}
+                  ${liveEditorField("Company", "company", p.company, { required:true })}
+                  ${liveEditorField("State", "state", p.state, { required:true })}
+                  ${liveEditorField("County", "county", p.county)}
+                  ${liveEditorField("Township", "township", p.township, { wide:true })}
+                </div>
+              </section>
+
+              <section class="live-editor-step-panel" data-live-editor-panel="location">
+                <div class="live-editor-grid">
+                  ${liveEditorField("Lease or facility address", "address", p.address, { wide:true })}
+                  ${liveEditorField("Latitude", "latitude", p.latitude, { inputmode:"decimal" })}
+                  ${liveEditorField("Longitude", "longitude", p.longitude, { inputmode:"decimal" })}
+                  <div class="live-editor-field wide coordinate-capture-tools">
+                    <button class="btn secondary" id="captureLiveCoordinates" type="button"><span class="fm-icon fm-gps"></span> Capture current coordinates</button>
+                    <span class="coordinate-capture-status" id="liveCoordinateCaptureStatus">Use while stopped at the ${isDisposal(p) ? "disposal location" : "lease entrance or pad"}.</span>
+                  </div>
+                </div>
+              </section>
+
+              <section class="live-editor-step-panel" data-live-editor-panel="wells">
+                ${isDisposal(p) ? `<div class="live-editor-empty-step"><strong>No wells needed</strong><span>This record is a disposal location, so you can continue to Directions.</span></div>` : `
+                <div class="live-editor-grid">
+                  ${liveEditorField("Well names", "wellName", editMultiValue(p.wellName), { textarea:true, help:"Enter one well per line." })}
+                  ${liveEditorField("API numbers", "api", editMultiValue(p.api), { textarea:true, help:"Keep each API on the same line as its well." })}
+                  ${liveEditorField("Property numbers", "property", editMultiValue(p.property), { textarea:true, wide:true, help:"Keep each property number on the same line as its well." })}
+                </div>`}
+
+====================================================================================================
+saveLivePadEdit
+====================================================================================================
+async function saveLivePadEdit(event, p, section) {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const error = document.getElementById("liveEditorError");
+      const saveButton = document.getElementById("saveLiveEditor");
+      error.textContent = "";
+
+      const formData = new FormData(form);
+      const hasField = name => form.elements.namedItem(name) !== null;
+      const read = name => normalize(formData.get(name));
+      const showStep = index => document.querySelector(`[data-live-editor-step="${index}"]`)?.click();
+      const patch = {};
+
+      if (hasField("padName")) {
+        if (!read("padName")) { showStep(0); error.textContent = "Pad name is required."; return; }
+        patch.pad_name = read("padName");
+      }
+      if (hasField("company")) {
+        if (!read("company")) { showStep(0); error.textContent = "Company is required."; return; }
+        patch.company = read("company");
+      }
+      if (hasField("state")) {
+        if (!read("state")) { showStep(0); error.textContent = "State is required."; return; }
+        patch.state = read("state");
+      }
+      if (hasField("county")) patch.county = read("county") || null;
+      if (hasField("township")) patch.township = read("township") || null;
+      if (hasField("address")) patch.address = read("address") || null;
+
+      if (hasField("latitude") || hasField("longitude")) {
+        const latText = hasField("latitude") ? read("latitude") : normalize(p.latitude);
+        const lngText = hasField("longitude") ? read("longitude") : normalize(p.longitude);
+        if ((latText && !lngText) || (!latText && lngText)) {
+          showStep(1);
+          error.textContent = "Enter both latitude and longitude, or leave both blank.";
+          return;
+        }
+        if (latText) {
+          const lat = Number(latText), lng = Number(lngText);
+          if (!Number.isFinite(lat) || lat < -90 || lat > 90) { showStep(1); error.textContent = "Latitude must be between -90 and 90."; return; }
+          if (!Number.isFinite(lng) || lng < -180 || lng > 180) { showStep(1); error.textContent = "Longitude must be between -180 and 180."; return; }
+          patch.latitude = lat; patch.longitude = lng;
+        } else {
+          patch.latitude = null; patch.longitude = null;
+        }
+      }
+
+      if (hasField("wellName")) patch.well_name = normalizeEditedMulti(formData.get("wellName")) || null;
+      if (hasField("api")) patch.api = normalizeEditedMulti(formData.get("api")) || null;
+      if (hasField("property")) patch.property_number = normalizeEditedMulti(formData.get("property")) || null;
+      if (hasField("wellName") || hasField("api") || hasField("property")) {
+        const splitLines = value => normalize(value).split(/\n|\s*\|\s*/).map(normalize).filter(Boolean);
+        const names = splitLines(formData.get("wellName"));
+        const apis = splitLines(formData.get("api"));
+        const properties = splitLines(formData.get("property"));
+        const count = Math.max(names.length, apis.length, properties.length);
+        patch.well_entries = Array.from({ length: count }, (_, index) => ({
+          well_name: names[index] || "",
+          api: apis[index] || "",
+          property_number: properties[index] || ""
+        })).filter(entry => entry.well_name || entry.api || entry.property_number);
+      }
+      if (hasField("Structured_Road_Sequence")) patch.structured_road_sequence = normalizeEditedRoute(formData.get("Structured_Road_Sequence")) || null;
+      if (hasField("writtenDirections")) patch.written_directions = read("writtenDirections") || null;
+      if (hasField("directionsClear")) {
+        patch.directions_clear = read("directionsClear") || null;
+        patch.directions_clear_method = patch.directions_clear ? "BrineSearch smart rewrite reviewed by editor" : null;
+      }
+
+      if (!Object.keys(patch).length) {
+        error.textContent = "There is nothing to save.";
+        return;
+      }
+
+      saveButton.disabled = true;
+      saveButton.textContent = "Saving…";
+      document.getElementById("liveEditorShell")?.classList.add("live-editor-busy");
+
+      try {
+        await ensureEditorSession();
+        const url = `/rest/v1/pads?id=eq.${encodeURIComponent(p._dbId)}&select=*`;
+        const rows = await editorRequest(url, {
+          method: "PATCH",
+          headers: { Prefer: "return=representation" },
+          body: JSON.stringify(patch)
+        });
+        const updated = Array.isArray(rows) ? rows[0] : rows;
+        if (!updated) throw new Error("The database did not return the updated pad.");
+        Object.assign(p, mapSupabasePad(updated));
+        closeLivePadEditor();
+        renderPad(p._id);
+        showToast("Live pad information updated");
+      } catch (err) {
+        error.textContent = err.message || "The change could not be saved.";
+        saveButton.disabled = false;
+        saveButton.textContent = "Save live changes";
+        document.getElementById("liveEditorShell")?.classList.remove("live-editor-busy");
+      }
+    }
+
+====================================================================================================
+mapSupabasePad
+====================================================================================================
+function mapSupabasePad(row) {
+      const extra = row.extra_data && typeof row.extra_data === "object" ? row.extra_data : {};
+      return {
+        ...extra,
+        _dbId: row.id,
+        company: row.company,
+        state: row.state,
+        padName: row.pad_name,
+        address: row.address,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        county: row.county,
+        township: row.township,
+        wellName: row.well_name,
+        api: row.api,
+        property: row.property_number,
+        wellEntries: Array.isArray(row.well_entries) ? row.well_entries : [],
+        Structured_Road_Sequence: row.structured_road_sequence,
+        writtenDirections: row.written_directions,
+        directionsClear: verifiedDirectionFor(row.legacy_id || row.id, row.written_directions) || row.directions_clear,
+        directionsClearMethod: verifiedDirectionFor(row.legacy_id || row.id, row.written_directions)
+          ? "Numbered field rewrite preserving saved mileage"
+          : row.directions_clear_method,
+        directionsClearUpdatedAt: row.directions_clear_updated_at,
+        _id: row.legacy_id || row.id,
+        _recordNumber: row.record_number,
+        recordType: row.record_type || "pad",
+        roadSequenceStatus: row.road_sequence_status,
+        roadSequenceReviewedDate: row.road_sequence_reviewed_date,
+        roadSequenceFinalCleanupDate: row.road_sequence_final_cleanup_date,
+        verificationStatus: row.verification_status,
+        operatingStatus: row.operating_status,
+        importSource: row.import_source,
+        importStatus: row.import_status,
+        researchStatus: row.research_status,
+        researchNote: row.research_note,
+        researchSources: row.research_sources || [],
+        researchDate: row.research_date,
+        listOnly: Boolean(row.list_only),
+        researchMethod: row.research_method,
+        researchNotes: row.research_notes,
+        numberOfRoadSteps: row.number_of_road_steps,
+        sourceWorkbookRows: row.source_workbook_rows || [],
+        alternateLocations: row.alternate_locations || [],
+        lastUpdatedBy: row.last_updated_by,
+        lastUpdatedDate: row.last_updated_date,
+        auditSource: row.audit_source,
+        auditVerified: row.audit_verified,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      };
+    }
+
+====================================================================================================
+setupPadRoadPicker
+====================================================================================================
+function setupPadRoadPicker(p){const search=document.getElementById("padRoadPickerSearch"),results=document.getElementById("padRoadPickerResults"),linked=document.getElementById("padRoadLinkedList"),route=document.getElementById("editRoadSequence");if(!search||!results||!route)return;let selected=[];const renderLinked=()=>{linked.innerHTML=selected.map((r,i)=>`<div class="road-linked-item"><span><strong>${esc(r.canonical_name)}</strong><small style="display:block;color:var(--muted)">${esc(roadStatusLabel(r.verification_status))}</small></span><button type="button" class="btn ghost small" data-remove-road="${i}">Remove</button></div>`).join("");linked.querySelectorAll("[data-remove-road]").forEach(b=>b.onclick=()=>{selected.splice(Number(b.dataset.removeRoad),1);renderLinked();});};let timer;search.oninput=()=>{clearTimeout(timer);timer=setTimeout(async()=>{const q=search.value.trim();if(!q){results.innerHTML='<div class="pad-editor-help">Start typing to find a road.</div>';return;}try{const rows=await fetchRoads(q,30);results.innerHTML=rows.length?rows.map(r=>`<button type="button" class="road-picker-result" data-pick-road="${esc(r.id)}"><span><strong>${esc(r.canonical_name)}</strong><small>${esc([r.state,r.county,roadStatusLabel(r.verification_status)].filter(Boolean).join(" • "))}</small></span><span class="fm-icon fm-add"></span></button>`).join(""):'<div class="pad-editor-help">No road found. Add it in Road Manager.</div>';results.querySelectorAll("[data-pick-road]").forEach(b=>b.onclick=()=>{const r=rows.find(x=>x.id===b.dataset.pickRoad);if(!r)return;if(!selected.some(x=>x.id===r.id))selected.push(r);const current=route.value.trim();const lines=current?current.split(/\s*(?:→|\n)\s*/).filter(Boolean):[];if(!lines.some(x=>roadNormalizeKey(x)===r.normalized_name)){lines.push(r.canonical_name);route.value=lines.join(" → ");route.dispatchEvent(new Event("input",{bubbles:true}));}renderLinked();search.value="";results.innerHTML='<div class="pad-editor-help">Road added to this route.</div>';});}catch(err){results.innerHTML=`<div class="pad-editor-help">${esc(err.message||"Could not load roads.")}</div>`;}},180);};}
