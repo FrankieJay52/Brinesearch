@@ -178,7 +178,7 @@
                 <input class="road-picker-search" id="padRoadPickerSearch" placeholder="Search OH-800, CR-5, Denham Rd…" autocomplete="off">
                 <div class="road-picker-results" id="padRoadPickerResults"><div class="pad-editor-help">Start typing to find a road.</div></div>
                 <div class="road-linked-list" id="padRoadLinkedList"></div>
-                <div style="margin-top:10px"><a class="btn secondary small" href="#/settings/roads">Open Road Manager</a></div>
+                ${editorIsOwner()?`<div style="margin-top:10px"><a class="btn secondary small" href="#/settings/roads">Open Road Manager</a></div>`:""}
               </div>
             </section>
 
@@ -364,3 +364,4 @@
       if (role === "editor") return ["editor"];
       return [role || "member"];
     }
+

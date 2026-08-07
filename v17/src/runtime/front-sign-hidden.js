@@ -1,9 +1,11 @@
-/* BrineSearch front-sign UI visibility switch.
-   The scanner code and locally saved scans remain available for future use. */
+/* BrineSearch front-sign UI visibility switch and V17 owner-only road guard.
+   Hidden features remain available in source for future controlled use. */
 (function (root) {
   'use strict';
 
   const STYLE_ID = 'brinesearch-front-sign-ui-hidden';
+  const ROAD_STYLE_ID = 'brinesearch-road-manager-owner-guard';
+  const OWNER_ROAD_ENTRY_ID = 'brinesearch-owner-road-manager-entry';
   const HIDDEN_SELECTOR = [
     '#bssPadScanButton',
     '[data-bss-edit-scan]',
@@ -12,9 +14,16 @@
     '.bss-scan-panel',
     '.bss-saved-card'
   ].join(',');
+  const OBSOLETE_ROAD_SETTINGS_SELECTOR = '#brinesearch-road-manager-settings-launch,#brm-settings-launch';
+  const LEGACY_ROAD_PICKER_SELECTOR = '.brm-picker-button';
+  const SUPABASE_URL = 'https://wvxzqtoiwhrgovzddtvz.supabase.co';
+  const SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd';
+  const EDITOR_SESSION_KEY = 'brinesearch.editorSession.v1';
 
   let hidden = true;
   let refreshQueued = false;
+  let ownerCheckUserId = '';
+  let ownerCheckPromise = null;
 
   function ensureStyle() {
     let style = document.getElementById(STYLE_ID);
@@ -28,9 +37,135 @@
     return style;
   }
 
+  function ensureRoadStyle() {
+    let style = document.getElementById(ROAD_STYLE_ID);
+    if (style) return style;
+    style = document.createElement('style');
+    style.id = ROAD_STYLE_ID;
+    style.textContent = `
+      ${OBSOLETE_ROAD_SETTINGS_SELECTOR}{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;clip-path:inset(50%)!important;white-space:nowrap!important;border:0!important;pointer-events:none!important;opacity:0!important}
+      ${LEGACY_ROAD_PICKER_SELECTOR},#brm-root{display:none!important}
+      html[data-brinesearch-road-manager-access="checking"] .road-manager-page,
+      html[data-brinesearch-road-manager-access="denied"] .road-manager-page{display:none!important}
+    `;
+    (document.head || document.documentElement).appendChild(style);
+    return style;
+  }
+
+  function readEditorSession() {
+    try {
+      const value = JSON.parse(localStorage.getItem(EDITOR_SESSION_KEY) || 'null');
+      return value?.access_token && value?.user?.id ? value : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async function hasOwnerAccess() {
+    const session = readEditorSession();
+    const userId = session?.user?.id || '';
+    if (!session || !userId) return false;
+    if (ownerCheckPromise && ownerCheckUserId === userId) return ownerCheckPromise;
+    ownerCheckUserId = userId;
+    ownerCheckPromise = fetch(`${SUPABASE_URL}/rest/v1/editor_accounts?user_id=eq.${encodeURIComponent(userId)}&select=role,permissions&limit=1`, {
+      headers: {
+        apikey: SUPABASE_PUBLISHABLE_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        Accept: 'application/json'
+      },
+      cache: 'no-store'
+    }).then(async (response) => {
+      if (!response.ok) return false;
+      const rows = await response.json();
+      const record = Array.isArray(rows) ? rows[0] : null;
+      const permissions = Array.isArray(record?.permissions) ? record.permissions.map((value) => String(value).toLowerCase()) : [];
+      return String(record?.role || '').toLowerCase() === 'owner' || permissions.includes('owner');
+    }).catch(() => false);
+    return ownerCheckPromise;
+  }
+
+  function suppressLegacyRoadUi(scope) {
+    if (!root.document) return;
+    const host = scope?.querySelectorAll ? scope : document;
+    host.querySelectorAll(OBSOLETE_ROAD_SETTINGS_SELECTOR).forEach((element) => {
+      element.setAttribute('aria-hidden', 'true');
+      element.dataset.brinesearchObsoleteRoadEntry = 'true';
+      element.querySelectorAll('button,a,input,select,textarea').forEach((control) => {
+        control.setAttribute('tabindex', '-1');
+        if ('disabled' in control) control.disabled = true;
+      });
+    });
+    host.querySelectorAll(LEGACY_ROAD_PICKER_SELECTOR).forEach((button) => button.remove());
+    const legacyRoot = document.getElementById('brm-root');
+    if (legacyRoot) {
+      legacyRoot.setAttribute('aria-hidden', 'true');
+      legacyRoot.dataset.open = 'false';
+    }
+  }
+
+  function mountOwnerRoadManagerEntry() {
+    const existing = document.getElementById(OWNER_ROAD_ENTRY_ID);
+    const settingsPage = document.querySelector('.settings-page');
+    if (!settingsPage) {
+      existing?.remove();
+      return;
+    }
+    const ownerSection = Array.from(settingsPage.querySelectorAll('.settings-section')).find((section) => {
+      const heading = section.querySelector(':scope > h2');
+      return /^Owner controls\b/i.test((heading?.textContent || '').trim());
+    });
+    if (!ownerSection) {
+      existing?.remove();
+      return;
+    }
+    if (existing?.isConnected && ownerSection.contains(existing)) return;
+    existing?.remove();
+    const list = ownerSection.querySelector('.settings-list');
+    if (!list) return;
+    const button = document.createElement('button');
+    button.id = OWNER_ROAD_ENTRY_ID;
+    button.className = 'settings-row';
+    button.type = 'button';
+    button.innerHTML = '<span class="settings-icon"><span class="fm-icon fm-road"></span></span><span class="settings-copy"><strong>Road Manager</strong><small>Manage the shared road database, warnings, restrictions and verification</small></span><span class="settings-caret">›</span>';
+    button.addEventListener('click', () => { root.location.hash = '#/settings/roads'; });
+    list.prepend(button);
+  }
+
+  function patchLegacyRoadManager() {
+    const manager = root.BrineSearchRoadManager;
+    if (!manager || manager.__v17CentralRoadManagerOnly) return;
+    manager.open = () => { root.location.hash = '#/settings/roads'; };
+    manager.openPicker = () => { root.location.hash = '#/settings/roads'; return false; };
+    manager.__v17CentralRoadManagerOnly = true;
+  }
+
+  function guardLegacyRoadRoute() {
+    if (/^#\/?roads(?:\/|$)/i.test(root.location?.hash || '')) {
+      root.location.hash = '#/settings/roads';
+    }
+  }
+
+  async function guardOwnerRoadManagerRoute() {
+    const route = root.location?.hash || '';
+    if (!/^#\/?settings\/roads(?:\/|$)/i.test(route)) {
+      delete document.documentElement.dataset.brinesearchRoadManagerAccess;
+      return;
+    }
+    document.documentElement.dataset.brinesearchRoadManagerAccess = 'checking';
+    const allowed = await hasOwnerAccess();
+    if (!/^#\/?settings\/roads(?:\/|$)/i.test(root.location?.hash || '')) return;
+    document.documentElement.dataset.brinesearchRoadManagerAccess = allowed ? 'allowed' : 'denied';
+    if (!allowed) {
+      setTimeout(() => {
+        if (/^#\/?settings\/roads(?:\/|$)/i.test(root.location?.hash || '')) root.location.hash = '#/settings';
+      }, 0);
+    }
+  }
+
   function markHiddenElements(scope) {
     if (!root.document) return;
     ensureStyle();
+    ensureRoadStyle();
     const host = scope?.querySelectorAll ? scope : document;
     host.querySelectorAll(HIDDEN_SELECTOR).forEach((element) => {
       if (hidden) {
@@ -43,7 +178,13 @@
         delete element.dataset.brinesearchFrontSignHidden;
       }
     });
+    suppressLegacyRoadUi(host);
+    mountOwnerRoadManagerEntry();
+    patchLegacyRoadManager();
+    guardLegacyRoadRoute();
+    guardOwnerRoadManagerRoute();
     document.documentElement.dataset.brinesearchFrontSignUi = hidden ? 'hidden' : 'visible';
+    document.documentElement.dataset.brinesearchRoadManager = 'central-owner-only';
   }
 
   function setHidden(nextHidden) {
@@ -66,7 +207,7 @@
   }
 
   const API = {
-    version: '17.2-hidden-ui',
+    version: '17.2-hidden-ui-road-owner-guard',
     get hidden() { return hidden; },
     hide() { return setHidden(true); },
     show() { return setHidden(false); },
