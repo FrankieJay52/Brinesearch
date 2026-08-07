@@ -9,12 +9,14 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [dashboard, feed, router, polish, finalFixes, packageJson, partManifest, styleManifest, sw] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw] = await Promise.all([
   read(path.join(v17Root, 'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root, 'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root, 'src/parts/16-router-assistant-shell.js')),
   read(path.join(v17Root, 'src/styles/27-v17-3-product-polish.css')),
   read(path.join(v17Root, 'src/styles/28-v17-3-icon-and-layout-fixes.css')),
+  read(path.join(v17Root, 'src/parts/21-road-manager-live-fixes.js')),
+  read(path.join(v17Root, 'src/styles/31-road-manager-live-fixes.css')),
   read(path.join(projectRoot, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(v17Root, 'src/styles/style-order.json')),
@@ -54,14 +56,21 @@ requireText(polish, '.favorites-page', 'Favorites visual layer');
 requireText(polish, '.feed-guest-banner', 'Feed guest visual layer');
 requireText(polish, '.field-pad-page', 'Pad-page visual layer');
 requireText(polish, 'html[data-theme="day"]', 'Daylight theme polish');
+requireText(roadLiveFixes, 'Interstates and U.S. highways', 'Grouped Road Manager highways');
+requireText(roadLiveFixes, 'Local / named roads', 'Grouped regular-road section');
+requireText(roadLiveFixes, 'routePrepCompany', 'Ascent Route Prep filter');
+requireText(roadLiveStyles, '.road-row-grouped .road-status{pointer-events:none}', 'Whole-road-row click behavior');
 requireText(styleManifest, '27-v17-3-product-polish.css', 'Style manifest');
 requireText(styleManifest, '28-v17-3-icon-and-layout-fixes.css', 'Final layout-fix stylesheet');
-requireText(partManifest, '"version": "17.3.0"', 'Part manifest version');
-requireText(styleManifest, '"version": "17.3.0"', 'Style manifest version');
-requireText(packageJson, '"version": "17.3.0"', 'Package version');
-requireText(sw, 'brinesearch-v17-3-0', 'Service-worker cache version');
+requireText(styleManifest, '31-road-manager-live-fixes.css', 'Road Manager live stylesheet');
+requireText(partManifest, '21-road-manager-live-fixes.js', 'Road Manager live JavaScript');
+requireText(partManifest, '"version": "17.3.1"', 'Part manifest version');
+requireText(styleManifest, '"version": "17.3.1"', 'Style manifest version');
+requireText(packageJson, '"version": "17.3.1"', 'Package version');
+requireText(sw, 'brinesearch-v17-3-1', 'Service-worker cache version');
+requireText(sw, 'networkFirstAppAsset', 'Service-worker live asset update strategy');
 const iconEncoded = (await Promise.all([0, 1, 2, 3].map(part => read(path.join(v17Root, 'src/icons', `field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g, '');
 const iconManifest = JSON.parse(gunzipSync(Buffer.from(iconEncoded, 'base64')).toString('utf8'));
 if (iconManifest.version !== '17.3.0' || Object.keys(iconManifest.icons || {}).length < 90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
 
-console.log('Verified BrineSearch V17.3 product layer: redesigned dashboard, real Favorites route, non-blocking public Feed, Storage-backed profile photos, compact settings/pad/offline layouts, daylight companion theme, distinct Field Mark icons, and V17.3 cache/version markers.');
+console.log('Verified BrineSearch V17.3.1 product layer: V17.3 interface, grouped and fully clickable Road Manager, Ascent-focused Route Prep, automatic installed-app asset updates, distinct Field Mark icons, and current cache/version markers.');
