@@ -61,6 +61,14 @@ requireText(migration, 'trg_prevent_candidate_road_publication', 'Candidate pad-
 requireText(migration, "'candidate_only',true,'may_publish',false,'local_road_guessing',false", 'Non-publishable candidate metadata');
 requireText(migration, "s.step_kind in ('local_road','county_road','township_road')", 'Local-road exact-match scope');
 requireText(migration, "multiple_exact_road_manager_matches", 'Ambiguous exact-match handling');
-if (/local[^\n]{0,100}(fuzzy|guess)/i.test(migration)) throw new Error('A local-road fuzzy or guessed match was introduced.');
+for (const forbidden of [
+  "'local_road_guessing',true",
+  "'may_publish',true",
+  "match_method='fuzzy",
+  "match_method='guessed",
+  "match_method='educated_guess"
+]) {
+  if (migration.includes(forbidden)) throw new Error(`Forbidden Route Prep behavior was introduced: ${forbidden}`);
+}
 
 console.log('Verified Road Manager Route Prep: Owner-only 833-pad queue, exact Road Manager matching, non-publishable state-route candidates, no local-road guessing, no direct pad rewrite, and mobile/daylight UI coverage.');
