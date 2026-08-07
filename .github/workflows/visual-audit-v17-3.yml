@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: brinesearch-v17-3-visual-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   screenshots:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -28,7 +33,9 @@ jobs:
         run: npm run build
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: |
+          npm install --no-save playwright@1.55.0
+          npx playwright install --with-deps chromium
 
       - name: Start production preview
         run: |
@@ -42,6 +49,10 @@ jobs:
 
       - name: Capture mobile and desktop screens
         run: node v17/scripts/visual-capture.mjs
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/brinesearch-visual-preview.log || true
 
       - name: Upload visual audit
         uses: actions/upload-artifact@v4
