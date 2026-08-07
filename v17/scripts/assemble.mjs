@@ -62,7 +62,8 @@ for (const dir of ['icons', 'brand-kit']) await copyIfPresent(path.join(projectR
 // icon files are compatibility fallbacks; the generated production directory is
 // authoritative so Netlify, GitHub Pages, and offline builds always use the same
 // distinct icon set.
-const iconManifest = JSON.parse(gunzipSync(Buffer.from((await fs.readFile(path.join(srcRoot, 'icons', 'field-mark-icons.b64'), 'utf8')).trim(), 'base64')).toString('utf8'));
+const iconEncoded = (await Promise.all([0, 1, 2, 3].map(part => fs.readFile(path.join(srcRoot, 'icons', `field-mark-icons.${part}.b64`), 'utf8')))).join('').replace(/\s+/g, '');
+const iconManifest = JSON.parse(gunzipSync(Buffer.from(iconEncoded, 'base64')).toString('utf8'));
 const publicIconsRoot = path.join(publicRoot, 'icons');
 await ensureDir(publicIconsRoot);
 for (const [name, svg] of Object.entries(iconManifest.icons || {})) {
