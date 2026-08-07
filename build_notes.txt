@@ -1,0 +1,8 @@
+BrineSearch V 16.16
+
+Release type: Settings usability update
+
+- Adds guided Add to Home Screen help for iPhone and Android.
+- Instructions change based on the selected browser.
+- Existing app features and data logic are unchanged.
+- Service-worker cache and visible version labels updated to V 16.16.

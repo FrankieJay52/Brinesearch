@@ -1,0 +1,272 @@
+record_id,pad_name,company,state,original_step,standardized_display,review_reason
+antero--bettinger,BETTINGER,Antero,Ohio,OH-564 / Frostyville Rd,OH-564 / Frostyville Rd,slash/alias road name needs source verification
+antero--bishop,BISHOP,Antero,Ohio,CR-44 / Swazey Rd,CR-44 / Swazey Rd,slash/alias road name needs source verification
+ascent--antelok,ANTELOK,Ascent,Ohio,Mcfetridge/dunham Rd,Denham Rd,known correction from matching stored address/public-road spelling
+ascent--bakos,BAKOS,Ascent,Ohio,Right/west Onto Holly View Dr,Right/West Onto Holly View Dr,slash/alias road name needs source verification
+ascent--bakos,BAKOS,Ascent,Ohio,Left/west Onto Holy View Dr,Left/West Onto Holy View Dr,slash/alias road name needs source verification
+ascent--borovich,BOROVICH,Ascent,Ohio,Southwest On US-22 West/cadiz-steubenville Rd,Southwest On US-22 West/Cadiz-steubenville Rd,slash/alias road name needs source verification
+ascent--borovich,BOROVICH,Ascent,Ohio,OH-9 / South/cadiz-new Athens Rd,OH-9 / South/Cadiz-new Athens Rd,slash/alias road name needs source verification
+ascent--borovich,BOROVICH,Ascent,Ohio,OH-800 / Gehrig Rd,OH-800 / Gehrig Rd,slash/alias road name needs source verification
+ascent--borovich,BOROVICH,Ascent,Ohio,Becomes Oh-145/belmont Ave,Becomes Oh-145/Belmont Ave,slash/alias road name needs source verification
+ascent--cermak,CERMAK,Ascent,Ohio,OH-151 / Mill St,OH-151 / Mill St,slash/alias road name needs source verification
+ascent--cermak,CERMAK,Ascent,Ohio,OH-152 / South/main St,OH-152 / South/Main St,slash/alias road name needs source verification
+ascent--cesario,CESARIO,Ascent,Ohio,CR-13 / County Rd,CR-13 / County Rd,slash/alias road name needs source verification
+ascent--charley,CHARLEY,Ascent,Ohio,Airport/ Dickerson Church Rd,Airport/ Dickerson Church Rd,slash/alias road name needs source verification
+ascent--club,CLUB,Ascent,Ohio,Left/east Onto County Rd,Left/East Onto County Rd,slash/alias road name needs source verification
+ascent--club,CLUB,Ascent,Ohio,CR-12 / Unionvale Road/harrison County Rd,CR-12 / Unionvale Road/Harrison County Rd,slash/alias road name needs source verification
+ascent--club,CLUB,Ascent,Ohio,Right/south Onto Township Hwy,Right/South Onto Township Hwy,slash/alias road name needs source verification
+ascent--club,CLUB,Ascent,Ohio,Right/south Onto County Rd,Right/South Onto County Rd,slash/alias road name needs source verification
+ascent--club,CLUB,Ascent,Ohio,Left/east Onto Township Rd,Left/East Onto Township Rd,slash/alias road name needs source verification
+ascent--coad,COAD,Ascent,Ohio,OH-513 / North/batesville Road./pike St,OH-513 / North/Batesville Road./Pike St,slash/alias road name needs source verification
+ascent--cobra,COBRA,Ascent,Ohio,US-22 / Dennison Ave,US-22 / Dennison Ave,slash/alias road name needs source verification
+ascent--coffield,COFFIELD,Ascent,Ohio,Glencoe Road/glencoe-street Clairsville Rd,Glencoe Road/Glencoe-street Clairsville Rd,slash/alias road name needs source verification
+ascent--cologie,COLOGIE,Ascent,Ohio,Lamborn,Lamborn,local name lacks a recognized road-type suffix
+ascent--cooper,COOPER,Ascent,Ohio,Titus,Titus,local name lacks a recognized road-type suffix
+ascent--cooper,COOPER,Ascent,Ohio,Sligo,Sligo,local name lacks a recognized road-type suffix
+ascent--dickson,DICKSON,Ascent,Ohio,Bloomingdale- Smithfield- Chandl/high St,Bloomingdale- Smithfield- Chandl/High St,slash/alias road name needs source verification
+ascent--durr,DURR,Ascent,Ohio,OH-9 / South/street Clair Ave,OH-9 / South/Street Clair Ave,slash/alias road name needs source verification
+ascent--durr,DURR,Ascent,Ohio,OH-9 / North/south Marietta St,OH-9 / North/South Marietta St,slash/alias road name needs source verification
+ascent--durr,DURR,Ascent,Ohio,OH-149 / North/oh-331 South/east High St,OH-149 / North/Oh-331 South/East High St,slash/alias road name needs source verification
+ascent--edington,EDINGTON,Ascent,Ohio,Chaney,Chaney,local name lacks a recognized road-type suffix
+ascent--faldowski,FALDOWSKI,Ascent,Ohio,CR-13 / County Rd,CR-13 / County Rd,slash/alias road name needs source verification
+ascent--ferguson,FERGUSON,Ascent,Ohio,US-22 / East/cadiz-steubenville Rd,US-22 / East/Cadiz-steubenville Rd,slash/alias road name needs source verification
+ascent--ferguson,FERGUSON,Ascent,Ohio,OH-151 / Mill St,OH-151 / Mill St,slash/alias road name needs source verification
+ascent--ferguson,FERGUSON,Ascent,Ohio,OH-152 / South/main St,OH-152 / South/Main St,slash/alias road name needs source verification
+ascent--ferguson,FERGUSON,Ascent,Ohio,OH-519 / East/stumptown Rd,OH-519 / East/Stumptown Rd,slash/alias road name needs source verification
+ascent--gatti,GATTI,Ascent,Ohio,OH-147 / East/barnesville Bethesda Rd,OH-147 / East/Barnesville Bethesda Rd,slash/alias road name needs source verification
+ascent--gatti,GATTI,Ascent,Ohio,OH-149 / South/morristown St,OH-149 / South/Morristown St,slash/alias road name needs source verification
+ascent--gil,GIL,Ascent,Ohio,US-22 / Mccoy Rd,US-22 / Mccoy Rd,slash/alias road name needs source verification
+ascent--giusto,GIUSTO,Ascent,Ohio,Bloomingdale- Smithfield-chandl/high St,Bloomingdale- Smithfield-chandl/High St,slash/alias road name needs source verification
+ascent--gordon,GORDON,Ascent,Ohio,Bloomingdale- Smithfield-chandl/high St,Bloomingdale- Smithfield-chandl/High St,slash/alias road name needs source verification
+ascent--harr,HARR,Ascent,Ohio,Left/east On County Rd,Left/East On County Rd,slash/alias road name needs source verification
+ascent--harr,HARR,Ascent,Ohio,Left/east On County Rd,Left/East On County Rd,slash/alias road name needs source verification
+ascent--jackalope,JACKALOPE,Ascent,Ohio,Cox,Cox,local name lacks a recognized road-type suffix
+ascent--jones,JONES,Ascent,Ohio,That Rd,That Rd,step may contain narrative rather than an official road name
+ascent--kantor,KANTOR,Ascent,Ohio,US-22 / Rankin Rd,US-22 / Rankin Rd,slash/alias road name needs source verification
+ascent--kantor,KANTOR,Ascent,Ohio,OH-152 / South/main St,OH-152 / South/Main St,slash/alias road name needs source verification
+ascent--kantor,KANTOR,Ascent,Ohio,OH-152 / South/main St,OH-152 / South/Main St,slash/alias road name needs source verification
+ascent--lorraine,LORRAINE,Ascent,Ohio,CR-5 / Crescent Rd,CR-5 / Crescent Rd,slash/alias road name needs source verification
+ascent--matusek,MATUSEK,Ascent,Ohio,OH-9 / Shepherdstown Rd,OH-9 / Shepherdstown Rd,slash/alias road name needs source verification
+ascent--mingo,MINGO,Ascent,Ohio,Bloomingdale-smithfield-chandl/high St,Bloomingdale-smithfield-chandl/High St,slash/alias road name needs source verification
+ascent--nolan,NOLAN,Ascent,Ohio,Bloomingdale- Smithfield-chandl/high St,Bloomingdale- Smithfield-chandl/High St,slash/alias road name needs source verification
+ascent--oliver,OLIVER,Ascent,Ohio,SR-519 / Stumptown Rd,SR-519 / Stumptown Rd,slash/alias road name needs source verification
+ascent--pearl,PEARL,Ascent,Ohio,19/main St,19/Main St,slash/alias road name needs source verification
+ascent--piergallini,PIERGALLINI,Ascent,Ohio,C R 10/smithfield- Adena Rd,C R 10/Smithfield- Adena Rd,slash/alias road name needs source verification
+ascent--piergallini,PIERGALLINI,Ascent,Ohio,C R 10/smithfield- Adena Rd,C R 10/Smithfield- Adena Rd,slash/alias road name needs source verification
+ascent--raber,RABER,Ascent,Ohio,OH-800 / South/smyrna Rd,OH-800 / South/Smyrna Rd,slash/alias road name needs source verification
+ascent--raber,RABER,Ascent,Ohio,Northeast On US-22 East/highland Ave,Northeast On US-22 East/Highland Ave,slash/alias road name needs source verification
+ascent--rector,RECTOR,Ascent,Ohio,OH-150 / Township Rd,OH-150 / Township Rd,slash/alias road name needs source verification
+ascent--roliff,ROLIFF,Ascent,Ohio,OH-800 / North/cemetery Hill Rd,OH-800 / North/Cemetery Hill Rd,slash/alias road name needs source verification
+ascent--roliff,ROLIFF,Ascent,Ohio,OH-331 / Flushing Holloway Rd,OH-331 / Flushing Holloway Rd,slash/alias road name needs source verification
+ascent--ronald,RONALD,Ascent,Ohio,CR-13 / County Rd,CR-13 / County Rd,slash/alias road name needs source verification
+ascent--schnegg,SCHNEGG,Ascent,Ohio,CR-56 / Cats Run Rd,CR-56 / Cats Run Rd,slash/alias road name needs source verification
+ascent--seabright,SEABRIGHT,Ascent,Ohio,CR-18 / Lansing- Cheermont Rd,CR-18 / Lansing- Cheermont Rd,slash/alias road name needs source verification
+ascent--seabright,SEABRIGHT,Ascent,Ohio,SR-519 / Stumptown Rd,SR-519 / Stumptown Rd,slash/alias road name needs source verification
+ascent--seabright,SEABRIGHT,Ascent,Ohio,CR-18 / Lansing- Cheermont Rd,CR-18 / Lansing- Cheermont Rd,slash/alias road name needs source verification
+ascent--sherwood,SHERWOOD,Ascent,Ohio,US-22 / East/cadiz Rd,US-22 / East/Cadiz Rd,slash/alias road name needs source verification
+ascent--stone,STONE,Ascent,Ohio,Northeast On Us-22/cadiz- Steubenville Rd,Northeast On Us-22/Cadiz- Steubenville Rd,slash/alias road name needs source verification
+ascent--tarbert,TARBERT,Ascent,Ohio,OH-800 / South/johnson Ave,OH-800 / South/Johnson Ave,slash/alias road name needs source verification
+ascent--thompson,THOMPSON,Ascent,Ohio,CR-10 / Smithfield Adena Rd,CR-10 / Smithfield Adena Rd,slash/alias road name needs source verification
+ascent--wassmann,WASSMANN,Ascent,Ohio,SR-147 / Jefferson St,SR-147 / Jefferson St,slash/alias road name needs source verification
+ascent--wiley,WILEY,Ascent,Ohio,Exit 176 For Us-50/7th St,Exit 176 For Us-50/7th St,slash/alias road name needs source verification
+ascent--wilma,WILMA,Ascent,Ohio,Left/east Onto County Rd,Left/East Onto County Rd,slash/alias road name needs source verification
+ascent--zeds,ZEDS,Ascent,Ohio,Mathews Lane/township Rd,Mathews Lane/Township Rd,slash/alias road name needs source verification
+ascent--reilly,REILLY,Ascent,West Virginia,Exit 176 For Us-50/7th St,Exit 176 For Us-50/7th St,slash/alias road name needs source verification
+cnx--magnum,MAGNUM,Cnx,Pennsylvania,Oak Forrest,Oak Forrest,local name lacks a recognized road-type suffix
+cnx--mam16,MAM16,Cnx,Pennsylvania,See BP6,See BP6,local name lacks a recognized road-type suffix
+eclipse--wheeler-unit,WHEELER-UNIT,Eclipse,Ohio,MR-328,MR-328,local name lacks a recognized road-type suffix
+eog--acton,ACTON,Eog,Ohio,OH-152 / Lisbon St,OH-152 / Lisbon St,slash/alias road name needs source verification
+eog--acton,ACTON,Eog,Ohio,Township Rd 372/acton Ln,Township Rd 372/Acton Ln,slash/alias road name needs source verification
+eog--buck,BUCK,Eog,Ohio,That To Meter Rd,That to Meter Rd,step may contain narrative rather than an official road name
+eog--burry,BURRY,Eog,Ohio,Military,Military,local name lacks a recognized road-type suffix
+eog--caris,CARIS,Eog,Ohio,County Rd 60/circle Green Rd,County Rd 60/Circle Green Rd,slash/alias road name needs source verification
+eog--cheetah,CHEETAH,Eog,Ohio,SR-78 / Mcconnelsville Rd,SR-78 / Mcconnelsville Rd,slash/alias road name needs source verification
+eog--haley,HALEY,Eog,Ohio,Route 9 / Marble Rd,Route 9 / Marble Rd,slash/alias road name needs source verification
+eog--harvey,HARVEY,Eog,Ohio,Buttercup,Buttercup,local name lacks a recognized road-type suffix
+eog--henry,HENRY,Eog,Ohio,OH-43 / Main St,OH-43 / Main St,slash/alias road name needs source verification
+eog--henry,HENRY,Eog,Ohio,Township Rd 218/county Rd,Township Rd 218/County Rd,slash/alias road name needs source verification
+eog--janie-trust,JANIE-TRUST,Eog,Ohio,Steubenville Pike,Steubenville Pike,local name lacks a recognized road-type suffix
+eog--janie-trust,JANIE-TRUST,Eog,Ohio,Steubenville Pike,Steubenville Pike,local name lacks a recognized road-type suffix
+eog--janie-trust,JANIE-TRUST,Eog,Ohio,CR-776 / Steubenville Pike Rd,CR-776 / Steubenville Pike Rd,slash/alias road name needs source verification
+eog--leeper,LEEPER,Eog,Ohio,Cr22/azalea Rd,Cr22/Azalea Rd,slash/alias road name needs source verification
+eog--leeper,LEEPER,Eog,Ohio,Tr102/cottage Rd,Tr102/Cottage Rd,slash/alias road name needs source verification
+eog--leeper,LEEPER,Eog,Ohio,Tr105/cougar Rd,Tr105/Cougar Rd,slash/alias road name needs source verification
+eog--lehwald,LEHWALD,Eog,Ohio,402/rochester Rd,402/Rochester Rd,slash/alias road name needs source verification
+eog--lodestar,LODESTAR,Eog,Ohio,CR-2 / Now Called Archers Ridge Rd,CR-2 / Now Called Archers Ridge Rd,slash/alias road name needs source verification
+eog--maple,MAPLE,Eog,Ohio,Route 40 / Kragel Rd,Route 40 / Kragel Rd,slash/alias road name needs source verification
+eog--masters,MASTERS,Eog,Ohio,Havener,Havener,local name lacks a recognized road-type suffix
+eog--mcmillen,MCMILLEN,Eog,Ohio,Sproul,Sproul,local name lacks a recognized road-type suffix
+eog--mickey,MICKEY,Eog,Ohio,TR-4 / Miller Station Rd,TR-4 / Miller Station Rd,slash/alias road name needs source verification
+eog--mickey,MICKEY,Eog,Ohio,TR-164 / Toker Rd,TR-164 / Toker Rd,slash/alias road name needs source verification
+eog--ott,OTT,Eog,Ohio,Fargo,Fargo,local name lacks a recognized road-type suffix
+eog--ourland,OURLAND,Eog,Ohio,OH-151 / Scio/bowerstown Rd,OH-151 / Scio/Bowerstown Rd,slash/alias road name needs source verification
+eog--putnam,PUTNAM,Eog,Ohio,Alamo,Alamo,local name lacks a recognized road-type suffix
+eog--schmuck,SCHMUCK,Eog,Ohio,CR-12 / Apollo Rd,CR-12 / Apollo Rd,slash/alias road name needs source verification
+eog--schmuck,SCHMUCK,Eog,Ohio,CR-14 / Arbor Rd,CR-14 / Arbor Rd,slash/alias road name needs source verification
+eog--sparkman,SPARKMAN,Eog,Ohio,I-70 / I-470 Near St,I-70 / I-470 Near St,slash/alias road name needs source verification
+eog--sugert,SUGERT,Eog,Ohio,CR-450 / Old National Rd,CR-450 / Old National Rd,slash/alias road name needs source verification
+eog--sugert,SUGERT,Eog,Ohio,CR-54 / Endly Rd,CR-54 / Endly Rd,slash/alias road name needs source verification
+eog--wendell,WENDELL,Eog,Ohio,Caddy,Caddy,local name lacks a recognized road-type suffix
+eog--white-rhino,WHITE-RHINO,Eog,Ohio,See BROOKFIELD,See BROOKFIELD,local name lacks a recognized road-type suffix
+eog--windy-ridge,WINDY-RIDGE,Eog,Ohio,Cr22/azalea Rd,Cr22/Azalea Rd,slash/alias road name needs source verification
+eqt--haymaker,HAYMAKER,Eqt,Ohio,OH-149 / West/belmont Warnock Rd,OH-149 / West/Belmont Warnock Rd,slash/alias road name needs source verification
+eqt--haymaker,HAYMAKER,Eqt,Ohio,OH-147 / East/belmont Centerville Rd,OH-147 / East/Belmont Centerville Rd,slash/alias road name needs source verification
+eqt--haymaker,HAYMAKER,Eqt,Ohio,Ballard Hunter/hunter Bethesda Rd,Ballard Hunter/Hunter Bethesda Rd,slash/alias road name needs source verification
+eqt--radcliff,RADCLIFF,Eqt,Ohio,Buffalo,Buffalo,local name lacks a recognized road-type suffix
+eqt--shotski,SHOTSKI,Eqt,Pennsylvania,Vanceville,Vanceville,local name lacks a recognized road-type suffix
+eqt--shotski,SHOTSKI,Eqt,Pennsylvania,Wherry,Wherry,local name lacks a recognized road-type suffix
+expand--mark-hickman,MARK-HICKMAN,Expand,West Virginia,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+expand--mark-hickman,MARK-HICKMAN,Expand,West Virginia,Dallas Pike,Dallas Pike,local name lacks a recognized road-type suffix
+expand--worthley,WORTHLEY,Expand,West Virginia,PA-18 / Jefferson Ave,PA-18 / Jefferson Ave,slash/alias road name needs source verification
+expand--worthley,WORTHLEY,Expand,West Virginia,PA-844 / West/jefferson Ave,PA-844 / West/Jefferson Ave,slash/alias road name needs source verification
+gulfport--arnold,ARNOLD,Gulfport,Ohio,Beallsville At Four Way,Beallsville at Four Way,local name lacks a recognized road-type suffix
+gulfport--barton,BARTON,Gulfport,Ohio,CR-4 / Barton Rd,CR-4 / Barton Rd,slash/alias road name needs source verification
+gulfport--claugus,CLAUGUS,Gulfport,Ohio,Sugartree-cranesnest,Sugartree-cranesnest,local name lacks a recognized road-type suffix
+gulfport--edge,EDGE,Gulfport,Ohio,CR-23 / Pugh Ridge Rd,CR-23 / Pugh Ridge Rd,slash/alias road name needs source verification
+gulfport--lepley,LEPLEY,Gulfport,Ohio,CR-23 / Pugh Ridge Rd,CR-23 / Pugh Ridge Rd,slash/alias road name needs source verification
+gulfport--mckeegan,MCKEEGAN,Gulfport,Ohio,CR-16 / Nixon Run Rd,CR-16 / Nixon Run Rd,slash/alias road name needs source verification
+gulfport--robert,ROBERT,Gulfport,Ohio,State Route-30/mt Carrick Rd,State Route-30/Mt Carrick Rd,slash/alias road name needs source verification
+gulfport--truax,TRUAX,Gulfport,Ohio,CR-6 / Altitude Miller Hill Rd,CR-6 / Altitude Miller Hill Rd,slash/alias road name needs source verification
+gulfport--white,WHITE,Gulfport,Ohio,That Says Chestnut Level Rd,That Says Chestnut Level Rd,step may contain narrative rather than an official road name
+gulfport--winesburg,WINESBURG,Gulfport,Ohio,CR-23 / Pugh Ridge Rd,CR-23 / Pugh Ridge Rd,slash/alias road name needs source verification
+gulfport--yankee,YANKEE,Gulfport,Ohio,Little Captina,Little Captina,local name lacks a recognized road-type suffix
+hg--1221,1221,Hg,West Virginia,33/119 Turn On Churchville Rd,33/119 Turn On Churchville Rd,slash/alias road name needs source verification
+hg--mnd,MND,Hg,West Virginia,Round Bottom,Round Bottom,local name lacks a recognized road-type suffix
+hilcorp--fairmont,FAIRMONT,Hilcorp,Ohio,CR-890 / Riffle Rd,CR-890 / Riffle Rd,slash/alias road name needs source verification
+hilcorp--fairmont,FAIRMONT,Hilcorp,Ohio,CR-891 / Pine Hollow Rd,CR-891 / Pine Hollow Rd,slash/alias road name needs source verification
+hilcorp--fairmont,FAIRMONT,Hilcorp,Ohio,CR-906 / Lusk Lock Rd,CR-906 / Lusk Lock Rd,slash/alias road name needs source verification
+infinity--casper,CASPER,Infinity,Ohio,CR-20 / Avalon Rd,CR-20 / Avalon Rd,slash/alias road name needs source verification
+infinity--casper,CASPER,Infinity,Ohio,CR-42 / Bronze Rd,CR-42 / Bronze Rd,slash/alias road name needs source verification
+infinity--detweiler,DETWEILER,Infinity,Ohio,OH-285 / Polasky Ln,OH-285 / Polasky Ln,slash/alias road name needs source verification
+range--miscovich,MISCOVICH,Range,Pennsylvania,Gilmore,Gilmore,local name lacks a recognized road-type suffix
+range--prigg,PRIGG,Range,Pennsylvania,SR-3011 / Mckee Rd,SR-3011 / Mckee Rd,slash/alias road name needs source verification
+range--vankirk,VANKIRK,Range,Pennsylvania,SR-3030 / Buffalo Church Rd,SR-3030 / Buffalo Church Rd,slash/alias road name needs source verification
+range--vankirk,VANKIRK,Range,Pennsylvania,SR-3014 / Van Neal Rd,SR-3014 / Van Neal Rd,slash/alias road name needs source verification
+swn--ross,ROSS,Swn,Ohio,US-40 / West/national Rd,US-40 / West/National Rd,slash/alias road name needs source verification
+swn--roth,ROTH,Swn,Ohio,CR-10A / Griffith Rd,CR-10A / Griffith Rd,slash/alias road name needs source verification
+swn--dnr-c,DNR-C,Swn,West Virginia,ALT-27,ALT-27,local name lacks a recognized road-type suffix
+disposals--sos,SOS,Disposals,Ohio,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--ego,EGO,Disposals,Ohio,LEFT,LEFT,local name lacks a recognized road-type suffix
+disposals--ego,EGO,Disposals,Ohio,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--pattison,PATTISON,Disposals,Ohio,RIGHT,RIGHT,local name lacks a recognized road-type suffix
+disposals--pattison,PATTISON,Disposals,Ohio,FIRST ROAD RIGHT,FIRST ROAD RIGHT,local name lacks a recognized road-type suffix
+disposals--pattison,PATTISON,Disposals,Ohio,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--spartan-sugar-tree,SPARTAN SUGAR TREE,Disposals,Ohio,WOODSFIELD,WOODSFIELD,local name lacks a recognized road-type suffix
+disposals--spartan-sugar-tree,SPARTAN SUGAR TREE,Disposals,Ohio,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--valley-grove,VALLEY GROVE,Disposals,West Virginia,EXIT 11 DALLAS PIKE / CR-41,EXIT 11 DALLAS PIKE / CR-41,slash/alias road name needs source verification
+disposals--valley-grove,VALLEY GROVE,Disposals,West Virginia,RIGHT,RIGHT,local name lacks a recognized road-type suffix
+disposals--valley-grove,VALLEY GROVE,Disposals,West Virginia,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--mud-master,MUD MASTER,Disposals,West Virginia,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+disposals--antero-pioneer,ANTERO PIONEER,Disposals,West Virginia,DISPOSAL,DISPOSAL,local name lacks a recognized road-type suffix
+ascent--cross-creek,CROSS CREEK,Ascent,Ohio,Bloomingdale- Smithfield- Chandl/high St,Bloomingdale- Smithfield- Chandl/High St,slash/alias road name needs source verification
+ascent--cross-creek,CROSS CREEK,Ascent,Ohio,Bloomingdale- Smithfield- Chandl/high St,Bloomingdale- Smithfield- Chandl/High St,slash/alias road name needs source verification
+ascent--cross-creek,CROSS CREEK,Ascent,Ohio,Bloomingdale- Smithfield- Chandl/high St,Bloomingdale- Smithfield- Chandl/High St,slash/alias road name needs source verification
+ascent--miller-farms,MILLER FARMS,Ascent,Ohio,SR-800 / Smyrna Rd,SR-800 / Smyrna Rd,slash/alias road name needs source verification
+ascent--prosser-e,PROSSER E,Ascent,Ohio,SR-40 / National Rd,SR-40 / National Rd,slash/alias road name needs source verification
+ascent--prosser-e,PROSSER E,Ascent,Ohio,Left/north On Pancoast Rd,Left/North On Pancoast Rd,slash/alias road name needs source verification
+ascent--r-hoover,R HOOVER,Ascent,Ohio,US-250 / W/cadiz Pike,US-250 / W/Cadiz Pike,slash/alias road name needs source verification
+ascent--rock-ridge,ROCK RIDGE,Ascent,Ohio,Douglas/fairview Rd,Douglas/Fairview Rd,slash/alias road name needs source verification
+ascent--weidinger-w,WEIDINGER W,Ascent,Ohio,CR-11 / Piney Fork Rd,CR-11 / Piney Fork Rd,slash/alias road name needs source verification
+ascent--wheeling-valley,WHEELING VALLEY,Ascent,Ohio,OH-9 / N Toward Shepherdstown Rd,OH-9 / N Toward Shepherdstown Rd,slash/alias road name needs source verification
+chesapeake--huffman-trust,HUFFMAN TRUST,Chesapeake,Ohio,That To Depot Rd,That to Depot Rd,step may contain narrative rather than an official road name
+cnx--wfn-2,WFN 2,Cnx,Pennsylvania,Pleasant Grove,Pleasant Grove,local name lacks a recognized road-type suffix
+eclipse--brits-unit,BRITS UNIT,Eclipse,Ohio,MR-65,MR-65,local name lacks a recognized road-type suffix
+eclipse--duane-weisend-unit,DUANE WEISEND UNIT,Eclipse,Ohio,Cr 54/bean Ridge Rd,Cr 54/Bean Ridge Rd,slash/alias road name needs source verification
+eclipse--forni-north,FORNI NORTH,Eclipse,Ohio,TR-100 / Pryor Rd,TR-100 / Pryor Rd,slash/alias road name needs source verification
+eclipse--purple-hayes-unit,PURPLE HAYES UNIT,Eclipse,Ohio,Sr 513 One Way,Sr 513 One Way,local name lacks a recognized road-type suffix
+eclipse--rolland-unit,ROLLAND UNIT,Eclipse,Ohio,CR-10A / Griffith Rd,CR-10A / Griffith Rd,slash/alias road name needs source verification
+eog--davis-farms,DAVIS FARMS,Eog,Ohio,Picador,Picador,local name lacks a recognized road-type suffix
+eog--davis-farms,DAVIS FARMS,Eog,Ohio,Pillar,Pillar,local name lacks a recognized road-type suffix
+eog--judy-brown,JUDY BROWN,Eog,Ohio,Gavers,Gavers,local name lacks a recognized road-type suffix
+eog--judy-brown,JUDY BROWN,Eog,Ohio,Gavers,Gavers,local name lacks a recognized road-type suffix
+eog--k-wallace,K WALLACE,Eog,Ohio,Pipeline,Pipeline,local name lacks a recognized road-type suffix
+eog--r-kirk,R KIRK,Eog,Ohio,CR-58 / Timothy Ridge Rd,CR-58 / Timothy Ridge Rd,slash/alias road name needs source verification
+eog--schmuck-farms,SCHMUCK FARMS,Eog,Ohio,Andora,Andora,local name lacks a recognized road-type suffix
+eog--striped-bass,STRIPED BASS,Eog,Ohio,CR-450 / Old National Rd,CR-450 / Old National Rd,slash/alias road name needs source verification
+eog--striped-bass,STRIPED BASS,Eog,Ohio,CR-53 / Larrick Ridge Rd,CR-53 / Larrick Ridge Rd,slash/alias road name needs source verification
+eog--striped-bass,STRIPED BASS,Eog,Ohio,CR-450 / Old National Rd,CR-450 / Old National Rd,slash/alias road name needs source verification
+eog--striped-bass,STRIPED BASS,Eog,Ohio,CR-53 / Larrick Ridge Rd,CR-53 / Larrick Ridge Rd,slash/alias road name needs source verification
+eqt--del-scorcho,DEL SCORCHO,Eqt,Ohio,Gregg Rd/twp Rd,Gregg Rd/Twp Rd,slash/alias road name needs source verification
+eqt--del-scorcho,DEL SCORCHO,Eqt,Ohio,Secrest Rd/twp Rd,Secrest Rd/Twp Rd,slash/alias road name needs source verification
+eqt--del-scorcho,DEL SCORCHO,Eqt,Ohio,Ballard Hunter/hunter Bethesda Rd,Ballard Hunter/Hunter Bethesda Rd,slash/alias road name needs source verification
+eqt--tuna-nut,TUNA NUT,Eqt,Ohio,Bethesda To 4 Way,Bethesda to 4 Way,local name lacks a recognized road-type suffix
+eqt--three-musketeers,THREE MUSKETEERS,Eqt,Pennsylvania,E National Pike,E National Pike,local name lacks a recognized road-type suffix
+expand--bernard-mcculley,BERNARD MCCULLEY,Expand,Pennsylvania,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+expand--bernard-mcculley,BERNARD MCCULLEY,Expand,Pennsylvania,Turning Onto Dallas Pike,Turning Onto Dallas Pike,local name lacks a recognized road-type suffix
+expand--marlin-funka,MARLIN FUNKA,Expand,Pennsylvania,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+expand--marlin-funka,MARLIN FUNKA,Expand,Pennsylvania,Turning Onto Dallas Pike,Turning Onto Dallas Pike,local name lacks a recognized road-type suffix
+expand--paul-schilinski,PAUL SCHILINSKI,Expand,Pennsylvania,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--susan-scofield,SUSAN SCOFIELD,Expand,Pennsylvania,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+expand--susan-scofield,SUSAN SCOFIELD,Expand,Pennsylvania,Turning Onto Dallas Pike,Turning Onto Dallas Pike,local name lacks a recognized road-type suffix
+expand--susan-scofield,SUSAN SCOFIELD,Expand,Pennsylvania,SR-3037 / Finley Rd,SR-3037 / Finley Rd,slash/alias road name needs source verification
+expand--alice-edge,ALICE EDGE,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--ballato-brothers,BALLATO BROTHERS,Expand,West Virginia,ALT-27,ALT-27,local name lacks a recognized road-type suffix
+expand--bethlehem-stage,BETHLEHEM STAGE,Expand,West Virginia,Staging Yard,Staging Yard,local name lacks a recognized road-type suffix
+expand--brett-berrisford,BRETT BERRISFORD,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--chad-glauser,CHAD GLAUSER,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--charles-frye,CHARLES FRYE,Expand,West Virginia,CR-65 / Cabella Dr,CR-65 / Cabella Dr,slash/alias road name needs source verification
+expand--charles-jamison,CHARLES JAMISON,Expand,West Virginia,New Bethel,New Bethel,local name lacks a recognized road-type suffix
+expand--edward-dremak,EDWARD DREMAK,Expand,West Virginia,Bethany Pike,Bethany Pike,local name lacks a recognized road-type suffix
+expand--edward-dremak,EDWARD DREMAK,Expand,West Virginia,WV-88 / N/oglebay Dr,WV-88 / N/Oglebay Dr,slash/alias road name needs source verification
+expand--gary-kestner,GARY KESTNER,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--gary-kestner,GARY KESTNER,Expand,West Virginia,CR-45 / Atkinson Crossing,CR-45 / Atkinson Crossing,slash/alias road name needs source verification
+expand--gerald-gourley,GERALD GOURLEY,Expand,West Virginia,ALT-27,ALT-27,local name lacks a recognized road-type suffix
+expand--gladys-briggs,GLADYS BRIGGS,Expand,West Virginia,CR-94 / Fish Ridge,CR-94 / Fish Ridge,slash/alias road name needs source verification
+expand--james-seabright,JAMES SEABRIGHT,Expand,West Virginia,Bethany Pike,Bethany Pike,local name lacks a recognized road-type suffix
+expand--james-seabright,JAMES SEABRIGHT,Expand,West Virginia,WV-88 / N/oglebay Dr,WV-88 / N/Oglebay Dr,slash/alias road name needs source verification
+expand--melvin-kahle,MELVIN KAHLE,Expand,West Virginia,CR-8 / Chapel Hill Rd,CR-8 / Chapel Hill Rd,slash/alias road name needs source verification
+expand--michael-ratcliffe,MICHAEL RATCLIFFE,Expand,West Virginia,CR-45 / P Rd,CR-45 / P Rd,slash/alias road name needs source verification
+expand--michael-southworth,MICHAEL SOUTHWORTH,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--nick-ballato,NICK BALLATO,Expand,West Virginia,ALT-27,ALT-27,local name lacks a recognized road-type suffix
+expand--robert-bone,ROBERT BONE,Expand,West Virginia,CR-67 / Bethany Pike,CR-67 / Bethany Pike,slash/alias road name needs source verification
+expand--roy-ferrell,ROY FERRELL,Expand,West Virginia,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+expand--thelma-hays,THELMA HAYS,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--thelma-hays,THELMA HAYS,Expand,West Virginia,CR-45 / Atkinson Crossing,CR-45 / Atkinson Crossing,slash/alias road name needs source verification
+expand--timmy-minch,TIMMY MINCH,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+expand--violet-coss,VIOLET COSS,Expand,West Virginia,Cr 67/1 Mccords Hill Rd,Cr 67/1 Mccords Hill Rd,slash/alias road name needs source verification
+expand--violet-coss,VIOLET COSS,Expand,West Virginia,Cr 67/1 Greens Run Rd,Cr 67/1 Greens Run Rd,slash/alias road name needs source verification
+expand--wesbanco-bank,WESBANCO BANK,Expand,West Virginia,E. Fairmont/pricketts Creek Rd,E. Fairmont/Pricketts Creek Rd,slash/alias road name needs source verification
+expand--william-rodgers,WILLIAM RODGERS,Expand,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+hg--mnd-23,MND 23,Hg,West Virginia,ALT-2,ALT-2,local name lacks a recognized road-type suffix
+hg--shl-17,SHL 17,Hg,West Virginia,CR-41 / Dallas Pike Rd,CR-41 / Dallas Pike Rd,slash/alias road name needs source verification
+hg--shl-17,SHL 17,Hg,West Virginia,CR-26 / Number Two Ridge Rd,CR-26 / Number Two Ridge Rd,slash/alias road name needs source verification
+hilcorp--elkrun-baker,ELKRUN BAKER,Hilcorp,Ohio,CR-890 / Riffle Rd,CR-890 / Riffle Rd,slash/alias road name needs source verification
+hilcorp--elkrun-baker,ELKRUN BAKER,Hilcorp,Ohio,CR-891 / Pine Hollow Rd,CR-891 / Pine Hollow Rd,slash/alias road name needs source verification
+hilcorp--elkrun-baker,ELKRUN BAKER,Hilcorp,Ohio,CR-906 / Lusk Lock Rd,CR-906 / Lusk Lock Rd,slash/alias road name needs source verification
+infinity--frame-well-pad,FRAME WELL PAD,Infinity,Ohio,SR-285 / Wintergreen Rd,SR-285 / Wintergreen Rd,slash/alias road name needs source verification
+infinity--frame-well-pad,FRAME WELL PAD,Infinity,Ohio,CR-455 / Old Glory Rd,CR-455 / Old Glory Rd,slash/alias road name needs source verification
+infinity--hn-sto,HN STO,Infinity,Ohio,Cr3/barricklow Rd,Cr3/Barricklow Rd,slash/alias road name needs source verification
+infinity--hn-sto,HN STO,Infinity,Ohio,Cr2/deersville Ridge Rd,Cr2/Deersville Ridge Rd,slash/alias road name needs source verification
+infinity--hn-sto,HN STO,Infinity,Ohio,Cr30/slab Camp Rd,Cr30/Slab Camp Rd,slash/alias road name needs source verification
+infinity--hn-sto,HN STO,Infinity,Ohio,Cr1/brush Fork Rd,Cr1/Brush Fork Rd,slash/alias road name needs source verification
+infinity--hn-sto,HN STO,Infinity,Ohio,Tr328/ourant Rd,Tr328/Ourant Rd,slash/alias road name needs source verification
+range--bernard-schultz,BERNARD SCHULTZ,Range,Pennsylvania,S. Fayette Way,S. Fayette Way,local name lacks a recognized road-type suffix
+range--bird-run,BIRD RUN,Range,Pennsylvania,SR-4020 / Oak Grove Rd,SR-4020 / Oak Grove Rd,slash/alias road name needs source verification
+range--bird-run,BIRD RUN,Range,Pennsylvania,SR-4049 / Main St,SR-4049 / Main St,slash/alias road name needs source verification
+range--bird-run,BIRD RUN,Range,Pennsylvania,SR-4047 / Old Hickory Ridge Rd,SR-4047 / Old Hickory Ridge Rd,slash/alias road name needs source verification
+range--james-drape,JAMES DRAPE,Range,Pennsylvania,SR-1001 / Freeport Rd,SR-1001 / Freeport Rd,slash/alias road name needs source verification
+range--kelley-brownlee,KELLEY BROWNLEE,Range,Pennsylvania,Hickory Nut,Hickory Nut,local name lacks a recognized road-type suffix
+swn--holliday-unit,HOLLIDAY UNIT,Swn,Ohio,CR-64 / Cochran Hill Rd,CR-64 / Cochran Hill Rd,slash/alias road name needs source verification
+swn--dmc-east,DMC EAST,Swn,Pennsylvania,Red Flashing 4 Way,Red Flashing 4 Way,local name lacks a recognized road-type suffix
+swn--dmc-east,DMC EAST,Swn,Pennsylvania,Rt 40. One Way,Rt 40. One Way,local name lacks a recognized road-type suffix
+swn--sandra-parr,SANDRA PARR,Swn,Pennsylvania,Dallas Pike,Dallas Pike,local name lacks a recognized road-type suffix
+swn--susan-scofield,SUSAN SCOFIELD,Swn,Pennsylvania,Dallas Pike,Dallas Pike,local name lacks a recognized road-type suffix
+swn--betty-schafer,BETTY SCHAFER,Swn,West Virginia,No Well Traffic This Way,No Well Traffic This Way,local name lacks a recognized road-type suffix
+swn--carl-rotter,CARL ROTTER,Swn,West Virginia,Dallas Pike,Dallas Pike,local name lacks a recognized road-type suffix
+swn--charles-jamison,CHARLES JAMISON,Swn,West Virginia,New Bethel,New Bethel,local name lacks a recognized road-type suffix
+swn--charles-yoho,CHARLES YOHO,Swn,West Virginia,T/l On Stulls Run Rd,T/L On Stulls Run Rd,slash/alias road name needs source verification
+swn--dnr-b,DNR B,Swn,West Virginia,Alt27east T/r Tent Church Rd,Alt27east T/R Tent Church Rd,slash/alias road name needs source verification
+swn--ester-weeks,ESTER WEEKS,Swn,West Virginia,CR-23 / Stone Chruch Rd,CR-23 / Stone Chruch Rd,slash/alias road name needs source verification
+swn--john-good-jr,JOHN GOOD JR,Swn,West Virginia,CR-24 / Mcadoo Ridge Rd,CR-24 / Mcadoo Ridge Rd,slash/alias road name needs source verification
+swn--kathy-mahew,KATHY MAHEW,Swn,West Virginia,Girtys Point,Girtys Point,local name lacks a recognized road-type suffix
+swn--linda-greathouse,LINDA GREATHOUSE,Swn,West Virginia,Girtys Point,Girtys Point,local name lacks a recognized road-type suffix
+swn--linda-greathouse,LINDA GREATHOUSE,Swn,West Virginia,Hukill,Hukill,local name lacks a recognized road-type suffix
+swn--mark-edison,MARK EDISON,Swn,West Virginia,Cr 88/10 Hanlin Hill Rd,Cr 88/10 Hanlin Hill Rd,slash/alias road name needs source verification
+swn--mark-hickman,MARK HICKMAN,Swn,West Virginia,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+swn--michael-southworth,MICHAEL SOUTHWORTH,Swn,West Virginia,Grove T/l On Elliots Ln,Grove T/L On Elliots Ln,slash/alias road name needs source verification
+swn--nick-ballota,NICK BALLOTA,Swn,West Virginia,Route 27 / Eldervilles Rd,Route 27 / Eldervilles Rd,slash/alias road name needs source verification
+swn--robert-bone,ROBERT BONE,Swn,West Virginia,Bethany Pike,Bethany Pike,local name lacks a recognized road-type suffix
+swn--roy-ferrell,ROY FERRELL,Swn,West Virginia,CR-41 / Dallas Pike,CR-41 / Dallas Pike,slash/alias road name needs source verification
+swn--shawn-couch,SHAWN COUCH,Swn,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
+swn--timmy-minch,TIMMY MINCH,Swn,West Virginia,That To Browns Run,That to Browns Run,step may contain narrative rather than an official road name
+swn--william-rodgers,WILLIAM RODGERS,Swn,West Virginia,US-40 / National Rd,US-40 / National Rd,slash/alias road name needs source verification
