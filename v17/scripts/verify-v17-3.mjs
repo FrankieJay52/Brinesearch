@@ -60,7 +60,8 @@ requireText(partManifest, '"version": "17.3.0"', 'Part manifest version');
 requireText(styleManifest, '"version": "17.3.0"', 'Style manifest version');
 requireText(packageJson, '"version": "17.3.0"', 'Package version');
 requireText(sw, 'brinesearch-v17-3-0', 'Service-worker cache version');
-const iconManifest = JSON.parse(gunzipSync(Buffer.from((await read(path.join(v17Root, 'src/icons/field-mark-icons.b64'))).trim(), 'base64')).toString('utf8'));
+const iconEncoded = (await Promise.all([0, 1, 2, 3].map(part => read(path.join(v17Root, 'src/icons', `field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g, '');
+const iconManifest = JSON.parse(gunzipSync(Buffer.from(iconEncoded, 'base64')).toString('utf8'));
 if (iconManifest.version !== '17.3.0' || Object.keys(iconManifest.icons || {}).length < 90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
 
 console.log('Verified BrineSearch V17.3 product layer: redesigned dashboard, real Favorites route, non-blocking public Feed, Storage-backed profile photos, compact settings/pad/offline layouts, daylight companion theme, distinct Field Mark icons, and V17.3 cache/version markers.');
