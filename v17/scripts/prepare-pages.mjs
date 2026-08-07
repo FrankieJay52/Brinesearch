@@ -91,7 +91,7 @@ await verify(outputDir);
 if (leftovers.length) throw new Error(`Unprefixed root assets remain:\n${leftovers.join('\n')}`);
 
 const report = {
-  version: '17.3.0',
+  version: '17.3.1',
   target: 'github-pages',
   basePath: basePath || '/',
   fileCount,
@@ -99,4 +99,4 @@ const report = {
   generatedAt: new Date().toISOString()
 };
 await fs.writeFile(path.join(outputDir, 'pages-deployment.json'), JSON.stringify(report, null, 2) + '\n');
-console.log(`Prepared BrineSearch V17.3 for GitHub Pages at ${report.basePath} (${fileCount} files, ${changedFileCount} rewritten).`);
+console.log(`Prepared BrineSearch V17.3.1 for GitHub Pages at ${report.basePath} (${fileCount} files, ${changedFileCount} rewritten).`);
