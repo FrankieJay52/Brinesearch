@@ -43,27 +43,27 @@
       const account = r.signedIn ? `
         ${settingsRow(`<span class="fm-icon fm-profile"></span>`,"My profile","Real name, username, company, role, bio, photo and activity",'data-settings-route="#/feed/profile"')}
         ${settingsRow(`<span class="fm-icon fm-notify"></span>`,"Notifications","Replies, role changes and moderation updates",'data-settings-route="#/feed/notifications"')}
-        ${settingsRow("🔐","Account and sign-in","Password reset, access status and sign out",'data-settings-action="account"')}
-      ` : `${settingsRow("🔐","Log in or sign up","Create a profile, post updates and request editing access",'data-settings-action="login"')}`;
+        ${settingsRow(`<span class="fm-icon fm-locked"></span>`,"Account and sign-in","Password reset, access status and sign out",'data-settings-action="account"')}
+      ` : `${settingsRow(`<span class="fm-icon fm-locked"></span>`,"Log in or sign up","Create a profile, post updates and request editing access",'data-settings-action="login"')}`;
       const editing = r.canEdit ? `<section class="settings-section"><h2>Editing</h2><div class="settings-list">
-        ${settingsRow("✎","Editor tools","Your editing access, personal activity and pad tools",'data-settings-route="#/settings/editor-tools"')}
-        ${settingsRow("✓","Verification review","Review official pad matches and database corrections",'data-settings-route="#/verification"')}
+        ${settingsRow(`<span class="fm-icon fm-edit"></span>`,"Editor tools","Your editing access, personal activity and pad tools",'data-settings-route="#/settings/editor-tools"')}
+        ${settingsRow(`<span class="fm-icon fm-verified"></span>`,"Verification review","Review official pad matches and database corrections",'data-settings-route="#/verification"')}
       </div></section>` : "";
       const moderation = r.canModerate ? `<section class="settings-section"><h2>Moderation</h2><div class="settings-list">
-        ${settingsRow("⚑","Moderator dashboard","Reports, hidden content, suspensions and moderation history",'data-settings-route="#/feed/moderation"')}
+        ${settingsRow(`<span class="fm-icon fm-role-moderator"></span>`,"Moderator dashboard","Reports, hidden content, suspensions and moderation history",'data-settings-route="#/feed/moderation"')}
       </div></section>` : "";
       const owner = r.isOwner ? `<section class="settings-section"><h2>Owner controls <span class="settings-attention" title="Owner-only"></span></h2><p class="settings-owner-note">Each owner tool opens on its own page.</p><div class="settings-list">
-        ${settingsRow("👥","User account access","View users and choose their permissions",'data-settings-route="#/settings/access"')}
-        ${settingsRow("📊","Database health","Pad totals, missing GPS, missing directions and quality warnings",'data-settings-route="#/settings/database"')}
-        ${settingsRow("🧾","Editor activity","Successful changes, failed attempts and recent saved edits",'data-settings-route="#/settings/editor-activity"')}
-        ${settingsRow(`<span class="fm-icon fm-navigate"></span>`,"Data quality review","Official verification, conflicts and missing public records",'data-settings-route="#/verification"')}
-        ${settingsRow("🛡","Community control center","Reports, user actions and moderation audit history",'data-settings-route="#/feed/moderation"')}
+        ${settingsRow(`<span class="fm-icon fm-role-owner"></span>`,"User account access","View users and choose their permissions",'data-settings-route="#/settings/access"')}
+        ${settingsRow(`<span class="fm-icon fm-signal"></span>`,"Database health","Pad totals, missing GPS, missing directions and quality warnings",'data-settings-route="#/settings/database"')}
+        ${settingsRow(`<span class="fm-icon fm-sync"></span>`,"Editor activity","Successful changes, failed attempts and recent saved edits",'data-settings-route="#/settings/editor-activity"')}
+        ${settingsRow(`<span class="fm-icon fm-verified"></span>`,"Data quality review","Official verification, conflicts and missing public records",'data-settings-route="#/verification"')}
+        ${settingsRow(`<span class="fm-icon fm-report"></span>`,"Community control center","Reports, user actions and moderation audit history",'data-settings-route="#/feed/moderation"')}
       </div></section>` : "";
       app.innerHTML=`<main class="settings-page">
-        <section class="settings-hero"><div><h1>Settings</h1><p>Only working settings available to this account are shown.</p></div><span class="settings-role">${r.icon} ${esc(r.label)}</span></section>
+        <section class="settings-hero"><div><h1>Settings</h1><p>Account, app, directory and role-specific controls.</p></div><span class="settings-role">${r.icon} ${esc(r.label)}</span></section>
         <section class="settings-section"><h2>Account</h2><div class="settings-list">${account}</div></section>
         <section class="settings-section"><h2>Directory tools</h2><div class="settings-list">
-          ${settingsRow("＋","Add a pad","Submit a new pad or disposal location to BrineSearch",'data-settings-action="addpad"')}
+          ${settingsRow(`<span class="fm-icon fm-add"></span>`,"Add a pad","Submit a new pad or disposal location to BrineSearch",'data-settings-action="addpad"')}
         </div></section>
         <section class="settings-section"><h2>App and offline access</h2><div class="settings-list">
           ${settingsRow(`<span class="fm-icon fm-download"></span>`,"Add BrineSearch to Home Screen","Choose iPhone or Android and get instructions for your browser",'data-settings-route="#/settings/install"')}
@@ -75,11 +75,11 @@
           ${settingsRow(`<span class="fm-icon fm-info"></span>`,"Data Sources & Provenance","Where BrineSearch information comes from and how to report concerns",'data-settings-route="#/settings/data-sources"')}
           ${settingsRow(`<span class="fm-icon fm-legal"></span>`,"Copyright & Content Concerns","Report inaccurate, disputed, or potentially infringing content",'data-settings-route="#/settings/copyright"')}
           ${settingsRow(`<span class="fm-icon fm-verified"></span>`,"Data Verification","Understand GPS, community, editor, and review statuses",'data-settings-route="#/settings/verification"')}
-          ${settingsRow("📜","Community Rules","Real names, respectful conduct, no personal attacks or company bashing",'data-settings-route="#/feed/rules"')}
-          ${settingsRow("⚖","Terms and disclaimer","Independent platform, user-content and employer-affiliation terms",'data-settings-route="#/feed/rules"')}
+          ${settingsRow(`<span class="fm-icon fm-terms"></span>`,"Community Rules","Real names, respectful conduct, no personal attacks or company bashing",'data-settings-route="#/feed/rules"')}
+          ${settingsRow(`<span class="fm-icon fm-legal"></span>`,"Terms and disclaimer","Independent platform, user-content and employer-affiliation terms",'data-settings-route="#/feed/rules"')}
         </div></section>
         ${r.signedIn?`<section class="settings-section"><button class="settings-signout" id="settingsSignOutBtn" type="button">Sign out of BrineSearch</button></section>`:""}
-        <div class="settings-version"><span>BrineSearch V 16.21</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
+        <div class="settings-version"><span>BrineSearch V 17.3</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
       </main>`;
       document.querySelectorAll("[data-settings-route]").forEach(btn=>btn.onclick=()=>{ location.hash=btn.dataset.settingsRoute; });
       document.querySelectorAll("[data-settings-action]").forEach(btn=>btn.onclick=()=>{
@@ -129,6 +129,7 @@
     }
 
     function router() {
+      document.querySelectorAll(".feed-login-overlay,.feed-pad-search-overlay,.feed-delete-overlay").forEach(element=>element.remove());
       const mobileBackBtn = document.getElementById("mobileBackBtn");
       const currentRoute = location.hash.replace(/^#\/?/, "");
       if (mobileBackBtn) {
@@ -160,6 +161,7 @@
       if (parts[0] === "settings" && parts[1] === "roads") return renderRoadManagerSettings();
       if (parts[0] === "settings" && parts[1] === "install") return renderInstallGuideSettings();
       if (parts[0] === "settings") return renderSettings();
+      if (parts[0] === "favorites") return renderFavorites();
       if (parts[0] === "offline") return renderOfflineMode();
       if (parts[0] === "feed") return renderFieldFeed(parts[1] || "", parts[2] || "");
       if (parts[0] === "verification" || parts[0] === "audit") return renderVerificationReview();

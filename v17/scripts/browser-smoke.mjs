@@ -1,6 +1,14 @@
 import { chromium } from 'playwright';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 const baseUrl = process.env.V17_PREVIEW_URL || 'http://127.0.0.1:4173';
+const visualAuditDir = process.env.V17_VISUAL_AUDIT_DIR || '';
+if (visualAuditDir) await fs.mkdir(visualAuditDir, { recursive: true });
+const capture = async (page, testCase, route) => {
+  if (!visualAuditDir) return;
+  await page.screenshot({ path: path.join(visualAuditDir, `${testCase.name}-${route}.png`), fullPage: true });
+};
 const cases = [
   { name: 'iphone', viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true },
   { name: 'desktop', viewport: { width: 1440, height: 900 }, isMobile: false, hasTouch: false }
@@ -35,6 +43,7 @@ for (const testCase of cases) {
   await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
   await page.waitForFunction(() => document.body && document.body.innerText.trim().length > 80, null, { timeout: 30000 });
   await page.waitForTimeout(3500);
+  await capture(page, testCase, 'home');
 
   const audit = await page.evaluate(async () => {
     const bodyText = document.body?.innerText || '';
@@ -124,6 +133,39 @@ for (const testCase of cases) {
     };
   });
 
+  let productAudit = { favoritesPage: false, feedPage: false, blockingFeedPrompt: false, guestBanner: false, settingsVersion: '', duplicateRoadEntries: 0 };
+  try {
+    await page.evaluate(() => { location.hash = '#/favorites'; });
+    await page.waitForSelector('.favorites-page', { state: 'visible', timeout: 5000 });
+    const favoritesPage = await page.evaluate(() => Boolean(document.querySelector('.favorites-page')) && !/Page not found/i.test(document.body.innerText));
+    await capture(page, testCase, 'favorites');
+
+    await page.evaluate(() => { location.hash = '#/feed'; });
+    await page.waitForSelector('.field-feed-page', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(250);
+    const feedState = await page.evaluate(() => ({
+      feedPage: Boolean(document.querySelector('.field-feed-page')),
+      blockingFeedPrompt: Boolean(document.querySelector('.feed-login-overlay')),
+      guestBanner: Boolean(document.querySelector('.feed-guest-banner'))
+    }));
+    await capture(page, testCase, 'feed');
+
+    await page.evaluate(() => { location.hash = '#/settings'; });
+    await page.waitForSelector('.settings-page', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(200);
+    const settingsState = await page.evaluate(() => ({
+      settingsVersion: document.querySelector('.settings-version')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+      duplicateRoadEntries: Array.from(document.querySelectorAll('.settings-row')).filter(row => /Road Manager/i.test(row.textContent || '')).length
+    }));
+    await capture(page, testCase, 'settings');
+
+    productAudit = { favoritesPage, ...feedState, ...settingsState };
+    await page.evaluate(() => { location.hash = '#/'; });
+    await page.waitForSelector('.v173-dashboard', { state: 'visible', timeout: 5000 });
+  } catch (error) {
+    failures.push(`${testCase.name}: V17.3 product-route audit failed: ${error.message}`);
+  }
+
   let scannerAudit = { opened: false, version: '', readButton: '', photoActions: [], rawVisible: true, detailsVisible: true };
   try {
     await page.evaluate(() => window.BrinesearchFrontSignScanner?.openScanner?.({ mode: 'pad', padId: 'browser-audit-pad' }));
@@ -164,6 +206,12 @@ for (const testCase of cases) {
   if (!audit.globals.roadDatabase) failures.push(`${testCase.name}: Road Database did not start`);
   if (!audit.globals.roadManager) failures.push(`${testCase.name}: Road Manager did not start`);
   if (!audit.globals.frontSignScanner) failures.push(`${testCase.name}: Front Sign Scanner did not start`);
+  if (!productAudit.favoritesPage) failures.push(`${testCase.name}: Favorites route did not render the V17.3 Favorites page`);
+  if (!productAudit.feedPage) failures.push(`${testCase.name}: Field Feed did not render`);
+  if (productAudit.blockingFeedPrompt) failures.push(`${testCase.name}: blocking Field Feed login prompt still appeared`);
+  if (!productAudit.guestBanner) failures.push(`${testCase.name}: public Feed guest banner is missing`);
+  if (!/V 17\.3/i.test(productAudit.settingsVersion)) failures.push(`${testCase.name}: Settings does not report V17.3`);
+  if (productAudit.duplicateRoadEntries > 1) failures.push(`${testCase.name}: Settings displayed ${productAudit.duplicateRoadEntries} Road Manager entries`);
   if (audit.structuredVersion !== '17.2') failures.push(`${testCase.name}: structured scanner runtime reported ${audit.structuredVersion || 'no version'} instead of 17.2`);
   if (!audit.hasStructuredScript) failures.push(`${testCase.name}: V17.2 structured scanner script was not loaded`);
   if (audit.hasLegacyOcrHotfix) failures.push(`${testCase.name}: legacy V16.25 OCR hotfix is still loaded`);
@@ -190,6 +238,7 @@ for (const testCase of cases) {
     missingImageCount: audit.missingImages.length,
     brokenImages: audit.brokenImages,
     structuredVersion: audit.structuredVersion,
+    productAudit,
     scannerAudit,
     globals: audit.globals,
     pageErrors,
@@ -204,4 +253,4 @@ if (failures.length) {
   console.error('\nV17 browser audit failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('\nV17.2 browser audit passed on iPhone and desktop with structured sign-scanner workflow and resolved Field Mark icons.');
+console.log('\nV17.3 browser audit passed on iPhone and desktop with structured sign-scanner workflow and resolved Field Mark icons.');

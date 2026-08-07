@@ -2,6 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
+import { gunzipSync } from 'node:zlib';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
@@ -56,12 +57,27 @@ const inheritedFiles = [
 ];
 for (const file of inheritedFiles) await copyIfPresent(path.join(projectRoot, file), path.join(publicRoot, file));
 for (const dir of ['icons', 'brand-kit']) await copyIfPresent(path.join(projectRoot, dir), path.join(publicRoot, dir));
+
+// V17.3 keeps the Field Mark artwork in one reviewed source manifest. Older root
+// icon files are compatibility fallbacks; the generated production directory is
+// authoritative so Netlify, GitHub Pages, and offline builds always use the same
+// distinct icon set.
+const iconEncoded = (await Promise.all([0, 1, 2, 3].map(part => fs.readFile(path.join(srcRoot, 'icons', `field-mark-icons.${part}.b64`), 'utf8')))).join('').replace(/\s+/g, '');
+const iconManifest = JSON.parse(gunzipSync(Buffer.from(iconEncoded, 'base64')).toString('utf8'));
+const publicIconsRoot = path.join(publicRoot, 'icons');
+await ensureDir(publicIconsRoot);
+for (const [name, svg] of Object.entries(iconManifest.icons || {})) {
+  if (!/^fm-[a-z0-9-]+\.svg$/i.test(name)) throw new Error(`Unsafe Field Mark icon name: ${name}`);
+  if (!String(svg).includes('<svg')) throw new Error(`Invalid Field Mark icon source: ${name}`);
+  await fs.writeFile(path.join(publicIconsRoot, name), String(svg).trim() + '\n');
+}
 const report = {
   version: partManifest.version,
   generatedAt: new Date().toISOString(),
   partCount: partManifest.parts.length,
   styleCount: styleManifest.styles.length,
   directionDataFiles: directionManifest.files.length,
+  fieldMarkIcons: Object.keys(iconManifest.icons || {}).length,
   appBytes: Buffer.byteLength(assembledApp),
   cssBytes: Buffer.byteLength(assembledCss),
   fieldMarkCssBytes: Buffer.byteLength(fieldMarkAbsolute),
@@ -69,4 +85,4 @@ const report = {
   cssSha256: sha256(assembledCss)
 };
 await fs.writeFile(path.join(publicRoot, 'v17-build-report.json'), JSON.stringify(report, null, 2) + '\n');
-console.log(`BrineSearch V${report.version}: ${report.partCount} JS parts, ${report.styleCount} CSS parts, and ${report.directionDataFiles} data files assembled.`);
+console.log(`BrineSearch V${report.version}: ${report.partCount} JS parts, ${report.styleCount} CSS parts, ${report.directionDataFiles} data files, and ${report.fieldMarkIcons} Field Mark icons assembled.`);

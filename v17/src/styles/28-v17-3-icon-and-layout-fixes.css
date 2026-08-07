@@ -1,0 +1,59 @@
+/* BrineSearch V17.3 — icon-library correction and final responsive cleanup */
+.header-actions{flex-wrap:nowrap!important;min-width:0}
+.header-actions>.search-trigger{width:auto!important;min-width:108px!important;padding-inline:12px!important;white-space:nowrap}
+.header-actions>.add-pad-trigger{width:auto!important;min-width:112px!important;white-space:nowrap}
+.header-actions>.account-control{width:auto!important;min-width:88px!important;padding-inline:10px!important;white-space:nowrap}
+.header-actions .search-word,.header-actions .add-word,.header-actions .account-word{white-space:nowrap}
+
+.dashboard-mini-stats{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+.dashboard-mini-stats span{display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:5px!important;min-width:0!important;white-space:nowrap!important}
+.dashboard-mini-stats strong{white-space:nowrap!important}
+
+.feed-icon-btn{--feed-action-color:var(--accent);color:var(--feed-action-color)!important;background:color-mix(in srgb,var(--panel) 80%,var(--feed-action-color) 20%)!important;border-color:color-mix(in srgb,var(--line) 58%,var(--feed-action-color) 42%)!important}
+#feedRulesBtn{--feed-action-color:#efc15f}
+#feedProfileBtn{--feed-action-color:#76b4ff}
+#feedNotificationsBtn{--feed-action-color:#c593ff}
+#feedModerationBtn{--feed-action-color:#ff9c7a}
+.feed-toolbar.feed-toolbar-compact{grid-template-columns:minmax(0,1fr) 164px!important}
+.feed-toolbar select{font-size:.82rem!important;padding-left:12px!important;padding-right:30px!important;white-space:nowrap!important}
+
+@media(max-width:760px){
+  .header-actions>.icon-btn,.header-actions>.search-trigger,.header-actions>.add-pad-trigger,.header-actions>.account-control{width:42px!important;min-width:42px!important;padding:0!important}
+  .header-actions .add-word,.header-actions .search-word,.header-actions .account-word{display:none!important}
+  .dashboard-mini-stats{gap:5px!important}
+  .dashboard-mini-stats span{font-size:.64rem!important;padding:4px 5px!important}
+  .dashboard-mini-stats strong{font-size:.73rem!important}
+  .feed-toolbar.feed-toolbar-compact{grid-template-columns:minmax(0,1fr) 148px!important}
+}
+@media(max-width:400px){
+  .dashboard-mini-stats span{font-size:.6rem!important;padding-inline:3px!important}
+  .dashboard-mini-stats strong{font-size:.7rem!important}
+}
+
+/* Daylight contrast correction — keep every driver control readable in direct sun. */
+html[data-theme="day"] .v173-dashboard .dashboard-search input{
+  background:#fff!important;
+  color:#102033!important;
+  border-color:#9eb8cf!important;
+  box-shadow:0 5px 16px rgba(24,52,82,.09)!important;
+}
+html[data-theme="day"] .v173-dashboard .dashboard-search input::placeholder{color:#667b8f!important;opacity:1}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary){
+  background:#f5f9fc!important;
+  color:#102033!important;
+  border-color:#b8cadb!important;
+  box-shadow:0 5px 14px rgba(22,48,78,.07)!important;
+}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary) strong{color:#102033!important}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary) small{color:#52677c!important}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary)>.fm-icon{color:#087f75!important}
+html[data-theme="day"] .footer{
+  background:#f5f8fb!important;
+  color:#1c3045!important;
+  border-top-color:#c5d4e2!important;
+}
+html[data-theme="day"] .legal-footer-brand,
+html[data-theme="day"] .legal-footer-brand strong,
+html[data-theme="day"] .legal-footer-main{color:#1c3045!important}
+html[data-theme="day"] .legal-footer-note{color:#53687d!important}
+html[data-theme="day"] .legal-footer-links a{color:#087f75!important}
