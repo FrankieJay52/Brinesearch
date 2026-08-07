@@ -6,6 +6,9 @@ on:
       - cologie-mileage-example
     paths:
       - .github/workflows/cologie-mileage-analysis.yml
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -23,7 +26,6 @@ jobs:
         run: |
           python3 - <<'PY'
           import json
-          import math
           import urllib.parse
           import urllib.request
           from pathlib import Path
