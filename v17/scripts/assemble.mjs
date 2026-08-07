@@ -42,7 +42,7 @@ const fieldMarkSource = await fs.readFile(path.join(srcRoot, 'styles', '09-field
 const fieldMarkAbsolute = fieldMarkSource.replaceAll("url('./icons/", "url('/icons/");
 await fs.writeFile(path.join(stylesRoot, 'field-mark-icons.css'), fieldMarkAbsolute);
 
-for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js']) {
+for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js', 'front-sign-structured.js']) {
   await fs.copyFile(path.join(srcRoot, 'runtime', file), path.join(appRoot, file));
 }
 const directionManifest = await readJson(path.join(srcRoot, 'data', 'directions', 'index.json'));
@@ -52,7 +52,7 @@ const directionAssets = ['./data/directions/index.json', ...directionManifest.fi
 await fs.writeFile(path.join(publicRoot, 'sw.js'), swTemplate.replace('__DIRECTION_DATA_FILES__', JSON.stringify(directionAssets, null, 2)));
 const inheritedFiles = [
   'manifest.webmanifest', 'pad-fallback-data.json', 'road-database.js', 'road-manager.js',
-  'front-sign-scanner.js', 'v16-25-hotfix.js', 'road-database.schema.json', 'road_name_review.csv'
+  'front-sign-scanner.js', 'road-database.schema.json', 'road_name_review.csv'
 ];
 for (const file of inheritedFiles) await copyIfPresent(path.join(projectRoot, file), path.join(publicRoot, file));
 for (const dir of ['icons', 'brand-kit']) await copyIfPresent(path.join(projectRoot, dir), path.join(publicRoot, dir));

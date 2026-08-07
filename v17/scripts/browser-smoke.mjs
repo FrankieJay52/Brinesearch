@@ -100,6 +100,7 @@ for (const testCase of cases) {
       const style = getComputedStyle(icon);
       return style.webkitMaskImage || style.maskImage || '';
     });
+    const scripts = Array.from(document.scripts).map(script => script.src).filter(Boolean);
 
     return {
       title: document.title,
@@ -112,6 +113,9 @@ for (const testCase of cases) {
       missingIcons: iconChecks.filter(Boolean),
       missingImages: imageChecks.filter(Boolean),
       brokenImages,
+      structuredVersion: document.documentElement.dataset.brinesearchVersion || '',
+      hasStructuredScript: scripts.some(src => /\/app\/front-sign-structured\.js/i.test(src)),
+      hasLegacyOcrHotfix: scripts.some(src => /\/v16-25-hotfix\.js/i.test(src)),
       globals: {
         roadDatabase: Boolean(window.BrineSearchRoadDB),
         roadManager: Boolean(window.BrineSearchRoadManager),
@@ -119,6 +123,35 @@ for (const testCase of cases) {
       }
     };
   });
+
+  let scannerAudit = { opened: false, version: '', readButton: '', photoActions: [], rawVisible: true, detailsVisible: true };
+  try {
+    await page.evaluate(() => window.BrinesearchFrontSignScanner?.openScanner?.({ mode: 'pad', padId: 'browser-audit-pad' }));
+    await page.waitForSelector('#brinesearchFrontSignModal', { state: 'visible', timeout: 5000 });
+    await page.waitForTimeout(250);
+    scannerAudit = await page.evaluate(() => {
+      const modal = document.getElementById('brinesearchFrontSignModal');
+      const raw = modal?.querySelector('#bssRawText')?.closest('div');
+      const details = modal?.querySelector('#bssDetails');
+      const isVisible = element => {
+        if (!element) return false;
+        const style = getComputedStyle(element);
+        return style.display !== 'none' && style.visibility !== 'hidden';
+      };
+      return {
+        opened: Boolean(modal),
+        version: modal?.querySelector('.bss-head .bss-confidence')?.textContent?.trim() || '',
+        readButton: modal?.querySelector('#bssReadButton')?.textContent?.trim() || '',
+        photoActions: Array.from(modal?.querySelectorAll('#brinesearch-sign-photo-choices button') || []).map(button => button.textContent.trim()),
+        structuredNote: modal?.querySelector('#brinesearch-sign-structured-note')?.textContent?.replace(/\s+/g, ' ').trim() || '',
+        rawVisible: isVisible(raw),
+        detailsVisible: isVisible(details)
+      };
+    });
+    await page.locator('#brinesearchFrontSignModal .bss-close').click();
+  } catch (error) {
+    failures.push(`${testCase.name}: structured scanner did not open: ${error.message}`);
+  }
 
   if (!audit.hasBrand) failures.push(`${testCase.name}: BrineSearch branding did not render`);
   if (audit.bodyTextLength < 80) failures.push(`${testCase.name}: page rendered too little content`);
@@ -131,6 +164,16 @@ for (const testCase of cases) {
   if (!audit.globals.roadDatabase) failures.push(`${testCase.name}: Road Database did not start`);
   if (!audit.globals.roadManager) failures.push(`${testCase.name}: Road Manager did not start`);
   if (!audit.globals.frontSignScanner) failures.push(`${testCase.name}: Front Sign Scanner did not start`);
+  if (audit.structuredVersion !== '17.2') failures.push(`${testCase.name}: structured scanner runtime reported ${audit.structuredVersion || 'no version'} instead of 17.2`);
+  if (!audit.hasStructuredScript) failures.push(`${testCase.name}: V17.2 structured scanner script was not loaded`);
+  if (audit.hasLegacyOcrHotfix) failures.push(`${testCase.name}: legacy V16.25 OCR hotfix is still loaded`);
+  if (!scannerAudit.opened) failures.push(`${testCase.name}: Scan Front Sign modal did not open`);
+  if (scannerAudit.version !== 'V17.2') failures.push(`${testCase.name}: scanner modal shows ${scannerAudit.version || 'no version'} instead of V17.2`);
+  if (scannerAudit.readButton !== 'Read Database Fields') failures.push(`${testCase.name}: scanner read button is not the V17.2 database-field action`);
+  if (!scannerAudit.photoActions.some(text => /Take Photo/i.test(text)) || !scannerAudit.photoActions.some(text => /Choose Photo/i.test(text))) failures.push(`${testCase.name}: scanner photo choices are incomplete`);
+  if (!/Only database fields/i.test(scannerAudit.structuredNote)) failures.push(`${testCase.name}: structured database-field review notice is missing`);
+  if (scannerAudit.rawVisible) failures.push(`${testCase.name}: raw OCR dump is still visible in the normal scanner workflow`);
+  if (scannerAudit.detailsVisible) failures.push(`${testCase.name}: unrelated sign detail section is still visible in the normal scanner workflow`);
   for (const error of pageErrors) failures.push(`${testCase.name} page error: ${error}`);
   for (const error of assetFailures) failures.push(`${testCase.name} asset failure: ${error}`);
   for (const error of audit.missingIcons) failures.push(`${testCase.name} missing icon: ${error}`);
@@ -146,6 +189,8 @@ for (const testCase of cases) {
     missingIconCount: audit.missingIcons.length,
     missingImageCount: audit.missingImages.length,
     brokenImages: audit.brokenImages,
+    structuredVersion: audit.structuredVersion,
+    scannerAudit,
     globals: audit.globals,
     pageErrors,
     assetFailures
@@ -159,4 +204,4 @@ if (failures.length) {
   console.error('\nV17 browser audit failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('\nV17 browser audit passed on iPhone and desktop viewports with resolved Field Mark icons.');
+console.log('\nV17.2 browser audit passed on iPhone and desktop with structured sign-scanner workflow and resolved Field Mark icons.');
