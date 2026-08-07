@@ -21,7 +21,8 @@
     "24-weather-feed.css",
     "25-sharing-directions-brand.css",
     "26-verification-editor-install.css",
-    "27-v17-3-product-polish.css"
+    "27-v17-3-product-polish.css",
+    "28-v17-3-icon-and-layout-fixes.css"
   ],
-  "assembledSha256": "0595c814a1033c7a08f83f692a3ac0ac134caafc193d4b0ec25da60d8598e65c"
+  "assembledSha256": "2ea63d53eac65cba60f6ecfeec12296cf402ebcc8ad5e07e2753911ea026f4cb"
 }
