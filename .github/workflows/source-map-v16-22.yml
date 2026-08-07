@@ -1,0 +1,73 @@
+name: Map BrineSearch V16.22 Integration Points
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/source-map-v16-22.yml
+
+permissions:
+  contents: write
+
+jobs:
+  map-source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build focused source map
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('index.html').read_text(encoding='utf-8', errors='replace')
+          out = []
+          out.append(f'INDEX_BYTES={len(text.encode("utf-8"))}')
+          out.append(f'INDEX_LINES={text.count(chr(10))+1}')
+
+          patterns = [
+            r'function\s+[A-Za-z0-9_$]*[Pp]ad[A-Za-z0-9_$]*\s*\(',
+            r'(?:const|let|var)\s+[A-Za-z0-9_$]*[Pp]ad[A-Za-z0-9_$]*\s*=\s*(?:async\s*)?\(',
+            r'Edit Pad', r'Save Pad', r'Add Pad', r'padForm', r'editPad', r'savePad',
+            r'renderPad', r'openPad', r'currentPad', r'padId', r'localStorage',
+            r'indexedDB', r'firebase', r'firestore', r'hashchange'
+          ]
+
+          seen = set()
+          for pat in patterns:
+            out.append('\n' + '='*88)
+            out.append('PATTERN: ' + pat)
+            matches = list(re.finditer(pat, text, re.I))
+            out.append(f'MATCHES={len(matches)}')
+            for i, m in enumerate(matches[:10], 1):
+              key = (m.start()//100, pat)
+              if key in seen: continue
+              seen.add(key)
+              start = max(0, m.start()-900)
+              end = min(len(text), m.end()+1800)
+              snippet = text[start:end]
+              out.append(f'\n--- MATCH {i} @ {m.start()} ---\n{snippet}')
+
+          out.append('\n' + '='*88)
+          out.append('SCRIPT SOURCES')
+          for src in re.findall(r'<script[^>]+src=["\']([^"\']+)', text, re.I):
+            out.append(src)
+
+          out.append('\n' + '='*88)
+          out.append('FORM CONTROLS WITH PAD/OPERATOR/ADDRESS/GATE/WELL/API/COUNTY/TOWNSHIP')
+          for tag in re.findall(r'<(?:input|textarea|select|button)\b[^>]*>', text, re.I):
+            if re.search(r'pad|operator|address|gate|well|api|county|township|direction|note|phone|contact', tag, re.I):
+              out.append(tag[:1000])
+
+          Path('V16.22_SOURCE_MAP.txt').write_text('\n'.join(out), encoding='utf-8')
+          PY
+      - name: Commit source map
+        shell: bash
+        run: |
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add V16.22_SOURCE_MAP.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "Map V16.22 pad scanner integration points"
+          git push
