@@ -1,7 +1,7 @@
 {
   "version": "17.0.0",
   "wrapperStart": "(async () => {",
-  "wrapperEnd": "})();",
+  "wrapperEnd": "});",
   "parts": [
     "00-core-data.js",
     "01-add-pad-wizard.js",
@@ -23,5 +23,5 @@
     "17-assistant-answers.js",
     "18-account-theme-startup.js"
   ],
-  "assembledSha256": "d4904448c47db276db2cef08597b607bad5eec405f9ed8c3310f0e56d04f629f"
+  "assembledSha256": "b5e559b832594202f7695b37ed878c08ab20f67bae751366fdce73c4db461ec6"
 }
