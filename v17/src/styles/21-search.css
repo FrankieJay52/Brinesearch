@@ -173,8 +173,15 @@
   .field-api-stat strong { display:block; font-size:1.35rem; }
   .field-api-stat span { display:block; margin-top:3px; color:var(--muted); font-size:.66rem; line-height:1.3; }
   .field-source-list { display:grid; gap:7px; }
-  .field-source { display:flex; gap:9px; align-items:flex-start; border:1px solid #23394f; border-radius:14px; background:#091522; padding:10px; font-size:.78rem; line-height:1.4; }
-  .field-source-check { color:#83e79a; font-weight:950; }
+  .field-source { display:flex; gap:9px; align-items:center; border:1px solid #23394f; border-radius:14px; background:#091522; padding:10px; font-size:.78rem; line-height:1.4; }
+  .field-source-check { color:#83e79a; font-weight:950; align-self:flex-start; padding-top:2px; }
+  .field-source-copy { flex:1; min-width:0; }
+  .field-source-copy strong { display:block; color:var(--text); font-size:.79rem; overflow-wrap:anywhere; }
+  .field-source-copy small,.field-source-subline { display:block; margin-top:3px; color:var(--muted); font-size:.68rem; line-height:1.42; overflow-wrap:anywhere; }
+  .field-source-link { flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center; min-height:38px; border:1px solid #31566a; border-radius:12px; background:#10283a; color:var(--teal); padding:7px 10px; font-size:.68rem; line-height:1.15; font-weight:900; text-decoration:none; text-align:center; }
+  .field-source-link:hover,.field-source-link:focus-visible { border-color:var(--teal); background:#153348; }
+  .field-official-source-card { border-color:#356d69; background:linear-gradient(145deg,#0c242b,#0a1927); }
+  .field-official-source-card .field-source-link { margin-top:9px; }
   .field-location-mini { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
   .field-location-mini .field-official-item:first-child { grid-column:1/-1; }
 
@@ -207,3 +214,11 @@
     .field-quick-form { grid-template-columns:1fr; }
     .field-quick-save { grid-column:auto; }
   }
+
+  @media (max-width:620px) {
+    .field-source { align-items:flex-start; flex-wrap:wrap; }
+    .field-source-link { width:100%; margin-left:24px; }
+  }
+  html[data-theme="day"] .field-source-link { background:#e8f5f4; border-color:#9bcfc8; color:#08736d; }
+  html[data-theme="day"] .field-source-link:hover,html[data-theme="day"] .field-source-link:focus-visible { background:#dff1ef; border-color:#0b8179; }
+  html[data-theme="day"] .field-official-source-card { background:linear-gradient(145deg,#edf8f6,#f7fbfd); border-color:#9bcfc8; }

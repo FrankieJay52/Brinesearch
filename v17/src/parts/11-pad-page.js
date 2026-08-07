@@ -134,19 +134,131 @@
         ? p.api_verification_summary : {};
       const live = p?.live_odnr_unmatched_api_check && typeof p.live_odnr_unmatched_api_check === "object"
         ? p.live_odnr_unmatched_api_check : {};
-      const savedCount = Number(saved.saved_api_count ?? live.saved_api_count ?? alignedWellRows(p).filter(row => row.api !== "—").length ?? 0);
-      const exact = Number(saved.exact_odnr_matches ?? live.exact_odnr_matches ?? (Array.isArray(p?.official_well_records) ? p.official_well_records.length : 0));
+      const savedRows = alignedWellRows(p).filter(row => row.api !== "—");
+      const savedKeys = new Set(savedRows.map(row => fieldApiKey(row.api)).filter(Boolean));
+      const officialRows = Array.isArray(p?.official_well_records) ? p.official_well_records : [];
+      const officialPad = fieldOfficialPad(p);
+      const officialKeys = new Set([
+        ...officialRows.map(row => fieldApiKey(row?.api)),
+        fieldApiKey(officialPad?.source_api)
+      ].filter(Boolean));
+      const derivedExact = Array.from(savedKeys).filter(key => officialKeys.has(key)).length;
+      const savedCount = Math.max(0, Number(saved.saved_api_count ?? live.saved_api_count ?? savedRows.length ?? 0) || 0);
+      const explicitExact = saved.exact_odnr_matches ?? live.exact_odnr_matches;
+      const exact = Math.min(savedCount, Math.max(0, Number(explicitExact ?? (officialRows.length || derivedExact)) || 0));
       const unmatched = Array.isArray(saved.unmatched_saved_apis)
         ? saved.unmatched_saved_apis
         : (Array.isArray(live.unmatched_apis) ? live.unmatched_apis : []);
-      return { savedCount, exact, unmatched, unmatchedCount:Number(live.unmatched_count ?? unmatched.length) };
+      const unmatchedCount = Math.min(
+        Math.max(0, savedCount - exact),
+        Math.max(0, Number(saved.unmatched_count ?? live.unmatched_count ?? unmatched.length) || 0)
+      );
+      const pendingCount = Math.max(0, savedCount - exact - unmatchedCount);
+      return { savedCount, exact, unmatched, unmatchedCount, pendingCount };
+    }
+
+    function fieldOfficialSourceRecord(p, official = fieldOfficialPad(p)) {
+      if (!official) return null;
+      const state = normalize(p?.state).toLowerCase();
+      const objectId = normalize(official.object_id);
+      const recordId = objectId || normalize(official.pad_id) || normalize(official.source_api);
+      let agency = normalize(official.agency);
+      let service = normalize(official.service || official.database);
+      let type = normalize(official.official_source || official.source_method) || "Official public record";
+      let url = "";
+
+      if (state === "ohio") {
+        agency ||= "Ohio Department of Natural Resources";
+        service ||= "DOG_Services/WellPads public GIS layer";
+        type = "official_odnr_well_pad_layer";
+        url = objectId
+          ? `https://gis2.ohiodnr.gov/ArcGIS/rest/services/DOG_Services/WellPads/MapServer/1/query?where=${encodeURIComponent(`OBJECTID=${objectId}`)}&outFields=*&returnGeometry=true&f=pjson`
+          : "https://gis2.ohiodnr.gov/ArcGIS/rest/services/DOG_Services/WellPads/MapServer/1";
+      } else if (state === "pennsylvania") {
+        agency ||= "Pennsylvania Department of Environmental Protection";
+        service ||= "PA Oil and Gas Mapping / PADEP public records";
+        type = "official_padep_oil_gas_record";
+        url = "https://gis.dep.pa.gov/PaOilAndGasMapping/";
+      } else if (state === "west virginia") {
+        agency ||= "West Virginia Geological and Economic Survey";
+        service ||= "WVGES Pipeline oil and gas well database";
+        type = "official_wvges_oil_gas_record";
+        url = "https://www.wvgs.wvnet.edu/oginfo/pipeline/pipeline2_intro.asp";
+      }
+
+      return {
+        type,
+        agency: agency || "Official public agency",
+        service: service || normalize(official.official_source) || "Official public record",
+        checked: normalize(official.matched_on || p?.researchDate),
+        url,
+        record_id: recordId,
+        source_method: normalize(official.source_method),
+        official_source: normalize(official.official_source)
+      };
+    }
+
+    function fieldSourceRows(p, official = fieldOfficialPad(p)) {
+      const rows = (Array.isArray(p?.researchSources) ? p.researchSources : [])
+        .filter(source => typeof source === "string" || (source && typeof source === "object"));
+      const fallback = fieldOfficialSourceRecord(p, official);
+      if (!fallback) return rows;
+      const fallbackAgency = normalize(fallback.agency).toLowerCase();
+      const fallbackType = normalize(fallback.type).toLowerCase();
+      const alreadyPresent = rows.some(source => {
+        if (typeof source === "string") {
+          const label = normalize(source).toLowerCase();
+          return label.includes(fallbackAgency) || label.includes(normalize(fallback.official_source).toLowerCase());
+        }
+        return normalize(source.type).toLowerCase() === fallbackType
+          || normalize(source.agency).toLowerCase() === fallbackAgency;
+      });
+      return alreadyPresent ? rows : [fallback, ...rows];
     }
 
     function fieldSourceLabel(source) {
       if (typeof source === "string") return source;
       if (!source || typeof source !== "object") return "Official public record";
-      return [source.agency, source.database || source.service, source.checked && `checked ${source.checked}`]
-        .filter(Boolean).join(" · ") || source.type || "Official public record";
+      return [
+        source.agency || source.official_source,
+        source.database || source.service || source.description,
+        source.checked && `checked ${source.checked}`
+      ].filter(Boolean).join(" · ") || source.type || "Official public record";
+    }
+
+    function fieldSourceUrl(source) {
+      const value = normalize(source?.url || source?.source_url);
+      return /^https:\/\/[^\s]+$/i.test(value) ? value : "";
+    }
+
+    function fieldSourceMarkup(source) {
+      const url = fieldSourceUrl(source);
+      const recordId = normalize(source?.record_id || source?.object_id || source?.pad_id || source?.source_api);
+      const details = [
+        recordId && `Official record ID ${recordId}`,
+        normalize(source?.source_method) && `Location method: ${normalize(source.source_method)}`
+      ].filter(Boolean).join(" · ");
+      return `<div class="field-source">
+        <span class="field-source-check">✓</span>
+        <span class="field-source-copy"><strong>${esc(fieldSourceLabel(source))}</strong>${details ? `<small>${esc(details)}</small>` : ""}</span>
+        ${url ? `<a class="field-source-link" href="${esc(url)}" target="_blank" rel="noopener">View official source</a>` : ""}
+      </div>`;
+    }
+
+    function fieldResearchStatusLabel(value) {
+      const raw = normalize(value);
+      if (!raw) return "";
+      const labels = {
+        official_api_and_pad_verified: "Official API and pad verified",
+        official_api_verified: "Official API verified",
+        official_pad_verified: "Official pad verified",
+        no_reliable_official_pad_match: "Official match needs review"
+      };
+      if (labels[raw]) return labels[raw];
+      return raw.replace(/_/g, " ").replace(/\w/g, ch => ch.toUpperCase())
+        .replace(/Api/g, "API").replace(/Gps/g, "GPS")
+        .replace(/Odnr/g, "ODNR").replace(/Padep/g, "PADEP")
+        .replace(/Wvges/g, "WVGES");
     }
 
     function fieldWellCards(p) {
@@ -273,8 +385,9 @@
       const officialOperator = normalize(official?.operator) || companyLabel;
       const officialPadStatus = normalize(official?.pad_status) || normalize(p.operatingStatus) || "Status not listed";
       const apiSummary = fieldApiSummary(p);
+      const officialSource = fieldOfficialSourceRecord(p, official);
       document.title = `${officialPadName} · ${officialOperator} · BrineSearch`;
-      const sourceRows = Array.isArray(p.researchSources) ? p.researchSources : [];
+      const sourceRows = fieldSourceRows(p, official);
       const cleanGeo = value => { const v = normalize(value); return v && v !== "." ? v : ""; };
       const formatGeoLabel = (value, kind = "") => {
         let v = cleanGeo(value);
@@ -290,26 +403,32 @@
       ].filter(Boolean).join(" · ");
       const status = officialPadStatus;
       const rawResearchStatus = normalize(p.researchStatus || p.verificationStatus);
-      const researchLabel = rawResearchStatus === "no_reliable_official_pad_match"
-        ? "Official match needs review"
-        : rawResearchStatus.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
+      const researchLabel = fieldResearchStatusLabel(rawResearchStatus);
       const researchTone = /verified|active|exact/i.test(rawResearchStatus) ? "good" : "review";
+      const apiReviewCount = apiSummary.unmatchedCount || apiSummary.pendingCount;
+      const apiReviewLabel = apiSummary.unmatchedCount
+        ? "Checked with no exact official well match"
+        : (apiSummary.pendingCount ? "Not individually confirmed yet" : "No unmatched API numbers");
+      const apiSectionTone = apiSummary.savedCount && !apiSummary.unmatchedCount && !apiSummary.pendingCount ? "good" : "review";
       const directionsText = has(p.directionsClear) ? p.directionsClear : "";
       const copyDirectionsText = has(p.Structured_Road_Sequence) ? directionCopyText(p.Structured_Road_Sequence, p) : directionsText;
       const wellRows = alignedWellRows(p);
 
       const officialInfo = official ? `
         <div class="field-official-grid">
+          ${officialSource ? `<div class="field-official-item full field-official-source-card"><div class="field-label">OFFICIAL DATA SOURCE</div><div class="field-value">${esc(officialSource.agency)}</div><div class="field-source-subline">${esc(officialSource.service)}</div>${fieldSourceUrl(officialSource) ? `<a class="field-source-link" href="${esc(fieldSourceUrl(officialSource))}" target="_blank" rel="noopener">View official source</a>` : ""}</div>` : ""}
           <div class="field-official-item full"><div class="field-label">OFFICIAL PAD NAME</div><div class="field-value">${esc(official.pad_name)}</div></div>
           <div class="field-official-item full"><div class="field-label">OFFICIAL OPERATOR</div><div class="field-value">${esc(official.operator)}</div></div>
           <div class="field-official-item"><div class="field-label">PAD STATUS</div><div class="field-value">${esc(official.pad_status)}</div></div>
           <div class="field-official-item"><div class="field-label">PAD PERMIT</div><div class="field-value">${esc(official.pad_permit ?? "Not listed")}</div></div>
           <div class="field-official-item full"><div class="field-label">OFFICIAL PAD ID</div><div class="field-value mono">${esc(official.pad_id)}</div></div>
+          <div class="field-official-item"><div class="field-label">SOURCE RECORD ID</div><div class="field-value mono">${esc(officialSource?.record_id || official.object_id || official.source_api || official.pad_id || "Not listed")}</div></div>
+          <div class="field-official-item"><div class="field-label">MATCHED ON</div><div class="field-value">${esc(officialSource?.checked || official.matched_on || p.researchDate || "Not listed")}</div></div>
           <div class="field-official-item"><div class="field-label">OFFICIAL COUNTY</div><div class="field-value">${esc(official.county)}</div></div>
           <div class="field-official-item"><div class="field-label">OFFICIAL TOWNSHIP</div><div class="field-value">${esc(official.township)}</div></div>
           <div class="field-official-item"><div class="field-label">OFFICIAL LATITUDE</div><div class="field-value mono">${esc(official.latitude)}</div></div>
           <div class="field-official-item"><div class="field-label">OFFICIAL LONGITUDE</div><div class="field-value mono">${esc(official.longitude)}</div></div>
-          <div class="field-official-item"><div class="field-label">LOCATION SOURCE</div><div class="field-value">${esc(official.source_method)}</div></div>
+          <div class="field-official-item"><div class="field-label">LOCATION METHOD</div><div class="field-value">${esc(official.source_method || "Not listed")}</div></div>
           <div class="field-official-item"><div class="field-label">DISTANCE FROM SAVED POINT</div><div class="field-value">${official.distance_from_saved_miles !== null && official.distance_from_saved_miles !== undefined ? `${esc(official.distance_from_saved_miles)} mi` : "Not compared"}</div></div>
         </div>` : `<div class="empty">No official pad-level record is attached yet. Saved directions and field location remain available above.</div>`;
 
@@ -364,12 +483,12 @@
           </details>
 
           <details class="field-reference-details">
-            <summary><span class="field-reference-summary">API Verification and Sources<small>${apiSummary.exact} of ${apiSummary.savedCount} saved API number${apiSummary.savedCount === 1 ? "" : "s"} matched to the public layer</small></span></summary>
+            <summary><span class="field-reference-summary">API Verification and Sources<small>${apiSummary.exact} of ${apiSummary.savedCount} saved API number${apiSummary.savedCount === 1 ? "" : "s"} confirmed by attached official records</small></span></summary>
             <div class="field-reference-body">
-              <div class="field-priority-head"><h2 class="sr-only-head">API Verification and Sources</h2><span class="field-status-chip ${apiSummary.exact===apiSummary.savedCount && apiSummary.savedCount ? "good" : "review"}">${esc(researchLabel || "Review status")}</span></div>
-              <div class="field-api-summary"><div class="field-api-stat"><strong>${apiSummary.savedCount}</strong><span>Saved API numbers</span></div><div class="field-api-stat"><strong class="tone-good">${apiSummary.exact}</strong><span>Exact official API matches</span></div><div class="field-api-stat"><strong class="tone-warn">${apiSummary.unmatchedCount}</strong><span>Not in current public well-point layer</span></div></div>
+              <div class="field-priority-head"><h2 class="sr-only-head">API Verification and Sources</h2><span class="field-status-chip ${apiSectionTone}">${esc(researchLabel || "Review status")}</span></div>
+              <div class="field-api-summary"><div class="field-api-stat"><strong>${apiSummary.savedCount}</strong><span>Saved API numbers</span></div><div class="field-api-stat"><strong class="tone-good">${apiSummary.exact}</strong><span>Officially confirmed API numbers</span></div><div class="field-api-stat"><strong class="tone-warn">${apiReviewCount}</strong><span>${esc(apiReviewLabel)}</span></div></div>
               ${has(p.researchNote) ? `<p class="field-public-note">${esc(p.researchNote)}</p>` : ""}
-              <div class="field-source-list">${sourceRows.length ? sourceRows.map(source => `<div class="field-source"><span class="field-source-check">✓</span><span>${esc(fieldSourceLabel(source))}</span></div>`).join("") : `<div class="field-source"><span class="field-source-check">•</span><span>No public research source is attached yet.</span></div>`}</div>
+              <div class="field-source-list">${sourceRows.length ? sourceRows.map(fieldSourceMarkup).join("") : `<div class="field-source"><span class="field-source-check">•</span><span class="field-source-copy"><strong>No named public source was stored for this record.</strong><small>The official match can still be reviewed by an owner.</small></span></div>`}</div>
             </div>
           </details>
 
