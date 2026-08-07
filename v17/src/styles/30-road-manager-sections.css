@@ -11,6 +11,19 @@
 .road-group-caret{font-size:1.25rem;line-height:1;transition:transform .18s ease;color:var(--accent)}
 .road-database-group[open] .road-group-caret{transform:rotate(180deg)}
 .road-group-list{display:grid;gap:8px;padding:10px}
+.road-state-category-list{display:grid;gap:10px;padding:10px}
+.road-state-category{overflow:hidden;border:1px solid color-mix(in srgb,var(--line) 80%,var(--accent) 20%);border-radius:14px;background:color-mix(in srgb,var(--panel) 82%,transparent)}
+.road-state-category>header{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:color-mix(in srgb,var(--panel-2) 90%,var(--accent) 10%);border-bottom:1px solid var(--line)}
+.road-state-category>header span{display:grid;gap:2px;min-width:0}
+.road-state-category>header strong{font-size:.83rem;line-height:1.2}
+.road-state-category>header small{font-size:.63rem;line-height:1.25;color:var(--muted)}
+.road-state-category>header b{display:inline-flex;align-items:center;justify-content:center;min-width:29px;height:25px;padding:0 7px;border:1px solid var(--line);border-radius:999px;background:var(--panel);font-size:.68rem}
+.road-state-category>.road-group-list{padding:8px}
+.road-database-group-highways>summary{background:color-mix(in srgb,var(--panel) 80%,#4d91ff 20%)}
+.road-state-oh>summary{background:color-mix(in srgb,var(--panel) 84%,#43c7ba 16%)}
+.road-state-pa>summary{background:color-mix(in srgb,var(--panel) 86%,#9c7bff 14%)}
+.road-state-wv>summary{background:color-mix(in srgb,var(--panel) 86%,#e1ad55 14%)}
+.road-state-other>summary{background:color-mix(in srgb,var(--panel) 88%,#ef795f 12%)}
 .road-row-grouped{position:relative}
 .road-row-grouped>button{display:grid!important;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px;width:100%;padding:0!important}
 .road-row-copy{display:block;min-width:0}
@@ -31,6 +44,10 @@ body:has(#roadManagerEditor:not(:empty)){overflow:hidden}
   .road-group-heading strong{font-size:.92rem}
   .road-group-heading small{font-size:.65rem}
   .road-group-list{padding:8px}
+  .road-state-category-list{padding:8px;gap:8px}
+  .road-state-category>header{padding:9px 10px}
+  .road-state-category>header strong{font-size:.8rem}
+  .road-state-category>header small{font-size:.6rem}
   .road-row-grouped>button{grid-template-columns:minmax(0,1fr)}
   .road-row-open-cue{justify-self:start;margin-top:7px}
   #roadManagerEditor:not(:empty){padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom);align-items:stretch}
