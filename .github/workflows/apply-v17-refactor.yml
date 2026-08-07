@@ -32,6 +32,19 @@ jobs:
           cache-dependency-path: package-lock.json
         continue-on-error: true
 
+      - name: Account for existing external scripts
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/v17-refactor/create_v17.py')
+          s = p.read_text()
+          old = "script_matches = list(re.finditer(r'<script(?:\\s+id=\"([^\"]+)\")?[^>]*>([\\s\\S]*?)</script>', html, re.I))\nif len(script_matches) != 5:\n    raise SystemExit(f'Expected 5 inline scripts, found {len(script_matches)}')\n\ntheme, main_js, weather, scroll_guard, field_runtime = [match.group(2) for match in script_matches]"
+          new = "all_script_matches = list(re.finditer(r'<script([^>]*)>([\\s\\S]*?)</script>', html, re.I))\nscript_matches = [match for match in all_script_matches if not re.search(r'\\bsrc\\s*=', match.group(1), re.I)]\nif len(script_matches) != 5:\n    raise SystemExit(f'Expected 5 inline scripts, found {len(script_matches)}')\n\ntheme, main_js, weather, scroll_guard, field_runtime = [match.group(2) for match in script_matches]"
+          if old not in s:
+              raise SystemExit('Generator patch target not found')
+          p.write_text(s.replace(old, new))
+          PY
+
       - name: Generate modular V17 source
         run: python .github/v17-refactor/create_v17.py
 
