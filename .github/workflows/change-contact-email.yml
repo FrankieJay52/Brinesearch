@@ -1,0 +1,119 @@
+name: Update BrineSearch contact email
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/change-contact-email.yml
+
+permissions:
+  contents: write
+
+jobs:
+  update-contact-email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Replace all contact email addresses
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          target = 'frankjhaller@gmail.com'
+          workflow = Path('.github/workflows/change-contact-email.yml')
+          allowed_suffixes = {
+              '.html', '.htm', '.js', '.mjs', '.cjs', '.json', '.md', '.txt',
+              '.css', '.webmanifest', '.xml', '.csv', '.yml', '.yaml'
+          }
+          contact_words = re.compile(r'contact|support|help|privacy|copyright|report|feedback|email', re.I)
+          email_re = re.compile(r'(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}(?![A-Za-z0-9._%+-])')
+          mailto_re = re.compile(r'(?i)(mailto:)[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}')
+          brinesearch_re = re.compile(r'(?i)[A-Za-z0-9._%+-]+@brinesearch\.com')
+
+          changed = []
+          replacements = []
+
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or '.git' in path.parts or path == workflow:
+                  continue
+              if path.suffix.lower() not in allowed_suffixes and path.name not in {'CNAME'}:
+                  continue
+              try:
+                  original = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+
+              text = mailto_re.sub(lambda m: m.group(1) + target, original)
+              text = brinesearch_re.sub(target, text)
+
+              lines = []
+              for line in text.splitlines(keepends=True):
+                  if contact_words.search(line):
+                      line = email_re.sub(lambda m: target if m.group(0).lower() != target.lower() else m.group(0), line)
+                  lines.append(line)
+              text = ''.join(lines)
+
+              if text != original:
+                  old_emails = sorted({e.lower() for e in email_re.findall(original) if e.lower() != target.lower()})
+                  path.write_text(text, encoding='utf-8')
+                  changed.append(str(path))
+                  replacements.extend(old_emails)
+
+          sw = Path('sw.js')
+          if sw.exists():
+              original = sw.read_text(encoding='utf-8')
+              updated = original.replace('brinesearch-v16-20-contact-1', 'brinesearch-v16-20-contact-1')
+              updated = updated.replace('brinesearch-v16-20', 'brinesearch-v16-20-contact-1')
+              if updated != original:
+                  sw.write_text(updated, encoding='utf-8')
+                  if 'sw.js' not in changed:
+                      changed.append('sw.js')
+
+          remaining_mailto = []
+          remaining_brinesearch = []
+          target_count = 0
+          for path in Path('.').rglob('*'):
+              if not path.is_file() or '.git' in path.parts or path == workflow:
+                  continue
+              if path.suffix.lower() not in allowed_suffixes and path.name not in {'CNAME'}:
+                  continue
+              try:
+                  text = path.read_text(encoding='utf-8')
+              except UnicodeDecodeError:
+                  continue
+              target_count += text.lower().count(target.lower())
+              for match in mailto_re.finditer(text):
+                  if target.lower() not in match.group(0).lower():
+                      remaining_mailto.append(f'{path}: {match.group(0)}')
+              for match in brinesearch_re.finditer(text):
+                  remaining_brinesearch.append(f'{path}: {match.group(0)}')
+
+          if remaining_mailto:
+              raise SystemExit('Old mailto links remain:\n' + '\n'.join(remaining_mailto))
+          if remaining_brinesearch:
+              raise SystemExit('Old @brinesearch.com addresses remain:\n' + '\n'.join(remaining_brinesearch))
+          if target_count == 0:
+              raise SystemExit('New contact email was not found after replacement')
+
+          print('Changed files:')
+          for item in changed:
+              print(' -', item)
+          print('Replaced addresses:', ', '.join(sorted(set(replacements))) or 'mailto/contact links')
+          print('New contact address occurrences:', target_count)
+          PY
+
+      - name: Commit contact-email update
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/change-contact-email.yml
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "Change all contact email to frankjhaller@gmail.com"
+          git push origin HEAD:main
