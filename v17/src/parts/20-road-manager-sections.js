@@ -1,41 +1,15 @@
     /* BrineSearch Road Manager — grouped road sections and visible road editor */
-    const ROAD_DATABASE_GROUPS = [
-      {
-        key: "highways",
-        title: "Highways",
-        detail: "Interstates and U.S. highways",
-        matches: row => ["interstate", "us_route"].includes(row?.road_type) && !row?.candidate_only
-      },
-      {
-        key: "state-routes",
-        title: "State routes",
-        detail: "Ohio, Pennsylvania, and West Virginia numbered state routes",
-        matches: row => row?.road_type === "state_route" && !row?.candidate_only
-      },
-      {
-        key: "county-township",
-        title: "County and township roads",
-        detail: "County-road and township-road records",
-        matches: row => ["county", "township"].includes(row?.road_type) && !row?.candidate_only
-      },
-      {
-        key: "local-roads",
-        title: "Local roads",
-        detail: "Regular named roads that are not numbered highways",
-        matches: row => row?.road_type === "local" && !row?.candidate_only
-      },
-      {
-        key: "access-roads",
-        title: "Access and lease roads",
-        detail: "Private access, lease, gate, and pad-road records",
-        matches: row => row?.road_type === "access" && !row?.candidate_only
-      },
-      {
-        key: "candidates-other",
-        title: "Candidates and other roads",
-        detail: "Records still needing classification or Owner review",
-        matches: row => Boolean(row?.candidate_only) || !["interstate", "us_route", "state_route", "county", "township", "local", "access"].includes(row?.road_type)
-      }
+    const ROAD_STATE_GROUPS = [
+      { code: "OH", title: "Ohio roads", detail: "Ohio state, county, township, local, and access roads" },
+      { code: "PA", title: "Pennsylvania roads", detail: "Pennsylvania state, county, township, local, and access roads" },
+      { code: "WV", title: "West Virginia roads", detail: "West Virginia state, county, township, local, and access roads" }
+    ];
+    const ROAD_STATE_CATEGORIES = [
+      { key: "state-routes", title: "State routes", detail: "Numbered state highways", matches: row => row?.road_type === "state_route" && !row?.candidate_only },
+      { key: "county-township", title: "County and township roads", detail: "County-road and township-road records", matches: row => ["county", "township"].includes(row?.road_type) && !row?.candidate_only },
+      { key: "local-roads", title: "Local roads", detail: "Regular named public roads", matches: row => row?.road_type === "local" && !row?.candidate_only },
+      { key: "access-roads", title: "Access and lease roads", detail: "Private access, lease, gate, and pad roads", matches: row => row?.road_type === "access" && !row?.candidate_only },
+      { key: "candidates-other", title: "Candidates and other roads", detail: "Records still needing classification or Owner review", matches: row => Boolean(row?.candidate_only) || !["state_route", "county", "township", "local", "access"].includes(row?.road_type) }
     ];
 
     function roadNumberForSort(row) {
@@ -48,6 +22,14 @@
       const numberDifference = roadNumberForSort(a) - roadNumberForSort(b);
       if (numberDifference) return numberDifference;
       return String(a?.canonical_name || "").localeCompare(String(b?.canonical_name || ""), undefined, { numeric: true, sensitivity: "base" });
+    }
+
+    function groupedRoadStateCode(row) {
+      const value = String(row?.state || "").trim().toUpperCase();
+      if (value === "OHIO") return "OH";
+      if (value === "PENNSYLVANIA") return "PA";
+      if (value === "WEST VIRGINIA") return "WV";
+      return value;
     }
 
     roadRowHtml = function roadRowHtmlGrouped(row) {
@@ -71,31 +53,64 @@
       </article>`;
     };
 
+    function roadCategoryBlockHtml(category, rows) {
+      const categoryRows = rows.filter(category.matches).sort(compareRoadRowsGrouped);
+      if (!categoryRows.length) return "";
+      return `<section class="road-state-category road-state-category-${category.key}">
+        <header><span><strong>${esc(category.title)}</strong><small>${esc(category.detail)}</small></span><b>${categoryRows.length}</b></header>
+        <div class="road-group-list">${categoryRows.map(roadRowHtml).join("")}</div>
+      </section>`;
+    }
+
+    function roadStateSectionHtml(stateGroup, rows, searchText = "") {
+      const stateRows = rows.filter(row => groupedRoadStateCode(row) === stateGroup.code && !["interstate", "us_route"].includes(row?.road_type));
+      if (!stateRows.length) return "";
+      const categorized = ROAD_STATE_CATEGORIES.map(category => roadCategoryBlockHtml(category, stateRows)).filter(Boolean).join("");
+      const open = Boolean(searchText) || stateGroup.code === "OH";
+      return `<details class="road-database-group road-state-group road-state-${stateGroup.code.toLowerCase()}" ${open ? "open" : ""}>
+        <summary>
+          <span class="road-group-heading"><strong>${esc(stateGroup.title)}</strong><small>${esc(stateGroup.detail)}</small></span>
+          <span class="road-group-count">${stateRows.length}</span>
+          <span class="road-group-caret" aria-hidden="true">⌄</span>
+        </summary>
+        <div class="road-state-category-list">${categorized}</div>
+      </details>`;
+    }
+
     function groupedRoadDatabaseHtml(rows, searchText = "") {
-      const assigned = new Set();
-      const sections = ROAD_DATABASE_GROUPS.map(group => {
-        const groupRows = rows.filter(row => {
-          if (assigned.has(row.id) || !group.matches(row)) return false;
-          assigned.add(row.id);
-          return true;
-        }).sort(compareRoadRowsGrouped);
-        if (!groupRows.length) return "";
-        const open = searchText || ["highways", "state-routes", "county-township", "local-roads"].includes(group.key);
-        return `<details class="road-database-group road-database-group-${group.key}" ${open ? "open" : ""}>
+      const highways = rows
+        .filter(row => ["interstate", "us_route"].includes(row?.road_type) && !row?.candidate_only)
+        .sort((a, b) => {
+          const typeDifference = (a.road_type === "interstate" ? 0 : 1) - (b.road_type === "interstate" ? 0 : 1);
+          return typeDifference || compareRoadRowsGrouped(a, b);
+        });
+      const usedIds = new Set(highways.map(row => row.id));
+      const sections = [];
+
+      if (highways.length) {
+        sections.push(`<details class="road-database-group road-database-group-highways" open>
           <summary>
-            <span class="road-group-heading"><strong>${esc(group.title)}</strong><small>${esc(group.detail)}</small></span>
-            <span class="road-group-count">${groupRows.length}</span>
+            <span class="road-group-heading"><strong>Highways</strong><small>Interstates and U.S. highways · kept together across state lines</small></span>
+            <span class="road-group-count">${highways.length}</span>
             <span class="road-group-caret" aria-hidden="true">⌄</span>
           </summary>
-          <div class="road-group-list">${groupRows.map(roadRowHtml).join("")}</div>
-        </details>`;
-      }).filter(Boolean);
+          <div class="road-group-list">${highways.map(roadRowHtml).join("")}</div>
+        </details>`);
+      }
 
-      const unassigned = rows.filter(row => !assigned.has(row.id)).sort(compareRoadRowsGrouped);
+      ROAD_STATE_GROUPS.forEach(stateGroup => {
+        const stateRows = rows.filter(row => groupedRoadStateCode(row) === stateGroup.code && !usedIds.has(row.id) && !["interstate", "us_route"].includes(row?.road_type));
+        stateRows.forEach(row => usedIds.add(row.id));
+        const section = roadStateSectionHtml(stateGroup, stateRows, searchText);
+        if (section) sections.push(section);
+      });
+
+      const unassigned = rows.filter(row => !usedIds.has(row.id)).sort(compareRoadRowsGrouped);
       if (unassigned.length) {
-        sections.push(`<details class="road-database-group road-database-group-other" open>
-          <summary><span class="road-group-heading"><strong>Other roads</strong><small>Records that do not yet fit a road section</small></span><span class="road-group-count">${unassigned.length}</span><span class="road-group-caret" aria-hidden="true">⌄</span></summary>
-          <div class="road-group-list">${unassigned.map(roadRowHtml).join("")}</div>
+        const categorized = ROAD_STATE_CATEGORIES.map(category => roadCategoryBlockHtml(category, unassigned)).filter(Boolean).join("");
+        sections.push(`<details class="road-database-group road-state-group road-state-other" ${searchText ? "open" : ""}>
+          <summary><span class="road-group-heading"><strong>State not set / other roads</strong><small>Records that still need a state or road classification</small></span><span class="road-group-count">${unassigned.length}</span><span class="road-group-caret" aria-hidden="true">⌄</span></summary>
+          <div class="road-state-category-list">${categorized || `<div class="road-group-list">${unassigned.map(roadRowHtml).join("")}</div>`}</div>
         </details>`);
       }
       return sections.join("");
