@@ -1,0 +1,204 @@
+name: Analyze Ascent Pickens turn-by-turn mileage
+
+on:
+  push:
+    branches:
+      - ascent-pickens-mileage-analysis
+    paths:
+      - .github/workflows/ascent-pickens-mileage-analysis.yml
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install geometry tools
+        run: python3 -m pip install --disable-pip-version-check shapely pyproj networkx
+
+      - name: Measure Pickens from OH-9 to the saved pad approach
+        run: |
+          python3 - <<'PY'
+          import json
+          import math
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          import networkx as nx
+          from pyproj import Transformer
+          from shapely.geometry import Point, LineString, MultiLineString, GeometryCollection, shape, mapping
+          from shapely.ops import unary_union, linemerge, nearest_points, transform
+
+          PAD = (-80.977135, 40.182544)
+          BBOX = (-81.035, 40.145, -80.935, 40.225)
+          SERVICE = 'https://tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0/query'
+          params = {
+            'where': '1=1',
+            'geometry': ','.join(map(str, BBOX)),
+            'geometryType': 'esriGeometryEnvelope',
+            'inSR': '4326',
+            'spatialRel': 'esriSpatialRelIntersects',
+            'outFields': 'OBJECTID,NLF_ID,JURISDICTION_CD,COUNTY_CD,ROUTE_TYPE,ROUTE_NBR,ROUTE_SUFFIX,CARDINALITY_CD,STREET_NAME,STREET_SUFFIX_CD,SEGMENT_LENGTH_NBR,CTL_BEGIN_NBR,CTL_END_NBR',
+            'returnGeometry': 'true',
+            'outSR': '4326',
+            'f': 'geojson',
+            'resultRecordCount': '200000',
+          }
+          url = SERVICE + '?' + urllib.parse.urlencode(params)
+          req = urllib.request.Request(url, headers={'User-Agent': 'BrineSearch-Pickens-Road-Audit/1.0'})
+          with urllib.request.urlopen(req, timeout=90) as response:
+              data = json.load(response)
+          if data.get('error'):
+              raise SystemExit(data['error'])
+          features = data.get('features', [])
+
+          def route_number(props):
+              return str(props.get('ROUTE_NBR') or '').strip().lstrip('0') or '0'
+
+          def selected_route(feature, number):
+              props = feature.get('properties') or {}
+              return (props.get('ROUTE_TYPE') or '').strip() == 'SR' and route_number(props) == str(number)
+
+          route9_features = [feature for feature in features if selected_route(feature, 9)]
+          route519_features = [feature for feature in features if selected_route(feature, 519)]
+          if not route9_features:
+              raise SystemExit('ODOT SR-9 geometry was not found in the Pickens analysis area.')
+          if not route519_features:
+              raise SystemExit('ODOT SR-519 geometry was not found in the Pickens analysis area.')
+
+          route9 = unary_union([shape(feature['geometry']) for feature in route9_features])
+          route519 = unary_union([shape(feature['geometry']) for feature in route519_features])
+          pad_point = Point(PAD)
+
+          intersection_geometry = route9.intersection(route519)
+          if intersection_geometry.is_empty:
+              near9, near519 = nearest_points(route9, route519)
+              separation_degrees = near9.distance(near519)
+              if separation_degrees > 0.00015:
+                  raise SystemExit(f'OH-9 and OH-519 did not intersect closely enough: {separation_degrees}')
+              intersection_point = Point((near9.x + near519.x) / 2, (near9.y + near519.y) / 2)
+              intersection_method = 'nearest official centerlines'
+          else:
+              if intersection_geometry.geom_type == 'Point':
+                  intersection_point = intersection_geometry
+              elif intersection_geometry.geom_type == 'MultiPoint':
+                  intersection_point = min(intersection_geometry.geoms, key=lambda point: point.distance(pad_point))
+              else:
+                  intersection_point = nearest_points(intersection_geometry, pad_point)[0]
+              intersection_method = 'official centerline intersection'
+
+          pad_projection = nearest_points(route519, pad_point)[0]
+          to_utm = Transformer.from_crs('EPSG:4326', 'EPSG:32617', always_xy=True).transform
+          route519_utm = transform(to_utm, route519)
+          intersection_utm = transform(to_utm, intersection_point)
+          pad_projection_utm = transform(to_utm, pad_projection)
+          pad_utm = transform(to_utm, pad_point)
+
+          def line_parts(geometry):
+              if geometry.geom_type == 'LineString':
+                  return [geometry]
+              if geometry.geom_type == 'MultiLineString':
+                  return list(geometry.geoms)
+              if geometry.geom_type == 'GeometryCollection':
+                  result = []
+                  for item in geometry.geoms:
+                      result.extend(line_parts(item))
+                  return result
+              return []
+
+          dissolved = unary_union(line_parts(route519_utm))
+          merged = linemerge(dissolved)
+          graph = nx.Graph()
+          for line in line_parts(merged):
+              coords = list(line.coords)
+              for start, end in zip(coords, coords[1:]):
+                  a = (round(start[0], 3), round(start[1], 3))
+                  b = (round(end[0], 3), round(end[1], 3))
+                  weight = math.dist(a, b)
+                  if weight > 0:
+                      graph.add_edge(a, b, weight=weight)
+
+          def insert_point(point, label):
+              best = None
+              for a, b, edge_data in list(graph.edges(data=True)):
+                  segment = LineString([a, b])
+                  projected = segment.interpolate(segment.project(point))
+                  distance = projected.distance(point)
+                  if best is None or distance < best[0]:
+                      best = (distance, a, b, projected, edge_data['weight'])
+              if best is None:
+                  raise SystemExit('Could not insert a measurement point into the OH-519 road graph.')
+              distance, a, b, projected, weight = best
+              node = (round(projected.x, 3), round(projected.y, 3), label)
+              graph.remove_edge(a, b)
+              graph.add_edge(a, node, weight=math.dist(a, (projected.x, projected.y)))
+              graph.add_edge(node, b, weight=math.dist((projected.x, projected.y), b))
+              return node, distance
+
+          start_node, start_snap_m = insert_point(intersection_utm, 'OH9_OH519')
+          end_node, end_snap_m = insert_point(pad_projection_utm, 'PAD_APPROACH')
+          distance_meters = nx.shortest_path_length(graph, start_node, end_node, weight='weight')
+          distance_miles = distance_meters / 1609.344
+          pad_offset_meters = pad_utm.distance(pad_projection_utm)
+
+          report = {
+            'pad': 'PICKENS',
+            'company': 'Ascent',
+            'saved_pad_gps': {'longitude': PAD[0], 'latitude': PAD[1]},
+            'source': 'Ohio Department of Transportation Road Inventory',
+            'source_service': SERVICE.rsplit('/query', 1)[0],
+            'query_url': url,
+            'no_guess_policy': 'Only the explicit saved OH-9 to OH-519 route was measured. No local or private road was guessed.',
+            'intersection': {
+              'roads': ['OH-9', 'OH-519'],
+              'longitude': intersection_point.x,
+              'latitude': intersection_point.y,
+              'method': intersection_method,
+            },
+            'pad_approach_on_oh_519': {
+              'longitude': pad_projection.x,
+              'latitude': pad_projection.y,
+              'saved_gps_offset_feet': pad_offset_meters * 3.280839895,
+            },
+            'official_centerline_distance_miles': distance_miles,
+            'display_distance_miles': round(distance_miles, 1),
+            'saved_field_direction_distance_miles': 1.0,
+            'difference_from_saved_miles': distance_miles - 1.0,
+            'turn_direction': 'left',
+            'turn_source': 'existing saved field directions: OH-9 south to OH-519 east',
+            'recommended_clear_directions': [
+              'From Cadiz, take OH-9 south.',
+              f'Turn left onto OH-519 east. Continue {round(distance_miles, 1):.1f} miles.',
+              'Turn right onto the lease road; the Pickens pad is ahead.'
+            ],
+            'field_verification_status': 'pending',
+            'geometry_counts': {'OH-9': len(route9_features), 'OH-519': len(route519_features)},
+            'graph_snap_error_meters': {'intersection': start_snap_m, 'pad_approach': end_snap_m},
+          }
+          Path('pickens-mileage-report.json').write_text(json.dumps(report, indent=2) + '\n')
+          Path('pickens-odot-selected-features.geojson').write_text(json.dumps({
+            'type': 'FeatureCollection',
+            'features': route9_features + route519_features,
+          }) + '\n')
+          print(json.dumps(report, indent=2))
+          PY
+
+      - name: Upload Pickens analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ascent-Pickens-mileage-analysis
+          path: |
+            pickens-mileage-report.json
+            pickens-odot-selected-features.geojson
+          if-no-files-found: error
+          retention-days: 7
