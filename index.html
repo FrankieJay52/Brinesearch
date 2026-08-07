@@ -5926,10 +5926,10 @@ input:not([type="checkbox"]):not([type="radio"]), select, textarea { width: 100%
 .street-sign-board{display:grid;place-items:center;min-width:92px;max-width:100%;min-height:30px;padding:5px 12px;border-radius:6px;background:#247a61;color:#fff;border:2px solid #dff8ef;font-size:.72rem;font-weight:950;letter-spacing:.045em;line-height:1.12;text-align:center;text-transform:uppercase;overflow-wrap:anywhere;transform:skew(-3deg)}
 .street-sign-post{width:4px;height:13px;background:#aebdca;border-radius:2px;margin-top:-1px}
 html[data-theme="day"] .direction-road-sign.exit-sign,html[data-theme="day"] .street-sign-board{filter:saturate(.95) contrast(1.05)}
-.direction-maneuver{flex:0 0 auto;color:#f3f7fb;font-size:1rem;font-weight:900;line-height:1.25;white-space:nowrap}
+.direction-maneuver{flex:0 0 auto;color:#f3f7fb;font-size:1rem;font-weight:900;line-height:1.25;white-space:nowrap}.direction-compass{flex:0 0 auto;color:#8fe5d9;font-size:.88rem;font-weight:950;line-height:1.2;white-space:nowrap}.direction-custom-instruction{min-width:0;color:#f3f7fb;font-size:1rem;font-weight:900;line-height:1.3;overflow-wrap:anywhere}
 .direction-pro-line{flex-wrap:nowrap;min-width:0}
 .direction-pro-line .direction-road-sign,.direction-pro-line .direction-highway-badge{min-width:0}
-@media(max-width:620px){.direction-pro-line{align-items:center;flex-wrap:nowrap;gap:8px}.direction-maneuver{font-size:.88rem;white-space:normal;max-width:92px}.direction-distance{margin-left:auto;width:auto;padding-left:0;font-size:.82rem}.direction-road-sign.street-sign{min-width:86px;max-width:42vw}.street-sign-board{min-width:82px;padding-inline:8px;font-size:.64rem}.direction-highway-badge{flex:0 1 auto}.direction-road-sign.exit-sign{min-width:52px}}
+@media(max-width:620px){.direction-pro-line{align-items:center;flex-wrap:nowrap;gap:8px}.direction-maneuver{font-size:.82rem;white-space:normal;max-width:88px}.direction-compass{font-size:.78rem;white-space:normal;max-width:72px}.direction-custom-instruction{font-size:.9rem}.direction-distance{margin-left:auto;width:auto;padding-left:0;font-size:.82rem}.direction-road-sign.street-sign{min-width:86px;max-width:42vw}.street-sign-board{min-width:82px;padding-inline:8px;font-size:.64rem}.direction-highway-badge{flex:0 1 auto}.direction-road-sign.exit-sign{min-width:52px}}
 </style>
 
 
@@ -6231,7 +6231,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
 <footer class="footer">
   <div class="shell legal-footer">
     <div class="legal-footer-brand" aria-label="BrineSearch"><img class="footer-logo footer-logo-dark" src="brand-kit/brinesearch-truck-logo-footer-dark.png" alt="BrineSearch truck and water logo" loading="lazy" decoding="async"><img class="footer-logo footer-logo-day" src="brand-kit/brinesearch-truck-logo-footer-day.png" alt="" aria-hidden="true" loading="lazy" decoding="async"></div>
-    <div class="legal-footer-main">© 2026 BrineSearch · <span id="dataSourceStatus">Loading live directory…</span> · V 16.18</div>
+    <div class="legal-footer-main">© 2026 BrineSearch · <span id="dataSourceStatus">Loading live directory…</span> · V 16.19</div>
     <div class="legal-footer-note">BrineSearch is independent and is not affiliated with any operator, service company, employer, or government agency. Company names and trademarks belong to their owners. Verify directions, road conditions, and field information before use.</div>
     <div class="legal-footer-links"><a href="#/settings/data-sources">Data Sources</a><a href="#/settings/copyright">Copyright</a><a href="#/feed/rules">Privacy &amp; Safety</a><a href="#/feed/rules">Terms of Service</a><a href="#/feed/rules">Community Rules</a><a href="mailto:support@brinesearch.com">Contact</a></div>
   </div>
@@ -7157,6 +7157,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
       populateNewCompanyOptions();
       updateOtherCompanyField();
       renderWellEntries();
+      setupAddPadDirectionWizard();
       renderAddWizardStep(0);
       const addHead = addPadModal.querySelector(".add-pad-head p");
       const addSubmit = document.getElementById("submitAddPad");
@@ -8664,16 +8665,53 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
       ["destination-right", "Destination on right"]
     ];
 
+    const COMPASS_DIRECTIONS = [
+      ["N", "North"], ["NE", "Northeast"], ["E", "East"], ["SE", "Southeast"],
+      ["S", "South"], ["SW", "Southwest"], ["W", "West"], ["NW", "Northwest"]
+    ];
+
+    function normalizeCompassDirection(value) {
+      const key = normalize(value).toUpperCase().replace(/[.\s_-]+/g, "");
+      const aliases = {
+        N:"N", NORTH:"N", NE:"NE", NORTHEAST:"NE", NORTHEASTWARD:"NE",
+        E:"E", EAST:"E", SE:"SE", SOUTHEAST:"SE", SOUTHEASTWARD:"SE",
+        S:"S", SOUTH:"S", SW:"SW", SOUTHWEST:"SW", SOUTHWESTWARD:"SW",
+        W:"W", WEST:"W", NW:"NW", NORTHWEST:"NW", NORTHWESTWARD:"NW"
+      };
+      return aliases[key] || "";
+    }
+
+    function compassDirectionLabel(value) {
+      const dir = normalizeCompassDirection(value);
+      return Object.fromEntries(COMPASS_DIRECTIONS)[dir] || "";
+    }
+
+    function cleanLegacyDirectionText(value) {
+      return normalize(value)
+        .replace(/\b(Rd|Road)continue\b/gi, "$1 Continue")
+        .replace(/\bUpperClearfork\b/gi, "Upper Clearfork")
+        .replace(/\buip\b/gi, "up")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
     function decodeDirectionMeta(value) {
       const raw = normalize(value);
-      const match = raw.match(/\s*⟦d=([^;\]]*);n=([^\]]*)⟧\s*$/);
+      const match = raw.match(/\s*⟦([^\]]*)⟧\s*$/);
       let instruction = raw;
       let distance = "";
       let note = "";
+      let cardinal = "";
       if (match) {
         instruction = raw.slice(0, match.index).trim();
-        distance = normalize(match[1]);
-        try { note = decodeURIComponent(match[2] || ""); } catch { note = match[2] || ""; }
+        const fields = {};
+        match[1].split(";").forEach(part => {
+          const index = part.indexOf("=");
+          if (index >= 0) fields[part.slice(0,index).trim()] = part.slice(index+1);
+        });
+        distance = normalize(fields.d || "");
+        cardinal = normalizeCompassDirection(fields.c || "");
+        try { note = decodeURIComponent(fields.n || ""); } catch { note = fields.n || ""; }
       } else {
         const mileage = instruction.match(/(?:\s+(?:for\s+)?)?(\d+(?:\.\d+)?)\s*(?:mi|mile|miles)\b[.]?/i);
         if (mileage) {
@@ -8682,7 +8720,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
             .replace(/\s{2,}/g, " ").replace(/[\s,;:-]+$/g, "").trim();
         }
       }
-      return { instruction: instruction || raw, distance, note };
+      return { instruction: cleanLegacyDirectionText(instruction || raw), distance, note, cardinal };
     }
 
     function splitDirectionRoutes(value) {
@@ -8763,45 +8801,94 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
       return { text, corrected:false, review };
     }
 
-    function normalizeDirectionInstruction(instruction, p) {
-      const raw = normalize(instruction);
-      const prefixes = [
-        /^(Continue (?:on|onto)\s+)(.+)$/i,
-        /^(Turn left onto\s+)(.+)$/i,
-        /^(Turn right onto\s+)(.+)$/i,
-        /^(Merge onto\s+)(.+)$/i,
-        /^(Take Exit\s*)(.+)$/i,
-        /^(Keep left(?: onto)?\s+)(.+)$/i,
-        /^(Keep right(?: onto)?\s+)(.+)$/i,
-        /^(Slight left(?: onto)?\s+)(.+)$/i,
-        /^(Slight right(?: onto)?\s+)(.+)$/i
+    function directionTypeParts(instruction) {
+      const value = cleanLegacyDirectionText(instruction);
+      const tests = [
+        ["continue", /^(?:Rd\s+)?Continue (?:to follow|on|onto)\s+(.+)$/i],
+        ["continue", /^Continue (?:to follow|on|onto)\s+(.+)$/i],
+        ["left", /^Turn left (?:on|onto)\s+(.+)$/i],
+        ["right", /^Turn right (?:on|onto)\s+(.+)$/i],
+        ["merge", /^Merge onto\s+(.+)$/i], ["exit", /^Take Exit\s*(.*)$/i],
+        ["keep-left", /^Keep left(?: onto)?\s*(.*)$/i], ["keep-right", /^Keep right(?: onto)?\s*(.*)$/i],
+        ["slight-left", /^Slight left(?: onto)?\s*(.*)$/i], ["slight-right", /^Slight right(?: onto)?\s*(.*)$/i],
+        ["straight", /^Continue straight\s*(.*)$/i],
+        ["destination-left", /^(?:Destination (?:will be )?on (?:the )?left|Pad (?:is|will be) on (?:the )?left)$/i],
+        ["destination-right", /^(?:Destination (?:will be )?on (?:the )?right|Pad (?:is|will be) on (?:the )?right)$/i]
       ];
-      for (const pattern of prefixes) {
-        const match = raw.match(pattern);
-        if (match) {
-          const road = normalizeRoadName(match[2], p);
-          return { text: `${match[1]}${road.text}`, corrected:road.corrected, review:road.review };
-        }
+      for (const [type, pattern] of tests) {
+        const m = value.match(pattern); if (m) return { type, detail: normalize(m[1] || "") };
       }
-      if (/^(?:Destination on left|Destination on right|Continue straight)$/i.test(raw)) return { text:raw, corrected:false, review:false };
-      return normalizeRoadName(raw, p);
+      return { type:"custom", detail:value };
+    }
+
+    function splitCardinalDirection(detail, explicitDirection = "") {
+      let value = cleanLegacyDirectionText(detail);
+      let direction = normalizeCompassDirection(explicitDirection);
+      const leadingHead = value.match(/^Head\s+(northwest|northeast|southwest|southeast|north|south|east|west|NW|NE|SW|SE|N|S|E|W)(?:\s+(?:on|onto|along|toward|towards))?\s+(.+)$/i);
+      const leadingOn = value.match(/^(northwest|northeast|southwest|southeast|north|south|east|west|NW|NE|SW|SE|N|S|E|W)\s+(?:on|onto|along|toward|towards)\s+(.+)$/i);
+      const leading = leadingHead || leadingOn;
+      if (leading) {
+        direction = direction || normalizeCompassDirection(leading[1]);
+        value = normalize(leading[2]);
+      }
+      const suffix = value.match(/^(.*?)(?:\s+|[-–—])(northwest|northeast|southwest|southeast|north|south|east|west|NW|NE|SW|SE|N|S|E|W)$/i);
+      if (suffix && normalize(suffix[1])) {
+        direction = direction || normalizeCompassDirection(suffix[2]);
+        value = normalize(suffix[1]);
+      }
+      return { detail:value, direction };
+    }
+
+    function buildDirectionInstruction(type, detail) {
+      const d = cleanLegacyDirectionText(detail);
+      const prefixes = { continue:"Continue on", left:"Turn left onto", right:"Turn right onto", merge:"Merge onto", exit:"Take Exit", "keep-left":"Keep left", "keep-right":"Keep right", "slight-left":"Slight left", "slight-right":"Slight right", straight:"Continue straight" };
+      if (type === "destination-left") return "Destination on left";
+      if (type === "destination-right") return "Destination on right";
+      if (type === "custom") return d;
+      return [prefixes[type] || "", d].filter(Boolean).join(" ");
+    }
+
+    function encodeDirectionStep(instruction, distance, note, cardinal = "") {
+      const text = cleanLegacyDirectionText(instruction);
+      const d = normalize(distance).replace(/[^0-9.]/g, "");
+      const n = normalize(note);
+      const c = normalizeCompassDirection(cardinal);
+      return `${text}${d || n || c ? ` ⟦d=${d};n=${encodeURIComponent(n)};c=${c}⟧` : ""}`;
+    }
+
+    function normalizeDirectionInstruction(instruction, p) {
+      const cleaned = cleanLegacyDirectionText(instruction);
+      const parts = directionTypeParts(cleaned);
+      if (parts.type === "destination-left") return { text:"Destination on left", corrected:false, review:false };
+      if (parts.type === "destination-right") return { text:"Destination on right", corrected:false, review:false };
+      if (parts.type === "straight" && !parts.detail) return { text:"Continue straight", corrected:false, review:false };
+      const roadParts = splitCardinalDirection(parts.detail);
+      const road = normalizeRoadName(roadParts.detail || cleaned, p);
+      return { text: buildDirectionInstruction(parts.type, road.text), corrected:road.corrected, review:road.review };
     }
 
     function directionBadge(instruction, p) {
-      const text = normalizeDirectionInstruction(instruction, p).text.toUpperCase();
+      const text = normalizeRoadName(instruction, p).text.toUpperCase();
       let m;
       if ((m = text.match(/\bI-(\d{1,3})\b/))) return { label:`I-${m[1]}`, tone:"interstate" };
       if ((m = text.match(/\bUS-(\d{1,3})\b/))) return { label:`US-${m[1]}`, tone:"us" };
       if ((m = text.match(/\b(OH|WV|PA|SR)-(\d{1,4})\b/))) return { label:`${m[1]}-${m[2]}`, tone:"state" };
       if ((m = text.match(/\bCR-(\d{1,4}(?:\/\d+)?)\b/))) return { label:`CR-${m[1]}`, tone:"county" };
       if ((m = text.match(/\bTR-(\d{1,4}[A-Z]?)\b/))) return { label:`TR-${m[1]}`, tone:"county" };
+      if (/^(?:PAD|WELL PAD)$/.test(text)) return { label:"PAD", tone:"lease" };
       if (/\b(?:LEASE ROAD|ACCESS ROAD|TRUCK ENTRANCE)\b/.test(text)) return { label:/ACCESS ROAD/.test(text)?"ACCESS":"LEASE", tone:"lease" };
       return null;
     }
 
-    function directionDisplayParts(instruction, p) {
-      const normalized = normalizeDirectionInstruction(instruction, p).text;
-      const parts = directionTypeParts(normalized);
+    function isRoadSignText(value, p) {
+      const text = normalize(value);
+      return Boolean(directionBadge(text, p)) || /\b(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Way|Trail|Run|Ridge|Route)\b/i.test(text);
+    }
+
+    function directionDisplayParts(instruction, p, explicitCardinal = "") {
+      const cleaned = cleanLegacyDirectionText(instruction);
+      const parts = directionTypeParts(cleaned);
+      const roadParts = splitCardinalDirection(parts.detail, explicitCardinal);
       const labels = {
         continue:"Continue", left:"Turn left", right:"Turn right", merge:"Merge",
         exit:"Take", "keep-left":"Keep left", "keep-right":"Keep right",
@@ -8809,7 +8896,20 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         straight:"Continue straight", "destination-left":"Destination on left",
         "destination-right":"Destination on right"
       };
-      return { normalized, maneuver: parts.type === "custom" ? "" : (labels[parts.type] || ""), road: parts.detail || normalized };
+      const roadResult = parts.type.startsWith("destination-")
+        ? { text:parts.type === "destination-left" ? "Destination" : "Destination", corrected:false, review:false }
+        : normalizeRoadName(roadParts.detail || cleaned, p);
+      const road = roadResult.text;
+      return {
+        normalized: buildDirectionInstruction(parts.type, road),
+        maneuver: parts.type === "custom" ? "" : (labels[parts.type] || ""),
+        compass: compassDirectionLabel(roadParts.direction),
+        cardinal: roadParts.direction,
+        road,
+        corrected: roadResult.corrected,
+        review: roadResult.review,
+        isRoad: isRoadSignText(road, p) || parts.type.startsWith("destination-")
+      };
     }
 
     function directionSpecialSign(roadText, badge) {
@@ -8819,16 +8919,36 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         const exitNumber = normalize(exitMatch[1] || "");
         return `<span class="direction-road-sign exit-sign" aria-label="Exit ${esc(exitNumber)}"><span>EXIT</span>${exitNumber ? `<strong>${esc(exitNumber)}</strong>` : ""}</span>`;
       }
-      if (!badge && /\b(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Way|Trail|Run|Ridge)\b/i.test(text)) {
+      if (!badge && /\b(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Way|Trail|Run|Ridge|Route)\b/i.test(text)) {
         return `<span class="direction-road-sign street-sign" aria-label="${esc(text)}"><span class="street-sign-board">${esc(text)}</span><span class="street-sign-post"></span></span>`;
       }
       return "";
     }
 
+    function directionPlainText(raw, p) {
+      const step = decodeDirectionMeta(raw);
+      const display = directionDisplayParts(step.instruction, p, step.cardinal);
+      return [display.maneuver, display.compass, display.road].filter(Boolean).join(" ");
+    }
+
     function directionSequenceSummary(value, p) {
       const routes = splitDirectionRoutes(value);
       const primary = routes[0] || [];
-      return primary.map(raw => normalizeDirectionInstruction(decodeDirectionMeta(raw).instruction, p).text).join(" → ");
+      return primary.map(raw => directionPlainText(raw, p)).join(" → ");
+    }
+
+    function directionCopyText(value, p) {
+      const routes = splitDirectionRoutes(value);
+      return routes.map((route, routeIndex) => {
+        const heading = routeIndex ? "ALTERNATE ROUTE" : "PRIMARY ROUTE";
+        const lines = route.map((raw, index) => {
+          const step = decodeDirectionMeta(raw);
+          const display = directionDisplayParts(step.instruction, p, step.cardinal);
+          const main = [display.maneuver, display.compass, display.road, step.distance ? `${step.distance} mi` : ""].filter(Boolean).join(" ");
+          return `${index + 1}. ${main}${step.note ? ` — ${step.note}` : ""}`;
+        });
+        return [heading, ...lines].join("\n");
+      }).join("\n\n");
     }
 
     function directionRoutesHtml(value, p) {
@@ -8839,17 +8959,19 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
           <div class="direction-route-heading"><span>${routeIndex ? "ALTERNATE ROUTE" : "PRIMARY ROUTE"}</span></div>
           <ol class="direction-pro-steps">${route.map((raw, index) => {
             const step = decodeDirectionMeta(raw);
-            const normalizedStep = normalizeDirectionInstruction(step.instruction, p);
-            const display = directionDisplayParts(step.instruction, p);
+            const display = directionDisplayParts(step.instruction, p, step.cardinal);
             const badge = directionBadge(display.road, p);
             const sign = badge
               ? `<span class="direction-highway-badge ${badge.tone}" aria-label="${esc(badge.label)}">${esc(badge.label)}</span>`
               : directionSpecialSign(display.road, badge);
-            const noteParts = [step.note, normalizedStep.corrected ? "Road spelling standardized" : "", normalizedStep.review ? "Road name needs official-source review" : ""].filter(Boolean);
+            const mainContent = sign || (display.isRoad
+              ? `<span class="direction-road-sign street-sign" aria-label="${esc(display.road)}"><span class="street-sign-board">${esc(display.road)}</span><span class="street-sign-post"></span></span>`
+              : `<span class="direction-custom-instruction">${esc(display.road)}</span>`);
+            const noteParts = [step.note, display.corrected ? "Road spelling standardized" : "", display.review ? "Road name needs official-source review" : ""].filter(Boolean);
             return `<li class="direction-pro-step">
               <span class="direction-pro-number">${index + 1}</span>
               <div class="direction-pro-main">
-                <div class="direction-pro-line">${display.maneuver ? `<span class="direction-maneuver">${esc(display.maneuver)}</span>` : ""}${sign || `<span class="direction-road-sign street-sign" aria-label="${esc(display.road)}"><span class="street-sign-board">${esc(display.road)}</span><span class="street-sign-post"></span></span>`}${step.distance ? `<span class="direction-distance">${esc(step.distance)} mi</span>` : ""}</div>
+                <div class="direction-pro-line">${display.maneuver ? `<span class="direction-maneuver">${esc(display.maneuver)}</span>` : ""}${display.compass ? `<span class="direction-compass">${esc(display.compass)}</span>` : ""}${mainContent}${step.distance ? `<span class="direction-distance">${esc(step.distance)} mi</span>` : ""}</div>
                 ${noteParts.length ? `<div class="direction-note">${esc(noteParts.join(" · "))}</div>` : ""}
               </div>
             </li>`;
@@ -8857,88 +8979,39 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         </section>`).join("")}</div>`;
     }
 
-    function directionTypeParts(instruction) {
-      const value = normalize(instruction);
-      const tests = [
-        ["continue", /^Continue (?:on|onto)\s+(.+)$/i], ["left", /^Turn left onto\s+(.+)$/i],
-        ["right", /^Turn right onto\s+(.+)$/i], ["merge", /^Merge onto\s+(.+)$/i],
-        ["exit", /^Take Exit\s*(.*)$/i], ["keep-left", /^Keep left\s*(.*)$/i],
-        ["keep-right", /^Keep right\s*(.*)$/i], ["slight-left", /^Slight left\s*(.*)$/i],
-        ["slight-right", /^Slight right\s*(.*)$/i], ["straight", /^Continue straight\s*(.*)$/i],
-        ["destination-left", /^Destination on left$/i], ["destination-right", /^Destination on right$/i]
-      ];
-      for (const [type, pattern] of tests) {
-        const m = value.match(pattern); if (m) return { type, detail: normalize(m[1] || "") };
-      }
-      return { type:"custom", detail:value };
-    }
-
-    function splitCardinalDirection(detail) {
-      const value = normalize(detail);
-      const match = value.match(/^(.*?)(?:\s+|[-–—])([NSEW])$/i);
-      return match ? { detail: normalize(match[1]), direction: match[2].toUpperCase() } : { detail:value, direction:"" };
-    }
-
-    function applyCardinalDirection(detail, direction) {
-      const clean = splitCardinalDirection(detail).detail;
-      const dir = normalize(direction).toUpperCase();
-      return [clean, /^(?:N|S|E|W)$/.test(dir) ? dir : ""].filter(Boolean).join(" ");
-    }
-
-    function buildDirectionInstruction(type, detail) {
-      const d = normalize(detail);
-      const prefixes = { continue:"Continue on", left:"Turn left onto", right:"Turn right onto", merge:"Merge onto", exit:"Take Exit", "keep-left":"Keep left", "keep-right":"Keep right", "slight-left":"Slight left", "slight-right":"Slight right", straight:"Continue straight" };
-      if (type === "destination-left") return "Destination on left";
-      if (type === "destination-right") return "Destination on right";
-      if (type === "custom") return d;
-      return [prefixes[type] || "", d].filter(Boolean).join(" ");
-    }
-
-    function encodeDirectionStep(instruction, distance, note) {
-      const text = normalize(instruction);
-      const d = normalize(distance).replace(/[^0-9.]/g, "");
-      const n = normalize(note);
-      return `${text}${d || n ? ` ⟦d=${d};n=${encodeURIComponent(n)}⟧` : ""}`;
-    }
-
-    function setupDirectionWizard(p, section) {
-      if (!(section === "route" || section === "directions" || section === "all")) return;
-      const grid = document.querySelector("#liveEditorShell [data-live-editor-panel=\"directions\"] .live-editor-grid") || document.querySelector("#liveEditorShell .live-editor-grid");
-      if (!grid) return;
-      let routeField = document.getElementById("live-Structured_Road_Sequence");
-      if (!routeField) {
-        routeField = document.createElement("textarea");
-        routeField.id = "live-Structured_Road_Sequence";
-        routeField.name = "Structured_Road_Sequence";
-        routeField.hidden = true;
-        routeField.value = p.Structured_Road_Sequence || "";
-        grid.appendChild(routeField);
-      }
-      routeField.closest(".live-editor-field")?.classList.add("direction-legacy-field");
-      document.getElementById("live-writtenDirections")?.closest(".live-editor-field")?.classList.add("direction-legacy-field");
-      document.getElementById("live-directionsClear")?.closest(".live-editor-field")?.classList.add("direction-legacy-field");
-
+    function mountDirectionWizard(routeField, mountTarget, options = {}) {
+      if (!routeField || !mountTarget || routeField.dataset.directionWizardMounted === "true") return null;
+      routeField.dataset.directionWizardMounted = "true";
       const wizard = document.createElement("section");
-      wizard.className = "direction-wizard";
-      wizard.innerHTML = `<div class="direction-wizard-head"><div><div class="eyebrow">Truck directions</div><h3>Directions Wizard</h3><p>Instruction is required. Distance and note are optional.</p></div><button type="button" class="btn small secondary" data-add-route>Add alternate route</button></div><div class="direction-wizard-routes"></div><details class="direction-legacy-details"><summary>Original saved direction text</summary><p>This stays available for backward compatibility and is never deleted automatically.</p></details>`;
-      grid.prepend(wizard);
+      wizard.className = `direction-wizard ${options.className || ""}`.trim();
+      wizard.innerHTML = `<div class="direction-wizard-head"><div><div class="eyebrow">Truck directions</div><h3>Directions Wizard</h3><p>Choose the maneuver, travel direction, road, and optional mileage.</p></div><button type="button" class="btn small secondary" data-add-route>Add alternate route</button></div><div class="direction-wizard-routes"></div><details class="direction-legacy-details"><summary>Original saved direction text</summary><p>This stays available for backward compatibility and is never deleted automatically.</p></details>`;
+      mountTarget.prepend(wizard);
       const legacyDetails = wizard.querySelector(".direction-legacy-details");
-      document.querySelectorAll("#liveEditorShell .direction-legacy-field").forEach(field => legacyDetails.appendChild(field));
+      (options.legacyFields || []).filter(Boolean).forEach(field => {
+        field.classList.add("direction-legacy-field");
+        legacyDetails.appendChild(field);
+      });
       const routesHost = wizard.querySelector(".direction-wizard-routes");
 
       const addStepRow = (routeEl, raw = "") => {
         const parsed = decodeDirectionMeta(raw);
         const parts = directionTypeParts(parsed.instruction);
-        const roadParts = splitCardinalDirection(parts.detail);
+        const roadParts = splitCardinalDirection(parts.detail, parsed.cardinal);
         const row = document.createElement("div");
         row.className = "direction-wizard-step";
-        row.innerHTML = `<div class="direction-drag">↕</div><div class="direction-wizard-fields"><select data-direction-type aria-label="Direction type">${DIRECTION_TYPES.map(([v,l])=>`<option value="${v}" ${parts.type===v?"selected":""}>${l}</option>`).join("")}</select><input data-direction-detail required placeholder="Road or instruction" value="${esc(roadParts.detail)}"><div class="direction-wizard-secondary"><label>Direction (optional)<select data-direction-cardinal aria-label="Road direction"><option value="">None</option>${["N","S","E","W"].map(dir=>`<option value="${dir}" ${roadParts.direction===dir?"selected":""}>${dir}</option>`).join("")}</select></label><label>Distance (optional)<input data-direction-distance inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="4.5" value="${esc(parsed.distance)}"></label><label>Note (optional)<input data-direction-note placeholder="Narrow road, gate code…" value="${esc(parsed.note)}"></label></div></div><div class="direction-step-actions"><button type="button" data-step-up aria-label="Move up"><span class="fm-icon fm-back fm-rotate-up"></span></button><button type="button" data-step-down aria-label="Move down"><span class="fm-icon fm-back fm-rotate-down"></span></button><button type="button" data-step-delete aria-label="Delete step"><span class="fm-icon fm-delete"></span></button></div>`;
+        row.innerHTML = `<div class="direction-drag">↕</div><div class="direction-wizard-fields"><select data-direction-type aria-label="Direction type">${DIRECTION_TYPES.map(([v,l])=>`<option value="${v}" ${parts.type===v?"selected":""}>${l}</option>`).join("")}</select><input data-direction-detail required placeholder="Road or instruction" value="${esc(roadParts.detail)}"><div class="direction-wizard-secondary"><label>Travel direction (optional)<select data-direction-cardinal aria-label="Travel direction"><option value="">None</option>${COMPASS_DIRECTIONS.map(([value,label])=>`<option value="${value}" ${roadParts.direction===value?"selected":""}>${label}</option>`).join("")}</select></label><label>Distance (optional)<input data-direction-distance inputmode="decimal" pattern="[0-9]*[.]?[0-9]*" placeholder="4.5" value="${esc(parsed.distance)}"></label><label>Note (optional)<input data-direction-note placeholder="Narrow road, gate code…" value="${esc(parsed.note)}"></label></div></div><div class="direction-step-actions"><button type="button" data-step-up aria-label="Move up"><span class="fm-icon fm-back fm-rotate-up"></span></button><button type="button" data-step-down aria-label="Move down"><span class="fm-icon fm-back fm-rotate-down"></span></button><button type="button" data-step-delete aria-label="Delete step"><span class="fm-icon fm-delete"></span></button></div>`;
         routeEl.querySelector(".direction-wizard-steps").appendChild(row);
         const type = row.querySelector("[data-direction-type]");
         const detail = row.querySelector("[data-direction-detail]");
         const cardinal = row.querySelector("[data-direction-cardinal]");
         const cardinalLabel = cardinal.closest("label");
-        const updateRequired = () => { const noDetail = type.value.startsWith("destination-"); detail.required = !noDetail; detail.hidden = noDetail; cardinalLabel.hidden = noDetail; if (noDetail) cardinal.value = ""; };
+        const updateRequired = () => {
+          const noDetail = type.value.startsWith("destination-");
+          detail.required = !noDetail;
+          detail.hidden = noDetail;
+          cardinalLabel.hidden = noDetail;
+          if (noDetail) cardinal.value = "";
+        };
         type.addEventListener("change", updateRequired); updateRequired();
       };
 
@@ -8958,9 +9031,13 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         const row = event.target.closest(".direction-wizard-step");
         if (event.target.closest("[data-add-step]")) addStepRow(route, "");
         if (event.target.closest("[data-delete-route]")) { route.remove(); [...routesHost.children].forEach((r,i)=>r.querySelector("strong").textContent=i?"ALTERNATE ROUTE":"PRIMARY ROUTE"); }
-        if (event.target.closest("[data-step-delete]")) { if (route.querySelectorAll(".direction-wizard-step").length > 1) row.remove(); else row.querySelectorAll("input").forEach(i=>i.value=""); }
+        if (event.target.closest("[data-step-delete]")) {
+          if (route.querySelectorAll(".direction-wizard-step").length > 1) row.remove();
+          else { row.querySelectorAll("input").forEach(input => input.value=""); row.querySelectorAll("select").forEach(select => select.selectedIndex=0); }
+        }
         if (event.target.closest("[data-step-up]") && row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling);
         if (event.target.closest("[data-step-down]") && row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row);
+        sync();
       });
 
       const sync = () => {
@@ -8968,13 +9045,49 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
           const type = row.querySelector("[data-direction-type]").value;
           const detail = row.querySelector("[data-direction-detail]").value;
           const cardinal = row.querySelector("[data-direction-cardinal]").value;
-          const instruction = buildDirectionInstruction(type, applyCardinalDirection(detail, cardinal));
-          return instruction ? encodeDirectionStep(instruction, row.querySelector("[data-direction-distance]").value, row.querySelector("[data-direction-note]").value) : "";
+          const instruction = buildDirectionInstruction(type, detail);
+          return instruction ? encodeDirectionStep(instruction, row.querySelector("[data-direction-distance]").value, row.querySelector("[data-direction-note]").value, cardinal) : "";
         }).filter(Boolean)).filter(route => route.length);
         routeField.value = routes.map(route => route.join(" → ")).join(" → OR → ");
+        options.onSync?.(routeField.value);
       };
-      wizard.addEventListener("input", sync); wizard.addEventListener("change", sync);
-      document.getElementById("liveEditorForm")?.addEventListener("submit", sync, { capture:true });
+      wizard.addEventListener("input", sync);
+      wizard.addEventListener("change", sync);
+      options.form?.addEventListener("submit", sync, { capture:true });
+      sync();
+      return wizard;
+    }
+
+    function setupDirectionWizard(p, section) {
+      if (!(section === "route" || section === "directions" || section === "all")) return;
+      const grid = document.querySelector('#liveEditorShell [data-live-editor-panel="directions"] .live-editor-grid') || document.querySelector("#liveEditorShell .live-editor-grid");
+      if (!grid) return;
+      let routeField = document.getElementById("live-Structured_Road_Sequence");
+      if (!routeField) {
+        routeField = document.createElement("textarea");
+        routeField.id = "live-Structured_Road_Sequence";
+        routeField.name = "Structured_Road_Sequence";
+        routeField.hidden = true;
+        routeField.value = p.Structured_Road_Sequence || "";
+        grid.appendChild(routeField);
+      }
+      const legacyFields = [
+        routeField.closest(".live-editor-field"),
+        document.getElementById("live-writtenDirections")?.closest(".live-editor-field"),
+        document.getElementById("live-directionsClear")?.closest(".live-editor-field")
+      ];
+      mountDirectionWizard(routeField, grid, { legacyFields, form:document.getElementById("liveEditorForm") });
+    }
+
+    function setupAddPadDirectionWizard() {
+      const routeField = document.getElementById("newRoadSequence");
+      const routeFieldShell = routeField?.closest(".add-pad-field");
+      if (!routeField || !routeFieldShell || routeField.dataset.directionWizardMounted === "true") return;
+      const shell = document.createElement("div");
+      shell.className = "add-pad-field full add-direction-wizard-field";
+      shell.dataset.wizardStep = "3";
+      routeFieldShell.parentNode.insertBefore(shell, routeFieldShell);
+      mountDirectionWizard(routeField, shell, { legacyFields:[routeFieldShell], form:addPadForm });
     }
 
     function routeSteps(value, p) {
@@ -10645,6 +10758,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         : rawResearchStatus.replace(/_/g, " ").replace(/\b\w/g, ch => ch.toUpperCase());
       const researchTone = /verified|active|exact/i.test(rawResearchStatus) ? "good" : "review";
       const directionsText = has(p.directionsClear) ? p.directionsClear : "";
+      const copyDirectionsText = has(p.Structured_Road_Sequence) ? directionCopyText(p.Structured_Road_Sequence, p) : directionsText;
       const wellRows = alignedWellRows(p);
 
       const officialInfo = official ? `
@@ -10780,7 +10894,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
         };
       });
       document.getElementById("fieldCopyLocation")?.addEventListener("click", () => copyText([p.address, coordinateValue, location].filter(has).join("\n"),"Location copied"));
-      document.getElementById("fieldCopyDirections")?.addEventListener("click", () => directionsText ? copyText(directionsText,"Directions copied") : showToast("No approved directions to copy"));
+      document.getElementById("fieldCopyDirections")?.addEventListener("click", () => copyDirectionsText ? copyText(copyDirectionsText,"Directions copied") : showToast("No approved directions to copy"));
 
       /* Point the contextual tab-bar button at this pad and reveal it. The
          top-of-page Directions button stays exactly where it was; this only
@@ -12207,7 +12321,7 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
           ${settingsRow("⚖","Terms and disclaimer","Independent platform, user-content and employer-affiliation terms",'data-settings-route="#/feed/rules"')}
         </div></section>
         ${r.signedIn?`<section class="settings-section"><button class="settings-signout" id="settingsSignOutBtn" type="button">Sign out of BrineSearch</button></section>`:""}
-        <div class="settings-version"><span>BrineSearch V 16.18</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
+        <div class="settings-version"><span>BrineSearch V 16.19</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
       </main>`;
       document.querySelectorAll("[data-settings-route]").forEach(btn=>btn.onclick=()=>{ location.hash=btn.dataset.settingsRoute; });
       document.querySelectorAll("[data-settings-action]").forEach(btn=>btn.onclick=()=>{
@@ -12601,7 +12715,7 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
       if (field === "company") return `<strong>${name}</strong> is listed under <strong>${company}</strong>.`;
       if (field === "route") {
         return has(p.Structured_Road_Sequence)
-          ? `<strong>Road sequence for ${name}:</strong><br>${esc(p.Structured_Road_Sequence)}`
+          ? `<strong>Road sequence for ${name}:</strong><br>${esc(directionSequenceSummary(p.Structured_Road_Sequence, p))}`
           : `<strong>${name}</strong> does not have a confirmed road sequence saved.`;
       }
       if (field === "missing") {
@@ -13279,7 +13393,7 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
   <span><strong>Update available.</strong> Reload for the latest BrineSearch.</span>
   <button type="button" id="brinesearchUpdateReload">Reload</button>
 </div>
-<div class="build-stamp" style="display:none">BrineSearch V 16.18</div>
+<div class="build-stamp" style="display:none">BrineSearch V 16.19</div>
 
 <script id="field-mark-runtime">
 (()=>{
