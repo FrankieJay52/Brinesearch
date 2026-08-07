@@ -27,7 +27,7 @@ jobs:
               --header 'Cache-Control: no-cache' \
               --header 'Pragma: no-cache' \
               "$URL" -o /tmp/brinesearch-production.html; then
-              if grep -Eq 'name=["'"']brinesearch-build["'"'][[:space:]]+content=["'"']17\.3\.0["'"']' /tmp/brinesearch-production.html; then
+              if grep -Fq '<meta name="brinesearch-build" content="17.3.0">' /tmp/brinesearch-production.html; then
                 echo "BrineSearch.com is serving V17.3.0"
                 break
               fi
