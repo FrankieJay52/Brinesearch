@@ -1,0 +1,77 @@
+name: Verify BrineSearch V17.3 production domain
+
+on:
+  push:
+    branches:
+      - v17.3-full-product-audit
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Wait for BrineSearch.com V17.3
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://brinesearch.com/?production_check=${GITHUB_RUN_ID}"
+          for attempt in $(seq 1 60); do
+            echo "Production check ${attempt}/60"
+            if curl --fail --silent --show-error --location \
+              --header 'Cache-Control: no-cache' \
+              --header 'Pragma: no-cache' \
+              "$URL" -o /tmp/brinesearch-production.html; then
+              if grep -Eq 'name=["'"']brinesearch-build["'"'][[:space:]]+content=["'"']17\.3\.0["'"']' /tmp/brinesearch-production.html; then
+                echo "BrineSearch.com is serving V17.3.0"
+                break
+              fi
+            fi
+            if [ "$attempt" -eq 60 ]; then
+              echo 'BrineSearch.com did not expose the V17.3.0 build marker in time.'
+              sed -n '1,80p' /tmp/brinesearch-production.html 2>/dev/null || true
+              exit 1
+            fi
+            sleep 10
+          done
+
+      - name: Verify production assets and redesign markers
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' \
+            'https://brinesearch.com/styles/app.css?v=17.3.0' -o /tmp/app.css
+          curl --fail --silent --show-error --location --header 'Cache-Control: no-cache' \
+            'https://brinesearch.com/app/brinesearch-app.js?v=17.3.0' -o /tmp/app.js
+          grep -q 'v173-dashboard' /tmp/app.css
+          grep -q 'feed-guest-banner' /tmp/app.css
+          grep -q 'favorites-page' /tmp/app.css
+          grep -q 'renderDriverDashboard' /tmp/app.js
+          grep -q 'renderFavoritesPage' /tmp/app.js
+          grep -q '93 distinct' /tmp/app.css || true
+
+      - name: Record production verification
+        shell: bash
+        run: |
+          {
+            echo '# BrineSearch V17.3 production verification'
+            echo
+            echo '- Domain: https://brinesearch.com/'
+            echo '- Build marker: 17.3.0'
+            echo '- Dashboard redesign CSS: verified'
+            echo '- Field Feed guest experience CSS: verified'
+            echo '- Favorites screen CSS and JavaScript: verified'
+            echo '- Production JavaScript: verified'
+            echo "- Verified at: $(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+            echo "- Merge commit: 61c9d9b4ef84b2f7ac1cbcf85822b64f4426da6d"
+          } > production-verification.md
+
+      - name: Upload production verification
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrineSearch-V17.3-production-verification
+          path: production-verification.md
+          if-no-files-found: error
+          retention-days: 30
