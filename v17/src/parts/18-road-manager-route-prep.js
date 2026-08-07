@@ -1,8 +1,8 @@
     /* BrineSearch Road Manager Route Prep
-       Turns the saved 833-pad route inventory into an Owner-only review queue.
+       Turns every pad with GPS and a saved road sequence into an Owner-only review queue.
        Safety rule: local/county/township/private roads are never guessed. A
-       generic "Route N" can only exist as a non-publishable state-route
-       candidate until the Owner explicitly reviews it. */
+       bare "Route N" stays ambiguous until saved text or an official source
+       proves whether it is an Interstate, U.S. route, or state route. */
 
     const ROUTE_PREP_STATUS = {
       ready_for_road_matching:["Ready for road matching","ready"],
@@ -24,7 +24,8 @@
       too_many_road_steps:"Too many steps for safe automatic cleanup",
       narrative_text_in_sequence:"Narrative instructions are mixed into the road sequence",
       missing_explicit_highway_anchor:"No explicit interstate, U.S. route, or state route",
-      state_route_candidate_only:"Only a generic Route number was found",
+      state_route_candidate_only:"Only a supported state-route research candidate was found",
+      ambiguous_route_reference:"Bare Route number is ambiguous — no route class was guessed",
       highway_not_first_road_step:"The highway is not the first road step",
       sequence_mostly_generic:"The route is mostly generic labels"
     };
@@ -73,7 +74,7 @@
       const button=document.createElement("button");
       button.className="settings-row";
       button.type="button";
-      button.innerHTML=`<span class="settings-icon"><span class="fm-icon fm-road"></span></span><span class="settings-copy"><strong>Road Manager</strong><small>Master roads, 833-pad Route Prep, mileage readiness and no-guess review</small></span><span class="settings-caret">›</span>`;
+      button.innerHTML=`<span class="settings-icon"><span class="fm-icon fm-road"></span></span><span class="settings-copy"><strong>Road Manager</strong><small>Grouped road families, live Route Prep, mileage readiness and strict no-guess review</small></span><span class="settings-caret">›</span>`;
       button.addEventListener("click",()=>{location.hash="#/settings/roads";});
       list.prepend(button);
     };
@@ -94,18 +95,86 @@
       });
     }
 
+    let roadManagerFamilies=[];
+    function roadManagerIsHighway(r){return ["interstate","us_route","state_route"].includes(r?.road_type);}
+    function roadManagerBaseName(r){
+      const name=String(r?.canonical_name||"").trim();
+      return roadManagerIsHighway(r)?name.replace(/([NSEW])$/i,""):name;
+    }
+    function roadManagerFamilyKey(r){
+      if(r?.route_family_key)return r.route_family_key;
+      if(roadManagerIsHighway(r))return `highway|${String(r.route_number||roadManagerBaseName(r).split("-").pop()||"").replace(/[NSEW]$/i,"")}`;
+      return `road|${r?.id||roadNormalizeKey(r?.canonical_name)}`;
+    }
+    function roadManagerFamilyGroups(rows){
+      const groups=new Map();
+      (rows||[]).forEach(row=>{
+        const key=roadManagerFamilyKey(row);
+        if(!groups.has(key))groups.set(key,{key,members:[]});
+        groups.get(key).members.push(row);
+      });
+      return [...groups.values()].map(group=>{
+        const members=group.members;
+        const identities=[...new Set(members.map(roadManagerBaseName).filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+        const routeNumber=String(members.find(r=>r.route_number)?.route_number||"").replace(/[NSEW]$/i,"");
+        const states=[...new Set(members.flatMap(r=>[...(Array.isArray(r.coverage_states)?r.coverage_states:[]),r.state].filter(Boolean)))].sort();
+        const primary=[...members].sort((a,b)=>
+          Number(b.verification_status==="verified")-Number(a.verification_status==="verified")||
+          Number(b.source_method==="official_centerline")-Number(a.source_method==="official_centerline")||
+          Number(Boolean(b.source_agency))-Number(Boolean(a.source_agency))||
+          String(a.canonical_name).localeCompare(String(b.canonical_name),undefined,{numeric:true})
+        )[0];
+        const aggregate={...primary};ROAD_FLAGS.forEach(flag=>aggregate[flag]=members.some(row=>Boolean(row?.[flag])));
+        return {...group,identities,routeNumber,states,primary,aggregate,
+          title:roadManagerIsHighway(primary)?(identities.length===1?identities[0]:`Route ${routeNumber||"family"}`):primary.canonical_name,
+          conflict:identities.length>1,
+          verified:members.some(r=>r.verification_status==="verified"),
+          candidate:members.some(r=>r.candidate_only)
+        };
+      }).sort((a,b)=>a.title.localeCompare(b.title,undefined,{numeric:true}));
+    }
+    function roadManagerFamilyRow(family){
+      const identities=family.identities.join(" · ");
+      const coverage=family.states.length?family.states.join(" / "):family.primary?.state||"Location-specific";
+      const status=family.candidate?"Candidate only":family.verified?"Official road verified":family.conflict?"Route-number conflict":"Needs official review";
+      const statusClass=family.candidate?"candidate":family.verified?"verified":family.conflict?"conflict":"";
+      return `<article class="road-row road-family-row"><button type="button" data-road-family-open="${esc(family.key)}"><div class="road-row-name">${esc(family.title)}</div><div class="road-row-meta">${esc([identities,coverage,`${family.members.length} record${family.members.length===1?"":"s"} grouped`].filter(Boolean).join(" • "))}</div><div class="road-badges">${roadBadgeHtml(family.aggregate)}</div></button><span class="road-status ${statusClass}">${esc(status)}</span></article>`;
+    }
+    function renderRoadFamilyDetail(key){
+      const family=roadManagerFamilies.find(item=>item.key===key);const host=document.getElementById("roadManagerEditor");if(!family||!host)return;
+      const identities=family.identities.join(" · ");
+      host.innerHTML=`<section class="road-family-editor"><div class="road-family-editor-head"><div><span class="road-manager-kicker">Grouped road family</span><h2>${esc(family.title)}</h2><p>${esc([identities,family.states.length?`Coverage ${family.states.join(" / ")}`:"",`${family.members.length} underlying record${family.members.length===1?"":"s"}`].filter(Boolean).join(" · "))}</p></div><button class="btn ghost small" type="button" id="roadFamilyClose">Close</button></div>
+        ${family.conflict?`<div class="road-family-conflict"><strong>Same number, different route classes.</strong><p>These remain separate road identities inside one family. Route Prep will not guess between ${esc(identities)}.</p></div>`:`<div class="road-family-note">Directional labels such as eastbound, westbound, northbound and southbound are stored on the pad route step—not as duplicate roads.</div>`}
+        <div class="road-family-members">${family.members.map(member=>`<article class="road-family-member"><div><strong>${esc(member.canonical_name)}</strong><small>${esc([member.road_type,member.state||(Array.isArray(member.coverage_states)&&member.coverage_states.length?member.coverage_states.join(" / "):"National master"),roadStatusLabel(member.verification_status)].filter(Boolean).join(" · "))}</small>${member.aliases?.length?`<span>Aliases: ${esc(member.aliases.join(", "))}</span>`:""}${member.source_agency?`<span>Source: ${esc([member.source_agency,member.source_dataset,member.source_record_id].filter(Boolean).join(" · "))}</span>`:""}</div><button class="btn secondary small" type="button" data-road-family-edit="${esc(member.id)}">Edit record</button></article>`).join("")}</div>
+      </section>`;
+      document.getElementById("roadFamilyClose").onclick=()=>{host.innerHTML="";};
+      host.querySelectorAll("[data-road-family-edit]").forEach(button=>button.onclick=()=>renderRoadForm(family.members.find(row=>row.id===button.dataset.roadFamilyEdit)));
+      host.scrollIntoView({behavior:"smooth",block:"start"});
+    }
+    async function loadRoadManagerFamilies(){
+      const input=document.getElementById("roadManagerSearch"),list=document.getElementById("roadManagerList"),count=document.getElementById("roadManagerFamilyCount");if(!list)return;
+      const query=String(input?.value||"").trim().toLowerCase();list.innerHTML='<p class="admin-empty">Loading grouped road families…</p>';
+      try{
+        const all=await fetchRoads("",1000);
+        roadManagerRows=all.filter(row=>!query||[row.canonical_name,row.route_number,row.state,row.county,row.township,...(row.coverage_states||[]),...(row.aliases||[])].filter(Boolean).join(" ").toLowerCase().includes(query));
+        roadManagerFamilies=roadManagerFamilyGroups(roadManagerRows);
+        if(count)count.textContent=`${roadManagerFamilies.length} families · ${roadManagerRows.length} records`;
+        list.innerHTML=roadManagerFamilies.length?roadManagerFamilies.map(roadManagerFamilyRow).join(""):'<p class="admin-empty">No road family matched.</p>';
+        list.querySelectorAll("[data-road-family-open]").forEach(button=>button.onclick=()=>renderRoadFamilyDetail(button.dataset.roadFamilyOpen));
+      }catch(error){list.innerHTML=`<p class="admin-empty">${esc(error.message||"Could not load roads.")}</p>`;}
+    }
     function renderMasterRoadTab(){
       const panel=document.getElementById("roadManagerTabPanel");
       if(!panel)return;
       panel.innerHTML=`<section class="road-manager-card road-master-panel">
-        <div class="road-manager-section-head"><div><span class="road-manager-kicker">Shared master database</span><h2>Road records</h2><p>Fix a road once, preserve aliases and official sources, then reuse it across pad routes.</p></div><span class="road-manager-count">${roadManagerRows.length||"—"}</span></div>
-        <div class="road-manager-tools"><input id="roadManagerSearch" placeholder="Search official names, aliases or route numbers…" autocomplete="off"><button class="btn primary" id="roadManagerAdd" type="button"><span class="fm-icon fm-add"></span> Add road</button></div>
+        <div class="road-manager-section-head"><div><span class="road-manager-kicker">Shared master database</span><h2>Road families</h2><p>One card per route number or local road. I-70 across Ohio, West Virginia and Pennsylvania appears once; direction stays on the pad step.</p></div><span class="road-manager-count" id="roadManagerFamilyCount">—</span></div>
+        <div class="road-manager-tools"><input id="roadManagerSearch" placeholder="Search route number, road name, alias or state…" autocomplete="off"><button class="btn primary" id="roadManagerAdd" type="button"><span class="fm-icon fm-add"></span> Add road</button></div>
         <div class="road-list" id="roadManagerList"></div>
       </section><div id="roadManagerEditor"></div>`;
       let timer;
-      document.getElementById("roadManagerSearch").oninput=()=>{clearTimeout(timer);timer=setTimeout(loadRoadManager,180);};
+      document.getElementById("roadManagerSearch").oninput=()=>{clearTimeout(timer);timer=setTimeout(loadRoadManagerFamilies,180);};
       document.getElementById("roadManagerAdd").onclick=()=>renderRoadForm();
-      loadRoadManager();
+      loadRoadManagerFamilies();
     }
 
     function routePrepSummaryCard(status,count){
@@ -114,7 +183,7 @@
     }
     function routePrepOverviewMarkup(summary){
       const readiness=summary?.readiness||{};
-      const order=["ready_for_road_matching","needs_state_route_candidate_review","needs_highway_anchor","needs_sequence_reorder","needs_sequence_rebuild","needs_sequence_cleanup","needs_gps_review","field_check","ready_for_geometry","geometry_measured","approved","blocked"];
+      const order=["ready_for_road_matching","needs_highway_anchor","needs_sequence_reorder","needs_sequence_rebuild","needs_sequence_cleanup","needs_gps_review","field_check","ready_for_geometry","geometry_measured","approved","blocked"];
       return `<section class="route-prep-overview">
         <div class="route-prep-policy"><span class="fm-icon fm-locked"></span><div><strong>Strict no-guess policy</strong><p>${esc(summary?.policy||"Local roads are never guessed. State-route candidates never publish until Owner review.")}</p></div></div>
         <div class="route-prep-headline-stats">
@@ -122,6 +191,8 @@
           <div><strong>${Number(summary?.route_variants||0).toLocaleString()}</strong><span>Route variants</span></div>
           <div><strong>${Number(summary?.matched_steps||0).toLocaleString()}</strong><span>Exact road matches</span></div>
           <div><strong>${Number(summary?.unmatched_local_steps||0).toLocaleString()}</strong><span>Local roads still requiring official matches</span></div>
+          <div><strong>${Number(summary?.ambiguous_route_reference_steps||0).toLocaleString()}</strong><span>Bare Route numbers left ambiguous—not guessed</span></div>
+          <div><strong>${Number(summary?.road_families||0).toLocaleString()}</strong><span>Grouped Road Manager families</span></div>
         </div>
         <div class="route-prep-summary-grid">${order.filter(key=>Number(readiness[key]||0)>0).map(key=>routePrepSummaryCard(key,readiness[key])).join("")}</div>
       </section>`;
@@ -139,7 +210,7 @@
           <span class="route-prep-card-metrics">
             <span><b>${Number(item.step_matched||0)}</b> / ${Number(item.step_total||0)} matched</span>
             ${Number(item.step_unmatched_local||0)?`<span class="warn"><b>${Number(item.step_unmatched_local)}</b> official road matches needed</span>`:""}
-            ${Number(item.step_candidates||0)?`<span class="candidate"><b>${Number(item.step_candidates)}</b> state-route candidate${Number(item.step_candidates)===1?"":"s"}</span>`:""}
+            ${Number(item.step_ambiguous||0)?`<span class="candidate"><b>${Number(item.step_ambiguous)}</b> ambiguous Route reference${Number(item.step_ambiguous)===1?"":"s"} — no guess</span>`:""}${Number(item.step_candidates||0)?`<span class="candidate"><b>${Number(item.step_candidates)}</b> supported state-route research candidate${Number(item.step_candidates)===1?"":"s"}</span>`:""}
             ${Number(item.step_private||0)?`<span><b>${Number(item.step_private)}</b> private / lease</span>`:""}
           </span>
           ${issues.length?`<span class="route-prep-issue-row">${issues.map(issue=>`<span>${esc(routePrepIssueLabel(issue))}</span>`).join("")}</span>`:""}
@@ -182,7 +253,7 @@
         routePrepState.total=Number(data?.total||0);
         routePrepState.items=Array.isArray(data?.items)?data.items:[];
         if(count)count.textContent=`${routePrepState.total.toLocaleString()} route variant${routePrepState.total===1?"":"s"}`;
-        list.innerHTML=routePrepState.items.length?routePrepState.items.map(routePrepItemMarkup).join(""):`<div class="route-prep-empty"><span class="fm-icon fm-search"></span><strong>No prepared routes matched</strong><p>Change a filter or refresh the 833-pad analysis.</p></div>`;
+        list.innerHTML=routePrepState.items.length?routePrepState.items.map(routePrepItemMarkup).join(""):`<div class="route-prep-empty"><span class="fm-icon fm-search"></span><strong>No prepared routes matched</strong><p>Change a filter or refresh the live pad-route analysis.</p></div>`;
         list.querySelectorAll("[data-route-prep-open]").forEach(button=>button.onclick=()=>openRoutePrepDetail(button.dataset.routePrepOpen));
         renderRoutePrepPager();
       }catch(error){
@@ -206,7 +277,7 @@
       const states=[...new Set(pads.map(p=>p.state).filter(Boolean))].sort();
       const companies=[...new Set(pads.map(p=>p.company).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
       panel.innerHTML=`<div class="route-prep-page">
-        <div id="routePrepOverview"><div class="route-prep-loading"><span class="fm-icon fm-sync"></span> Loading the 833-pad preparation summary…</div></div>
+        <div id="routePrepOverview"><div class="route-prep-loading"><span class="fm-icon fm-sync"></span> Loading the live pad-route preparation summary…</div></div>
         <section class="road-manager-card route-prep-queue">
           <div class="road-manager-section-head"><div><span class="road-manager-kicker">Owner review queue</span><h2>Pad Route Prep</h2><p>Clean the saved route, match only exact roads, then measure intersection-to-intersection mileage. Nothing here changes live directions by itself.</p></div><button type="button" class="btn secondary" id="routePrepRefresh"><span class="fm-icon fm-refresh"></span> Refresh analysis</button></div>
           <div class="route-prep-filters">
@@ -215,7 +286,7 @@
             <select id="routePrepState" aria-label="Pad state"><option value="all">All states</option>${states.map(value=>`<option value="${esc(value)}">${esc(value)}</option>`).join("")}</select>
             <select id="routePrepCompany" aria-label="Pad company"><option value="all">All companies</option>${companies.map(value=>`<option value="${esc(value)}">${esc(value)}</option>`).join("")}</select>
           </div>
-          <div class="route-prep-results-head"><strong id="routePrepResultCount">Loading routes…</strong><span>State-route candidates remain review-only. Local roads never receive an educated guess.</span></div>
+          <div class="route-prep-results-head"><strong id="routePrepResultCount">Loading routes…</strong><span>A bare Route number stays ambiguous until evidence proves the route class. Local roads never receive a guess.</span></div>
           <div class="route-prep-list" id="routePrepList"></div>
           <div class="route-prep-pager" id="routePrepPager"></div>
         </section>
@@ -229,7 +300,7 @@
       company.onchange=()=>{routePrepState.company=company.value;routePrepState.offset=0;loadRoutePrepList();};
       document.getElementById("routePrepRefresh").onclick=async event=>{
         const button=event.currentTarget;
-        if(!confirm("Refresh all 833 pads from their saved GPS and road sequences? This rebuilds only the Owner Route Prep queue and will not rewrite live directions."))return;
+        const prepared=Number(routePrepState.summary?.distinct_pads||0);if(!confirm(`Refresh ${prepared?prepared.toLocaleString()+" ":"all "}pads from their saved GPS and road sequences? This rebuilds only the Owner Route Prep queue and will not rewrite live directions.`))return;
         button.disabled=true;button.innerHTML='<span class="fm-icon fm-sync"></span> Refreshing…';
         try{const result=await routePrepRpc("road_manager_refresh_route_prep");showToast(`Route Prep refreshed: ${Number(result?.active_routes||0).toLocaleString()} variants`);routePrepState.offset=0;await Promise.all([loadRoutePrepSummary(),loadRoutePrepList()]);}
         catch(error){alert(error.message||"Could not refresh Route Prep.");}
@@ -243,6 +314,8 @@
       const source=step.source_details||{};
       const road=step.road;
       const candidate=step.step_kind==="state_route_candidate";
+      const ambiguous=step.match_method==="ambiguous_generic_route_reference";
+      const possible=Array.isArray(source.possible_highways)?source.possible_highways:[];
       const unmatched=["local_road","county_road","township_road"].includes(step.step_kind)&&step.match_status!=="exact_master";
       const privateStep=step.step_kind==="private_segment";
       const statusTone=step.match_status==="exact_master"?"ready":candidate?"candidate":privateStep?"private":"warning";
@@ -253,12 +326,13 @@
           <div class="route-prep-step-status">${esc(routePrepMatchLabel(step.match_status))}${road?` · <b>${esc(road.canonical_name)}</b>`:""}</div>
           ${(step.turn_direction||step.distance_miles!=null)?`<div class="route-prep-measurement">${step.turn_direction?`Turn ${esc(step.turn_direction)}`:"Continue"}${step.distance_miles!=null?` · ${esc(routePrepMiles(step.distance_miles))}`:""}</div>`:""}
           ${(road?.source_agency||source.source_agency)?`<div class="route-prep-source">Source: ${esc([road?.source_agency||source.source_agency,road?.source_dataset||source.source_dataset,road?.source_record_id||source.source_record_id].filter(Boolean).join(" · "))}</div>`:""}
-          ${candidate?`<div class="route-prep-candidate-note"><strong>Candidate only:</strong> ${step.owner_decision==="approved"?"Owner accepted this as a Road Manager candidate, but it still cannot publish until officially verified.":"The pad state was used only to form a possible state-route label. It is not a verified route and is not published."}</div>`:""}
+          ${candidate?`<div class="route-prep-candidate-note"><strong>Supported research candidate only:</strong> ${step.owner_decision==="approved"?"Owner accepted this for Road Manager research, but it still cannot publish until officially verified.":"Supporting evidence suggests a state route, but it remains non-publishable until reviewed and officially verified."}</div>`:""}
+          ${ambiguous?`<div class="route-prep-ambiguous-note"><strong>No route class guessed.</strong> ${esc(step.raw_text)} could mean an Interstate, U.S. route, or state route.${possible.length?` Possible Road Manager records: ${esc(possible.map(option=>option.canonical_name).filter(Boolean).join(", "))}.`:" No verified option is attached yet."}</div>`:""}
           ${unmatched?`<div class="route-prep-no-guess"><strong>No guess made.</strong> Match this exact saved name to an official or field-verified Road Manager record.</div>`:""}
           ${privateStep?`<div class="route-prep-private-note">Private, lease, access and driveway segments require field confirmation. Public-road mapping cannot safely invent them.</div>`:""}
           ${step.owner_notes?`<div class="route-prep-owner-note">Owner note: ${esc(step.owner_notes)}</div>`:""}
           <div class="route-prep-step-actions">
-            ${candidate&&step.owner_decision==="pending"?`<button type="button" class="btn small secondary" data-route-prep-step="approve_state_route_candidate" data-step-id="${esc(step.id)}">Approve candidate for Road Manager</button><button type="button" class="btn small ghost" data-route-prep-step="reject_state_route_candidate" data-step-id="${esc(step.id)}">Reject</button>`:""}
+            ${candidate&&source.state_route_supported===true&&step.owner_decision==="pending"?`<button type="button" class="btn small secondary" data-route-prep-step="approve_state_route_candidate" data-step-id="${esc(step.id)}">Approve candidate for Road Manager</button><button type="button" class="btn small ghost" data-route-prep-step="reject_state_route_candidate" data-step-id="${esc(step.id)}">Reject</button>`:""}
             ${candidate&&step.owner_decision!=="pending"?`<button type="button" class="btn small ghost" data-route-prep-step="reset_pending" data-step-id="${esc(step.id)}">Reset candidate decision</button>`:""}
             ${unmatched?`<button type="button" class="btn small secondary" data-route-prep-search-road="${esc(step.raw_text)}">Search exact road in Road Manager</button>`:""}
             ${!candidate&&step.owner_decision!=="field_check"?`<button type="button" class="btn small ghost" data-route-prep-step="field_check" data-step-id="${esc(step.id)}">Needs field check</button>`:""}
@@ -289,7 +363,7 @@
       overlay.innerHTML=`<section class="route-prep-detail" role="dialog" aria-modal="true" aria-label="Route Prep review">
         <header class="route-prep-detail-header"><button class="route-prep-detail-close" type="button" data-close-route-prep aria-label="Close">×</button><div><span class="route-prep-status ${info.tone}">${esc(info.label)}</span><h2>${esc(route.pad_name||"Pad route")}</h2><p>${esc([route.company,route.state,route.county,route.route_group==="alternate"?`Alternate ${route.variant_index}`:"Primary route"].filter(Boolean).join(" · "))}</p></div><a class="btn secondary small" href="#/pad/${encodeURIComponent(route.legacy_id||route.pad_id)}">Open pad</a></header>
         <div class="route-prep-detail-body">
-          <div class="route-prep-policy compact"><span class="fm-icon fm-locked"></span><div><strong>No route guessing</strong><p>Only saved road names and exact Road Manager/official matches are used. A state-route candidate is review-only and cannot publish.</p></div></div>
+          <div class="route-prep-policy compact"><span class="fm-icon fm-locked"></span><div><strong>No route guessing</strong><p>Only saved road names and exact Road Manager or official matches are used. A bare Route number stays ambiguous, and any supported research candidate remains non-publishable.</p></div></div>
           <section class="route-prep-detail-card"><h3>Saved route</h3><p class="route-prep-saved-sequence">${esc(route.source_sequence||"No sequence")}</p>${route.normalized_sequence&&route.normalized_sequence!==route.source_sequence?`<h4>Prepared sequence</h4><p>${esc(route.normalized_sequence)}</p>`:""}${Array.isArray(route.issue_codes)&&route.issue_codes.length?`<div class="route-prep-issue-row">${route.issue_codes.map(issue=>`<span>${esc(routePrepIssueLabel(issue))}</span>`).join("")}</div>`:""}</section>
           <section class="route-prep-detail-card"><div class="route-prep-detail-card-head"><h3>Road steps</h3><span>${steps.filter(step=>step.match_status==="exact_master").length} of ${steps.length} exact matches</span></div><div class="route-prep-steps">${steps.map(routePrepStepMarkup).join("")}</div></section>
           <section class="route-prep-detail-card"><h3>Owner decision</h3><label class="route-prep-notes-label">Review note<textarea id="routePrepOwnerNotes" rows="3" placeholder="Why this route is blocked, needs field confirmation, or is ready for the next stage…">${esc(route.owner_notes||"")}</textarea></label><div class="route-prep-detail-actions"><button type="button" class="btn secondary" data-route-prep-status="field_check">Mark field check</button><button type="button" class="btn ghost" data-route-prep-status="blocked">Block — do not use</button>${route.readiness_status!=="ready_for_road_matching"?`<button type="button" class="btn ghost" data-route-prep-status="ready_for_road_matching">Return to road matching</button>`:""}</div></section>
@@ -335,7 +409,7 @@
       document.title="Road Manager · BrineSearch";
       if(!requireOwnerSettingsPage("Road Manager"))return;
       app.innerHTML=`<main class="road-manager-page route-prep-road-manager">
-        <section class="road-manager-hero"><div><span class="road-manager-kicker">Owner control</span><h1>Road Manager</h1><p>One shared road database plus a strict preparation queue for all 833 pads that have GPS and a saved road sequence.</p></div><a class="btn ghost small" href="#/settings">← Settings</a></section>
+        <section class="road-manager-hero"><div><span class="road-manager-kicker">Owner control</span><h1>Road Manager</h1><p>One grouped road database plus a strict preparation queue for every pad that has GPS and a saved road sequence.</p></div><a class="btn ghost small" href="#/settings">← Settings</a></section>
         <div class="road-manager-tabs" id="roadManagerTabs" role="tablist" aria-label="Road Manager sections"><button type="button" data-road-manager-tab="roads" role="tab"><span class="fm-icon fm-road"></span> Master roads</button><button type="button" data-road-manager-tab="prep" role="tab"><span class="fm-icon fm-directions"></span> Pad Route Prep</button></div>
         <div id="roadManagerTabPanel"></div>
       </main>`;
