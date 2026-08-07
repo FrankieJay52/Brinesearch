@@ -22,7 +22,7 @@ if (fieldMarkCss.includes("url('./icons/")) throw new Error('Field Mark override
 for (const requiredIcon of ['/icons/fm-search-inactive.svg','/icons/fm-home-inactive.svg','/icons/fm-feed-inactive.svg','/icons/fm-favorites-inactive.svg','/icons/fm-add-inactive.svg','/icons/fm-offline-inactive.svg']) {
   if (!fieldMarkCss.includes(`url('${requiredIcon}')`)) throw new Error(`Missing absolute Field Mark icon ${requiredIcon}.`);
 }
-for (const requiredScannerToken of ['Read Database Fields', 'findSignBounds', 'panelRects', 'formatApi14', '34-067-2-1651-00-00']) {
+for (const requiredScannerToken of ['Read Database Fields', 'findSignBounds', 'panelRects', 'formatApi14', 'digits.slice(5,6)', 'digits.slice(6,10)']) {
   if (!structuredScanner.includes(requiredScannerToken)) throw new Error(`Structured scanner is missing ${requiredScannerToken}.`);
 }
 for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js','field-mark-runtime.js']) {
