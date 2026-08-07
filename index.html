@@ -6231,7 +6231,7 @@ html[data-theme="day"] .live-editor-steps{background:rgba(247,250,255,.985)}
 <footer class="footer">
   <div class="shell legal-footer">
     <div class="legal-footer-brand" aria-label="BrineSearch"><img class="footer-logo footer-logo-dark" src="brand-kit/brinesearch-truck-logo-footer-dark.png" alt="BrineSearch truck and water logo" loading="lazy" decoding="async"><img class="footer-logo footer-logo-day" src="brand-kit/brinesearch-truck-logo-footer-day.png" alt="" aria-hidden="true" loading="lazy" decoding="async"></div>
-    <div class="legal-footer-main">© 2026 BrineSearch · <span id="dataSourceStatus">Loading live directory…</span> · V 16.20</div>
+    <div class="legal-footer-main">© 2026 BrineSearch · <span id="dataSourceStatus">Loading live directory…</span> · V 16.21</div>
     <div class="legal-footer-note">BrineSearch is independent and is not affiliated with any operator, service company, employer, or government agency. Company names and trademarks belong to their owners. Verify directions, road conditions, and field information before use.</div>
     <div class="legal-footer-links"><a href="#/settings/data-sources">Data Sources</a><a href="#/settings/copyright">Copyright</a><a href="#/feed/rules">Privacy &amp; Safety</a><a href="#/feed/rules">Terms of Service</a><a href="#/feed/rules">Community Rules</a><a href="mailto:support@brinesearch.com">Contact</a></div>
   </div>
@@ -12321,7 +12321,7 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
           ${settingsRow("⚖","Terms and disclaimer","Independent platform, user-content and employer-affiliation terms",'data-settings-route="#/feed/rules"')}
         </div></section>
         ${r.signedIn?`<section class="settings-section"><button class="settings-signout" id="settingsSignOutBtn" type="button">Sign out of BrineSearch</button></section>`:""}
-        <div class="settings-version"><span>BrineSearch V 16.20</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
+        <div class="settings-version"><span>BrineSearch V 16.21</span><span>${r.signedIn?esc(r.label):"Public access"}</span></div>
       </main>`;
       document.querySelectorAll("[data-settings-route]").forEach(btn=>btn.onclick=()=>{ location.hash=btn.dataset.settingsRoute; });
       document.querySelectorAll("[data-settings-action]").forEach(btn=>btn.onclick=()=>{
@@ -13393,7 +13393,7 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
   <span><strong>Update available.</strong> Reload for the latest BrineSearch.</span>
   <button type="button" id="brinesearchUpdateReload">Reload</button>
 </div>
-<div class="build-stamp" style="display:none">BrineSearch V 16.20</div>
+<div class="build-stamp" style="display:none">BrineSearch V 16.21</div>
 
 <script id="field-mark-runtime">
 (()=>{
@@ -13405,5 +13405,6 @@ function fieldCategoryLabel(value){ return (FIELD_CATEGORIES.find(x=>x[0]===valu
 </script>
 
   <script src="./road-database.js?v=16.20"></script>
+  <script src="./road-manager.js?v=16.21"></script>
 </body>
 </html>

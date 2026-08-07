@@ -186,7 +186,7 @@
   }
   function emptyDatabase() {
     var time = nowIso();
-    return { schemaVersion: 1, appVersion: '16.20', createdAt: time, updatedAt: time, roads: {}, aliases: {}, stats: { roadCount: 0, linkedPadCount: 0, lastMigrationAt: null } };
+    return { schemaVersion: 1, appVersion: '16.21', createdAt: time, updatedAt: time, roads: {}, aliases: {}, stats: { roadCount: 0, linkedPadCount: 0, lastMigrationAt: null } };
   }
   function sanitizeArray(values, max) {
     return unique((Array.isArray(values) ? values : values ? [values] : []).map(normalizeWhitespace)).slice(0, max || 40);

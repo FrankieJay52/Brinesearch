@@ -1,6 +1,6 @@
-const CACHE_VERSION = 'brinesearch-v16-20-contact-1';
+const CACHE_VERSION = 'brinesearch-v16-21';
 const CONTACT_EMAIL = 'frankjhaller@gmail.com';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallback-data.json', './road-database.js', './road-database.schema.json', './road_name_review.csv', './brand-kit/brinesearch-apple-touch-icon.png', './brand-kit/brinesearch-app-icon-512.png', './brand-kit/brinesearch-app-icon.png', './brand-kit/brinesearch-truck-logo.png', './brand-kit/brinesearch-truck-logo-footer-dark.png', './brand-kit/brinesearch-truck-logo-footer-day.png',
+const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallback-data.json', './road-database.js', './road-manager.js', './road-database.schema.json', './road_name_review.csv', './brand-kit/brinesearch-apple-touch-icon.png', './brand-kit/brinesearch-app-icon-512.png', './brand-kit/brinesearch-app-icon.png', './brand-kit/brinesearch-truck-logo.png', './brand-kit/brinesearch-truck-logo-footer-dark.png', './brand-kit/brinesearch-truck-logo-footer-day.png',
   "./icons/fm-collapse-inactive.svg",
   "./icons/fm-upload-inactive.svg",
   "./icons/fm-favorites-active.svg",
