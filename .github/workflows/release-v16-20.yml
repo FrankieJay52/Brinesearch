@@ -1,0 +1,125 @@
+name: Release BrineSearch V16.20
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/release-v16-20.yml
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Integrate central road database
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .github/v16-20-road-db.part-* | base64 -d | gzip -d > road-database.js
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          index_path = Path('index.html')
+          text = index_path.read_text(encoding='utf-8')
+          include = '<script src="./road-database.js?v=16.20"></script>'
+
+          text = re.sub(r'\s*<script[^>]+src=["\']\./road-database\.js[^"\']*["\'][^>]*></script>', '', text, flags=re.I)
+          closing = re.search(r'</body\s*>', text, flags=re.I)
+          if not closing:
+              raise SystemExit('index.html has no closing body tag')
+          text = text[:closing.start()] + '\n  ' + include + '\n' + text[closing.start():]
+
+          text = text.replace('BrineSearch V 16.19', 'BrineSearch V 16.20')
+          text = text.replace('BrineSearch V16.19', 'BrineSearch V16.20')
+          text = text.replace('V 16.19', 'V 16.20')
+          text = re.sub(r"(APP_VERSION\s*[:=]\s*['\"])16\.19(['\"])", r"\g<1>16.20\2", text)
+          text = re.sub(r"(BUILD_VERSION\s*[:=]\s*['\"])16\.19(['\"])", r"\g<1>16.20\2", text)
+          index_path.write_text(text, encoding='utf-8')
+
+          sw_path = Path('sw.js')
+          sw = sw_path.read_text(encoding='utf-8')
+          sw = sw.replace("brinesearch-v16-19", "brinesearch-v16-20")
+          if "./road-database.js" not in sw:
+              needle = "'./pad-fallback-data.json',"
+              if needle not in sw:
+                  raise SystemExit('service-worker app-shell anchor missing')
+              sw = sw.replace(needle, needle + " './road-database.js', './road-database.schema.json', './road_name_review.csv',", 1)
+          sw_path.write_text(sw, encoding='utf-8')
+          PY
+
+      - name: Validate V16.20 files
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check road-database.js
+          node --check sw.js
+          node <<'NODE'
+          const assert = require('assert');
+          const db = require('./road-database.js');
+          db.reset();
+          assert.equal(db.classifyRoad('I-70'), 'interstate');
+          assert.equal(db.classifyRoad('US-250'), 'us-route');
+          assert.equal(db.classifyRoad('OH-800'), 'state-route');
+          assert.equal(db.classifyRoad('CR-13'), 'county-route');
+          assert.equal(db.classifyRoad('TR-232'), 'township-route');
+          assert.equal(db.classifyRoad('Lease Road'), 'lease-road');
+          assert.equal(db.normalizeRoadName('oh 78'), 'OH-78');
+          assert.equal(db.__test.roadFromInstruction('Turn left onto Bean Ridge Rd for 1.6 miles'), 'Bean Ridge Rd');
+
+          const first = db.upsert({officialName:'Bean Ridge Rd', state:'OH', padIds:['pad-1']});
+          const second = db.upsert({officialName:'Bean Ridge Road', state:'OH', padIds:['pad-2']});
+          assert.equal(first.id, second.id);
+          assert(db.get(first.id).padIds.includes('pad-1'));
+          assert(db.get(first.id).padIds.includes('pad-2'));
+
+          const route = db.upsert({officialName:'OH-78', state:'OH', aliases:['State Route 78']});
+          assert.equal(db.resolveName('oh 78', {state:'OH'}), 'OH-78');
+          assert.equal(db.find('State Route 78', {state:'OH'}).id, route.id);
+          db.addWarning(route.id, 'Narrow shoulder');
+          db.addRestriction(route.id, 'No oversize loads');
+          db.setVerification(route.id, {status:'needs-field-check', needsFieldCheck:true});
+          assert.equal(db.get(route.id).verification.needsFieldCheck, true);
+
+          const csv = 'record_id,pad_name,company,state,original_step,standardized_display,review_reason\n' +
+            'ascent--x,X,Ascent,Ohio,Right/west Onto Holly View Dr,Right/West Onto Holly View Dr,needs source verification';
+          assert.equal(db.ingestRoadReviewCsv(csv), 1);
+          const migration = db.ingestPads([{id:'pad-y',state:'Ohio',directions:[{roadName:'CR-13'},{instruction:'Turn left onto Upper Clearfork Rd for 2.1 miles'}]}]);
+          assert.equal(migration.padCount, 1);
+          assert(db.find('CR-13',{state:'OH'}).padIds.includes('pad-y'));
+          console.log('V16.20 road database tests passed', db.getStats());
+          NODE
+
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+          index = Path('index.html').read_text(encoding='utf-8')
+          sw = Path('sw.js').read_text(encoding='utf-8')
+          assert index.count('src="./road-database.js?v=16.20"') == 1
+          assert re.search(r'</body\s*>', index, re.I)
+          assert 'brinesearch-v16-20' in sw
+          assert './road-database.js' in sw
+          assert './road-database.schema.json' in sw
+          assert './road_name_review.csv' in sw
+          json.loads(Path('road-database.schema.json').read_text(encoding='utf-8'))
+          for path in ('index.html','sw.js','road-database.js','road-database.schema.json','road_name_review.csv','pad-fallback-data.json'):
+              assert Path(path).exists(), path
+          print('V16.20 static integration checks passed')
+          PY
+          git diff --check
+
+      - name: Commit V16.20
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/release-v16-20.yml
+          rm -f .github/v16-20-road-db.part-*
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Release BrineSearch V16.20"
+          git push origin HEAD:main

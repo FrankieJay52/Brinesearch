@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://brinesearch.com/schemas/road-database-v1.json",
+  "title": "BrineSearch Central Road Database",
+  "type": "object",
+  "required": ["schemaVersion", "appVersion", "roads", "aliases", "stats"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "appVersion": { "type": "string" },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" },
+    "roads": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/road" }
+    },
+    "aliases": {
+      "type": "object",
+      "additionalProperties": { "type": "string" }
+    },
+    "stats": {
+      "type": "object",
+      "properties": {
+        "roadCount": { "type": "integer", "minimum": 0 },
+        "linkedPadCount": { "type": "integer", "minimum": 0 },
+        "lastMigrationAt": { "type": ["string", "null"] }
+      }
+    }
+  },
+  "$defs": {
+    "road": {
+      "type": "object",
+      "required": ["id", "canonicalKey", "officialName", "type", "aliases", "verification", "padIds"],
+      "properties": {
+        "id": { "type": "string" },
+        "canonicalKey": { "type": "string" },
+        "officialName": { "type": "string" },
+        "displayName": { "type": "string" },
+        "type": {
+          "enum": ["interstate", "us-route", "state-route", "county-route", "township-route", "street", "lease-road", "access-road", "unknown"]
+        },
+        "routePrefix": { "type": "string" },
+        "routeNumber": { "type": "string" },
+        "state": { "type": "string" },
+        "county": { "type": "string" },
+        "township": { "type": "string" },
+        "aliases": { "type": "array", "items": { "type": "string" } },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "restrictions": { "type": "array", "items": { "type": "string" } },
+        "notes": { "type": "string" },
+        "padIds": { "type": "array", "items": { "type": "string" } },
+        "sources": { "type": "array", "items": { "type": "object" } },
+        "verification": {
+          "type": "object",
+          "required": ["status", "needsFieldCheck"],
+          "properties": {
+            "status": { "enum": ["unverified", "verified", "needs-field-check", "reviewed"] },
+            "officialNameVerified": { "type": "boolean" },
+            "aliasesVerified": { "type": "boolean" },
+            "warningsVerified": { "type": "boolean" },
+            "needsFieldCheck": { "type": "boolean" },
+            "lastVerifiedAt": { "type": ["string", "null"] },
+            "lastVerifiedBy": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
