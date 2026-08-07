@@ -6,12 +6,16 @@ on:
       - v17.3-source-provenance-fix
     paths:
       - .github/workflows/apply-source-provenance-hotfix.yml
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   apply:
+    if: ${{ github.head_ref == 'v17.3-source-provenance-fix' || github.ref_name == 'v17.3-source-provenance-fix' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -21,7 +25,18 @@ jobs:
           ref: v17.3-source-provenance-fix
           fetch-depth: 0
 
+      - name: Check whether hotfix is already applied
+        id: state
+        run: |
+          if grep -q 'function fieldOfficialSourceRecord' v17/src/parts/11-pad-page.js; then
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "Source-provenance hotfix is already present."
+          else
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Download and verify reviewed patch
+        if: steps.state.outputs.apply == 'true'
         env:
           SUPABASE_URL: https://wvxzqtoiwhrgovzddtvz.supabase.co
           SUPABASE_KEY: sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd
@@ -53,6 +68,7 @@ jobs:
           git apply /tmp/source-provenance.patch
 
       - name: Verify the complete app
+        if: steps.state.outputs.apply == 'true'
         run: |
           node --check v17/src/parts/11-pad-page.js
           node v17/scripts/verify.mjs
@@ -60,6 +76,7 @@ jobs:
           node v17/scripts/verify-v17-3.mjs
 
       - name: Commit and push hotfix
+        if: steps.state.outputs.apply == 'true'
         run: |
           git config user.name "BrineSearch Release Bot"
           git config user.email "actions@users.noreply.github.com"
