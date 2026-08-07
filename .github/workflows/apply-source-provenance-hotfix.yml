@@ -1,0 +1,68 @@
+name: Apply official-source provenance hotfix
+
+on:
+  push:
+    branches:
+      - v17.3-source-provenance-fix
+    paths:
+      - .github/workflows/apply-source-provenance-hotfix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out hotfix branch
+        uses: actions/checkout@v4
+        with:
+          ref: v17.3-source-provenance-fix
+          fetch-depth: 0
+
+      - name: Download and verify reviewed patch
+        env:
+          SUPABASE_URL: https://wvxzqtoiwhrgovzddtvz.supabase.co
+          SUPABASE_KEY: sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd
+        run: |
+          set -euo pipefail
+          curl -fsS "$SUPABASE_URL/rest/v1/v17_3_source_provenance_patch_transfer?select=part,payload&order=part.asc" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Accept: application/json" > /tmp/source-provenance-parts.json
+          python - <<'PY'
+          import base64
+          import gzip
+          import hashlib
+          import json
+          from pathlib import Path
+
+          rows = json.loads(Path('/tmp/source-provenance-parts.json').read_text())
+          if [row['part'] for row in rows] != [0, 1]:
+              raise SystemExit('Source-provenance patch transfer is incomplete')
+          encoded = ''.join(row['payload'] for row in rows)
+          patch = gzip.decompress(base64.b64decode(encoded))
+          expected = '2749c7cf735c3bc250fe8dd5de64c7a20bb46ad3a41b1d22e468a3875aad0113'
+          actual = hashlib.sha256(patch).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'Patch checksum mismatch: {actual}')
+          Path('/tmp/source-provenance.patch').write_bytes(patch)
+          print(f'Verified source-provenance patch: {len(patch):,} bytes')
+          PY
+          git apply --check /tmp/source-provenance.patch
+          git apply /tmp/source-provenance.patch
+
+      - name: Verify the complete app
+        run: |
+          node --check v17/src/parts/11-pad-page.js
+          node v17/scripts/verify.mjs
+          node v17/scripts/verify-road-manager.mjs
+          node v17/scripts/verify-v17-3.mjs
+
+      - name: Commit and push hotfix
+        run: |
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Show official source provenance and honest API status"
+          git push origin HEAD:v17.3-source-provenance-fix
