@@ -64,13 +64,48 @@ jobs:
           Path('/tmp/source-provenance.patch').write_bytes(patch)
           print(f'Verified source-provenance patch: {len(patch):,} bytes')
           PY
-          git apply --check /tmp/source-provenance.patch
-          git apply /tmp/source-provenance.patch
+          git apply --check \
+            --exclude=v17/src/parts/part-order.json \
+            --exclude=v17/src/styles/style-order.json \
+            --exclude=v17/scripts/verify-v17-3.mjs \
+            /tmp/source-provenance.patch
+          git apply \
+            --exclude=v17/src/parts/part-order.json \
+            --exclude=v17/src/styles/style-order.json \
+            --exclude=v17/scripts/verify-v17-3.mjs \
+            /tmp/source-provenance.patch
+
+      - name: Refresh assembled source hashes
+        if: steps.state.outputs.apply == 'true'
+        run: |
+          python - <<'PY'
+          import hashlib
+          import json
+          from pathlib import Path
+
+          root = Path('v17/src')
+          part_path = root / 'parts' / 'part-order.json'
+          parts = json.loads(part_path.read_text())
+          app = parts['wrapperStart'] + '\n' + '\n'.join((root / 'parts' / name).read_text() for name in parts['parts']) + '\n' + parts['wrapperEnd'] + '\n'
+          parts['assembledSha256'] = hashlib.sha256(app.encode()).hexdigest()
+          part_path.write_text(json.dumps(parts, indent=2) + '\n')
+
+          style_path = root / 'styles' / 'style-order.json'
+          styles = json.loads(style_path.read_text())
+          css = '\n\n'.join((root / 'styles' / name).read_text().rstrip() for name in styles['styles']) + '\n'
+          styles['assembledSha256'] = hashlib.sha256(css.encode()).hexdigest()
+          style_path.write_text(json.dumps(styles, indent=2) + '\n')
+          print('Updated assembled source hashes.')
+          PY
 
       - name: Verify the complete app
         if: steps.state.outputs.apply == 'true'
         run: |
           node --check v17/src/parts/11-pad-page.js
+          grep -q 'function fieldOfficialSourceRecord' v17/src/parts/11-pad-page.js
+          grep -q 'Not individually confirmed yet' v17/src/parts/11-pad-page.js
+          grep -q 'View official source' v17/src/parts/11-pad-page.js
+          grep -q 'field-source-link' v17/src/styles/21-search.css
           node v17/scripts/verify.mjs
           node v17/scripts/verify-road-manager.mjs
           node v17/scripts/verify-v17-3.mjs
