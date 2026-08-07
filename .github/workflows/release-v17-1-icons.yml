@@ -1,0 +1,165 @@
+name: Release BrineSearch V17.1 icon hotfix
+
+on:
+  push:
+    branches: [v17.1-icon-hotfix]
+    paths:
+      - '.github/workflows/release-v17-1-icons.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  repair-and-test:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v17.1-icon-hotfix
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Repair icon paths and V17.1 release markers
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const crypto = require('crypto');
+          const read = p => fs.readFileSync(p, 'utf8');
+          const write = (p, v) => fs.writeFileSync(p, v);
+          const sha256 = v => crypto.createHash('sha256').update(v).digest('hex');
+
+          const iconCssPath = 'v17/src/styles/09-field-mark-icons.css';
+          let iconCss = read(iconCssPath);
+          if (!iconCss.includes("url('./icons/")) throw new Error('Expected legacy Field Mark icon paths were not found.');
+          iconCss = iconCss.replaceAll("url('./icons/", "url('../icons/");
+          write(iconCssPath, iconCss);
+
+          const indexPath = 'v17/index.html';
+          let index = read(indexPath);
+          index = index.replace(/<meta\s+name=["']brinesearch-build["']\s+content=["'][^"']*["']\s*\/?>(?=)/i, '<meta name="brinesearch-build" content="17.1.0">');
+          index = index.replace('<title>BrineSearch V17 Preview — · Field Pad Directory</title>', '<title>BrineSearch · Field Pad Directory</title>');
+          index = index.replaceAll('?v=17.0.0', '?v=17.1.0');
+          index = index.replace('<link rel="apple-touch-icon" sizes="180x180" href="./brand-kit/brinesearch-apple-touch-icon.png"/>', '');
+          const oldFooterBrand = '<div class="legal-footer-brand" aria-label="BrineSearch"><img class="footer-logo footer-logo-dark" src="brand-kit/brinesearch-truck-logo-footer-dark.png" alt="BrineSearch truck and water logo" loading="lazy" decoding="async"><img class="footer-logo footer-logo-day" src="brand-kit/brinesearch-truck-logo-footer-day.png" alt="" aria-hidden="true" loading="lazy" decoding="async"></div>';
+          const newFooterBrand = '<div class="legal-footer-brand" aria-label="BrineSearch"><span class="fm-icon fm-pad" aria-hidden="true"></span><strong>BrineSearch</strong></div>';
+          if (!index.includes(oldFooterBrand)) throw new Error('Expected broken footer brand markup was not found.');
+          index = index.replace(oldFooterBrand, newFooterBrand);
+          index = index.replace(' · V 16.21</div>', ' · V 17.1</div>');
+          write(indexPath, index);
+
+          const shellPath = 'v17/src/parts/16-router-assistant-shell.js';
+          let shell = read(shellPath);
+          shell = shell.replace('BrineSearch V 16.21', 'BrineSearch V 17.1');
+          write(shellPath, shell);
+
+          const swPath = 'v17/src/offline/sw.js';
+          let sw = read(swPath).replace("const CACHE_VERSION = 'brinesearch-v17-0-0';", "const CACHE_VERSION = 'brinesearch-v17-1-0';");
+          const coreIcons = [
+            './icons/fm-home-inactive.svg','./icons/fm-search-inactive.svg','./icons/fm-feed-inactive.svg','./icons/fm-back-inactive.svg',
+            './icons/fm-capture-gps.svg','./icons/fm-favorites-inactive.svg','./icons/fm-add-inactive.svg','./icons/fm-offline-inactive.svg',
+            './icons/fm-refresh-inactive.svg','./icons/fm-profile-inactive.svg','./icons/fm-settings-inactive.svg','./icons/fm-weather-inactive.svg',
+            './icons/fm-pad-inactive.svg'
+          ];
+          sw = sw.replace("  './v16-25-hotfix.js', './road-database.schema.json', './road_name_review.csv'\n", "  './v16-25-hotfix.js', './road-database.schema.json', './road_name_review.csv',\n  " + coreIcons.map(x => `'${x}'`).join(', ') + "\n");
+          write(swPath, sw);
+
+          const pkg = JSON.parse(read('package.json'));
+          pkg.version = '17.1.0';
+          write('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          const lock = JSON.parse(read('package-lock.json'));
+          lock.version = '17.1.0';
+          if (lock.packages?.['']) lock.packages[''].version = '17.1.0';
+          write('package-lock.json', JSON.stringify(lock, null, 2) + '\n');
+
+          const vitePath = 'v17/vite.config.js';
+          let vite = read(vitePath).replaceAll('17.0.0', '17.1.0');
+          write(vitePath, vite);
+
+          const partsPath = 'v17/src/parts/part-order.json';
+          const partsManifest = JSON.parse(read(partsPath));
+          partsManifest.version = '17.1.0';
+          const parts = partsManifest.parts.map(name => read(path.join('v17/src/parts', name)));
+          const assembledApp = `${partsManifest.wrapperStart}\n${parts.join('\n')}\n${partsManifest.wrapperEnd}\n`;
+          partsManifest.assembledSha256 = sha256(assembledApp);
+          write(partsPath, JSON.stringify(partsManifest, null, 2) + '\n');
+
+          const stylesPath = 'v17/src/styles/style-order.json';
+          const stylesManifest = JSON.parse(read(stylesPath));
+          stylesManifest.version = '17.1.0';
+          const styles = stylesManifest.styles.map(name => read(path.join('v17/src/styles', name)));
+          const assembledCss = styles.map(value => value.trimEnd()).join('\n\n') + '\n';
+          stylesManifest.assembledSha256 = sha256(assembledCss);
+          write(stylesPath, JSON.stringify(stylesManifest, null, 2) + '\n');
+
+          const smokePath = 'v17/scripts/browser-smoke.mjs';
+          let smoke = read(smokePath);
+          const oldBlock = `    const iconUrls = new Set();\n    document.querySelectorAll('.fm-icon').forEach(icon => {\n      const raw = getComputedStyle(icon).getPropertyValue('--fm-icon').trim();\n      const match = raw.match(/url\\([\"']?([^\"')]+)[\"']?\\)/i);\n      if (match) iconUrls.add(new URL(match[1], document.baseURI).href);\n    });`;
+          const newBlock = `    const iconUrls = new Set();\n    const stylesheetBase = new URL('/styles/app.css', document.baseURI);\n    document.querySelectorAll('.fm-icon').forEach(icon => {\n      const style = getComputedStyle(icon);\n      const resolvedMask = style.webkitMaskImage || style.maskImage || '';\n      const resolvedMatch = resolvedMask.match(/url\\([\"']?([^\"')]+)[\"']?\\)/i);\n      if (resolvedMatch) {\n        iconUrls.add(new URL(resolvedMatch[1], document.baseURI).href);\n        return;\n      }\n      const raw = style.getPropertyValue('--fm-icon').trim();\n      const rawMatch = raw.match(/url\\([\"']?([^\"')]+)[\"']?\\)/i);\n      if (rawMatch) iconUrls.add(new URL(rawMatch[1], stylesheetBase).href);\n    });`;
+          if (!smoke.includes(oldBlock)) throw new Error('Browser smoke icon block did not match expected source.');
+          smoke = smoke.replace(oldBlock, newBlock);
+          smoke = smoke.replace("      missingIcons: iconChecks.filter(Boolean),", "      missingIcons: iconChecks.filter(Boolean),\n      quickIconCount: document.querySelectorAll('.dashboard-quick .fm-icon').length,\n      brokenImages: Array.from(document.images).filter(img => !img.src.startsWith('data:') && img.complete && img.naturalWidth === 0).map(img => new URL(img.src, document.baseURI).pathname),");
+          smoke = smoke.replace("  if (!audit.globals.frontSignScanner) failures.push(`${testCase.name}: Front Sign Scanner did not start`);", "  if (!audit.globals.frontSignScanner) failures.push(`${testCase.name}: Front Sign Scanner did not start`);\n  if (audit.quickIconCount < 6) failures.push(`${testCase.name}: expected 6 dashboard quick-action icons, found ${audit.quickIconCount}`);\n  for (const image of audit.brokenImages) failures.push(`${testCase.name} broken image: ${image}`);");
+          smoke = smoke.replace("    iconCount: audit.missingIcons.length,", "    iconCount: audit.missingIcons.length,\n    quickIconCount: audit.quickIconCount,\n    brokenImages: audit.brokenImages,");
+          write(smokePath, smoke);
+
+          let readme = read('v17/README.md');
+          readme = readme.replace('The live `main` branch remains on V16.25. This branch contains the behavior-preserving first stage of V17.', 'BrineSearch V17 uses a behavior-preserving modular source build. V17.1 fixes Field Mark asset resolution after the stylesheet split.');
+          write('v17/README.md', readme);
+
+          write('CHANGELOG_V17.1.md', `# BrineSearch V17.1\n\n- Fixed Field Mark icon URLs after CSS moved into /styles.\n- Removed footer references to missing brand-kit PNG files and replaced them with the built-in Field Mark pad icon.\n- Removed a missing duplicate Home Screen icon reference; the existing embedded PNG remains.\n- Bumped production build/cache markers to V17.1.\n- Added core Field Mark icons to the offline app shell.\n- Strengthened browser testing to resolve CSS mask URLs from the stylesheet location and detect broken images.\n`);
+          NODE
+
+      - name: Install dependencies and build
+        run: |
+          npm ci
+          npm run build
+          npm audit --audit-level=high
+
+      - name: Verify built icon paths and release markers
+        run: |
+          grep -q "url('../icons/fm-search-inactive.svg')" v17/public/styles/app.css
+          ! grep -q "url('./icons/" v17/public/styles/app.css
+          grep -q 'name="brinesearch-build" content="17.1.0"' dist-v17/index.html
+          grep -q 'V 17.1</div>' dist-v17/index.html
+          ! grep -q 'brinesearch-truck-logo-footer' dist-v17/index.html
+          ! grep -q 'brand-kit/brinesearch-apple-touch-icon.png' dist-v17/index.html
+          grep -q "brinesearch-v17-1-0" dist-v17/sw.js
+
+      - name: Install browser test runner
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Start production preview
+        run: |
+          npx vite preview --config v17/vite.config.js --host 127.0.0.1 --port 4173 > /tmp/v17-preview.log 2>&1 &
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:4173/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/v17-preview.log
+          exit 1
+
+      - name: Audit real icon URLs on iPhone and desktop
+        env:
+          V17_PREVIEW_URL: http://127.0.0.1:4173
+        run: node v17/scripts/browser-smoke.mjs
+
+      - name: Commit tested V17.1 hotfix
+        run: |
+          rm -f .github/workflows/release-v17-1-icons.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release BrineSearch V17.1 icon asset hotfix [skip ci]"
+          git push origin v17.1-icon-hotfix
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/v17-preview.log || true
