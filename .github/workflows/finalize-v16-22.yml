@@ -1,0 +1,268 @@
+name: Finalize BrineSearch V16.22
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/finalize-v16-22.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Consolidate V16.22 into one scanner
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          index_path = Path('index.html')
+          html = index_path.read_text(encoding='utf-8')
+
+          # Remove every previous V16.22 scanner include, then add the final scanner once.
+          html = re.sub(r'\s*<link[^>]+(?:sign-scanner\.css|data-brinesearch-sign-scanner=["\']style["\'])[^>]*>\s*', '\n', html, flags=re.I)
+          html = re.sub(r'\s*<script[^>]+(?:front-sign-scanner\.js|(?:^|["\'/])sign-scanner\.js|data-brinesearch-sign-scanner=["\']script["\'])[^>]*>\s*</script>\s*', '\n', html, flags=re.I)
+          scanner_tag = '  <script id="brinesearch-front-sign-scanner" src="./front-sign-scanner.js" defer></script>\n'
+          lower = html.lower()
+          if '</body>' not in lower:
+              raise SystemExit('index.html has no closing body tag')
+          position = lower.rfind('</body>')
+          html = html[:position] + scanner_tag + html[position:]
+          html = html.replace('V 16.21', 'V 16.22').replace('V16.21', 'V16.22').replace('v16.21', 'v16.22')
+          if html.count('front-sign-scanner.js') != 1:
+              raise SystemExit('front-sign-scanner.js must appear exactly once in index.html')
+          if re.search(r'(?:src|href)=["\'][^"\']*(?<!front-)sign-scanner\.(?:js|css)', html, re.I):
+              raise SystemExit('an older scanner include remains in index.html')
+          index_path.write_text(html, encoding='utf-8')
+
+          sw_path = Path('sw.js')
+          sw = sw_path.read_text(encoding='utf-8')
+          sw = re.sub(r"const CACHE_VERSION = ['\"]brinesearch-v\d+-\d+['\"];", "const CACHE_VERSION = 'brinesearch-v16-22';", sw, count=1)
+          obsolete = [
+              './front-sign-scanner.js', './sign-scanner.js', './sign-scanner.css',
+              './vendor/tesseract/tesseract.min.js', './vendor/tesseract/worker.min.js', './vendor/tesseract/LICENSE.md'
+          ]
+          for asset in obsolete:
+              sw = re.sub(r"['\"]" + re.escape(asset) + r"['\"]\s*,?\s*", '', sw)
+          marker = "const APP_SHELL = ['./', './index.html',"
+          if marker not in sw:
+              raise SystemExit('APP_SHELL marker was not found in sw.js')
+          sw = sw.replace(marker, "const APP_SHELL = ['./', './index.html', './front-sign-scanner.js',", 1)
+          if sw.count('./front-sign-scanner.js') != 1:
+              raise SystemExit('front-sign-scanner.js must appear exactly once in APP_SHELL')
+          if any(asset in sw for asset in obsolete[1:]):
+              raise SystemExit('an obsolete scanner asset remains in sw.js')
+          sw_path.write_text(sw, encoding='utf-8')
+
+          road_manager = Path('road-manager.js')
+          if road_manager.exists():
+              road = road_manager.read_text(encoding='utf-8')
+              road = road.replace('BrineSearch V16.21 — Road Manager', 'BrineSearch V16.22 — Road Manager')
+              road = road.replace("var VERSION = '16.21';", "var VERSION = '16.22';")
+              road_manager.write_text(road, encoding='utf-8')
+
+          changelog = '''# BrineSearch V16.22 — Scan Front Sign
+
+## New front-sign scanner
+- Added **Scan Front Sign** to every regular Pad page.
+- Added the same scanner inside both Edit Pad experiences: the standard Pad Editor and the live database editor.
+- Uses the iPhone rear camera or an existing photo.
+- Reads sign text in the browser and extracts recognizable pad information.
+
+## Information BrineSearch can recognize
+- Pad or facility name
+- Operator or company
+- State, county, and township/city
+- Address or entrance location
+- Latitude and longitude
+- Well names
+- API numbers
+- Property numbers
+- Gate/access codes
+- Phone and contact lines
+- Emergency instructions
+- Safety warnings and access instructions
+
+## Review before saving
+- Every recognized standard field is shown in an editable review list.
+- Every field can be unchecked before applying.
+- Confidence labels call out information that deserves extra review.
+- A warning reminds drivers to verify numbers that photo reading commonly confuses.
+- Nothing silently overwrites pad information before the review screen is accepted.
+
+## Pad and Edit Pad behavior
+- From a Pad page, **Apply and Save to Pad** opens the existing editor, fills the selected information, and uses the normal save process.
+- From Edit Pad, **Fill Edit Pad Form** fills the open form but leaves the final Save button to the user.
+- Existing well, API, and property lists are merged instead of erased.
+- Gate, emergency, safety, phone, and access information can optionally be appended to Written Directions.
+
+## Photo and offline behavior
+- A smaller copy of the sign photo can be saved locally on the device.
+- The Pad page shows a Front Sign card with the scan date, recognized details, rescan, view-text, and remove controls.
+- Sign scans use IndexedDB with a localStorage text fallback.
+- The original full-resolution photo is not stored by BrineSearch.
+- The photo is processed in the browser and is not uploaded to BrineSearch.
+- The text-reading engine and English language data require internet access the first time they load.
+
+## Mobile behavior
+- Full-screen bottom-sheet layout on iPhone.
+- Rear-camera capture request through the standard mobile photo input.
+- Large tap targets, safe-area spacing, dark and light mode support.
+- Manual text correction and re-analysis remain available when automatic reading is imperfect.
+
+## Validation
+- JavaScript syntax validation.
+- Sign parser checks covering operator, pad, address, state, county, township, negative longitude, wells, API, property, gate code, phone, emergency, and safety details.
+- Edit-form field-fill and safe list-merging checks.
+- Pad-page, standard Edit Pad, and live Edit Pad mounting checks.
+- Rear-camera input and editable review-screen checks.
+- Service-worker and single-script integration checks.
+
+## Field testing note
+Real-world reading quality depends on lighting, glare, distance, sign damage, camera focus, and sign layout. Verify every extracted value against the physical sign before saving.
+'''
+          Path('CHANGELOG_V16.22.md').write_text(changelog, encoding='utf-8')
+          PY
+
+          rm -f sign-scanner.js sign-scanner.css
+          rm -rf vendor/tesseract
+          rm -f tests/sign-scanner-v16-22.cjs
+          rm -f scripts/integrate-v16-22.py scripts/release-v16-22.sh
+          rm -f AUDIT_V16.22.md
+          rm -f V16.22_SOURCE_MAP.txt V16.22_EDIT_MAP.txt V16.22_FUNCTIONS.txt
+
+      - name: Validate parser and Edit Pad filling
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check front-sign-scanner.js
+          node --check sw.js
+          node <<'NODE'
+          global.Event = class Event {
+            constructor(type, options) { this.type = type; this.bubbles = Boolean(options && options.bubbles); }
+          };
+          const scanner = require('./front-sign-scanner.js');
+          const sample = `ASCENT RESOURCES
+          MILLER PAD
+          Operator: Ascent Resources
+          Address: 1234 Bean Ridge Road, Barnesville OH 43713
+          County: Belmont County
+          Township: Warren Township
+          Latitude: 39.875432
+          Longitude: -81.123456
+          Well: Miller 1H
+          API: 34-013-2-1234
+          Property No: 908772
+          Gate Code: 2468
+          Emergency Contact 740-555-1212
+          H2S AREA - PPE REQUIRED - 10 MPH`;
+          const parsed = scanner.parseSignText(sample);
+          const expected = {
+            version: scanner.version === '16.22',
+            company: parsed.fields.company === 'Ascent Resources',
+            pad: /Miller/i.test(parsed.fields.padName || ''),
+            address: /1234 Bean Ridge/i.test(parsed.fields.address || ''),
+            state: parsed.fields.state === 'OH',
+            county: parsed.fields.county === 'Belmont',
+            township: parsed.fields.township === 'Warren',
+            latitude: parsed.fields.latitude === '39.875432',
+            longitude: parsed.fields.longitude === '-81.123456',
+            well: /1H/.test(parsed.fields.wellName || ''),
+            api: parsed.fields.api === '34-013-21234',
+            property: parsed.fields.property === '908772',
+            gate: parsed.details.gateCode === '2468',
+            phone: (parsed.details.phoneNumbers || []).includes('740-555-1212'),
+            emergency: (parsed.details.emergency || []).length > 0,
+            safety: (parsed.details.safetyNotes || []).length > 0
+          };
+          const failed = Object.entries(expected).filter(([, passed]) => !passed).map(([name]) => name);
+          if (failed.length) throw new Error('Parser checks failed: ' + failed.join(', '));
+
+          function control(value = '') {
+            return { value, events: [], dispatchEvent(event) { this.events.push(event.type); } };
+          }
+          const controls = {
+            padName: control('Old Pad'), company: control('Old Operator'), state: control('OH'), county: control(''), township: control(''), address: control(''),
+            latitude: control(''), longitude: control(''), wellName: control('Old 1H'), api: control('34-001-00001'), property: control(''), writtenDirections: control('Turn left.')
+          };
+          const form = { elements: { namedItem(name) { return controls[name] || null; } } };
+          const applied = scanner.applyParsedToForm(form, parsed.fields, parsed.details, { appendSignNotes: true, capturedAt: '2026-08-07T03:00:00Z' });
+          if (controls.padName.value !== 'Miller Pad') throw new Error('Pad name was not filled');
+          if (!controls.wellName.value.includes('Old 1H') || !controls.wellName.value.includes('Miller 1H')) throw new Error('Wells were not merged safely');
+          if (!controls.api.value.includes('34-001-00001') || !controls.api.value.includes('34-013-21234')) throw new Error('API numbers were not merged safely');
+          if (!controls.writtenDirections.value.includes('Gate/access code: 2468')) throw new Error('Sign details were not appended');
+          if (!applied.includes('writtenDirections')) throw new Error('Applied fields were not reported correctly');
+          console.log('Parser and Edit Pad filling checks passed.');
+          NODE
+
+      - name: Validate Pad page, both editors, and review screen
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/v1622-jsdom
+          npm install --prefix /tmp/v1622-jsdom --no-save --no-package-lock jsdom@24 >/dev/null
+          NODE_PATH=/tmp/v1622-jsdom/node_modules node <<'NODE'
+          const fs = require('fs');
+          const { JSDOM } = require('jsdom');
+          const dom = new JSDOM(`<!doctype html><html data-theme="day"><head></head><body>
+            <div class="field-pad-page"><section class="field-pad-hero"><div class="field-main-actions"></div></section></div>
+            <form id="padEditorForm"><p class="pad-editor-note">Edit</p><input name="padName"><input name="company"><textarea name="writtenDirections"></textarea></form>
+            <form id="liveEditorForm"><div class="live-editor-body"></div><input name="padName"><input name="company"><textarea name="writtenDirections"></textarea></form>
+          </body></html>`, { url: 'https://brinesearch.com/#/pad/test-pad', runScripts: 'dangerously', pretendToBeVisual: true });
+          dom.window.alert = () => {};
+          dom.window.confirm = () => true;
+          dom.window.eval(fs.readFileSync('front-sign-scanner.js', 'utf8'));
+          const scanner = dom.window.BrinesearchFrontSignScanner;
+          scanner.mount();
+          const document = dom.window.document;
+          if (!document.getElementById('bssPadScanButton')) throw new Error('Pad-page scanner button did not mount');
+          if (!document.querySelector('#padEditorForm [data-bss-edit-scan]')) throw new Error('Standard Edit Pad scanner did not mount');
+          if (!document.querySelector('#liveEditorForm [data-bss-edit-scan]')) throw new Error('Live Edit Pad scanner did not mount');
+          scanner.openScanner({ mode: 'edit', padId: 'test-pad', formId: 'padEditorForm' });
+          const photo = document.getElementById('bssPhotoInput');
+          if (!photo || photo.getAttribute('accept') !== 'image/*' || photo.getAttribute('capture') !== 'environment') throw new Error('Rear-camera input is incorrect');
+          document.getElementById('bssRawText').value = 'Operator: EOG Resources\nSmith Pad\nGate Code: 5566\nAPI: 34-013-21234';
+          document.getElementById('bssAnalyzeButton').click();
+          if (!document.querySelector('[data-bss-select="company"]')) throw new Error('Company review field did not render');
+          if (!document.querySelector('[data-bss-select="api"]')) throw new Error('API review field did not render');
+          if (!document.querySelector('.bss-sheet')) throw new Error('Review sheet did not open');
+          if (!/max-width:600px/.test(document.getElementById('brinesearch-front-sign-scanner-styles').textContent)) throw new Error('iPhone media rules are missing');
+          dom.window.close();
+          console.log('Pad page, both Edit Pad forms, camera, and review checks passed.');
+          NODE
+
+      - name: Verify final integration and clean release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -o 'front-sign-scanner.js' index.html | wc -l | tr -d ' ')" = "1"
+          grep -q 'id="brinesearch-front-sign-scanner"' index.html
+          grep -q 'src="./front-sign-scanner.js"' index.html
+          ! grep -Eq '(src|href)="[^"]*(^|/)sign-scanner\.(js|css)' index.html
+          grep -q "brinesearch-v16-22" sw.js
+          test "$(grep -o './front-sign-scanner.js' sw.js | wc -l | tr -d ' ')" = "1"
+          ! grep -q './sign-scanner.js' sw.js
+          ! grep -q './sign-scanner.css' sw.js
+          ! grep -q './vendor/tesseract/' sw.js
+          grep -q "const VERSION = '16.22'" front-sign-scanner.js
+          grep -q 'padEditorForm' front-sign-scanner.js
+          grep -q 'liveEditorForm' front-sign-scanner.js
+          grep -q 'capture="environment"' front-sign-scanner.js
+
+          find .github/workflows -maxdepth 1 -type f -iname '*16-22*' -delete
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "Release BrineSearch V16.22"
+          git push origin HEAD:main
