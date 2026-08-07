@@ -22,7 +22,8 @@
     "16-router-assistant-shell.js",
     "17-assistant-answers.js",
     "18-account-theme-startup.js",
-    "19-road-manager-route-prep.js"
+    "19-road-manager-route-prep.js",
+    "20-road-manager-sections.js"
   ],
-  "assembledSha256": "1ddc2ea1208dbb951c0162146e1c2ab5b877f532bcea3c7940ee00f981adf537"
+  "assembledSha256": "025ce8db4a0bc33ebc1f031a487afb5828f195107fb4feb16120c9cac422725a"
 }
