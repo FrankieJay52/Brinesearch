@@ -1,0 +1,16 @@
+{
+  "name": "brinesearch",
+  "private": true,
+  "version": "17.0.0-alpha.1",
+  "type": "module",
+  "scripts": {
+    "prepare:v17": "node v17/scripts/assemble.mjs",
+    "verify:v17": "node v17/scripts/verify.mjs",
+    "dev": "npm run prepare:v17 && vite --config v17/vite.config.js",
+    "build": "npm run verify:v17 && vite build --config v17/vite.config.js",
+    "preview": "vite preview --config v17/vite.config.js"
+  },
+  "devDependencies": {
+    "vite": "^7.1.0"
+  }
+}

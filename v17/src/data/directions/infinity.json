@@ -1,0 +1,58 @@
+{
+  "infinity--beros": {
+    "s": "From.Cambridge: 77 south to exit 37.Turn left onto 313 for 3.8 miles.Turn left onto 285 for approximately 2.5 miles, lease road is on the left.",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Route 313 → Route 285 → Lease Road\n\nStep-by-step directions:\n1. From Cambridge: 77 south to exit 37.\n2. Turn left onto 313 for 3.8 miles.\n3. Turn left onto 285 for approximately for 2.5 miles.\n4. Lease road is on the left."
+  },
+  "infinity--casper": {
+    "s": "From 43 and 171.Travel 3.4 miles west on 171 to County Road 20 (Avalon road), turn.Right on County Road 20 (Avalon RD).Take.Avalon road approximately 2.2 miles.Turn right onto County Road 42 (Bronze RD).Pad will be on left",
+    "r": "Road sequence reference:\nRoute 43 → Route 171 → CR-20 / Avalon Rd → Avalon Rd → CR-42 / Bronze Rd → Pad\n\nStep-by-step directions:\n1. From 43 and 171 Travel 3.4 miles west on 171 to County Road 20 (Avalon road), turn.\n2. Turn right on County Road 20 (Avalon Road).\n3. Take Avalon road approximately for 2.2 miles.\n4. Turn right onto County Road 42 (Bronze Road).\n5. Pad will be on left."
+  },
+  "infinity--detweiler": {
+    "s": "Mud.Masters - Ohio 64054.Wintergreen.Road, Lore.City, OH 43755.Head southwest on OH-285.South toward.Polasky Lane?3.0 mi.Turn left onto OH-265.East?4.0 mi.Turn left onto.Justice Lane?Destination will be on the left?0.4 mi",
+    "r": "Road sequence reference:\nOhio 64054 Wintergreen Rd → OH-285 / Polasky Ln → OH-265 → Justice Ln\n\nStep-by-step directions:\n1. Follow Mud Masters - Ohio 64054 Wintergreen Road, Lore City, OH-43755.\n2. Head southwest on OH-285 South toward Polasky Lane?3.0 miles.\n3. Turn left onto OH-265 East?4.0 miles.\n4. Turn left onto Justice Lane?Destination will be on the left?0.4 miles."
+  },
+  "infinity--dynamite": {
+    "s": "77.South to 70.East take exit 186.Turn right on OH 285 go to stop sign.Turn Left on OH 265.Turn.Right on.Salem Road.Turn Right on.Dynamite Road.Pad on.Right",
+    "r": "Road sequence reference:\nExit 186 → OH-285 → OH-265 → Salem Rd → Dynamite Rd → Pad\n\nStep-by-step directions:\n1. Follow 77 South to 70 East.\n2. Take exit 186.\n3. Turn right on OH-285.\n4. Go to stop sign.\n5. Turn Left on OH-265 Turn.\n6. Turn right on Salem Road.\n7. Turn Right on Dynamite Road Pad on Right."
+  },
+  "infinity--frame-well-pad": {
+    "s": "Exit I-70 @ SR-285(Wintergreen Rd) South. Turn right onto CR-455 (Old Glory Rd). 0.6 miles. Lease rd on the right.",
+    "r": "Road sequence reference:\nI-70 → SR-285 / Wintergreen Rd → CR-455 / Old Glory Rd → Lease Road\n\nStep-by-step directions:\n1. Exit I-70 @ State Route 285(Wintergreen Road) South.\n2. Turn right onto County Road 455 (Old Glory Road) for 0.6 miles.\n3. Lease Road on the right."
+  },
+  "infinity--gray-well-pad": {
+    "s": "DO NOT ENTER FROM US-22 HEADING SOUTH ON FAIRGROUND ROAD!!!! From Exit 186 on I-70 head north on OH-285. Turn right at the stop sign onto Fairground Road. Follow for 0.6 miles and turn right onto County Home Road. Left onto Easton Road after the bridge. Follow Easton for 1.2 miles and turn left onto Slasor Road. Turn Right on Bugos Rd after driving under the interstate. Follow Bugos 1.2 miles to pad entrance on the right.",
+    "r": "Road sequence reference:\nUS-22 → Heading South On Fairground Rd → Exit 186 → I-70 → OH-285 → Fairground Rd → County Home Rd → Easton Rd → Slasor Rd → Bugos Rd → Pad\n\nStep-by-step directions:\n1. DO NOT.\n2. ENTER FROM US-22 HEADING SOUTH ON FAIRGROUND ROAD!!!! From Exit 186 on I-70.\n3. Head north on OH-285.\n4. Turn right at the stop sign onto Fairground Road.\n5. Follow for 0.6 miles and.\n6. Turn right onto County Home Road.\n7. Turn left onto Easton Road after the bridge.\n8. Follow Easton for 1.2 miles and.\n9. Turn left onto Slasor Road.\n10. Turn Right on Bugos Road after driving under the interstate.\n11. Follow Bugos for 1.2 miles to pad entrance on the right."
+  },
+  "infinity--hn-sto": {
+    "s": "Encino Wunnenberg Pad- Staging Area Right Turn US250 (0.2 Miles) Left Turn CR3/Barricklow RD (0.6 Miles) Right Turn CR2/Deersville Ridge RD (3.0 Miles) Left Turn CR30/Slab Camp RD (2.6 Miles) Right Turn CR1/Brush Fork RD (0.5 Miles) Right Turn TR328/Ourant RD (1.0 Miles) Encino HN-STO Entrance Right Cb Channel 32",
+    "r": "Road sequence reference:\nUS-250 → Cr3/barricklow Rd → CR-3 → Cr2/deersville Ridge Rd → CR-2 → Cr30/slab Camp Rd → CR-30 → Cr1/brush Fork Rd → CR-1 → Tr328/ourant Rd → TR-328 → Pad\n\nStep-by-step directions:\n1. Encino Wunnenberg Pad- Staging Area Right Turn US-250 (0.2 miles) Left Turn County Road 3/Barricklow Road (0.6 miles) Right Turn County Road 2/Deersville Ridge Road (3.0 miles) Left Turn County Road 30/Slab Camp Road (2.6 miles) Right Turn County Road 1/Brush Fork Road (0.5 miles) Right Turn Township Road 328/Ourant Road (1.0 mile) Encino HN-STO Entrance Right Cb Channel 32."
+  },
+  "infinity--kiko": {
+    "s": "Route 9 to.Lunar road.Go to first stop sign.Turn right on.Macaw road.Go 2.5 miles pad is on right",
+    "r": "Road sequence reference:\nRoute 9 → Macaw Rd → Pad\n\nStep-by-step directions:\n1. Follow Route 9 to Lunar road.\n2. Go to first stop sign.\n3. Turn right on Macaw road.\n4. Go 2.5 miles.\n5. Pad is on right."
+  },
+  "infinity--miley-1h": {
+    "s": "From 70 at exit 186 Take 285 S for 13 mi Pad is on the right just after the hard bend in the road.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 186 → Route 285 → Pad\n\nStep-by-step directions:\n1. From 70 at exit 186.\n2. Take 285 S for 13 miles.\n3. Pad is on the right just after the hard bend in the road."
+  },
+  "infinity--onega": {
+    "s": "I-70 to exit 186.Turn R 295 south 3.3 miles turn left 265 east 1 mile turn left range road.08 mile pad on right",
+    "r": "Road sequence reference:\nI-70 → Exit 186 → Route 295 → Route 265 → Range Rd → Pad\n\nStep-by-step directions:\n1. I-70 to exit 186 Turn R 295 south 3.3 miles.\n2. Turn left 265 east 1 mile.\n3. Turn left range road 08 miles pad on right."
+  },
+  "infinity--perry": {
+    "s": "43.North out of.Carrollton 5 miles.Left on.Arrow Road Northwest Pad on left",
+    "r": "Road sequence reference:\nArrow Rd → Pad\n\nStep-by-step directions:\n1. Follow 43 North out of Carrollton 5 miles.\n2. Turn left on Arrow Road Northwest Pad on left."
+  },
+  "infinity--stiers": {
+    "s": "265 east.Salem rd south",
+    "r": "Road sequence reference:\nRoute 265 → Salem Rd\n\nStep-by-step directions:\n1. Follow 265 east Salem Road south."
+  },
+  "infinity--stillion": {
+    "s": "70.East or.West… Exit 186, for 285 south.Pass by CW5 and.Mud Masters to.Lore City.Turn.Right onto 265.West, go almost 2 miles.Turn.Left onto.Deerfield Road, go about.3 miles.(Signs everywhere) Veer left onto.Ideal Road, go about 1.4 miles.Turn.Right onto.Soggy Run.Road, go about 1.3 miles.Pad on right.",
+    "r": "Road sequence reference:\nExit 186 → Route 285 → Route 265 → Deerfield Rd → Ideal Rd → Soggy Run Rd → Pad\n\nStep-by-step directions:\n1. Follow 70 East or West….\n2. Exit 186, for 285 south.\n3. Pass by CW5 and Mud Masters to Lore City Turn.\n4. Turn right onto 265 West.\n5. Go almost 2 miles Turn.\n6. Turn left onto Deerfield Road.\n7. Go about 3 miles (Signs everywhere) Veer.\n8. Turn left onto Ideal Road.\n9. Go about 1.4 miles Turn.\n10. Turn right onto Soggy Run Road.\n11. Go about 1.3 miles Pad on right."
+  },
+  "infinity--tortola": {
+    "s": "Take 22 east through.Pittsburgh.Turn.Right onto 286.Gloden.Mile Highway.Follow 286 till its turns into 380Fairview.Drive.Continue on.Fairview drive till you.Get to to the exit for 66.Take 66 through.Apollo 66 turns into56.Follow for 12.5.Miles.Turn Right onto.Montgomery hill.Road (Turn right-692).Drive.3.Miles.Turn Left onto.Line RD (Turn right-329).7.Miles site is on.Right.",
+    "r": "Road sequence reference:\nRoute 22 → Route 286 → Its Turns Into 380fairview Dr → Fairview Dr → Route 66 → Montgomery Hill Rd → Line Rd\n\nStep-by-step directions:\n1. Take 22 east through Pittsburgh Turn.\n2. Turn right onto 286 Gloden Mile Highway.\n3. Follow 286 till its turns into 380Fairview.\n4. Drive.\n5. Continue on Fairview.\n6. Drive till you Get to to the exit for 66.\n7. Take 66 through Apollo 66 turns into56.\n8. Follow for 12.5 miles.\n9. Turn Right onto Montgomery hill Road (Turn right-692).\n10. Drive 3 miles.\n11. Turn Left onto Line Road (Turn right-329) for 7 miles.\n12. Site is on Right."
+  }
+}

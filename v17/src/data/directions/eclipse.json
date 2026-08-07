@@ -1,0 +1,130 @@
+{
+  "eclipse--brits-unit": {
+    "s": "Brits Unit Access Point -- From SR 146 Turn onto MR 65 (MR 65 turns into CR 5A), Continue for 3.95 Miles to Britts Unit Access Point",
+    "r": "Road sequence reference:\nSR-146 → MR-65 → Access\n\nStep-by-step directions:\n1. Brits Unit Access Point -- From State Route 146 Turn onto MR 65 (MR 65 turns into CR 5A).\n2. Continue for 3.95 miles to Britts Unit Access Point."
+  },
+  "eclipse--craig-miller-unit": {
+    "s": "Craig Miller Well Site Access Point -- From 202 exit take 800 turn right turn left on 145. 145 merges into 556. turn right on CR38 continue for 3.94 miles. Craig Miller on the right. Point",
+    "r": "Road sequence reference:\nRoute 202 → Route 800 → Route 145 → CR-38 → Access\n\nStep-by-step directions:\n1. Craig Miller Well Site Access Point -- From 202.\n2. Exit take 800.\n3. Turn right turn.\n4. Turn left on 145 145 merges into 556.\n5. Turn right on County Road 38.\n6. Continue for 3.94 miles Craig Miller on the right Point."
+  },
+  "eclipse--dale-yoder-unit": {
+    "s": "From SR 513 Turn onto TR 188 Continue for 1.35 miles to Dale Yoder Access Point",
+    "r": "Road sequence reference:\nSR-513 → TR-188 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto Township Road 188.\n2. Continue for 1.35 miles to Dale Yoder Access Point."
+  },
+  "eclipse--dietrich-c-unit": {
+    "s": "From SR 556 Turn onto TR 198 Continue for 2.76 miles to Dietrich C Unit Access Point",
+    "r": "Road sequence reference:\nSR-556 → TR-198 → Access\n\nStep-by-step directions:\n1. From State Route 556 Turn onto Township Road 198.\n2. Continue for 2.76 miles to Dietrich C Unit Access Point."
+  },
+  "eclipse--duane-weisend-unit": {
+    "s": "From SR 78 Turn onto CR 54/bean ridge road Continue for 0.93 miles to Duane Weisend Unit Access Point",
+    "r": "Road sequence reference:\nSR-78 → Cr 54/bean Ridge Rd → CR-54 → Access\n\nStep-by-step directions:\n1. From State Route 78 Turn onto County Road 54/bean ridge road.\n2. Continue for 0.93 miles to Duane Weisend Unit Access Point."
+  },
+  "eclipse--fineran-unit": {
+    "s": "From SR 513 Turn onto CR 690 Continue for 1.73 miles to CR 761 Left turn onto CR 761, continue for 1.43 miles to CR 49 Left turn onto CR 49, continue for 0.47 miles to Fineran Unit Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-690 → CR-761 → CR-49 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 690.\n2. Continue for 1.73 miles to County Road 761 Left turn onto County Road 761.\n3. Continue for 1.43 miles to County Road 49 Left turn onto County Road 49.\n4. Continue for 0.47 miles to Fineran Unit Access Point."
+  },
+  "eclipse--forni-north": {
+    "s": "From SR7 go north on cr260 in New Matamoras. Travel approximately 3 miles and turn right onto Rinard Mills road (cr138). Follow it til it merges onto twp100, and stay on twp100 (Pryor road). Follow twp100 up the hills, to twp438 (halls road). After about a block, turn left onto twp438, aka Dyes Ridge road. It is approximately 2 miles down the road on the right.",
+    "r": "Road sequence reference:\nSR-7 → CR-260 → Rinard Mills Rd → TR-100 / Pryor Rd → TR-438\n\nStep-by-step directions:\n1. From State Route 7.\n2. Go north on County Road 260 in New Matamoras Travel approximately for 3 miles and.\n3. Turn right onto Rinard Mills road (County Road 138).\n4. Follow it til it merges onto twp100, and.\n5. Stay on twp100 (Pryor road).\n6. Follow twp100 up the hills, to twp438 (halls road) After about a block.\n7. Turn left onto twp438, aka Dyes Ridge road It is approximately for 2 miles down the road on the right."
+  },
+  "eclipse--frank-miller-unit": {
+    "s": "From 265 turn left on rose hill road first road has a bridge with no sign take second road on left. u will cross an old bridge. follow road until dead end then turn left on lease",
+    "r": "Road sequence reference:\nRoute 265 → Rose Hill Rd → No Sign Take Second Rd → An Old Bridge. Follow Rd\n\nStep-by-step directions:\n1. From 265 turn.\n2. Turn left on rose hill road first road has a bridge with no sign.\n3. Take second road on left u will.\n4. Cross an old bridge.\n5. Follow road until dead end then.\n6. Turn left on lease."
+  },
+  "eclipse--fritz-unit": {
+    "s": "From SR 513 Turn onto CR 47 Continue for 2.09 miles to Fritz Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-47 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47.\n2. Continue for 2.09 miles to Fritz Access Point."
+  },
+  "eclipse--fuchs-a-dietrich-a-unit": {
+    "s": "From SR 556 Turn onto TR 198 Continue for 0.8 miles Right turn onto TR 2181 Continue for 0.1 miles to Fuchs A / Dietrich A Access Point",
+    "r": "Road sequence reference:\nSR-556 → TR-198 → TR-2181 → Access\n\nStep-by-step directions:\n1. From State Route 556 Turn onto Township Road 198.\n2. Continue for 0.8 miles Right turn onto Township Road 2181.\n3. Continue for 0.1 miles to Fuchs A / Dietrich A Access Point."
+  },
+  "eclipse--harrison-cgf": {
+    "s": "From US 250 Turn onto TR 313 Continue for 0.19 miles to Harrison CGF Access Point",
+    "r": "Road sequence reference:\nUS-250 → TR-313 → Access\n\nStep-by-step directions:\n1. From US-250 Turn onto Township Road 313.\n2. Continue for 0.19 miles to Harrison CGF Access Point."
+  },
+  "eclipse--hayes-unit": {
+    "s": "From SR 513 Turn onto CR 47, continue for 1.85 miles to CR 942 Left turn onto CR 942, continue for 0.53 miles to Hayes Unit Accss Point",
+    "r": "Road sequence reference:\nSR-513 → CR-47 → CR-942\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47.\n2. Continue for 1.85 miles to County Road 942 Left turn onto County Road 942.\n3. Continue for 0.53 miles to Hayes Unit Accss Point."
+  },
+  "eclipse--law-lateral-pipeline": {
+    "s": "Law Unit Access Point To Frank Miller Unit Access Point Head west on TR 4790 Foxgrape lane, continue for 0.22 miles to TR 475 Grape Hollow Road Turn left onto TR 475, continue for 0.76 miles to CR 75 Frankfort Road Turn left onto CR 75, continue for 0.16 miles to SR 265 Turn left onto SR 265, continue for 1.57 miles to CR 942 Rose Hill Road Turn left onto CR 942, continue for 0.65 miles to TR 9406 Xanadu Road Turn left onto TR 9406, continue for 0.47 miles to the Frank Miller Access Point",
+    "r": "Road sequence reference:\nTr 4790 Foxgrape Ln → TR-4790 → TR-475 → CR-75 → SR-265 → CR-942 → TR-9406 → Access\n\nStep-by-step directions:\n1. Law Unit Access Point To Frank Miller Unit Access Point.\n2. Head west on Township Road 4790 Foxgrape lane.\n3. Continue for 0.22 miles to Township Road 475 Grape Hollow Road.\n4. Turn left onto Township Road 475.\n5. Continue for 0.76 miles to County Road 75 Frankfort Road.\n6. Turn left onto County Road 75.\n7. Continue for 0.16 miles to State Route 265.\n8. Turn left onto State Route 265.\n9. Continue for 1.57 miles to County Road 942 Rose Hill Road.\n10. Turn left onto County Road 942.\n11. Continue for 0.65 miles to Township Road 9406 Xanadu Road.\n12. Turn left onto Township Road 9406.\n13. Continue for 0.47 miles to the Frank Miller Access Point."
+  },
+  "eclipse--law-unit": {
+    "s": "- From US 265 Turn onto CR 75, continue for 0.16 miles to TR 475 Right turn onto TR 475, continue for 0.76 miles to TR 4790 Right turn onto TR 4790, continue for 0.22 miles to Law Unit Access Point At present time 475 is closed between law pad and outlaw pad. 8-21-18,,",
+    "r": "Road sequence reference:\nUS-265 → CR-75 → TR-475 → TR-4790 → Access\n\nStep-by-step directions:\n1. From US-265 Turn onto County Road 75.\n2. Continue for 0.16 miles to Township Road 475 Right turn onto Township Road 475.\n3. Continue for 0.76 miles to Township Road 4790 Right turn onto Township Road 4790.\n4. Continue for 0.22 miles to Law Unit Access Point At present time 475 is closed between law pad and outlaw pad 8-21-18."
+  },
+  "eclipse--madzia-unit": {
+    "s": "- From SR 250 East Bound Turn onto CR 502, continue for 0.21 miles to CR 45. Left turn onto CR 45, continue for 0.91 miles to Madzia Unit Access Point --------- From SR 250 West Bound Turn onto CR 502, continue for 0.25 miles to CR 45. Right turn onto CR 45, continue for 0.91 miles to Madzia Unit Access Point",
+    "r": "Road sequence reference:\nSR-250 → CR-502 → CR-45 → Access\n\nStep-by-step directions:\n1. From State Route 250 East Bound Turn onto County Road 502.\n2. Continue for 0.21 miles to County Road 45 Left turn onto County Road 45.\n3. Continue for 0.91 miles to Madzia Unit Access Point --------- From State Route 250 West Bound Turn onto County Road 502.\n4. Continue for 0.25 miles to County Road 45 Right turn onto County Road 45.\n5. Continue for 0.91 miles to Madzia Unit Access Point."
+  },
+  "eclipse--mercury-unit": {
+    "s": "From SR 513 Turn onto CR 47 Putney Ridge Rd, continue east for 1.40 miles to CR 947 Greenlawn Rd Turn Right onto CR 947, continue south for 1.88 miles to Mercury Unit Access Point",
+    "r": "Road sequence reference:\nSR-513 → Cr 47 Putney Ridge Rd → CR-47 → CR-947 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47 Putney Ridge Road.\n2. Continue east for 1.40 miles to County Road 947 Greenlawn Road.\n3. Turn Right onto County Road 947.\n4. Continue south for 1.88 miles to Mercury Unit Access Point."
+  },
+  "eclipse--mizer-cgf": {
+    "s": "250 East just at the end of the. Lake turn L on Addy rd 250 West just past easy toms auto turn R on Addy rd before the lake",
+    "r": "Road sequence reference:\nRoute 250 → L On Addy Rd → R On Addy Rd\n\nStep-by-step directions:\n1. 250 East just at the end of the Lake turn L on Addy Road 250 West just past easy toms auto turn R on Addy Road before the lake."
+  },
+  "eclipse--mizer-farms-unit": {
+    "s": "From SR 22 take 250 west lease road is a dirt road on the left just before mizer road Turn onto Access Drive, Access Road located off of SR 250",
+    "r": "Road sequence reference:\nSR-22 → SR-250 → Mizer Rd → Access Dr → Lease Road\n\nStep-by-step directions:\n1. From State Route 22.\n2. Take 250 west.\n3. Lease road is a dirt road on the left just before mizer road Turn onto Access.\n4. Drive, Access Road located off of State Route 250."
+  },
+  "eclipse--mizer-unit": {
+    "s": "- From SR 250 Turn onto TR 313 Addy Road, continue for 0.64 miles to Mizer Unit Access Point",
+    "r": "Road sequence reference:\nSR-250 → Tr 313 Addy Rd → TR-313 → Access\n\nStep-by-step directions:\n1. From State Route 250 Turn onto Township Road 313 Addy Road.\n2. Continue for 0.64 miles to Mizer Unit Access Point."
+  },
+  "eclipse--moser-unit": {
+    "s": "From SR 7 Turn onto SR 556, continue for 1.67 miles to Moser Unit Access Point",
+    "r": "Road sequence reference:\nSR-7 → SR-556 → Access\n\nStep-by-step directions:\n1. From State Route 7 Turn onto State Route 556.\n2. Continue for 1.67 miles to Moser Unit Access Point."
+  },
+  "eclipse--outlaw-pad": {
+    "s": "- From SR 513 Turn onto CR 47 Putney Ridge Rd, continue for 2.31 miles to TR 475 Grape Hollow Rd Left turn onto TR 475 Grape Hollow Rd, continue for 0.99 miles to Outlaw Unit Access Point 475 closed between outlaw pad and law pad,8-21-18,,",
+    "r": "Road sequence reference:\nSR-513 → Cr 47 Putney Ridge Rd → CR-47 → Tr 475 Grape Hollow Rd → TR-475 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47 Putney Ridge Road.\n2. Continue for 2.31 miles to Township Road 475 Grape Hollow Road Left turn onto Township Road 475 Grape Hollow Road.\n3. Continue for 0.99 miles to Outlaw Unit Access Point 475 closed between outlaw pad and law pad,8-21-18."
+  },
+  "eclipse--pittman-unit": {
+    "s": "From SR 556 Turn onto CR 38, continue south for 4.57 miles to TR 2265 Bear left turn onto TR 2265, continue for 0.08 miles to Pittman Unit Access Point",
+    "r": "Road sequence reference:\nSR-556 → CR-38 → TR-2265 → Access\n\nStep-by-step directions:\n1. From State Route 556 Turn onto County Road 38.\n2. Continue south for 4.57 miles to Township Road 2265.\n3. Bear left turn onto Township Road 2265.\n4. Continue for 0.08 miles to Pittman Unit Access Point."
+  },
+  "eclipse--pora-unit": {
+    "s": "- From SR 513 Turn onto CR 47, continue for 0.89 miles to TR 943 Left turn onto TR 943, continue for 0.62 miles to Pora Unit Accss Point",
+    "r": "Road sequence reference:\nSR-513 → CR-47 → TR-943\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47.\n2. Continue for 0.89 miles to Township Road 943 Left turn onto Township Road 943.\n3. Continue for 0.62 miles to Pora Unit Accss Point."
+  },
+  "eclipse--purple-hayes-unit": {
+    "s": "- From SR 513 ONE WAY TRAVEL Turn onto CR 47, continue for 1.85 miles to CR 942 Left turn onto CR 942, continue for 2.58miles to SR 265",
+    "r": "Road sequence reference:\nSr 513 One Way → SR-513 → CR-47 → CR-942\n\nStep-by-step directions:\n1. From State Route 513 ONE WAY TRAVEL Turn onto County Road 47.\n2. Continue for 1.85 miles to County Road 942 Left turn onto County Road 942.\n3. Continue for 2.58 miles to State Route 265."
+  },
+  "eclipse--pyles": {
+    "s": "- From State Route 556.Turn off State Route 556, continue south on County Road 31 for 4.16 miles to.Pyles Well.Site Access.Point",
+    "r": "Road sequence reference:\nSR-556 → CR-31 → Access\n\nStep-by-step directions:\n1. From State Route 556 Turn off State Route 556.\n2. Continue south on County Road 31 for 4.16 miles to Pyles Well Site Access Point."
+  },
+  "eclipse--rolland-unit": {
+    "s": "To staging area From Intersection of SR-255 And 10A 1. Turn onto CR-10A (Griffith Rd) and continue for 2.68 miles to staging area (cb channel 35). From staging area 1. Turn right onto CR-10A and continue for 0.72 miles to SR-255. 2. Turn right onto SR-255 and conti hue for 0.76 miles to CR-10 (Benwood Rd). 3. Turn right onto CR-10 And continue for 1.54 miles to Rolland access Rd.",
+    "r": "Road sequence reference:\nCR-10A / Griffith Rd → SR-255 → CR-10 → Access Road\n\nStep-by-step directions:\n1. To staging area From Intersection of State Route 255 And 10A 1 Turn onto CR-10A (Griffith Road) and.\n2. Continue for 2.68 miles to staging area (cb channel 35) From staging area 1.\n3. Turn right onto CR-10A and.\n4. Continue for 0.72 miles to State Route 255 2.\n5. Turn right onto State Route 255 and conti hue for 0.76 miles to County Road 10 (Benwood Road) 3.\n6. Turn right onto County Road 10 And.\n7. Continue for 1.54 miles to Rolland access Road."
+  },
+  "eclipse--sawyers": {
+    "s": "From State Route 78.Turn onto.Turn right 156.Continue for 1.82 miles to.Sawyers Unit.Access Point.For flowback stage at yellow rose CB channel 19 escort in and out",
+    "r": "Road sequence reference:\nSR-78 → Access\n\nStep-by-step directions:\n1. From State Route 78 Turn onto Turn right 156.\n2. Continue for 1.82 miles to Sawyers Unit Access Point For flowback stage at yellow rose CB channel 19 escort in and out."
+  },
+  "eclipse--scott-unit": {
+    "s": "- From State Route 513.Turn onto County Road 690, continue for 1.73 miles to County Road 761.Left turn onto County Road 761, continue for 1.43 miles to County Road 49.Continue stright onto County Road 49, follow for 0.27 miles to.Scott Unit.Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-690 → CR-761 → CR-49 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 690.\n2. Continue for 1.73 miles to County Road 761 Left turn onto County Road 761.\n3. Continue for 1.43 miles to County Road 49.\n4. Continue stright onto County Road 49.\n5. Follow for 0.27 miles to Scott Unit Access Point."
+  },
+  "eclipse--tippens-unit": {
+    "s": "From State Route 255.Turn onto County Road 10, continue for 0.72 miles to.Turn right 472.Left turn onto.Turn right 472, continue for 1.45 miles to.Turn right 471.Right turn onto.Turn right 471, continue for 0.36 miles to.Tippens Unit.Access Point",
+    "r": "Road sequence reference:\nSR-255 → CR-10 → Access\n\nStep-by-step directions:\n1. From State Route 255 Turn onto County Road 10.\n2. Continue for 0.72 miles to Turn right 472 Left turn onto Turn right 472.\n3. Continue for 1.45 miles to Turn right 471 Right turn onto Turn right 471.\n4. Continue for 0.36 miles to Tippens Unit Access Point."
+  },
+  "eclipse--weekender-unit": {
+    "s": "- From State Route 513.Turn onto County Road 49, continue for 1.47 miles to County Road 962.Left turn onto County Road 962, continue for 0.99 miles to.Turn right 9650.Left turn onto.Turn right 9650, continue for 1.69 miles to.Weekender Unit.Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-49 → CR-962 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 49.\n2. Continue for 1.47 miles to County Road 962 Left turn onto County Road 962.\n3. Continue for 0.99 miles to Turn right 9650 Left turn onto Turn right 9650.\n4. Continue for 1.69 miles to Weekender Unit Access Point."
+  },
+  "eclipse--wheeler-unit": {
+    "s": "- From I 70.Exit 198.Right turn onto.Turn right 816, continue for 0.26 miles into.Guernsey County to MR 328.Left turn onto MR 328, continue for 0.21 miles, MR 328 turns into.Turn right 95.Continue on.Turn right 95 for 0.81 miles to.Wheeler Unit.Access Point",
+    "r": "Road sequence reference:\nI-70 → Exit 198 → MR-328 → Access\n\nStep-by-step directions:\n1. From I-70.\n2. Exit 198 Right turn onto Turn right 816.\n3. Continue for 0.26 miles into Guernsey County to MR 328 Left turn onto MR 328.\n4. Continue for 0.21 miles, MR 328 turns into.\n5. Turn right 95.\n6. Continue on Turn right 95 for 0.81 miles to Wheeler Unit Access Point."
+  },
+  "eclipse--yost-unit": {
+    "s": "- From State Route 513.Turn onto County Road 690, continue for 1.73 miles to County Road 761.Left turn onto County Road 761, continue for 1.43 miles to County Road 49.Continue stright onto County Road 49, follow for 0.27 miles to.Scott Unit.Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-690 → CR-761 → CR-49 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 690.\n2. Continue for 1.73 miles to County Road 761 Left turn onto County Road 761.\n3. Continue for 1.43 miles to County Road 49.\n4. Continue stright onto County Road 49.\n5. Follow for 0.27 miles to Scott Unit Access Point."
+  }
+}

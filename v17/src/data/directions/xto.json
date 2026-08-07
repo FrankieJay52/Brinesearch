@@ -1,0 +1,14 @@
+{
+  "xto--baumberger": {
+    "s": "Same pad as the.Pavich Pad.Off of 556 turn onto.Clover Ridge.Road.Follow to the.Pavich Pad sign on the right.Just passed this is a \"No XTO\" sign.Turn right and follow to the.Pavich lease.Road on the right.",
+    "r": "Road sequence reference:\nClover Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Same pad as the Pavich Pad Off of 556 turn onto Clover Ridge Road.\n2. Follow to the Pavich Pad sign on the right Just passed this is a \"No XTO\" sign.\n3. Turn right and.\n4. Follow to the Pavich.\n5. Lease Road on the right."
+  },
+  "xto--keeper": {
+    "s": "Ask jay roberts",
+    "r": "Step-by-step directions:\n1. Ask jay roberts."
+  },
+  "xto--xto-staging": {
+    "s": "215 W 26th St Bellaire, OH 43906 Head southwest toward W 26th St 26 ft Turn right onto W 26th St 0.4 mi Continue onto OH-149 0.7 mi Turn left onto Township Hwy 573 A 0.1 mi Turn left onto OH-147 E Destination will be on the left 0.5 mi XTO Office 23327, 23219 W 23rd St, Bellaire, OH 43906",
+    "r": "Road sequence reference:\nRoute 215 → W 26th St → OH-149 → Township Hwy → TR-573 → OH-147\n\nStep-by-step directions:\n1. Follow 215 W 26th St Bellaire, OH-43906.\n2. Head southwest toward W 26th St 26 feet.\n3. Turn right onto W 26th St for 0.4 miles.\n4. Continue onto OH-149 for 0.7 miles.\n5. Turn left onto Township Highway 573 A for 0.1 miles.\n6. Turn left onto OH-147 E Destination will be on the left for 0.5 miles XTO Office 23327, 23219 W 23rd St, Bellaire, OH-43906."
+  }
+}

@@ -1,0 +1,18 @@
+/* V13.9 post menu and safe delete */
+.feed-card-head{position:relative}
+.feed-post-menu-wrap{position:relative;display:flex;align-items:flex-start;gap:8px}
+.feed-post-more{width:42px;height:42px;border:0;border-radius:50%;background:transparent;color:var(--muted);font-size:1.45rem;line-height:1;display:grid;place-items:center;padding:0}
+.feed-post-more:active{background:var(--panel-2)}
+.feed-post-menu{position:absolute;right:0;top:46px;z-index:40;min-width:190px;padding:8px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 18px 45px rgba(0,0,0,.35)}
+.feed-post-menu[hidden]{display:none}
+.feed-post-menu button{width:100%;min-height:46px;border:0;background:transparent;color:var(--text);font:inherit;font-weight:800;text-align:left;border-radius:11px;padding:0 12px}
+.feed-post-menu button:active{background:var(--panel-2)}
+.feed-post-menu .danger{color:#ff8b8b}
+.feed-delete-overlay{position:fixed;inset:0;z-index:10050;background:rgba(0,8,18,.72);display:flex;align-items:flex-end;justify-content:center;padding:18px}
+.feed-delete-sheet{width:min(100%,520px);background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:22px;box-shadow:0 24px 70px rgba(0,0,0,.48)}
+.feed-delete-sheet h2{margin:0 0 8px}.feed-delete-sheet p{margin:0 0 18px;color:var(--muted);line-height:1.45}
+.feed-delete-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}.feed-delete-actions button{min-height:52px;border-radius:15px;font:inherit;font-weight:900}
+.feed-delete-cancel{background:var(--panel-2);border:1px solid var(--line);color:var(--text)}
+.feed-delete-confirm{background:#c93f49;border:1px solid #e86570;color:white}
+.feed-undo-toast{position:fixed;left:50%;bottom:calc(94px + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:10060;width:min(calc(100% - 28px),520px);display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 16px;border:1px solid var(--line);border-radius:16px;background:var(--panel);box-shadow:0 18px 48px rgba(0,0,0,.4);font-weight:800}
+.feed-undo-toast button{border:0;background:transparent;color:var(--accent);font:inherit;font-weight:950;padding:8px}

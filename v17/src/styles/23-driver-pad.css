@@ -1,0 +1,742 @@
+/* Source style block: brinesearch-driver-ux */
+/* ==========================================================================
+     BrineSearch driver UX layer
+     --------------------------------------------------------------------------
+     Tuned for one-handed iPhone use in a truck cab: legible type, 44px targets,
+     primary actions in the thumb zone, and a daylight high-contrast theme.
+     Loaded last so it settles the conflicts left by the four earlier layers.
+     ========================================================================== */
+
+  /* --- 1. Tokens the earlier layers reference but never defined -------------
+     An undefined var() invalidates the whole declaration, which was silently
+     dropping the pad-card action dividers, the add-pad wizard step chips and
+     the favourites empty state. */
+  :root {
+    --border: var(--line);
+    --card: var(--panel);
+    --panel2: var(--panel-2);
+    --success: #83e79a;
+
+    /* 4px spacing scale and three radii, replacing the ad-hoc values that
+       accumulated across the earlier layers. */
+    --sp-1: 4px;
+    --sp-2: 8px;
+    --sp-3: 12px;
+    --sp-4: 16px;
+    --sp-5: 24px;
+    --sp-6: 32px;
+    --r-control: 12px;
+    --r-card: 20px;
+    --r-pill: 999px;
+  }
+
+  /* --- 2. Type scale -------------------------------------------------------
+     Nothing a driver reads while working falls below 16px; labels bottom out
+     at 13px. Directions and coordinates are now the largest body text. */
+  .field-direction-copy { font-size: 1.15rem; line-height: 1.7; }
+  .field-route-reference { font-size: 1.05rem; line-height: 1.55; }
+  .field-value { font-size: 1.05rem; line-height: 1.45; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+  .field-label { font-size: .8rem; letter-spacing: .06em; }
+  .field-direction-warning { font-size: .95rem; line-height: 1.55; }
+  .field-action { font-size: 1rem; }
+  .field-action.primary { font-size: 1.05rem; }
+  .field-copy-button { font-size: .9rem; }
+  .field-status-chip { font-size: .85rem; }
+  .field-well-badge { font-size: .8rem; }
+  .field-well-name { font-size: 1.1rem; }
+  .field-api-stat strong { font-size: 1.5rem; }
+  .field-api-stat span { font-size: .82rem; }
+  .field-quick-copy strong { font-size: 1rem; }
+  .field-quick-copy span { font-size: .82rem; }
+  .field-recent-card strong { font-size: 1rem; }
+  .field-recent-card span { font-size: .82rem; }
+  .field-home-note { font-size: .9rem; }
+  .field-source { font-size: .92rem; }
+  .field-public-note { font-size: .92rem; }
+  .field-compact-head h2, .field-quick-head h2 { font-size: 1.1rem; }
+  .field-compact-head span, .field-quick-head p { font-size: .82rem; }
+  .field-company-summary-copy strong { font-size: 1.05rem; }
+  .field-company-summary-copy small { font-size: .82rem; }
+  .field-company-summary-count { font-size: .78rem; }
+  .field-mini-tool { font-size: .95rem; }
+  .field-quick-field label { font-size: .78rem; }
+  .field-quick-empty, .field-favorites-empty { font-size: .92rem; }
+  .field-pad-company { font-size: 1.05rem; }
+  .field-pad-location { font-size: 1rem; }
+  .field-quick-remove { font-size: .85rem; }
+  .field-quick-add { font-size: .85rem; }
+  .add-wizard-step { font-size: .82rem; }
+  .check-chip { font-size: .92rem; }
+  .global-result strong { font-size: 1.05rem; }
+  .global-result span { font-size: .92rem; }
+  .quality-card span { font-size: .92rem; }
+  .owner-quick-action small { font-size: .85rem; }
+
+  .pad-card.clean-card .clean-card-company { font-size: .8rem; }
+  .pad-card.clean-card .clean-card-location { font-size: .92rem; }
+  .pad-card.clean-card .clean-card-actions a { font-size: 1rem; }
+
+  /* Truncating to one line was hiding the answer on longer pad names. */
+  .pad-card.clean-card h3,
+  .field-recent-card strong,
+  .field-quick-copy strong {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .field-pad-title h1 { font-size: clamp(1.5rem, 5.5vw, 2rem); letter-spacing: -.03em; }
+
+  /* --- 3. Touch targets ---------------------------------------------------
+     Everything interactive clears 44px; anything a driver may hit in motion
+     clears 48px. */
+  .field-copy-button,
+  .field-quick-add,
+  .field-quick-remove,
+  .field-quick-save,
+  .field-quick-close,
+  .field-mini-tool,
+  .check-chip,
+  .btn.small,
+  .add-wizard-step,
+  .chat-quick button { min-height: 44px; }
+  .field-quick-field select { min-height: 48px; }
+  .field-action { min-height: 64px; }
+  .field-action.edit { min-height: 52px; }
+  .pad-card.clean-card .clean-card-actions a { min-height: 48px; }
+  .field-quick-close { width: 44px; height: 44px; flex-basis: 44px; }
+
+  /* --- 4. Toast ------------------------------------------------------------
+     It was rendering behind the mobile tab bar, so every copy confirmation
+     was invisible on iPhone. */
+  .toast {
+    width: min(92vw, 460px);
+    padding: 14px 18px;
+    font-size: 1rem;
+    font-weight: 800;
+    text-align: center;
+    border-radius: var(--r-control);
+  }
+  @media (max-width: 700px) {
+    .toast { bottom: calc(90px + env(safe-area-inset-bottom)); }
+  }
+
+  /* --- 5. Gutters ---------------------------------------------------------
+     The earlier layers narrowed .shell across five breakpoints down to ~6px
+     per side. Settle on 16px at every mobile width. */
+  @media (max-width: 700px) {
+    .shell { width: calc(100% - 32px) !important; }
+  }
+
+  /* --- 6. Focus and press feedback ---------------------------------------- */
+  .btn:focus-visible,
+  .icon-btn:focus-visible,
+  .field-action:focus-visible,
+  .field-mini-tool:focus-visible,
+  .field-copy-button:focus-visible,
+  .field-quick-card:focus-visible,
+  .field-quick-add:focus-visible,
+  .field-quick-save:focus-visible,
+  .field-quick-remove:focus-visible,
+  .field-recent-card:focus-visible,
+  .company-card:focus-visible,
+  .global-result:focus-visible,
+  .mobile-bottom-bar button:focus-visible,
+  .mobile-bottom-bar a:focus-visible,
+  .alphabet-jump-rail button:focus-visible,
+  .pad-card.clean-card a:focus-visible,
+  .field-company-details > summary:focus-visible,
+  .field-reference-details > summary:focus-visible {
+    outline: 3px solid var(--accent-2);
+    outline-offset: 2px;
+  }
+  .check-chip:focus-within { outline: 3px solid var(--accent-2); outline-offset: 2px; }
+
+  .field-action:active,
+  .field-copy-button:active,
+  .field-mini-tool:active,
+  .field-recent-card:active,
+  .pad-card.clean-card .clean-card-actions a:active,
+  .pad-card.clean-card .clean-card-main:active {
+    transform: scale(.985);
+    filter: brightness(1.14);
+  }
+
+  /* --- 7. Pad page --------------------------------------------------------- */
+
+  /* A missing-GPS placeholder used to be styled as the teal primary CTA, so
+     drivers tapped a dead element. */
+  .field-action.is-unavailable {
+    background: rgba(255, 211, 126, .10);
+    border: 1px dashed rgba(255, 211, 126, .55);
+    color: #ffd37e;
+    font-weight: 850;
+    cursor: default;
+  }
+  .field-action.is-unavailable:active { transform: none; filter: none; }
+
+  /* The full-width slot was chosen with :nth-child(3), so it landed on a
+     different button depending on whether the record had coordinates. */
+  @media (max-width: 620px) {
+    .field-main-actions { grid-template-columns: 1fr 1fr; }
+    .field-main-actions .field-action:nth-child(3) { grid-column: auto; }
+    .field-main-actions .field-action.span-full,
+    .field-main-actions .field-action.primary,
+    .field-main-actions .field-action.is-unavailable,
+    .field-main-actions .field-action.edit { grid-column: 1 / -1; }
+    .field-main-actions .field-action.primary,
+    .field-main-actions .field-action.is-unavailable { min-height: 68px; font-size: 1.1rem; }
+  }
+
+  /* The directions card is the payload of the page; the accent rule and the
+     tighter left padding come from the shared version of this layer. */
+  .field-priority-card.driver-directions { border-left: 4px solid var(--teal); padding-left: 15px; }
+  .pad-card.clean-card .clean-card-main { padding: var(--sp-4); }
+
+  /* Road sequence as numbered steps rather than one wrapped run-on string. */
+  .field-route-steps { display: grid; gap: var(--sp-2); margin: 0 0 var(--sp-3); padding: 0; list-style: none; }
+  .field-route-step-row {
+    display: grid;
+    grid-template-columns: 32px minmax(0, 1fr);
+    gap: var(--sp-3);
+    align-items: center;
+    border: 1px solid #29435b;
+    background: #0a1826;
+    border-radius: 14px;
+    padding: 12px 14px;
+  }
+  .field-route-step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: var(--teal);
+    color: #06111a;
+    font-size: .9rem;
+    font-weight: 950;
+  }
+  .field-route-step-name {
+    font-size: 1.05rem;
+    font-weight: 850;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+  /* Reference and audit sections collapse so the driving payload owns the
+     first two screens. Every field stays one tap away. */
+  .field-reference-details {
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background: linear-gradient(180deg, #101f30, #091522);
+    overflow: hidden;
+  }
+  .field-reference-details > summary {
+    min-height: 64px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    cursor: pointer;
+    list-style: none;
+    font-weight: 900;
+    font-size: 1.1rem;
+  }
+  .field-reference-details > summary::-webkit-details-marker { display: none; }
+  .field-reference-details > summary::after {
+    content: '›';
+    margin-left: auto;
+    flex: 0 0 auto;
+    font-size: 1.7rem;
+    color: var(--teal);
+    transition: transform .18s ease;
+  }
+  .field-reference-details[open] > summary::after { transform: rotate(90deg); }
+  .field-reference-summary { min-width: 0; display: grid; gap: 3px; }
+  .field-reference-summary small {
+    display: block;
+    color: var(--muted);
+    font-size: .82rem;
+    font-weight: 650;
+    line-height: 1.35;
+  }
+  .field-reference-body { padding: 0 17px 17px; }
+
+  /* --- 8. Contextual tab bar ----------------------------------------------
+     The primary action lived at the top of the pad page, which is the hardest
+     place to reach one-handed. On pad routes Navigate now sits in the
+     bottom-right corner, the easiest target on the phone. The existing four
+     items stay put. */
+  .mobile-bottom-bar .mobile-navigate {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 46px;
+    border: 0;
+    border-radius: 16px;
+    background: linear-gradient(180deg, #89e9df, #5fcbc0);
+    color: #06111a;
+    font-weight: 950;
+    text-decoration: none;
+    box-shadow: 0 6px 18px rgba(88, 213, 201, .22);
+  }
+  .mobile-bottom-bar .mobile-navigate:active { transform: translateY(1px); }
+  body.pad-nav-active .mobile-bottom-bar .mobile-navigate { display: flex; }
+  @media (max-width: 700px) {
+    body.pad-nav-active .mobile-bottom-bar { grid-template-columns: 1fr 1fr 1fr 1fr 1.55fr; }
+  }
+  @media (max-width: 380px) {
+    body.pad-nav-active .mobile-bottom-bar .mobile-label { font-size: .64rem; }
+  }
+
+  /* The icon was the same size as its label, so the bar read as four blocks
+     of text rather than a tab bar. */
+  .mobile-bottom-bar .mobile-icon { font-size: 1.4rem; line-height: 1; }
+  .mobile-bottom-bar .mobile-label { font-size: .72rem; line-height: 1; }
+  .mobile-bottom-bar button, .mobile-bottom-bar a { min-height: 48px; }
+
+
+  /* BrineSearch custom bottom-navigation icon system. */
+  .mobile-bottom-bar .mobile-brand-icon {
+    width: 29px;
+    height: 29px;
+    display: grid;
+    place-items: center;
+    color: #f5f8ff;
+    line-height: 1;
+  }
+  .mobile-bottom-bar .mobile-brand-icon svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.25;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .mobile-bottom-bar .mobile-brand-icon .icon-accent { stroke: var(--teal); }
+  .mobile-bottom-bar .mobile-brand-icon .icon-accent-fill {
+    fill: var(--teal);
+    stroke: var(--teal);
+  }
+  .mobile-bottom-bar button:active .mobile-brand-icon,
+  .mobile-bottom-bar a:active .mobile-brand-icon { transform: scale(.94); }
+  .mobile-bottom-bar button:focus-visible .mobile-brand-icon,
+  .mobile-bottom-bar a:focus-visible .mobile-brand-icon { color: var(--teal); }
+  html[data-theme="day"] .mobile-bottom-bar .mobile-brand-icon { color: #122036; }
+  .mobile-bottom-bar .mobile-navigate .mobile-brand-icon { color: #06111a; }
+
+  /* --- 9. A–Z jump rail ---------------------------------------------------
+     It sat on the left edge at 8–11px, unreachable with a right thumb. */
+  @media (max-width: 899px) {
+    .alphabet-jump-rail {
+      left: auto;
+      right: max(4px, env(safe-area-inset-right));
+      width: 38px;
+      height: min(72vh, 620px);
+      padding: 6px 3px;
+      border-radius: 19px;
+    }
+    .alphabet-jump-rail button { font-size: 13px; border-radius: 10px; }
+    body.alphabet-rail-active #app { padding-left: 0; padding-right: 44px; }
+  }
+  .alphabet-jump-rail.scrubbing { border-color: rgba(120, 224, 214, .55); }
+  .alphabet-scrub-bubble {
+    position: fixed;
+    z-index: 90;
+    right: 56px;
+    top: 50%;
+    width: 72px;
+    height: 72px;
+    margin-top: -36px;
+    display: none;
+    place-items: center;
+    border-radius: 24px;
+    border: 1px solid rgba(120, 224, 214, .42);
+    background: rgba(8, 17, 29, .96);
+    color: var(--teal);
+    font-size: 2.1rem;
+    font-weight: 950;
+    box-shadow: 0 16px 44px rgba(0, 0, 0, .5);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    pointer-events: none;
+  }
+  .alphabet-scrub-bubble.show { display: grid; }
+
+  /* --- 10. Home ------------------------------------------------------------
+     The hero pushed the search field ~200px down the first screen. Drivers
+     open this app to type. Full marketing copy returns at >=760px. */
+  .field-home-mobile-hint {
+    display: none;
+    margin: 10px 0 0;
+    color: var(--muted);
+    font-size: .9rem;
+    line-height: 1.45;
+  }
+  @media (max-width: 759px) {
+    .field-search-hero { padding: 16px; border-radius: var(--r-card); }
+    .field-search-hero h1 { font-size: 1.35rem; letter-spacing: -.02em; margin: 6px 0 10px; }
+    .field-search-hero .lead { display: none; }
+    .field-home-mobile-hint { display: block; }
+  }
+
+  /* --- 11. Daylight theme --------------------------------------------------
+     Dark-on-dark is right for night driving and wrong for a sunlit cab, where
+     iOS caps brightness. This is a sibling of the night theme, not a
+     replacement: the toggle in the header persists the choice per device. */
+  html[data-theme="day"] {
+    --bg: #eef3f9;
+    --bg-soft: #e3eaf4;
+    --panel: #ffffff;
+    --panel-2: #ffffff;
+    --panel-3: #f4f7fb;
+    --card: #ffffff;
+    --panel2: #ffffff;
+    --text: #0a1a2b;
+    --muted: #46607d;
+    --line: #c3d2e2;
+    --line-strong: #9db2ca;
+    --line2: #c3d2e2;
+    --border: #c3d2e2;
+    --accent: #05756a;
+    --accent-2: #10559e;
+    --teal: #05756a;
+    --green: #14713a;
+    --yellow: #8a5a00;
+    --danger: #ad2018;
+    --warning: #8a5a00;
+    --success: #14713a;
+    --shadow: 0 12px 30px rgba(16, 42, 74, .12);
+    --shadow-soft: 0 8px 20px rgba(16, 42, 74, .10);
+  }
+  html[data-theme="day"] body {
+    background: #eef3f9;
+    color: var(--text);
+  }
+  html[data-theme="day"] .hero:after { background: rgba(5, 117, 106, .05); border-color: rgba(5, 117, 106, .16); }
+
+  /* Raised surfaces */
+  html[data-theme="day"] .hero,
+  html[data-theme="day"] .company-card,
+  html[data-theme="day"] .pad-card,
+  html[data-theme="day"] .detail-card,
+  html[data-theme="day"] .clean-card,
+  html[data-theme="day"] .field-search-hero,
+  html[data-theme="day"] .field-compact-section,
+  html[data-theme="day"] .field-quick-section,
+  html[data-theme="day"] .field-quick-card,
+  html[data-theme="day"] .field-recent-card,
+  html[data-theme="day"] .field-company-details,
+  html[data-theme="day"] .field-quick-manage-row,
+  html[data-theme="day"] .field-quick-sheet,
+  html[data-theme="day"] .field-pad-hero,
+  html[data-theme="day"] .field-priority-card,
+  html[data-theme="day"] .field-reference-details,
+  html[data-theme="day"] .field-well-card,
+  html[data-theme="day"] .global-search-box,
+  html[data-theme="day"] .add-pad-card,
+  html[data-theme="day"] .editor-auth-card,
+  html[data-theme="day"] .assistant-panel,
+  html[data-theme="day"] .quality-card,
+  html[data-theme="day"] .owner-quick-action,
+  html[data-theme="day"] .owner-attention-item,
+  html[data-theme="day"] .add-wizard-review-card,
+  html[data-theme="day"] .editor-account-card,
+  html[data-theme="day"] .audit-metric,
+  html[data-theme="day"] .state-browser-card,
+  html[data-theme="day"] .page-title {
+    background: #ffffff;
+    border-color: var(--line);
+    color: var(--text);
+    box-shadow: var(--shadow-soft);
+  }
+
+  /* Sunken / inset surfaces */
+  html[data-theme="day"] .stat,
+  html[data-theme="day"] .empty,
+  html[data-theme="day"] .route-step,
+  html[data-theme="day"] .field-well-item,
+  html[data-theme="day"] .field-official-item,
+  html[data-theme="day"] .field-api-stat,
+  html[data-theme="day"] .field-source,
+  html[data-theme="day"] .field-route-reference,
+  html[data-theme="day"] .field-route-step-row,
+  html[data-theme="day"] .advanced-search-panel,
+  html[data-theme="day"] .global-search-toolbar,
+  html[data-theme="day"] .global-search-info,
+  html[data-theme="day"] .assistant-context,
+  html[data-theme="day"] .assistant-messages,
+  html[data-theme="day"] .assistant-input-wrap,
+  html[data-theme="day"] .well-entry-builder,
+  html[data-theme="day"] .field-quick-empty,
+  html[data-theme="day"] .field-favorites-empty {
+    background: #f2f6fb;
+    border-color: var(--line);
+    color: var(--text);
+  }
+  html[data-theme="day"] .field-route-step-row { border-color: var(--line); }
+
+  /* Header, footer, tab bar, rail */
+  html[data-theme="day"] .site-header {
+    background: rgba(255, 255, 255, .93);
+    border-bottom-color: var(--line);
+  }
+  html[data-theme="day"] .footer { border-top-color: var(--line); color: var(--muted); }
+  html[data-theme="day"] .mobile-bottom-bar {
+    background: rgba(255, 255, 255, .96);
+    border-top-color: var(--line);
+    box-shadow: 0 -12px 26px rgba(16, 42, 74, .10);
+  }
+  html[data-theme="day"] .mobile-bottom-bar button {
+    background: #f2f6fb;
+    border-color: var(--line);
+    color: var(--text);
+    box-shadow: none;
+  }
+  html[data-theme="day"] .mobile-bottom-bar .mobile-navigate {
+    background: var(--accent);
+    color: #ffffff;
+    box-shadow: 0 6px 16px rgba(5, 117, 106, .28);
+  }
+  html[data-theme="day"] .alphabet-jump-rail {
+    background: rgba(255, 255, 255, .94);
+    border-color: var(--line);
+    box-shadow: var(--shadow-soft);
+  }
+  html[data-theme="day"] .alphabet-jump-rail button { color: #5d7592; }
+  html[data-theme="day"] .alphabet-jump-rail button.available { color: var(--text); }
+  html[data-theme="day"] .alphabet-jump-rail button.available:active,
+  html[data-theme="day"] .alphabet-jump-rail button.active { background: var(--accent); color: #ffffff; }
+  html[data-theme="day"] .alphabet-scrub-bubble {
+    background: rgba(255, 255, 255, .97);
+    border-color: var(--line);
+    color: var(--accent);
+  }
+  html[data-theme="day"] .alphabet-letter-marker {
+    background: rgba(255, 255, 255, .95);
+    border-color: rgba(5, 117, 106, .3);
+    color: var(--accent);
+  }
+
+  /* Controls */
+  html[data-theme="day"] .btn,
+  html[data-theme="day"] .icon-btn,
+  html[data-theme="day"] .field-action,
+  html[data-theme="day"] .field-copy-button,
+  html[data-theme="day"] .field-mini-tool,
+  html[data-theme="day"] .field-quick-close,
+  html[data-theme="day"] .add-wizard-step,
+  html[data-theme="day"] .chat-quick button {
+    background: #ffffff;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  html[data-theme="day"] .btn.ghost { background: transparent; }
+  html[data-theme="day"] .btn.primary,
+  html[data-theme="day"] .field-action.primary,
+  html[data-theme="day"] .field-mini-tool.primary,
+  html[data-theme="day"] .field-quick-save,
+  html[data-theme="day"] .assistant-round.send {
+    background: var(--accent);
+    border-color: transparent;
+    color: #ffffff;
+  }
+  html[data-theme="day"] .btn.secondary { background: var(--accent-2); border-color: transparent; color: #ffffff; }
+  html[data-theme="day"] .field-action.edit { background: #f2f6fb; }
+  html[data-theme="day"] .field-action.is-unavailable {
+    background: #fff5da;
+    border: 1px dashed #cfa03a;
+    color: #7a5200;
+  }
+  html[data-theme="day"] .field-quick-add {
+    background: rgba(5, 117, 106, .08);
+    border-color: rgba(5, 117, 106, .34);
+    color: var(--accent);
+  }
+  html[data-theme="day"] .field-quick-remove {
+    background: #fdecec;
+    border-color: #e2a7a7;
+    color: #9d1f18;
+  }
+  html[data-theme="day"] .btn:hover,
+  html[data-theme="day"] .icon-btn:hover { border-color: var(--line-strong); }
+
+  /* Inputs */
+  html[data-theme="day"] .field input,
+  html[data-theme="day"] .field select,
+  html[data-theme="day"] .field-search-controls select,
+  html[data-theme="day"] .global-search-head input,
+  html[data-theme="day"] .advanced-field select,
+  html[data-theme="day"] .field-quick-field select,
+  html[data-theme="day"] .add-pad-field input,
+  html[data-theme="day"] .add-pad-field select,
+  html[data-theme="day"] .add-pad-field textarea,
+  html[data-theme="day"] .well-entry-inputs input,
+  html[data-theme="day"] .editor-auth-field input,
+  html[data-theme="day"] .assistant-input,
+  html[data-theme="day"] .submission-review-note,
+  html[data-theme="day"] #customLogoUrl {
+    background: #ffffff;
+    border: 1px solid var(--line-strong);
+    color: var(--text);
+  }
+  html[data-theme="day"] .field input::placeholder,
+  html[data-theme="day"] .global-search-head input::placeholder,
+  html[data-theme="day"] .add-pad-field input::placeholder,
+  html[data-theme="day"] .add-pad-field textarea::placeholder,
+  html[data-theme="day"] .assistant-input::placeholder { color: #6a7f97; }
+  html[data-theme="day"] .field-home-search input { box-shadow: 0 6px 18px rgba(16, 42, 74, .12); }
+
+  /* Chips, badges and status tones */
+  html[data-theme="day"] .pill,
+  html[data-theme="day"] .field-status-chip,
+  html[data-theme="day"] .check-chip,
+  html[data-theme="day"] .field-well-badge.saved {
+    background: #eef3f9;
+    border-color: var(--line-strong);
+    color: #2c4560;
+  }
+  html[data-theme="day"] .field-status-chip.good,
+  html[data-theme="day"] .field-well-badge.exact,
+  html[data-theme="day"] .field-company-summary-count {
+    background: #e4f6ea;
+    border-color: #86c39c;
+    color: #12602f;
+  }
+  html[data-theme="day"] .field-status-chip.review,
+  html[data-theme="day"] .field-well-badge.pending,
+  html[data-theme="day"] .field-status-chip.caution {
+    background: #fff4d9;
+    border-color: #d7ab48;
+    color: #6f4a00;
+  }
+  html[data-theme="day"] .field-direction-warning {
+    background: #fff6e2;
+    border-left-color: #cf9b21;
+    color: #6b4700;
+  }
+  html[data-theme="day"] .add-duplicate-warning { border-color: #cf9b21; background: #fff6e2; color: #6b4700; }
+  html[data-theme="day"] .check-chip:has(input:checked) {
+    background: rgba(5, 117, 106, .10);
+    border-color: var(--accent);
+    color: #054f47;
+  }
+  html[data-theme="day"] .active-filter-pill {
+    background: rgba(16, 85, 158, .09);
+    border-color: rgba(16, 85, 158, .34);
+    color: #0d4680;
+  }
+
+  /* Text colours */
+  html[data-theme="day"] .muted,
+  html[data-theme="day"] .lead,
+  html[data-theme="day"] .field-home-note,
+  html[data-theme="day"] .field-pad-location,
+  html[data-theme="day"] .field-public-note,
+  html[data-theme="day"] .breadcrumb,
+  html[data-theme="day"] .title-meta,
+  html[data-theme="day"] .company-count,
+  html[data-theme="day"] .company-subtitle,
+  html[data-theme="day"] .field-quick-copy span,
+  html[data-theme="day"] .field-recent-card span,
+  html[data-theme="day"] .field-api-stat span,
+  html[data-theme="day"] .field-compact-head span,
+  html[data-theme="day"] .field-quick-head p,
+  html[data-theme="day"] .field-company-summary-copy small,
+  html[data-theme="day"] .field-reference-summary small,
+  html[data-theme="day"] .global-result span,
+  html[data-theme="day"] .kv dt { color: var(--muted); }
+
+  html[data-theme="day"] .eyebrow,
+  html[data-theme="day"] .field-search-brand,
+  html[data-theme="day"] .field-label,
+  html[data-theme="day"] .field-pad-company,
+  html[data-theme="day"] .field-quick-arrow,
+  html[data-theme="day"] .company-arrow,
+  html[data-theme="day"] .state-browser-arrow,
+  html[data-theme="day"] .arrow,
+  html[data-theme="day"] .detail-card h3,
+  html[data-theme="day"] .pad-card.clean-card .clean-card-company,
+  html[data-theme="day"] .field-source-check,
+  html[data-theme="day"] .field-company-details > summary::after,
+  html[data-theme="day"] .field-reference-details > summary::after,
+  html[data-theme="day"] .owner-quick-action span:last-child { color: var(--accent); }
+
+  html[data-theme="day"] .breadcrumb a,
+  html[data-theme="day"] .global-result em { color: var(--accent-2); }
+  html[data-theme="day"] .field-search-icon { color: #2c4560; }
+  html[data-theme="day"] .pad-card.clean-card .clean-card-actions a { color: var(--text); }
+  html[data-theme="day"] .pad-card.clean-card .clean-card-actions .navigate { color: var(--accent); }
+  html[data-theme="day"] .pad-card.clean-card .clean-card-arrow { color: var(--muted); }
+
+  /* Overlays, chat and toast */
+  html[data-theme="day"] .global-search-modal,
+  html[data-theme="day"] .field-quick-modal,
+  html[data-theme="day"] .assistant-backdrop { background: rgba(20, 38, 60, .42); }
+  html[data-theme="day"] .assistant-header { border-bottom-color: var(--line); }
+  html[data-theme="day"] .chat-row.bot .chat-bubble {
+    background: #f2f6fb;
+    border: 1px solid var(--line);
+    color: var(--text);
+  }
+  html[data-theme="day"] .chat-row.user .chat-bubble { background: var(--accent); color: #ffffff; }
+  html[data-theme="day"] .assistant-note { color: var(--muted); }
+  html[data-theme="day"] .global-result:hover,
+  html[data-theme="day"] .global-result:focus { background: #eaf1f9; border-color: var(--line-strong); }
+  html[data-theme="day"] .global-result-badges b { background: #eef3f9; border-color: var(--line-strong); color: #2c4560; }
+  /* A light toast on a light page would be invisible, so it inverts. */
+  html[data-theme="day"] .toast { background: #0f2439; color: #f4f8fd; }
+
+  html[data-theme="day"] .add-wizard-step.active {
+    background: rgba(5, 117, 106, .10);
+    border-color: var(--accent);
+    color: #054f47;
+  }
+  html[data-theme="day"] .add-wizard-step.done { color: var(--success); border-color: #86c39c; }
+  html[data-theme="day"] .field-well-name,
+  html[data-theme="day"] .field-value,
+  html[data-theme="day"] .field-direction-copy,
+  html[data-theme="day"] .field-route-step-name { color: var(--text); }
+  html[data-theme="day"] .field-route-step-num { background: var(--accent); color: #ffffff; }
+
+  /* --- 12. Status tone and collapsed-section internals -------------------- */
+
+  /* Was two inline hex colours on <strong>, which the daylight theme could
+     not reach. */
+  .field-api-stat strong.tone-good { color: var(--success); }
+  .field-api-stat strong.tone-warn { color: #ffd37e; }
+  html[data-theme="day"] .field-api-stat strong.tone-good { color: #14713a; }
+  html[data-theme="day"] .field-api-stat strong.tone-warn { color: #7a5200; }
+
+  /* The <summary> already announces each collapsed section, so the inner
+     heading stays for screen readers and outline order only. */
+  .sr-only-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
+  }
+  .field-reference-body .field-priority-head { justify-content: flex-end; margin-bottom: 10px; }
+  .field-reference-body .field-location-mini,
+  .field-reference-body .field-official-grid { margin: 0; }
+
+  /* --- 13. Reduced motion ------------------------------------------------- */
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .field-action, .btn, .icon-btn, .field-copy-button, .field-mini-tool,
+    .pad-card.clean-card .clean-card-main, .field-recent-card { transition: none; }
+    .field-action:active, .field-copy-button:active, .field-mini-tool:active,
+    .field-recent-card:active, .pad-card.clean-card .clean-card-main:active { transform: none; }
+  }

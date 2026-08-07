@@ -1,0 +1,226 @@
+{
+  "antero--albert": {
+    "s": "800.South to 145 in.Malaga right onto 145 0.3 mile, turn right on.Harper Ridge.Pad will be on the right in 2.8 miles",
+    "r": "Road sequence reference:\nRoute 145 → Harper Ridge → Pad\n\nStep-by-step directions:\n1. Follow 800 South to 145 in Malaga.\n2. Turn right onto 145 for 0.3 miles.\n3. Turn right on Harper Ridge.\n4. Pad will be on the right in 2.8 miles."
+  },
+  "antero--alpha": {
+    "s": "From I70.State Route-513.South to State Route-265.Left onto State Route-265 to State Route-147.State Route-147 for 2.2 mile right onto.Tuckahoe Road for 0.8 mile.Left onto.Winstead Road for 1 mile.Lease road is on the left past the.Capstone",
+    "r": "Road sequence reference:\nI-70 → Route 513 → SR-265 → Tuckahoe Rd → Winstead Rd → Lease Road\n\nStep-by-step directions:\n1. From I-70, take State Route 513 South to State Route 265.\n2. Turn left onto State Route 265 to State Route 147.\n3. Follow State Route 147 for 2.2 miles.\n4. Turn right onto Tuckahoe Road for 0.8 miles.\n5. Turn left onto Winstead Road for 1 mile.\n6. Lease road is on the left past the Capstone."
+  },
+  "antero--andes": {
+    "s": "I77 to State Route 313.East onto State Route 313 for 3.9 mile to stop sign right onto State Route 185 for 1.2 mile.Left onto State Route 566 for 4.8 mile to stop sign.Left onto State Route 147 for 5.5 mile.Left onto State Route 313 for 3 mile.Lease rd on the right PJ on pad QUINN 2H is the API",
+    "r": "Road sequence reference:\nI-77 → SR-313 → SR-185 → SR-566 → SR-147 → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 313.\n2. Continue east onto State Route 313 for 3.9 miles to stop sign.\n3. Turn right onto State Route 185 for 1.2 miles.\n4. Turn left onto State Route 566 for 4.8 miles to stop sign.\n5. Turn left onto State Route 147 for 5.5 miles.\n6. Turn left onto State Route 313 for 3 miles.\n7. Lease Road on the right PJ on pad QUINN 2H is the API."
+  },
+  "antero--bettinger": {
+    "s": "From I-77 take exit 25 towards.Caldwell, 78.East for 1.6 miles.Turn right on OH- 564.East ( Frostyville rd) for 8.4 miles.Left on two right 42 (Radio ridge) for 2 miles, turning left on two rd 1117 ( Novello rd) for 0.1 miles",
+    "r": "Road sequence reference:\nI-77 → Exit 25 → OH-564 / Frostyville Rd → Turning Left On Township Rd\n\nStep-by-step directions:\n1. From I-77 take exit 25 towards Caldwell, 78 East for 1.6 miles.\n2. Turn right on OH-564 East ( Frostyville Road) for 8.4 miles.\n3. Turn left on two right 42 (Radio ridge) for 2 miles, turning left on two Road 1117 ( Novello Road) for 0.1 miles."
+  },
+  "antero--betts": {
+    "s": "State Route 78.East for 19 mile.Left at the 5 yard stick onto Township 33 for 0.7 mile.Left onto Township 63 for 1 mile.Pad is on the right.No portajohn",
+    "r": "Road sequence reference:\nSR-78 → TR-63 → Pad\n\nStep-by-step directions:\n1. Follow State Route 78 East for 19 miles.\n2. Turn left at the 5 yard stick onto Township 33 for 0.7 miles.\n3. Turn left onto Township 63 for 1 mile.\n4. Pad is on the right.\n5. No portajohn."
+  },
+  "antero--bishop": {
+    "s": "SR78.East 15 mile to County Road 44 (Swazey.Road) right onto County Road 44 (Swazey.Road) for 1.3 miles right onto the lease rd",
+    "r": "Road sequence reference:\nSR-78 → CR-44 / Swazey Rd → Lease Road\n\nStep-by-step directions:\n1. Follow State Route 78 East 15 miles to County Road 44 (Swazey Road).\n2. Turn right onto County Road 44 (Swazey Road) for 1.3 miles.\n3. Turn right onto the lease Road."
+  },
+  "antero--bond": {
+    "s": "77 south to exit 37 for State Route 313.Left onto State Route 313 for 3.9 mile right onto State Route 285 for 1.2 mile.Left onto State Route 566 for 4.8 mile.Left onto State Route 147 for 2.4 mile right onto.Mud Run.Road (Township 25) for 2.3 mile.Lease will be on the right",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → SR-313 → SR-285 → SR-566 → SR-147 → Mud Run Rd\n\nStep-by-step directions:\n1. 77 south to exit 37 for State Route 313.\n2. Turn left onto State Route 313 for 3.9 miles.\n3. Turn right onto State Route 285 for 1.2 miles.\n4. Turn left onto State Route 566 for 4.8 miles.\n5. Turn left onto State Route 147 for 2.4 miles.\n6. Turn right onto Mud Run Road (Township 25) for 2.3 miles Lease will be on the right."
+  },
+  "antero--bronson": {
+    "s": "SR800 south to SR145 in.Malaga right onto SR145 for 0.3 miles right onto.Harper Ridge for 1.2 miles right onto.Boston Road (Township-10) for 0.5 miles.Lease rd is on the right.Tanks 2,3,4 single pumpkin.All other tanks double pumpkins",
+    "r": "Road sequence reference:\nSR-800 → SR-145 → Harper Ridge → Boston Rd → Lease Road\n\nStep-by-step directions:\n1. Follow State Route 800 south to State Route 145 in Malaga.\n2. Turn right onto State Route 145 for 0.3 miles.\n3. Turn right onto Harper Ridge for 1.2 miles.\n4. Turn right onto Boston Road (Township-10) for 0.5 miles.\n5. Lease Road is on the right Tanks 2,3,4 single pumpkin All other tanks double pumpkins."
+  },
+  "antero--capstone": {
+    "s": "From I70.State Route-513.South to State Route-265.Left onto State Route-265 to State Route-147.State Route-147 for 2.2 mile right onto.Tuckahoe Road for 0.8 mile.Left onto.Winstead Road for 0.4 mile.Lease road is on the left.No portajohn",
+    "r": "Road sequence reference:\nI-70 → Route 513 → SR-265 → Tuckahoe Rd → Winstead Rd → Lease Road\n\nStep-by-step directions:\n1. From I-70, take State Route 513 South to State Route 265.\n2. Turn left onto State Route 265 to State Route 147.\n3. Follow State Route 147 for 2.2 miles.\n4. Turn right onto Tuckahoe Road for 0.8 miles.\n5. Turn left onto Winstead Road for 0.4 miles.\n6. Lease road is on the left.\n7. No portajohn."
+  },
+  "antero--carpenter": {
+    "s": "77 south to exit 25 for State Route 78.East onto State Route 78 for 16 mile.Left onto State Route 379 for 0.4 mile.Lease is on the right",
+    "r": "Road sequence reference:\nRoute 77 → Exit 25 → SR-78 → SR-379\n\nStep-by-step directions:\n1. 77 south to exit 25 for State Route 78.\n2. Continue east onto State Route 78 for 16 miles.\n3. Turn left onto State Route 379 for 0.4 miles Lease is on the right."
+  },
+  "antero--crestone": {
+    "s": "SR800.South to SR145 in.Malaga right onto SR145 for 0.3 miles right onto.Harper Ridge (County Road 39) for 2 miles.Pad will be on left.Single pumpkin is for tanks 3&4.Double pumpkins for the other tanks.",
+    "r": "Road sequence reference:\nSR-800 → SR-145 → Harper Ridge → Pad\n\nStep-by-step directions:\n1. Follow State Route 800 South to State Route 145 in Malaga.\n2. Turn right onto State Route 145 for 0.3 miles.\n3. Turn right onto Harper Ridge (County Road 39) for 2 miles.\n4. Pad will be on left Single pumpkin is for tanks 3&4 Double pumpkins for the other tanks."
+  },
+  "antero--cynthia": {
+    "s": "From.Belle Valley I-77.Exit 28, Head.South on.Main st(0.4 miles) Turn left onto.Oh 215, 215 turns into.Oh 147(12 miles) lease rd is on left.Go up and stay to left.Cynthia is on right, Blue room on location",
+    "r": "Road sequence reference:\nI-77 → Exit 28 → Main St → OH-215 → Lease Road\n\nStep-by-step directions:\n1. From Belle Valley I-77.\n2. Exit 28.\n3. Head South on Main st(0.4 miles).\n4. Turn left onto OH-215, 215 turns into OH-147(12 miles).\n5. Lease Road is on left.\n6. Go up and.\n7. Stay to left Cynthia is on right, Blue room on location."
+  },
+  "antero--ervin": {
+    "s": "I77 to State Route 313.East State Route 313.East for 3.9 mile.Right onto State Route 285 for 1.2 mile.Left onto State Route 566 for 5 mile.Left onto State Route 147 for 6.8 mile.Lease is on the left.No portajohn",
+    "r": "Road sequence reference:\nI-77 → SR-313 → SR-285 → SR-566 → SR-147\n\nStep-by-step directions:\n1. Follow I-77 to State Route 313 East State Route 313 East for 3.9 miles.\n2. Turn right onto State Route 285 for 1.2 miles.\n3. Turn left onto State Route 566 for 5 miles.\n4. Turn left onto State Route 147 for 6.8 miles Lease is on the left.\n5. No portajohn."
+  },
+  "antero--ervin-pad": {
+    "s": "77 south to exit 37 go east 2 mile to stop sign turn right go 1 mile on left to st rt 566 turn left go 4 mile to stop sign turn left on 147 go 6 mile pad will be on left",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Route 147 → Pad\n\nStep-by-step directions:\n1. 77 south to exit 37.\n2. Go east 2 miles to stop sign.\n3. Turn right go 1 mile on left to st rt 566.\n4. Turn left go 4 miles to stop sign.\n5. Turn left on 147.\n6. Go 6 miles.\n7. Pad will be on left."
+  },
+  "antero--farnsworth": {
+    "s": "I77 to SR78.SR78.East for 15 mile right onto.Swazey Road (County Road 44) for 0.2 mile.Left onto.Bracken Ridge (County Road 79) for 2 mile.Lease rd on the right",
+    "r": "Road sequence reference:\nI-77 → SR-78 → Swazey Rd → Bracken Ridge → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 State Route 78 East for 15 miles.\n2. Turn right onto Swazey Road (County Road 44) for 0.2 miles.\n3. Turn left onto Bracken Ridge (County Road 79) for 2 miles.\n4. Lease Road on the right."
+  },
+  "antero--fuller": {
+    "s": "Big.Trucks can not make the.Left turn from SR313 to.Street.Johns.Road I77 onto SR313 for 3.9 mile.Right onto State Route-285 for 1.2 mile.Left onto State Route-566 for 4.8 mile.Left onto State Route-147 for 5.5 mile.Left onto State Route-313 for 3.4 mile right onto.Street.Johns.Road for 1.8 mile right onto Township-111 for 0.1 mile.Lease on the right.No Portajohn",
+    "r": "Road sequence reference:\nSR313 To St → SR-313 → SR-285 → SR-566 → SR-147 → TR-111\n\nStep-by-step directions:\n1. Big Trucks can not make the Left turn from State Route 313 to Street Johns Road I-77 onto State Route 313 for 3.9 miles.\n2. Turn right onto State Route 285 for 1.2 miles.\n3. Turn left onto State Route 566 for 4.8 miles.\n4. Turn left onto State Route 147 for 5.5 miles.\n5. Turn left onto State Route 313 for 3.4 miles.\n6. Turn right onto Street Johns Road for 1.8 miles.\n7. Turn right onto Township-111 for 0.1 miles Lease on the right.\n8. No Portajohn."
+  },
+  "antero--hartley-east": {
+    "s": "39.365103, -80.993116",
+    "r": "Step-by-step directions:\n1. Follow 39.365103, -80.993116."
+  },
+  "antero--hercher": {
+    "s": "I77 to SR78.State Route 78 east for 9 mile right onto State Route 260 south for 11 mile.Right onto State Route 145/260 for 1.9 mile.Left onto State Route 260 for 4.3 mile.Left onto Township 14 for 0.3 mile.Left onto Township 289 for 0.9 mile.Lease on the right",
+    "r": "Road sequence reference:\nI-77 → SR-78 → SR-260 → TR-14 → TR-289\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 State Route 78 east for 9 miles.\n2. Turn right onto State Route 260 south for 11 miles.\n3. Turn right onto State Route 145/260 for 1.9 miles.\n4. Turn left onto State Route 260 for 4.3 miles.\n5. Turn left onto Township 14 for 0.3 miles.\n6. Turn left onto Township 289 for 0.9 miles Lease on the right."
+  },
+  "antero--hickman": {
+    "s": "From state right 74 and state right 18 go south on 74.Turn left on.Marsh run road.Lease road is on the right.",
+    "r": "Road sequence reference:\nRoute 74 → Marsh Run Rd → Lease Road\n\nStep-by-step directions:\n1. From state right 74 and state right 18.\n2. Go south on 74.\n3. Turn left on Marsh run road.\n4. Lease road is on the right."
+  },
+  "antero--hill": {
+    "s": "State Route 821.South to SR146 146 to.Old Infirmary.Road Pad on the left",
+    "r": "Road sequence reference:\nSR-821 → Old Infirmary Rd → Pad\n\nStep-by-step directions:\n1. State Route 821 South to State Route 146 146 to Old Infirmary Road Pad on the left."
+  },
+  "antero--hughes": {
+    "s": "I77 to State Route 78E State Route 78.East for 16 mile.Left onto State Route 379 for 6 mile right onto.Miltonsburg-Calais.Road (County Road 2) for 0.4 mile.Lease is on left.Hughes is the last pad on lease rd.No portajohn",
+    "r": "Road sequence reference:\nI-77 → SR-78E → SR-379 → Miltonsburg-calais Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78E State Route 78 East for 16 miles.\n2. Turn left onto State Route 379 for 6 miles.\n3. Turn right onto Miltonsburg-Calais Road (County Road 2) for 0.4 miles Lease is on left Hughes is the last pad on lease Road.\n4. No portajohn."
+  },
+  "antero--j-anderson": {
+    "s": "265e outside quakercity turn left onto shannon run rd. Lease rd on left J anderson to the left top of split J hall to the right. Lease can be rutted out in a transport use caution.",
+    "r": "Road sequence reference:\nRoute 265 → Shannon Run Rd → Lease Road\n\nStep-by-step directions:\n1. 265e outside quakercity.\n2. Turn left onto shannon run Road.\n3. Lease Road on left J anderson to the left top of split J hall to the right Lease can be rutted out in a transport use caution."
+  },
+  "antero--j-hall": {
+    "s": "265 to Shannon run rd lease rd on left",
+    "r": "Step-by-step directions:\n1. Follow 265 to Shannon run Road.\n2. Lease Road on left."
+  },
+  "antero--jr-byler": {
+    "s": "77 south to exit 37 go east go to stop sign go right go to 566 turn left go 4 miles to 147 turn left go 3 mile just passed state route 313 your second left will be the lease rd",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Lease Road\n\nStep-by-step directions:\n1. 77 south to exit 37.\n2. Go east.\n3. Go to stop sign.\n4. Go right.\n5. Go to 566.\n6. Turn left go 4 miles to 147.\n7. Turn left go 3 miles just passed State Route 313 your second left will be the lease Road."
+  },
+  "antero--justice": {
+    "s": "Route 77 south to exit 37 turn left go 2 mile to stop sign go right go 1 mile to state route 566 turn left go 2 miles route 574 will be on left turn left 1/4 mile on right will be less rd",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Less Rd\n\nStep-by-step directions:\n1. Route 77 south to exit 37.\n2. Turn left go 2 miles to stop sign.\n3. Go right.\n4. Go 1 mile to State Route 566.\n5. Turn left go 2 miles route 574 will be on left.\n6. Turn left 1/4 miles on right will be less Road."
+  },
+  "antero--krupa": {
+    "s": "I77 to State Route 313.East onto State Route 313 for 3.9 mile to stop sign right onto State Route 185 for 1.2 mile.Left onto State Route 566 for 4.8 mile.Left onto State Route 147 2.4 mile right on.Mud Run.Road for 0.8 mile.Lease rd is on the left",
+    "r": "Road sequence reference:\nI-77 → SR-313 → SR-185 → SR-566 → SR-147 → Mud Run Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 313.\n2. Continue east onto State Route 313 for 3.9 miles to stop sign.\n3. Turn right onto State Route 185 for 1.2 miles.\n4. Turn left onto State Route 566 for 4.8 miles.\n5. Turn left onto State Route 147 for 2.4 miles.\n6. Turn right on Mud Run Road for 0.8 miles.\n7. Lease Road is on the left."
+  },
+  "antero--kurtz": {
+    "s": "I77 to SR78.West State Route 78W 11 mile to SR379.Left onto SR379 for 2.1 miles right (straight) onto.Skin Creek.Road (CR53) for 1.3 miles.Left onto.Cemetery Hill.Road (CR35) for 1.2 miles right onto.Christman Ridge.Road (CR17) for 0.8 miles.Lease road will be on the left.",
+    "r": "Road sequence reference:\nI-77 → SR-78 → SR-78W → SR-379 → Skin Creek Rd → Cemetery Hill Rd → Christman Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 West State Route 78W 11 miles to State Route 379.\n2. Turn left onto State Route 379 for 2.1 miles right (straight) onto Skin Creek Road (County Road 53) for 1.3 miles.\n3. Turn left onto Cemetery Hill Road (County Road 35) for 1.2 miles.\n4. Turn right onto Christman Ridge Road (County Road 17) for 0.8 miles.\n5. Lease road will be on the left."
+  },
+  "antero--loraditch": {
+    "s": "From 77.Take 78e , 379n , skin creek rd , cemetery hill rd top of hill turn right.Christman ridge rd follow to gravel split turn right onto township 15 pad on right.",
+    "r": "Road sequence reference:\nRoute 77 → Route 78 → Route 379 → Christman Ridge Rd → Pad\n\nStep-by-step directions:\n1. From 77 Take 78e , 379n , skin creek Road , cemetery hill Road top of hill.\n2. Turn right Christman ridge Road.\n3. Follow to gravel split.\n4. Turn right onto township 15 pad on right."
+  },
+  "antero--madison-cs": {
+    "s": "70 e, 800 s , right at the intersection at Malaga onto 145 s, go through miltonsburg stay straight onto twp 100 keylor hill rd. Stay straight till you see Madison sign then stay to right through the catel guard.",
+    "r": "Road sequence reference:\nRoute 70 → Route 800 → Route 145 → Twp 100 Keylor Hill Rd → TR-100\n\nStep-by-step directions:\n1. Follow 70 e, 800 s.\n2. Turn right at the intersection at Malaga onto 145 s.\n3. Go through miltonsburg.\n4. Stay straight onto twp 100 keylor hill Road.\n5. Stay straight till you see Madison sign then.\n6. Stay to right through the catel guard."
+  },
+  "antero--melvin": {
+    "s": "I77 to State Route 78E State Route 78.East for 16 mile.Left onto State Route 379 for 6 mile right onto.Miltonsburg-Calais.Road (County Road 2) for 0.4 mile.Lease is on left.Melvin is the first pad on lease rd, right side.No portajohn",
+    "r": "Road sequence reference:\nI-77 → SR-78E → SR-379 → Miltonsburg-calais Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78E State Route 78 East for 16 miles.\n2. Turn left onto State Route 379 for 6 miles.\n3. Turn right onto Miltonsburg-Calais Road (County Road 2) for 0.4 miles Lease is on left Melvin is the first pad on lease Road, right side.\n4. No portajohn."
+  },
+  "antero--miley": {
+    "s": "77s exit 37 313e 285s 44e pad left soon as get on 44e.Longitude and.Latitude will GPS straight to lease rd.",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Route 313 → Route 285 → Route 44 → Lease Road\n\nStep-by-step directions:\n1. 77s.\n2. Exit 37 313e 285s 44e pad left soon as get on 44e Longitude and Latitude will GPS straight to lease Road."
+  },
+  "antero--monroe": {
+    "s": "I77 to State Route 78.East State Route 78 east for 16 mile.Left onto State Route 379 for 3.5 miles right onto Township 847 just past the.Truck Entrance sign.Take the turn wide.Straight into the lease road.Loads slow.No portajohn.Side not if in bottle come 379 s and leave 379 north turn too sharp",
+    "r": "Road sequence reference:\nI-77 → SR-78 → SR-379 → TR-847 → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 East State Route 78 east for 16 miles.\n2. Turn left onto State Route 379 for 3.5 miles.\n3. Turn right onto Township 847 just past the Truck Entrance sign.\n4. Take the turn wide Straight into the lease road Loads slow.\n5. No portajohn Side not if in bottle come 379 s and leave 379 north turn too sharp."
+  },
+  "antero--mulvay": {
+    "s": "18.South to 74.South to.Burton Run.Road.Make a left, go to.Short Run.Road.Make a left.Pad will be on the.Left.",
+    "r": "Road sequence reference:\nBurton Run Rd → Pad\n\nStep-by-step directions:\n1. Follow 18 South to 74 South to Burton Run Road Make a left.\n2. Go to Short Run Road Make a left.\n3. Pad will be on the Left."
+  },
+  "antero--myron-pad": {
+    "s": "77 south to exit 37 go east 2 mile to stop sign go right 1 mile to 566 turn left go 4 mile to 147 turn left go 2 miles in the switch Back lease rd on the left for Myron Cynthia and smierciak bad",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Lease Road\n\nStep-by-step directions:\n1. 77 south to exit 37.\n2. Go east 2 miles to stop sign.\n3. Go right 1 mile to 566.\n4. Turn left go 4 miles to 147.\n5. Turn left go 2 miles in the switch Back.\n6. Lease Road on the left for Myron Cynthia and smierciak bad."
+  },
+  "antero--nikki": {
+    "s": "SR800 south to SR145 in.Malaga right onto SR145 for 0.3 miles right onto.Harper Ridge for 1.2 miles right onto.Boston Road (Township-10) for 0.2 miles.Lease rd is on left and can be seen when you turn onto.Boston Road",
+    "r": "Road sequence reference:\nSR-800 → SR-145 → Harper Ridge → Boston Rd → Lease Road\n\nStep-by-step directions:\n1. Follow State Route 800 south to State Route 145 in Malaga.\n2. Turn right onto State Route 145 for 0.3 miles.\n3. Turn right onto Harper Ridge for 1.2 miles.\n4. Turn right onto Boston Road (Township-10) for 0.2 miles.\n5. Lease Road is on left and can be seen when you turn onto Boston Road."
+  },
+  "antero--noble": {
+    "s": "I70 to State Route 513.South State Route 513.South for 8.9 mile right onto.Whiskey Run.Road (County Road 31) for 0.2 mile.Lease rd is on the right.No portajohn",
+    "r": "Road sequence reference:\nI-70 → SR-513 → Whiskey Run Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 to State Route 513 South State Route 513 South for 8.9 miles.\n2. Turn right onto Whiskey Run Road (County Road 31) for 0.2 miles.\n3. Lease Road is on the right.\n4. No portajohn."
+  },
+  "antero--otto": {
+    "s": "From I70.State Route 800.South to State Route 145 in.Malaga right onto SR145 for 1.4 miles right onto.Walter Ridge.Road (County Road 69) for 2.6 miles.Lease is on the right",
+    "r": "Road sequence reference:\nI-70 → Route 800 → SR-145 → Walter Ridge Rd\n\nStep-by-step directions:\n1. From I-70, take State Route 800 South to State Route 145 in Malaga.\n2. Turn right onto State Route 145 for 1.4 miles.\n3. Turn right onto Walter Ridge Road (County Road 69) for 2.6 miles Lease is on the right."
+  },
+  "antero--price": {
+    "s": "I70 to State Route 513s for 12 mile right onto 147w for 1.5 mile right onto.Sycamore Road.(Township rd 172) for 1.6 mile.Left onto.Mt.Zion.Road (Township rd 170) for 0.2 mile.Lease is on the right",
+    "r": "Road sequence reference:\nI-70 → SR-513S → Route 147 → Sycamore Rd → Mt Zion Rd\n\nStep-by-step directions:\n1. Follow I-70 to State Route 513s for 12 miles.\n2. Turn right onto 147w for 1.5 miles.\n3. Turn right onto Sycamore Road (Township Road 172) for 1.6 miles.\n4. Turn left onto Mt Zion Road (Township Road 170) for 0.2 miles Lease is on the right."
+  },
+  "antero--quintel": {
+    "s": "I77 to SR78.East State Route 78.East for 16 mile.Left onto SR379 for 6.8 mile.Left onto.Miltonsburg-Calais.Road (Township 2) for 0.1 mile.Left at stop sign to stay on Township 2 for 0.5 mile.Right onto EW Carpenter.Road (Township 63 becomes Township 24) for 1.7 mile.Lease rd will be on the right.No portajohn",
+    "r": "Road sequence reference:\nI-77 → SR-78 → SR-379 → Miltonsburg-calais Rd → TR-2 → Ew Carpenter Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 East State Route 78 East for 16 miles.\n2. Turn left onto State Route 379 for 6.8 miles.\n3. Turn left onto Miltonsburg-Calais Road (Township 2) for 0.1 miles.\n4. Turn left at stop sign to stay on Township 2 for 0.5 miles.\n5. Turn right onto EW Carpenter Road (Township 63 becomes Township 24) for 1.7 miles.\n6. Lease Road will be on the right.\n7. No portajohn."
+  },
+  "antero--renny": {
+    "s": "From I70.State Route 800.South to State Route 145 in.Malaga right onto SR145 for 1.4 miles right onto.Walter Ridge.Road (County Road 69) for 2.8 miles.Lease is on the.Left",
+    "r": "Road sequence reference:\nI-70 → Route 800 → SR-145 → Walter Ridge Rd\n\nStep-by-step directions:\n1. From I-70, take State Route 800 South to State Route 145 in Malaga.\n2. Turn right onto State Route 145 for 1.4 miles.\n3. Turn right onto Walter Ridge Road (County Road 69) for 2.8 miles Lease is on the Left."
+  },
+  "antero--rich": {
+    "s": "77s exit 37.313e.285s 566s turn at the big fresh water compound go through bridge pass the wayne pad road.Ts off stay left PJ at front rtuon the right side of location.",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → Route 313 → Route 285 → Route 566 → Pad\n\nStep-by-step directions:\n1. 77s.\n2. Exit 37.313e 285s 566s turn at the big fresh water compound.\n3. Go through bridge.\n4. Pass the wayne pad road Ts off.\n5. Stay left PJ at front rtuon the right side of location."
+  },
+  "antero--robert": {
+    "s": "I77 south to exit 37.Left onto State Route 313 for 2 mile to stop sign right onto State Route 285 for 1 mile.Left onto State Route 566 for 4.1 mile right beside the.Wayne Impoundment.Wayne (first on right), Rich (2nd on left), and.Roberts (end) pads are all on the same lease rd",
+    "r": "Road sequence reference:\nI-77 → Exit 37 → SR-313 → SR-285 → SR-566 → Lease Road\n\nStep-by-step directions:\n1. I-77 south to exit 37.\n2. Turn left onto State Route 313 for 2 miles to stop sign.\n3. Turn right onto State Route 285 for 1 mile.\n4. Turn left onto State Route 566 for 4.1 miles right beside the Wayne Impoundment Wayne (first on right), Rich (2nd on left), and Roberts (end) pads are all on the same.\n5. Lease Road."
+  },
+  "antero--roe": {
+    "s": "Go 77 south to exit 37.Left onto State Route 313 for 2 mile right onto State Route 285 for 1 mile.Left onto State Route 566 for 5 mile.Left onto State Route 147 for 7.3 mile.Lease is on the.Left road is loose gravel.Single pumpkin water tanks 1 and 2.Double pumpkin oil tanks 3 and 4.No.Portajohn",
+    "r": "Road sequence reference:\nRoute 77 → Exit 37 → SR-313 → SR-285 → SR-566 → SR-147\n\nStep-by-step directions:\n1. Go 77 south to exit 37.\n2. Turn left onto State Route 313 for 2 miles.\n3. Turn right onto State Route 285 for 1 mile.\n4. Turn left onto State Route 566 for 5 miles.\n5. Turn left onto State Route 147 for 7.3 miles Lease is on the Left road is loose gravel Single pumpkin water tanks 1 and 2 Double pumpkin oil tanks 3 and 4.\n6. No Portajohn."
+  },
+  "antero--roxie": {
+    "s": "From.Exit 25, I-77.Caldwell, Ohio: Head.East on.Oh-78(15 miles), Turn right onto.Swazey Road(Cr44) follow for 1.6 miles.Turn left onto.Township 240,follow 0.6miles, entrance on right.Grey room on location, Mtu works.Whenever leaving from 240 to.Cr44, the bridge has no rails and may seem tight, can make left and turn around at.Berne plant and head back.Cr44.",
+    "r": "Road sequence reference:\nExit 25 → I-77 → OH-78 → Swazey Rd → TR-240 → Route 240\n\nStep-by-step directions:\n1. From Exit 25, I-77 Caldwell, Ohio.\n2. Head East on OH-78(15 miles).\n3. Turn right onto Swazey Road(County Road 44).\n4. Follow for 1.6 miles.\n5. Turn left onto Township 240,follow for 0.6 miles, entrance on right Grey room on location, Mtu works Whenever leaving from 240 to County Road 44, the bridge has no rails and may seem tight, can make left and turn around at Berne plant and.\n6. Head back County Road 44."
+  },
+  "antero--rubel": {
+    "s": "I77 to State Route 78.East State Route 78 east for 16 mile.Left onto State Route 379 for 1.9 mile.Pad is on the right",
+    "r": "Road sequence reference:\nI-77 → SR-78 → SR-379 → Pad\n\nStep-by-step directions:\n1. Follow I-77 to State Route 78 East State Route 78 east for 16 miles.\n2. Turn left onto State Route 379 for 1.9 miles.\n3. Pad is on the right."
+  },
+  "antero--ruble": {
+    "s": "77 south to exit 25 state route 78 go east for 16 mile to st rd 379 go left go 2 mile pad is on the right",
+    "r": "Road sequence reference:\nRoute 77 → Exit 25 → SR-78 → Pad\n\nStep-by-step directions:\n1. 77 south to exit 25 State Route 78.\n2. Go east for 16 miles to st Road 379.\n3. Go left.\n4. Go 2 miles.\n5. Pad is on the right."
+  },
+  "antero--schultz": {
+    "s": "I70 to State Route 513s for 12 mile right onto 147w for 1.5 mile right onto.Sycamore Road.(Township rd 172) for 2.1 mile.Lease rd on right at \"No.Antero Traffic\" sign",
+    "r": "Road sequence reference:\nI-70 → SR-513S → Route 147 → Sycamore Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 to State Route 513s for 12 miles.\n2. Turn right onto 147w for 1.5 miles.\n3. Turn right onto Sycamore Road (Township Road 172) for 2.1 miles.\n4. Lease Road on right at \"No Antero Traffic\" sign."
+  },
+  "antero--smierciak": {
+    "s": "From OH 566, travel east on OH147 for 1.6 miles, access is on left in middle of switch back.From Batesville, OH Intersection OH513 & OH147: Travel west on OH147 for 7.4 miles, access is on right.No blue room",
+    "r": "Road sequence reference:\nOH-566 → OH-147 → OH-513\n\nStep-by-step directions:\n1. From OH-566, travel east on OH-147 for 1.6 miles, access is on left in middle of switch back From Batesville, OH Intersection OH-513 & OH-147: Travel west on OH-147 for 7.4 miles, access is on right No blue room."
+  },
+  "antero--troyer": {
+    "s": "Take State Route 513.South out of.Quaker City for 6.5 miles right onto.Palestine Ridge.Road for 2.6 miles.Lease road on the left",
+    "r": "Road sequence reference:\nSR-513 → Palestine Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Take State Route 513 South out of Quaker City for 6.5 miles.\n2. Turn right onto Palestine Ridge Road for 2.6 miles.\n3. Lease road on the left."
+  },
+  "antero--urban": {
+    "s": "I77.South to SR78.Left onto State Route 78 for 17 mile.Left onto.Johnson Road (Township 636) (beside red barn) for 0.9 miles.Lease road is straight ahead.Johnson Road is single lane all the way to the lease road.Recommend everything locked in on the lease rd, very loose gravel half way up.25-35 mph on the climb and stay to the right.Grey room on location.-moo",
+    "r": "Road sequence reference:\nI-77 → SR-78 → Johnson Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 South to State Route 78.\n2. Turn left onto State Route 78 for 17 miles.\n3. Turn left onto Johnson Road (Township 636) (beside red barn) for 0.9 miles.\n4. Lease road is straight ahead Johnson Road is single lane all the way to the lease road Recommend everything locked in on the lease Road, very loose gravel half way up 25-35 mph on the climb and.\n5. Stay to the right Grey room on location -moo."
+  },
+  "antero--urban-pad": {
+    "s": "77 south to exit 25 st rt 78 go 16 mile to st rt 379 go past 379 lease rd entrance will be 2nd left follow to the end of rd",
+    "r": "Road sequence reference:\nRoute 77 → Exit 25 St → Route 78 → End Of Rd → Lease Road\n\nStep-by-step directions:\n1. 77 south to exit 25 st rt 78.\n2. Go 16 miles to st rt 379.\n3. Go past 379.\n4. Lease Road entrance will be 2nd left.\n5. Follow to the end of Road."
+  },
+  "antero--warner": {
+    "s": "I77 to exit 25.East onto State Route 78 for 13 mile.Left onto State Route 146 to stop sign.Straight onto State Route 513 for 1.7 mile.Pad will be on the right.It is the first pad on 513 and is RIGHT beside the road",
+    "r": "Road sequence reference:\nI-77 → Exit 25 → SR-78 → SR-146 → SR-513 → Beside The Rd → Pad\n\nStep-by-step directions:\n1. I-77 to exit 25.\n2. Continue east onto State Route 78 for 13 miles.\n3. Turn left onto State Route 146 to stop sign Straight onto State Route 513 for 1.7 miles.\n4. Pad will be on the right It is the first pad on 513 and is RIGHT beside the road."
+  },
+  "antero--wayne": {
+    "s": "I77 south to exit 37.Left onto State Route 313 for 2 mile to stop sign right onto State Route 285 for 1 mile.Left onto State Route 566 for 4.1 mile right beside the.Wayne Impoundment.Wayne (first on right), Rich (2nd on left), and.Roberts (end) pads are all on the same lease rd",
+    "r": "Road sequence reference:\nI-77 → Exit 37 → SR-313 → SR-285 → SR-566 → Lease Road\n\nStep-by-step directions:\n1. I-77 south to exit 37.\n2. Turn left onto State Route 313 for 2 miles to stop sign.\n3. Turn right onto State Route 285 for 1 mile.\n4. Turn left onto State Route 566 for 4.1 miles right beside the Wayne Impoundment Wayne (first on right), Rich (2nd on left), and Roberts (end) pads are all on the same.\n5. Lease Road."
+  },
+  "antero--webb": {
+    "s": "Off 145 in.Stafford turn on to main street at the church.At stop sign go straight you will pass a graveyard.At the split take a right on to sandbar rd.Follow sandbar to the next split white and.Grey barn on the.Right and a house with manikins in the window on the left.Turn.Right lease road will be on the left",
+    "r": "Road sequence reference:\nMain St → Sandbar Rd → Lease Road\n\nStep-by-step directions:\n1. Off 145 in Stafford turn on to main street at the church At stop sign.\n2. Go straight you will.\n3. Pass a graveyard At the split.\n4. Take a.\n5. Turn right on to sandbar Road.\n6. Follow sandbar to the next split white and Grey barn on the Right and a house with manikins in the window on the left.\n7. Turn Right lease road will be on the left."
+  },
+  "antero--wehr": {
+    "s": "I77.South to SR313.Left onto SR313 right onto SR265 at stop sign.Left onto SR566 for 5 miles.Left onto SR147 right onto.Calais Road (CR19) for 1.3 miles.Lease rd is on the right.The left from State Route 513 onto State Route 147 may not be possible in a transport.",
+    "r": "Road sequence reference:\nI-77 → SR-313 → SR-265 → SR-566 → SR147 Right Onto Calais Rd → SR-147 → SR-513 → Lease Road\n\nStep-by-step directions:\n1. Follow I-77 South to State Route 313.\n2. Turn left onto State Route 313.\n3. Turn right onto State Route 265 at stop sign.\n4. Turn left onto State Route 566 for 5 miles.\n5. Turn left onto State Route 147.\n6. Turn right onto Calais Road (County Road 19) for 1.3 miles.\n7. Lease Road is on the right The left from State Route 513 onto State Route 147 may not be possible in a transport."
+  },
+  "antero--wilson-pad": {
+    "s": "77 south to exit 25 st rt 78 go east 10 miles to Summerfield 146 turn left go to stop sign. 513 will be in front of you take 513 2and a half miles pad entrance is on the right. NOT THE PAD DIRECTLY BESIDE 513. The access road Ys off of 513 on the right.",
+    "r": "Road sequence reference:\nRoute 77 → Exit 25 St → Route 78 → Route 513 → Access Road\n\nStep-by-step directions:\n1. 77 south to exit 25 st rt 78.\n2. Go east 10 miles to Summerfield 146.\n3. Turn left go to stop sign 513 will be in front of you.\n4. Take 513 2and a half miles pad entrance is on the right NOT THE PAD DIRECTLY BESIDE 513 The access road Ys off of 513 on the right."
+  }
+}

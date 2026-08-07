@@ -1,0 +1,206 @@
+    /* New-pad submission workflow */
+    .add-pad-trigger .add-word { display: inline; }
+    .add-pad-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 260;
+      display: none;
+      padding: max(14px, env(safe-area-inset-top)) 12px max(14px, env(safe-area-inset-bottom));
+      background: rgba(2, 8, 15, .86);
+      backdrop-filter: blur(12px);
+      overflow-y: auto;
+    }
+    .add-pad-modal.open { display: block; }
+    .add-pad-card {
+      width: min(920px, 100%);
+      margin: 0 auto;
+      border: 1px solid rgba(111,145,190,.32);
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(17,29,45,.99), rgba(8,17,28,.99));
+      box-shadow: 0 28px 80px rgba(0,0,0,.52);
+      overflow: hidden;
+    }
+    .add-pad-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 20px;
+      border-bottom: 1px solid rgba(111,145,190,.2);
+    }
+    .add-pad-head p { margin: 7px 0 0; color: var(--muted); }
+    .add-pad-body { padding: 20px; }
+    .add-pad-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0,1fr));
+      gap: 13px;
+    }
+    .add-pad-field.full { grid-column: 1 / -1; }
+    .add-pad-field label {
+      display: block;
+      margin: 0 0 6px;
+      color: #c7d8e9;
+      font-size: .79rem;
+      font-weight: 850;
+      letter-spacing: .055em;
+      text-transform: uppercase;
+    }
+    .add-pad-field input,
+    .add-pad-field select,
+    .add-pad-field textarea {
+      width: 100%;
+      min-height: 48px;
+      border: 1px solid rgba(109,139,177,.34);
+      border-radius: 13px;
+      padding: 11px 12px;
+      color: var(--text);
+      background: #071523;
+      outline: none;
+      resize: vertical;
+    }
+    .add-pad-field textarea { min-height: 96px; line-height: 1.45; }
+    .add-pad-field input:focus,
+    .add-pad-field select:focus,
+    .add-pad-field textarea:focus {
+      border-color: var(--accent-2);
+      box-shadow: 0 0 0 3px rgba(103,168,255,.14);
+    }
+    .add-pad-inline-help {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: .82rem;
+    }
+    .coordinate-capture-tools {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      padding: 10px 12px;
+      border: 1px solid rgba(103,168,255,.18);
+      border-radius: 14px;
+      background: rgba(103,168,255,.055);
+    }
+    .coordinate-capture-status {
+      flex: 1 1 250px;
+      color: var(--muted);
+      font-size: .86rem;
+      line-height: 1.4;
+    }
+    .coordinate-capture-status.success { color: #7de1d3; }
+    .coordinate-capture-status.error { color: var(--danger); }
+    .well-entry-builder {
+      padding: 13px;
+      border: 1px solid rgba(109,139,177,.28);
+      border-radius: 16px;
+      background: rgba(6,16,28,.55);
+    }
+    .well-entry-inputs {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr 1fr;
+      gap: 10px;
+    }
+    .well-entry-label {
+      display: block;
+      margin-bottom: 5px;
+      color: #9fb4cb;
+      font-size: .76rem;
+      font-weight: 800;
+      letter-spacing: .035em;
+      text-transform: uppercase;
+    }
+    .well-entry-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 11px;
+    }
+    .well-entry-actions span {
+      color: var(--muted);
+      font-size: .84rem;
+    }
+    .well-entry-actions span.success { color: #7de1d3; }
+    .well-entry-actions span.error { color: var(--danger); }
+    .well-entry-list {
+      display: grid;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .well-entry-card {
+      display: grid;
+      grid-template-columns: minmax(0,1fr) auto;
+      gap: 10px;
+      align-items: center;
+      padding: 11px 12px;
+      border: 1px solid rgba(88,213,201,.22);
+      border-radius: 13px;
+      background: rgba(88,213,201,.06);
+    }
+    .well-entry-card strong { display: block; color: #eaf8f6; }
+    .well-entry-card small { display: block; margin-top: 3px; color: var(--muted); line-height: 1.4; }
+    .well-entry-remove {
+      min-height: 38px;
+      padding: 7px 10px;
+      border: 1px solid rgba(255,138,138,.32);
+      border-radius: 11px;
+      background: rgba(255,138,138,.08);
+      color: #ffd7d7;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .well-entry-empty {
+      padding: 11px;
+      border: 1px dashed rgba(109,139,177,.3);
+      border-radius: 12px;
+      color: var(--muted);
+      text-align: center;
+      font-size: .85rem;
+    }
+    .add-pad-help {
+      margin: 14px 0 0;
+      padding: 12px 13px;
+      border-radius: 13px;
+      border: 1px solid rgba(255,211,107,.24);
+      background: rgba(255,211,107,.07);
+      color: #d9e2ec;
+      font-size: .88rem;
+    }
+    .add-pad-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+    .add-pad-status {
+      min-height: 24px;
+      margin-top: 12px;
+      color: var(--muted);
+      font-weight: 720;
+    }
+    .add-pad-status.success { color: #7de1d3; }
+    .add-pad-status.error { color: var(--danger); }
+    .add-pad-honeypot {
+      position: absolute !important;
+      left: -10000px !important;
+      width: 1px !important;
+      height: 1px !important;
+      overflow: hidden !important;
+    }
+    @media (max-width: 700px) {
+      .add-pad-trigger { width: 46px; padding: 0; }
+      .add-pad-trigger .add-word { display: none; }
+      .add-pad-card { border-radius: 20px; }
+      .add-pad-head, .add-pad-body { padding: 16px; }
+      .add-pad-grid { grid-template-columns: 1fr; }
+      .add-pad-field.full { grid-column: auto; }
+      .well-entry-inputs { grid-template-columns: 1fr; }
+      .coordinate-capture-tools { align-items: stretch; }
+      .coordinate-capture-tools .btn { width: 100%; }
+      .well-entry-card { grid-template-columns: 1fr; }
+      .well-entry-remove { width: 100%; }
+      .mobile-bottom-bar { grid-template-columns: repeat(4, 1fr); }
+      .mobile-bottom-bar button { min-width: 0; font-size: .84rem; }
+      .mobile-bottom-bar .mobile-label { font-size: .68rem; }
+    }

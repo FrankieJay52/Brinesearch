@@ -1,0 +1,49 @@
+/* V 15.0 — Field Mark visual UI integration (not just icon substitution) */
+:root{--fm-tile:color-mix(in srgb,var(--panel-2) 82%,var(--teal) 18%);--fm-tile-border:color-mix(in srgb,var(--line) 65%,var(--teal) 35%)}
+.fm-icon{transition:transform .16s ease,color .16s ease,opacity .16s ease}
+.header-actions>.icon-btn,.header-actions>.btn{
+  border-radius:14px!important;background:linear-gradient(180deg,color-mix(in srgb,var(--panel) 88%,var(--teal) 12%),var(--panel-2))!important;
+  border:1px solid var(--fm-tile-border)!important;box-shadow:0 5px 14px rgba(0,0,0,.18);position:relative;overflow:hidden
+}
+.header-actions>.icon-btn .fm-icon,.header-actions>.btn .fm-icon{width:25px!important;height:25px!important;margin:0!important;color:var(--teal)}
+.header-actions>.icon-btn:active .fm-icon,.header-actions>.btn:active .fm-icon{transform:scale(.88)}
+.header-actions>.btn.primary{background:linear-gradient(180deg,var(--teal),color-mix(in srgb,var(--teal) 74%,#0a3c39 26%))!important;color:#04110f!important;border-color:transparent!important}
+.header-actions>.btn.primary .fm-icon{color:#04110f}
+
+.field-mark-nav.mobile-bottom-bar{padding-top:7px!important;padding-bottom:calc(6px + env(safe-area-inset-bottom))!important;gap:5px!important;background:color-mix(in srgb,var(--bg) 94%,transparent)!important;backdrop-filter:blur(18px);border-top:1px solid var(--line)}
+.field-mark-nav button,.field-mark-nav a{gap:4px!important;border-radius:15px!important;padding:4px 2px!important;min-height:58px!important;transition:background .16s ease,color .16s ease,transform .12s ease}
+.field-mark-nav .mobile-icon{width:36px!important;height:32px!important;border-radius:11px;display:grid!important;place-items:center!important;background:transparent;border:1px solid transparent;color:var(--muted)}
+.field-mark-nav .mobile-icon .fm-icon{width:27px!important;height:27px!important;margin:0!important}
+.field-mark-nav .mobile-label{font-size:.66rem!important;font-weight:800!important;letter-spacing:.01em;color:var(--muted)}
+.field-mark-nav button.is-active,.field-mark-nav a.is-active{background:color-mix(in srgb,var(--teal) 13%,transparent)}
+.field-mark-nav button.is-active .mobile-icon,.field-mark-nav a.is-active .mobile-icon{background:var(--fm-tile);border-color:var(--fm-tile-border);color:var(--teal);box-shadow:0 5px 12px rgba(0,0,0,.16)}
+.field-mark-nav button.is-active .mobile-label,.field-mark-nav a.is-active .mobile-label{color:var(--teal)}
+.field-mark-nav .mobile-navigate{background:linear-gradient(180deg,var(--teal),color-mix(in srgb,var(--teal) 72%,#0a3c39 28%))!important;color:#04110f!important}
+.field-mark-nav .mobile-navigate .mobile-icon{background:rgba(4,17,15,.1);color:#04110f;border-color:rgba(4,17,15,.16)}
+.field-mark-nav .mobile-navigate .mobile-label{color:#04110f!important}
+
+.feed-social-tools{gap:8px!important;padding:9px 0 3px}
+.feed-social-tool{min-height:72px!important;border:1px solid var(--line)!important;border-radius:15px!important;background:linear-gradient(180deg,var(--panel-2),color-mix(in srgb,var(--panel-2) 92%,var(--teal) 8%))!important;display:flex!important;flex-direction:column!important;justify-content:center!important;gap:5px!important}
+.feed-social-tool-icon{width:40px!important;height:40px!important;border-radius:12px!important;background:var(--fm-tile)!important;border:1px solid var(--fm-tile-border)!important;color:var(--teal)!important}
+.feed-social-tool-icon .fm-icon{width:25px!important;height:25px!important}
+.feed-social-tool>span:last-child{font-size:.72rem;font-weight:850}
+.feed-icon-btn{width:46px!important;height:46px!important;border-radius:14px!important;background:var(--fm-tile)!important;border-color:var(--fm-tile-border)!important;color:var(--teal)!important}
+.feed-icon-btn .fm-icon{width:25px!important;height:25px!important}
+.feed-actions button{min-height:45px!important;border-radius:12px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important}
+.feed-actions button .fm-icon{width:20px!important;height:20px!important;margin:0!important;color:var(--teal)}
+
+.settings-row>span:first-child,.setting-row>span:first-child,.owner-quick-action>span:first-child .fm-icon{color:var(--teal)}
+.settings-row .fm-icon,.setting-row .fm-icon{width:25px!important;height:25px!important}
+.account-menu button{display:flex!important;align-items:center!important;gap:10px!important}
+.account-menu button .fm-icon{width:22px!important;height:22px!important;color:var(--teal)}
+
+.icon-btn:not(.header-actions .icon-btn){display:grid;place-items:center}
+.icon-btn:not(.header-actions .icon-btn) .fm-icon{width:23px!important;height:23px!important;margin:0!important}
+.direction-step-actions button{width:42px!important;height:42px!important;border-radius:12px!important;background:var(--fm-tile)!important;border:1px solid var(--fm-tile-border)!important;color:var(--teal)!important}
+.assistant-fab{width:58px!important;height:58px!important;border-radius:18px!important;background:linear-gradient(180deg,var(--teal),color-mix(in srgb,var(--teal) 70%,#0a3c39 30%))!important;color:#04110f!important}
+.assistant-fab .fm-icon{width:29px!important;height:29px!important}
+.assistant-logo{display:grid!important;place-items:center!important;background:var(--fm-tile)!important;color:var(--teal)!important}
+.assistant-logo .fm-icon{width:24px!important;height:24px!important}
+
+html[data-theme="day"] .header-actions>.icon-btn,html[data-theme="day"] .header-actions>.btn{box-shadow:0 4px 12px rgba(22,46,70,.1)}
+@media(max-width:380px){.field-mark-nav .mobile-icon{width:32px!important;height:30px!important}.field-mark-nav .mobile-icon .fm-icon{width:24px!important;height:24px!important}.feed-social-tool{min-height:66px!important}}

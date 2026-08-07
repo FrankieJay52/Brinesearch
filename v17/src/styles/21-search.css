@@ -1,0 +1,209 @@
+/* Source style block: brinesearch-field-search-layout */
+:root { --teal:#78e0d6; --green:#83e79a; --yellow:#ffd37e; --line2:#3a5674; }
+  /* Search-first field layout — keeps the existing BrineSearch theme and live features. */
+  .field-home { display:grid; gap:16px; }
+  .field-search-hero {
+    border:1px solid var(--line);
+    border-radius:30px;
+    background:
+      radial-gradient(circle at 88% 0%, rgba(88,213,201,.16), transparent 38%),
+      linear-gradient(180deg, rgba(16,31,48,.99), rgba(8,18,30,.99));
+    padding:clamp(20px,5vw,34px);
+    box-shadow:0 22px 55px rgba(0,0,0,.26);
+  }
+  .field-search-brand { color:var(--teal); font-size:.78rem; font-weight:900; letter-spacing:.12em; text-transform:uppercase; }
+  .field-search-hero h1 { margin:7px 0 7px; font-size:clamp(2rem,8vw,3.35rem); line-height:1.02; letter-spacing:-.055em; }
+  .field-search-hero .lead { max-width:680px; margin:0 0 18px; color:var(--muted); font-size:clamp(.95rem,3.8vw,1.12rem); line-height:1.5; }
+  .field-home-search { position:relative; }
+  .field-home-search input {
+    width:100%; min-height:70px; border:2px solid transparent; border-radius:22px;
+    background:#f7f9fc; color:#07111d; padding:0 58px 0 19px;
+    font-size:clamp(1rem,4.4vw,1.22rem); font-weight:850; outline:none;
+    box-shadow:0 12px 32px rgba(0,0,0,.23);
+  }
+  .field-home-search input:focus { border-color:#75ded4; box-shadow:0 0 0 4px rgba(117,222,212,.18),0 12px 32px rgba(0,0,0,.23); }
+  .field-home-search input::placeholder { color:#66758a; }
+  .field-search-icon { position:absolute; right:18px; top:50%; transform:translateY(-50%); color:#173047; font-size:1.35rem; pointer-events:none; }
+  .field-search-controls { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; margin-top:11px; align-items:center; }
+  .field-search-controls select { min-height:50px; border-radius:16px; border:1px solid var(--line2); background:#102033; color:var(--text); padding:0 13px; font-weight:800; }
+  .field-mini-tools { display:grid; grid-template-columns:1fr; gap:7px; }
+  .field-mini-tool { width:100%; min-height:50px; border:1px solid var(--line2); border-radius:14px; background:#102033; color:var(--text); padding:0 12px; font-size:.79rem; font-weight:850; }
+  .field-mini-tool.primary { background:linear-gradient(180deg,#86e7dc,#62d2c8); color:#06111a; border:0; }
+  .field-search-results { margin-top:15px; }
+  .field-search-results .pad-list { display:grid; gap:9px; }
+  .field-home-note { color:var(--muted); font-size:.78rem; line-height:1.45; margin-top:9px; }
+  .field-compact-section { border:1px solid var(--line); border-radius:22px; background:rgba(12,24,38,.82); padding:14px; }
+  .field-compact-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .field-compact-head h2 { margin:0; font-size:1rem; }
+  .field-compact-head span { color:var(--muted); font-size:.72rem; }
+  .field-recent-row { display:flex; gap:8px; overflow:auto; scrollbar-width:none; padding-bottom:2px; }
+  .field-recent-row::-webkit-scrollbar { display:none; }
+  .field-recent-card { min-width:155px; max-width:205px; border:1px solid var(--line); border-radius:16px; background:#0b1826; color:var(--text); padding:11px; text-decoration:none; }
+  .field-recent-card strong { display:block; font-size:.9rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .field-recent-card span { display:block; margin-top:4px; color:var(--muted); font-size:.68rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .field-company-details { border:1px solid var(--line); border-radius:20px; background:rgba(10,20,33,.66); overflow:hidden; }
+  .field-company-details summary { min-height:58px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; cursor:pointer; font-weight:900; list-style:none; }
+  .field-company-details summary::-webkit-details-marker { display:none; }
+  .field-company-details summary::after { content:'＋'; color:var(--teal); font-size:1.25rem; }
+  .field-company-details[open] summary::after { content:'−'; }
+  .field-company-details .company-grid { padding:0 12px 12px; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:8px; }
+  .field-company-details .company-card { min-height:0; padding:11px; border-radius:15px; }
+  .field-company-details .company-logo { width:34px; height:34px; border-radius:11px; }
+  .field-company-details .company-copy h3 { font-size:.88rem; }
+  .field-company-details .company-subtitle { display:none; }
+
+  /* Personalized, device-saved company/state shortcuts. */
+  .field-quick-section {
+    border:1px solid var(--line); border-radius:22px; background:rgba(12,24,38,.82); padding:14px;
+  }
+  .field-quick-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:11px; }
+  .field-quick-head h2 { margin:0; font-size:1rem; }
+  .field-quick-head p { margin:4px 0 0; color:var(--muted); font-size:.72rem; line-height:1.4; }
+  .field-quick-add {
+    flex:0 0 auto; min-height:38px; border:1px solid rgba(120,224,214,.42); border-radius:13px;
+    background:rgba(120,224,214,.09); color:var(--teal); padding:0 11px; font-size:.72rem; font-weight:900;
+  }
+  .field-quick-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:8px; }
+  .field-quick-card {
+    min-width:0; min-height:68px; display:grid; grid-template-columns:44px minmax(0,1fr) auto; align-items:center; gap:10px;
+    border:1px solid var(--line); border-radius:17px; background:#0b1826; color:var(--text); padding:10px; text-decoration:none;
+  }
+  .field-quick-card:active { transform:scale(.985); }
+  .field-quick-logo {
+    width:44px; height:44px; border-radius:13px; display:grid; place-items:center; overflow:hidden; position:relative;
+    color:#06111a; font-size:.78rem; font-weight:950; background:linear-gradient(135deg,var(--logoA,#58d5c9),var(--logoB,#6ea8ff));
+  }
+  .field-quick-logo img { width:100%; height:100%; object-fit:contain; background:#fff; }
+  .field-quick-copy { min-width:0; }
+  .field-quick-copy strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.88rem; }
+  .field-quick-copy span { display:block; margin-top:3px; color:var(--muted); font-size:.67rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .field-quick-arrow { color:var(--teal); font-size:1.25rem; font-weight:950; }
+  .field-quick-empty {
+    grid-column:1/-1; border:1px dashed var(--line2); border-radius:16px; padding:14px; color:var(--muted);
+    text-align:center; font-size:.76rem; line-height:1.45;
+  }
+
+  /* Make the company browser look like a large tappable control; no separate Go button is needed. */
+  .field-company-details summary { min-height:76px; padding:13px 16px; gap:12px; }
+  .field-company-summary-copy { min-width:0; display:grid; gap:3px; }
+  .field-company-summary-copy strong { font-size:1rem; }
+  .field-company-summary-copy small { color:var(--muted); font-size:.7rem; font-weight:650; line-height:1.35; }
+  .field-company-summary-count {
+    margin-left:auto; color:var(--teal); background:rgba(120,224,214,.08); border:1px solid rgba(120,224,214,.25);
+    border-radius:999px; padding:6px 9px; font-size:.66rem; font-weight:900; white-space:nowrap;
+  }
+  .field-company-details summary::after { content:'›'; flex:0 0 auto; font-size:1.7rem; transition:transform .18s ease; }
+  .field-company-details[open] summary::after { content:'›'; transform:rotate(90deg); }
+
+  .field-quick-modal {
+    position:fixed; inset:0; z-index:90; display:grid; align-items:end; background:rgba(0,6,12,.72); backdrop-filter:blur(8px);
+    padding:20px 12px calc(20px + env(safe-area-inset-bottom));
+  }
+  .field-quick-modal.hide { display:none; }
+  .field-quick-sheet {
+    width:min(620px,100%); max-height:min(82vh,720px); overflow:auto; margin:0 auto; border:1px solid var(--line2);
+    border-radius:24px; background:#0c1928; box-shadow:0 24px 80px rgba(0,0,0,.55); padding:16px;
+  }
+  .field-quick-sheet-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .field-quick-sheet-head h2 { margin:0; font-size:1.12rem; }
+  .field-quick-sheet-head p { margin:4px 0 0; color:var(--muted); font-size:.72rem; line-height:1.4; }
+  .field-quick-close {
+    flex:0 0 42px; width:42px; height:42px; border:1px solid var(--line2); border-radius:14px; background:#13243a; color:var(--text); font-size:1rem;
+  }
+  .field-quick-form { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; align-items:end; margin-top:14px; }
+  .field-quick-field { display:grid; gap:5px; min-width:0; }
+  .field-quick-field label { color:var(--muted); font-size:.66rem; font-weight:850; }
+  .field-quick-field select {
+    width:100%; min-height:46px; border:1px solid var(--line2); border-radius:13px; background:#102033; color:var(--text); padding:0 10px; font-weight:800;
+  }
+  .field-quick-save {
+    min-height:46px; border:0; border-radius:13px; background:linear-gradient(180deg,#86e7dc,#62d2c8); color:#06111a; padding:0 14px; font-weight:950;
+  }
+  .field-quick-manage-title { margin:17px 0 8px; color:var(--muted); font-size:.68rem; font-weight:900; letter-spacing:.08em; text-transform:uppercase; }
+  .field-quick-manage-list { display:grid; gap:7px; }
+  .field-quick-manage-row {
+    display:grid; grid-template-columns:36px minmax(0,1fr) auto; align-items:center; gap:9px; border:1px solid var(--line); border-radius:14px; background:#091522; padding:8px;
+  }
+  .field-quick-manage-row .field-quick-logo { width:36px; height:36px; border-radius:11px; }
+  .field-quick-remove {
+    min-height:36px; border:1px solid rgba(255,122,122,.32); border-radius:11px; background:rgba(255,122,122,.07); color:#ffb8b8; padding:0 9px; font-size:.68rem; font-weight:900;
+  }
+
+  .field-pad-page { display:grid; gap:13px; }
+  .field-pad-page .breadcrumb { margin-bottom:0; }
+  .field-pad-hero { border:1px solid var(--line); border-radius:28px; background:linear-gradient(180deg,#112236,#0a1725); padding:18px; box-shadow:0 18px 45px rgba(0,0,0,.24); }
+  .field-pad-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+  .field-pad-title h1 { margin:0; font-size:clamp(2rem,8vw,3rem); line-height:1.05; letter-spacing:-.05em; }
+  .field-pad-company { color:var(--teal); font-weight:900; margin-top:4px; }
+  .field-pad-location { color:var(--muted); margin-top:9px; line-height:1.45; }
+  .field-status-row { display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+  .field-status-chip { display:inline-flex; align-items:center; padding:6px 9px; border-radius:999px; border:1px solid var(--line2); background:#14253a; color:#c9daf1; font-size:.7rem; font-weight:900; }
+  .field-status-chip.good { color:#83e79a; border-color:#32734d; background:#102c20; }
+  .field-status-chip.review { color:#ffd37e; border-color:#735d30; background:#2b2414; }
+  .field-main-actions { display:grid; grid-template-columns:1.35fr 1fr 1fr; gap:8px; margin-top:15px; }
+  .field-action { min-height:62px; border:1px solid var(--line2); border-radius:17px; background:#14253a; color:var(--text); text-decoration:none; display:flex; align-items:center; justify-content:center; gap:7px; font-size:.83rem; font-weight:900; }
+  .field-action.primary { background:linear-gradient(180deg,#89e9df,#62d2c8); color:#06111a; border:0; font-size:.92rem; }
+  .field-action.edit { grid-column:1/-1; min-height:48px; background:#0f1e30; }
+  .field-priority-card { border:1px solid var(--line); border-radius:24px; background:linear-gradient(180deg,#101f30,#091522); padding:17px; }
+  .field-priority-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:12px; }
+  .field-priority-head h2 { margin:0; font-size:1.18rem; }
+  .field-copy-button { min-height:40px; border:1px solid var(--line2); border-radius:13px; background:#14253a; color:var(--text); padding:0 11px; font-size:.75rem; font-weight:850; }
+  .field-route-reference { border:1px solid #29435b; background:#0a1826; border-radius:16px; padding:12px; margin-bottom:12px; color:#cfe5ff; font-size:.86rem; line-height:1.5; font-weight:800; }
+  .field-direction-copy { white-space:pre-line; line-height:1.62; margin:0; font-size:.94rem; }
+  .field-direction-warning { margin-top:12px; border-left:3px solid var(--yellow); padding:10px 12px; background:#241f13; border-radius:0 13px 13px 0; color:#ffe2a4; font-size:.78rem; line-height:1.48; }
+  .field-well-list { display:grid; gap:10px; }
+  .field-well-card { border:1px solid #293f57; border-radius:19px; background:#091522; padding:14px; }
+  .field-well-top { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .field-well-name { font-size:1rem; font-weight:950; line-height:1.3; overflow-wrap:anywhere; }
+  .field-well-badge { max-width:180px; border-radius:999px; padding:6px 9px; font-size:.65rem; line-height:1.28; text-align:center; font-weight:900; }
+  .field-well-badge.exact { color:#83e79a; border:1px solid #32734d; background:#102c20; }
+  .field-well-badge.pending { color:#ffd37e; border:1px solid #735d30; background:#2b2414; }
+  .field-well-badge.saved { color:#bcd2ee; border:1px solid var(--line2); background:#14253a; }
+  .field-well-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:11px; }
+  .field-well-item { min-width:0; background:#111f30; border-radius:13px; padding:10px; }
+  .field-well-item.full { grid-column:1/-1; }
+  .field-label { color:var(--teal); font-size:.59rem; font-weight:950; letter-spacing:.09em; margin-bottom:4px; }
+  .field-value { font-size:.86rem; font-weight:850; line-height:1.38; overflow-wrap:anywhere; }
+  .field-official-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .field-official-item { min-width:0; border:1px solid #22384f; border-radius:15px; background:#091522; padding:11px; }
+  .field-official-item.full { grid-column:1/-1; }
+  .field-public-note { color:var(--muted); font-size:.8rem; line-height:1.5; margin:12px 0 0; }
+  .field-api-summary { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .field-api-stat { border:1px solid #253b52; border-radius:15px; background:#091522; padding:11px; }
+  .field-api-stat strong { display:block; font-size:1.35rem; }
+  .field-api-stat span { display:block; margin-top:3px; color:var(--muted); font-size:.66rem; line-height:1.3; }
+  .field-source-list { display:grid; gap:7px; }
+  .field-source { display:flex; gap:9px; align-items:flex-start; border:1px solid #23394f; border-radius:14px; background:#091522; padding:10px; font-size:.78rem; line-height:1.4; }
+  .field-source-check { color:#83e79a; font-weight:950; }
+  .field-location-mini { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .field-location-mini .field-official-item:first-child { grid-column:1/-1; }
+
+  @media (min-width:760px) {
+    .field-mini-tools { justify-content:flex-end; }
+    .field-well-list { grid-template-columns:1fr 1fr; }
+  }
+  @media (max-width:620px) {
+    .field-search-controls { grid-template-columns:1fr; }
+    .field-mini-tools { display:grid; grid-template-columns:1fr; }
+    .field-mini-tool { padding:0 7px; font-size:.72rem; }
+    .field-quick-form { grid-template-columns:1fr 1fr; }
+    .field-quick-save { grid-column:1/-1; }
+    .field-main-actions { grid-template-columns:1.3fr 1fr; }
+    .field-main-actions .field-action:nth-child(3) { grid-column:1/-1; }
+    .field-main-actions .field-action.edit { grid-column:1/-1; }
+    .field-official-grid,.field-location-mini { grid-template-columns:1fr; }
+    .field-official-item.full,.field-location-mini .field-official-item:first-child { grid-column:auto; }
+    .field-well-grid { grid-template-columns:1fr; }
+    .field-well-item.full { grid-column:auto; }
+    .field-well-top { display:block; }
+    .field-well-badge { display:inline-flex; max-width:none; margin-top:8px; }
+    .field-api-summary { grid-template-columns:1fr 1fr; }
+    .field-api-summary .field-api-stat:last-child { grid-column:1/-1; }
+  }
+  @media (max-width:380px) {
+    .field-quick-grid { grid-template-columns:1fr; }
+    .field-quick-head { align-items:stretch; flex-direction:column; }
+    .field-quick-add { width:100%; }
+    .field-quick-form { grid-template-columns:1fr; }
+    .field-quick-save { grid-column:auto; }
+  }

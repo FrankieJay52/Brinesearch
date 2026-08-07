@@ -1,0 +1,70 @@
+{
+  "range--anthony-pawlosky": {
+    "s": "SR 519 To Western Avenue Turn right onto pad",
+    "r": "Road sequence reference:\nSR-519 → Sr 519 To Western Ave → Pad\n\nStep-by-step directions:\n1. Follow State Route 519 To Western Avenue.\n2. Turn right onto pad."
+  },
+  "range--bernard-schultz": {
+    "s": "Oversize/overweight loads go this route due to bridge height issues: - From I-79 take the I-576 West Exit (New Turnpike – no tolls this section) - Go 2.4 miles and take Exit 16 to S. Fayette Way - Go left for 0.5 miles on S. Fayette Way to right on to SR 1001 (Reissing Rd) - Go 3.4 miles to left on to SR 980 - Go 0.6 miles to right on to T-813 (Gladden Rd) - Go 1.4 miles to left on to T-606 (Primrose Rd) - Go 0.96 miles to left on to T-608 (Galati Rd) - Go 0.3 miles to access on the left Non-oversize/overweight loads can go this route: - From SR 50, turn north on SR 980 turn for 2.26 miles to left on to T-813 (Gladden Rd) - Go 1.4 miles to left on to T-606 (Primrose Rd) - Go 0.96 miles to left on to T-608 (Galati Rd) - Go 0.3 miles to access on the left",
+    "r": "Road sequence reference:\nI-79 → Exit 16 → S. Fayette Way → OR → SR-50 → SR-980\n\nStep-by-step directions:\n1. Oversize/overweight loads.\n2. Go this route due to bridge height issues: - From I-79.\n3. Take the I-576 West.\n4. Exit (New Turnpike – no tolls this section).\n5. Go 2.4 miles and.\n6. Take Exit 16 to S Fayette Way.\n7. Go left for 0.5 miles on S Fayette Way to right on to State Route 1001 (Reissing Road).\n8. Go 3.4 miles to left on to State Route 980.\n9. Go 0.6 miles to right on to T-813 (Gladden Road).\n10. Go 1.4 miles to left on to T-606 (Primrose Road).\n11. Go 0.96 miles to left on to T-608 (Galati Road).\n12. Go 0.3 miles to access on the left Non-oversize/overweight loads can.\n13. Go this route: - From State Route 50, turn north on State Route 980 turn for 2.26 miles to left on to T-813 (Gladden Road).\n14. Go 0.3 miles to access on the left."
+  },
+  "range--bird-run": {
+    "s": "Big trucks not allowed to get off 70 West, Jefferson Ave exit – they have to go down one more exit to Exit 16, Jessop Place, cross bridge and come back 70 East to Jefferson Ave and turn right on SR 18, Jefferson Ave* Take 70 W to Exit 17 Jefferson Ave exit, turn right off exit and go to 2nd stop light and turn right on Jefferson Ave, SR 18/SR844 (Small Trucks Only) Go 0.4 miles to SR 18/SR 844 split and bear right onto SR 18N Go 1.3 miles to right onto SR 4020 (Oak Grove Road) Go 0.5 miles to left onto SR 4049 (Main Street) Go 0.4 miles to left onto SR 4047 (Old Hickory Ridge Road) Go 2 miles to right onto T-641 (Allison Hollow Road) Go 1.02 miles to left onto T-611(King Road) Go 0.35 miles to site entrance on right",
+    "r": "Road sequence reference:\nRoute 70 → Exit 16 → SR-18 → Exit 17 Jefferson Ave → Exit 17 → Jefferson Ave → SR-18N → SR-4020 / Oak Grove Rd → SR-4049 / Main St → SR-4047 / Old Hickory Ridge Rd\n\nStep-by-step directions:\n1. Big trucks not allowed to get off 70 West, Jefferson Avenue.\n2. Exit – they have to go down one more.\n3. Exit to Exit 16, Jessop Place.\n4. Cross bridge and come back 70 East to Jefferson Avenue and.\n5. Turn right on State Route 18, Jefferson Avenue*.\n6. Take 70 W to Exit 17 Jefferson Avenue.\n7. Exit.\n8. Turn right off.\n9. Exit and.\n10. Go to 2nd stop light and.\n11. Turn right on Jefferson Avenue, State Route 18/State Route 844 (Small Trucks Only).\n12. Go 0.4 miles to State Route 18/State Route 844 split and.\n13. Bear.\n14. Turn right onto SR 18N.\n15. Go 1.3 miles to right onto State Route 4020 (Oak Grove Road).\n16. Go 0.5 miles to left onto State Route 4049 (Main Street).\n17. Go 0.4 miles to left onto State Route 4047 (Old Hickory Ridge Road).\n18. Go 2 miles to right onto T-641 (Allison Hollow Road).\n19. Go 1.02 miles to left onto T-611(King Road).\n20. Go 0.35 miles to site entrance on right."
+  },
+  "range--burdett-unit": {
+    "s": "Off of cedar Grove Rd on rt",
+    "r": "Step-by-step directions:\n1. Follow Off of cedar Grove Road on rt."
+  },
+  "range--castro": {
+    "s": "70 west.Route 221.Left onto.Grove Road.Left to.Pie Ridge.Road Turn onto access road.To lease road",
+    "r": "Road sequence reference:\nRoute 70 → Route 221 → Grove Rd → Pie Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 70 west Route 221.\n2. Turn left onto Grove Road Left to Pie Ridge Road Turn onto access road To lease road."
+  },
+  "range--james-drape": {
+    "s": "- From SR 28N take the North Tarentum/New Kensington Exit 14 - Go to bottom of ramp and make a right on SR 366 - Go 0.60 to right on SR 1001 (Freeport Rd) - Go 1.4 miles to right on to Baileys Run Rd - Go 3.4 miles to left on to SR 1019 (Russellton Airport Rd) - Go 1.0 miles to left on to Crawford Run Rd - Go 0.9 miles to site access on the left",
+    "r": "Road sequence reference:\nSR-28N → Exit 14 → SR-366 → SR-1001 / Freeport Rd → Baileys Run Rd → Crawford Run Rd\n\nStep-by-step directions:\n1. From SR 28N.\n2. Take the North Tarentum/New Kensington.\n3. Exit 14.\n4. Go to bottom of ramp and make a.\n5. Turn right on State Route 366.\n6. Go 0.60 to right on State Route 1001 (Freeport Road).\n7. Go 1.4 miles to right on to Baileys Run Road.\n8. Go 3.4 miles to left on to State Route 1019 (Russellton Airport Road).\n9. Go 1.0 mile to left on to Crawford Run Road.\n10. Go 0.9 miles to site access on the left."
+  },
+  "range--kelley-brownlee": {
+    "s": "27 East to 844 East. Right on 231. Left on Hickory Nut. Left on Racoon Run. Stay strait onto Possum Hollow. Left onto lease",
+    "r": "Road sequence reference:\nRoute 27 → Route 844 → Route 231 → Nut. Left On Racoon Run → Hickory Nut → Strait Onto Possum Hollow\n\nStep-by-step directions:\n1. Follow 27 East to 844 East.\n2. Turn right on 231.\n3. Turn left on Hickory Nut.\n4. Turn left on Racoon Run.\n5. Stay strait onto Possum Hollow.\n6. Turn left onto lease."
+  },
+  "range--little-clara": {
+    "s": "Unknown",
+    "r": "Step-by-step directions:\n1. Unknown."
+  },
+  "range--miscovich": {
+    "s": "70 yo 79.South 79 south to.Exit 14.PA- 21 to.Masontown go left towards.Carmichael Right onto.Smithfield go to.Guthrie Road.Turn right onto.Gilmore",
+    "r": "Road sequence reference:\nRoute 79 → Exit 14 → Smithfield Go To Guthrie Rd → Gilmore\n\nStep-by-step directions:\n1. 70 yo 79 South 79 south to Exit 14 PA-21 to Masontown.\n2. Go left towards Carmichael.\n3. Turn right onto Smithfield.\n4. Go to Guthrie Road.\n5. Turn right onto Gilmore."
+  },
+  "range--noss-unit": {
+    "s": "Take I79N to 376 W at exit 59B Take 376 W for 15.6 miles to exit 48 Turn left on SR0151 and go 6.3 miles Turn left on T466 (Bassit rd) Go 0.5 miles we’ll pad on left",
+    "r": "Road sequence reference:\nI-79N → Route 376 → Exit 59B → Exit 48 → SR-0151 → Pad\n\nStep-by-step directions:\n1. Take I79N to 376 W at exit 59B.\n2. Take 376 W for 15.6 miles to exit 48.\n3. Turn left on State Route 0151 and.\n4. Go 6.3 miles.\n5. Turn left on T466 (Bassit Road).\n6. Go 0.5 miles we’ll pad on left."
+  },
+  "range--pawlosky": {
+    "s": "22 to.Imperial exit.Head north on 980.Follow potato garden rd to pad.On left",
+    "r": "Road sequence reference:\nRoute 980 → Potato Garden Rd → Pad\n\nStep-by-step directions:\n1. Follow 22 to Imperial.\n2. Exit Head north on 980.\n3. Follow potato garden Road to pad On left."
+  },
+  "range--prigg": {
+    "s": "Take 70W to.Exit 15, Chestnut.Street, and make a left on State Route 40 - go 1.9 miles to right on State Route 3011 (McKee.Road) - go 1.1 miles to right on T-545 (Prigg.Road) - go 0.65 miles to site access on the right",
+    "r": "Road sequence reference:\nRoute 70 → Exit 15 → Chestnut St → SR-40 → SR-3011 / Mckee Rd\n\nStep-by-step directions:\n1. Take 70W to Exit 15, Chestnut Street, and make a.\n2. Turn left on State Route 40.\n3. Go 1.9 miles to right on State Route 3011 (McKee Road).\n4. Go 1.1 miles to right on T-545 (Prigg Road).\n5. Go 0.65 miles to site access on the right."
+  },
+  "range--rector": {
+    "s": "Colerain.Head northwest on US-250 for 4.6 miles.Sharp right onto OH-150 for 0.9 miles.Turn left onto T.R.128 for 1.1 miles.Access road on right.------------------------------------ Mt.Pleasant.Head west on OH-150 for 2.7 miles.Turn right onto T.R.128 for 1.1 miles.Access road on right.------------------------------------ Harrisville.Head east on US-250 for 1.8 miles.Turn left on onto OH-150 for 0.9 miles.Turn left onto T.R.128 for 1.1 miles.Access road on right.",
+    "r": "Road sequence reference:\nUS-250 → OH-150 → Access Road → OR → OH-150 → Access Road\n\nStep-by-step directions:\n1. Colerain.\n2. Head northwest on US-250 for 4.6 miles Sharp.\n3. Turn right onto OH-150 for 0.9 miles.\n4. Turn left onto T R 128 for 1.1 miles Access road on right ------------------------------------ Mt Pleasant.\n5. Head west on OH-150 for 2.7 miles.\n6. Turn right onto T R 128 for 1.1 miles Access road on right ------------------------------------ Harrisville.\n7. Head east on US-250 for 1.8 miles.\n8. Turn left on onto OH-150 for 0.9 miles.\n9. Turn left onto T R 128 for 1.1 miles Access road on right."
+  },
+  "range--robert-jones": {
+    "s": "I-70 exit6 take 40 west to Liberty Rd T/R to Dry Ridge Rd T/R stay on dry ridge lease rd entrance on the Left past the SWN John Mcmurray.",
+    "r": "Road sequence reference:\nI-70 → Exit 6 → Route 40 → Liberty Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 exit6.\n2. Take 40 west to Liberty Road T/R to Dry Ridge Road T/R.\n3. Stay on dry ridge.\n4. Lease Road entrance on the Left past the SWN John Mcmurray."
+  },
+  "range--vankirk": {
+    "s": "- Take I-70.West to.Exit 11, Taylorstown exit - At the end of the ramp turn left on State Route 3030 (Buffalo.Church Road) - Continue to the stop sign and turn left on State Route 221 - go approximately.2.0 miles to left on State Route 3014 (Van.Neal Road) - go 1.9 miles to left on to State Route 3009 (Old.Scales Road) - Proceed to the stop sign and turn left on to State Route 18 - Take State Route 18.North for 2.45 miles to left on T-532 (VanKirk.Road) in.South Franklin.Township - in.North Franklin.Township, the.Vankirk road will change to T- 587 (0.35 miles) - go 0.4 miles to access on the left",
+    "r": "Road sequence reference:\nI-70 → Exit 11 → SR-3030 / Buffalo Church Rd → SR-221 → SR-3014 / Van Neal Rd → SR-18\n\nStep-by-step directions:\n1. Take I-70 West to Exit 11, Taylorstown.\n2. Exit - At the end of the ramp.\n3. Turn left on State Route 3030 (Buffalo Church Road).\n4. Continue to the stop sign and.\n5. Turn left on State Route 221.\n6. Go approximately 2.0 miles to left on State Route 3014 (Van Neal Road).\n7. Go 1.9 miles to left on to State Route 3009 (Old Scales Road).\n8. Proceed to the stop sign and.\n9. Turn left on to State Route 18.\n10. Take State Route 18 North for 2.45 miles to left on T-532 (VanKirk Road) in South Franklin Township - in North Franklin Township, the Vankirk road will change to T- 587 (0.35 miles).\n11. Go 0.4 miles to access on the left."
+  },
+  "range--willison-samuel": {
+    "s": "i79 north to 519 north to Sabo road,left onto Sabo, right onto Washington Ave, pad on right hand side",
+    "r": "Road sequence reference:\nI-79 → Route 519 → Sabo Rd → Washington Ave → Pad\n\nStep-by-step directions:\n1. Follow I-79 north to 519 north to Sabo road,left onto Sabo.\n2. Turn right onto Washington Avenue, pad on right hand side."
+  },
+  "range--ziolkowski": {
+    "s": "79.North 376.West.Washington Twnshp",
+    "r": "Step-by-step directions:\n1. Follow 79 North 376 West Washington Twnshp."
+  }
+}

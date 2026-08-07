@@ -1,0 +1,426 @@
+{
+  "swn--abe-troyer-north": {
+    "s": "Abe Troyer North Unit Access Point -- From I-70 Exit 198 Right turn onto CR 114, continue for 0.02 miles to CR 40 Left turn onto CR 40 continue for 0.54 miles to CR 95 Right turn onto CR 95, continue for 2.7 miles to CR 694 Right turn onto CR 694, continue for 0.17 miles to Abe Troyer Access Point",
+    "r": "Road sequence reference:\nI-70 → Exit 198 → CR-114 → CR-40 → CR-95 → CR-694 → Access\n\nStep-by-step directions:\n1. Abe Troyer North Unit Access Point -- From I-70.\n2. Exit 198 Right turn onto County Road 114.\n3. Continue for 0.02 miles to County Road 40 Left turn onto County Road 40.\n4. Continue for 0.54 miles to County Road 95 Right turn onto County Road 95.\n5. Continue for 2.7 miles to County Road 694 Right turn onto County Road 694.\n6. Continue for 0.17 miles to Abe Troyer Access Point."
+  },
+  "swn--alan-h-degarmo": {
+    "s": "West Virginia 27 to Genteel Ridge It’s at the Dollor General follow out 2.15 miles on left at Bear Track Road",
+    "r": "Road sequence reference:\nVirginia 27 To Genteel Ridge → Track Rd\n\nStep-by-step directions:\n1. Follow West Virginia 27 to Genteel Ridge It’s at the Dollor General.\n2. Follow out for 2.15 miles on left at Bear Track Road."
+  },
+  "swn--alice-edge": {
+    "s": "From I-70 take exit 5 onto national rd. Route 40 for 7 miles. The access road will be on the left. Cant make the left in pad. 1 mlie on right is a turn around.Just pass atkins crossing on right. School curfews 6:17-6:30am 7:55-8:35am 2:50-4:03 pm",
+    "r": "Road sequence reference:\nI-70 → Exit 5 Onto National Rd → Exit 5 → Access Road\n\nStep-by-step directions:\n1. From I-70 take exit 5 onto national Road Route 40 for 7 miles The access road will be on the left Cant make the left in pad 1 mlie on right is a turn around Just.\n2. Pass atkins crossing on right School curfews 6:17-6:30am 7:55-8:35am 2:50-4:03 pm."
+  },
+  "swn--andy-yoder": {
+    "s": "Andy Yoder Unit Access Point -- From SR 513 Turn onto CR 49, continue for 0.55 miles to TR 965 Right turn onto TR 965, continue for 0.48 miles to Andy Yoder Unit Accss Point. no eclipse sign pad is straight across from Posey pad with private property sign on gate",
+    "r": "Road sequence reference:\nSR-513 → CR-49 → TR-965 → Access → OR → Pad\n\nStep-by-step directions:\n1. Andy Yoder Unit Access Point -- From State Route 513 Turn onto County Road 49.\n2. Continue for 0.55 miles to Township Road 965 Right turn onto Township Road 965.\n3. Continue for 0.48 miles to Andy Yoder Unit Accss Point no eclipse sign.\n4. Pad is straight across from Posey pad with private property sign on gate."
+  },
+  "swn--benard-mcculey": {
+    "s": "Starting from I- 70, take exit 11 onto dallas pike for 5.6 miles. Road will cross into pa.(now called Beham ridge rd) travel for 1.031 miles to the access road on the rightt. Alternate For Transports 10 tons limit. From I-70 take exit #1 turn onto Old Brick Rd head south bound toward Wext Alexander for 4.5 miles to continue on to Beham Ridge Rd for 1.7 miles pad is on the left. Bus curfew 6:15 -8:45 am 2:20 -4:15 pm",
+    "r": "Road sequence reference:\nI-70 → Exit 11 Onto Dallas Pike → Exit 11 → Exit 1 → Old Brick Rd → Beham Ridge Rd → Access Road\n\nStep-by-step directions:\n1. Starting from I-70.\n2. Take exit 11 onto dallas pike for 5.6 miles Road will.\n3. Cross into pa (now called Beham ridge Road) travel for 1.031 miles to the access road on the rightt Alternate For Transports 10 tons limit From I-70.\n4. Take exit #1 turn onto Old Brick Road.\n5. Head south bound toward Wext Alexander for 4.5 miles to continue on to Beham Ridge Road for 1.7 miles.\n6. Pad is on the left Bus curfew 6:15 -8:45 am 2:20 -4:15 pm."
+  },
+  "swn--berry-greyhouse-b": {
+    "s": "747 BG Lane wellsburg wv 26070 From I70, take rte 2 north to short creek road and turn right. Follow to Girtys Point road and turn left. Follow it past airport to Huffs run RD, bear left. Follow that to stop sign, turn left (apple pie rd). Follow to BG lane (.25 mile to BG lane), turn left. Follow BG lane past Berry Greyhouse A to entrance on left",
+    "r": "Road sequence reference:\nBg Ln → I-70 → Route 2 → Short Creek Rd → Girtys Point Rd\n\nStep-by-step directions:\n1. Follow 747 BG Lane wellsburg WV-26070 From I-70.\n2. Take rte 2 north to short creek road and.\n3. Turn right Follow to Girtys Point road and.\n4. Turn left Follow it past airport to Huffs run Road.\n5. Bear left.\n6. Follow that to stop sign.\n7. Turn left (apple pie Road).\n8. Follow to BG lane ( for 25 miles to BG lane).\n9. Turn left Follow BG lane past Berry Greyhouse A to entrance on left."
+  },
+  "swn--betty-schaefer": {
+    "s": "Go to gc&p road on 88 north",
+    "r": "Road sequence reference:\nGc&p Rd → Route 88\n\nStep-by-step directions:\n1. Go to gc&p road on 88 north."
+  },
+  "swn--betty-schafer": {
+    "s": "^^ no well traffic this way ^^ Inbound From Bethlehem staging Left Bethlehem Blvd (.6 mi) Left 88S (8.1 mi) Left 250S (1.5 mi) Left mccreary (.3 mi) Left to stay in mccreary (3.7 mi) Left big wheeling creek (.9 mi) Left to stay on big wheeling creek (.6 mi) Right to stay on big wheeling creek (2 mi) Right on Schafer lease Outbound Leaving pad. Nothing loaded can go OB this way, only empty. Weight limit bridge) Right on big wheeling creek Follow big wheeling all the way out No well traffic in route below Make left on Big Wheeling Creek drive for 2.0 miles. Just pass the Ranch bar. Make a left to stay on Big wheeling for 1.5 miles. Stay to the right. Follow McCreery Ridge Rd for 4.1 miles to 250",
+    "r": "Road sequence reference:\nNo Well Traffic This Way → Bethlehem Staging Left Bethlehem Blvd → Route 88 → Route 250 → Big Wheeling Creek → Mccreery Ridge Rd → Pad\n\nStep-by-step directions:\n1. ^^ no well traffic this way ^^ Inbound From Bethlehem staging Left Bethlehem Boulevard ( 6 miles) Left 88S (8.1 miles) Left 250S (1.5 miles) Left mccreary ( 3 miles) Left to stay in mccreary (3.7 miles) Left big wheeling creek ( 9 miles) Left to stay on big wheeling creek ( for 6 miles) Right to stay on big wheeling creek (2 miles).\n2. Turn right on Schafer lease Outbound Leaving pad Nothing loaded can.\n3. Go OB this way, only empty Weight limit bridge).\n4. Turn right on big wheeling creek.\n5. Follow big wheeling all the way out No well traffic in route below Make.\n6. Turn left on Big Wheeling Creek.\n7. Drive for 2.0 miles Just.\n8. Pass the Ranch bar Make a left to stay on Big wheeling for 1.5 miles.\n9. Stay to the right.\n10. Follow McCreery Ridge Road for 4.1 miles to 250."
+  },
+  "swn--bolen": {
+    "s": "From right.7 in.Sardis Ohio.Take 255.West and follow for 3 miles just past.Baptist Ridge.Road.Lease is on the.Right",
+    "r": "Step-by-step directions:\n1. From right 7 in Sardis Ohio.\n2. Take 255 West and.\n3. Follow for 3 miles just past Baptist Ridge Road Lease is on the Right."
+  },
+  "swn--borton": {
+    "s": "Borton.Unit Access.Point -- From State Route 513.Turn onto County Road 49, continue for 1.47 miles to County Road 962.Left turn onto County Road 962, continue for 0.99 miles to.Turn right 9650.Left turn onto.Turn right 9650, continue for 1.6 miles to.Weekender Unit.Access Point",
+    "r": "Road sequence reference:\nSR-513 → CR-49 → CR-962 → Access\n\nStep-by-step directions:\n1. Borton Unit Access Point -- From State Route 513 Turn onto County Road 49.\n2. Continue for 1.47 miles to County Road 962 Left turn onto County Road 962.\n3. Continue for 0.99 miles to Turn right 9650 Left turn onto Turn right 9650.\n4. Continue for 1.6 miles to Weekender Unit Access Point."
+  },
+  "swn--borton-cgf": {
+    "s": "Borton CGF Access Point -- From SR 513 Turn onto TR 965 continue for 0.42 miles to Borton CGF Access Point",
+    "r": "Road sequence reference:\nSR-513 → TR-965 → Access\n\nStep-by-step directions:\n1. Borton CGF Access Point -- From State Route 513 Turn onto Township Road 965.\n2. Continue for 0.42 miles to Borton CGF Access Point."
+  },
+  "swn--boyd-hall": {
+    "s": "I70 west exit 198. At the bottom of the exit ramp make a right. Go to stop sign make a right. Lease road is a quarter of a mile on your right.",
+    "r": "Road sequence reference:\nI-70 → Exit 198 → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 west.\n2. Exit 198 At the bottom of the exit ramp make a right.\n3. Go to stop sign make a right.\n4. Lease road is a quarter of a mile on your right."
+  },
+  "swn--brian-dytko": {
+    "s": "From 70 take Exit 5. Turn left onto RT. 40. First light make a left onto Kruger RD. Turn left onto Lounez Ave. Turn right onto Stone Church RD. Access Road is on the Left.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 5 → Route 40 → A Left Onto Kruger Rd → Lounez Ave → Stone Church Rd → Access Road\n\nStep-by-step directions:\n1. From 70 take Exit 5.\n2. Turn left onto RT 40 First light make a.\n3. Turn left onto Kruger Road.\n4. Turn left onto Lounez Avenue.\n5. Turn right onto Stone Church Road Access Road is on the Left."
+  },
+  "swn--brian-teslovich": {
+    "s": "Brian.Teslovich Bus.Curfew: 6:30-8:15AM then 2:45-4:30PM DIRECTIONS From.Beech Bottom staging, head north onto.Route 2 for 0.54 miles.Turn right onto 3rd street which turns into 49.Hill.Road for 0.962 miles.Turn right onto.Apple Pie.Ridge for 0.292 miles to access road on the left.Https://www.Google.Com/maps/dir//Swn+Brian+Teslovich+Pad,+4982+Apple+P ie+Ridge,+Wellsburg,+WV+26070/@40.2171275,-80.6348892,16z/data=!4m9!4m 8!1m0!1m5!1m1!1s0x8835d380b80e86b1:0x44582d659e79b254!2m2!1d- 80.6332778!2d40.2166442!3e0?Entry=ttu",
+    "r": "Road sequence reference:\nRoute 2 → 3rd St → Apple Pie Ridge → Access Road\n\nStep-by-step directions:\n1. Brian Teslovich Bus Curfew: 6:30-8:15AM then 2:45-4:30PM DIRECTIONS From Beech Bottom staging.\n2. Head.\n3. Continue north onto Route 2 for 0.54 miles.\n4. Turn right onto 3rd street which turns into 49 Hill Road for 0.962 miles.\n5. Turn right onto Apple Pie Ridge for 0.292 miles to access road on the left Https://www Google Com/maps/dir//Swn+Brian+Teslovich+Pad,+4982+Apple+P ie+Ridge,+Wellsburg,+WV+26070/@40.2171275,-80.6348892,16z/data=!4m9!4m 8!1m0!1m5!1m1!1s0x8835d380b80e86b1:0x44582d659e79b254!2m2!1d- 80.6332778!2d40.2166442!3e0?Entry=ttu."
+  },
+  "swn--bw-edge": {
+    "s": "From I70 take exit 5 (Triadlphia/Elm Grove) go west turn left on Kruger St. then turn left onto Lounez Ave. Go straight at 4 way stop continue on Stone Church Rd. turn right on Walnut Grove Rd for about 1 mile pad will be on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Kruger St → Lounez Ave → Stone Church Rd → Walnut Grove Rd → Pad\n\nStep-by-step directions:\n1. From I-70 take exit 5 (Triadlphia/Elm Grove).\n2. Go west.\n3. Turn left on Kruger St then.\n4. Turn left onto Lounez Avenue.\n5. Go straight at 4 way stop.\n6. Continue on Stone Church Road.\n7. Turn right on Walnut Grove Road for about for 1 mile.\n8. Pad will be on the left."
+  },
+  "swn--carl-rotter": {
+    "s": "From I-70, take exit 11 and turn left onto dallas pike for 0.1 miles.turn right onto west alexander road for 3.7 miles. Turn left onto realtree road for 0.5 miles to access road on the right. School curfews 5:50-6:45 am (41-3) 7:40-8:20 am (41-3) 2:50-3:40 pm (41-3) 4:15-4:40 pm (41-3)",
+    "r": "Road sequence reference:\nI-70 → Exit 11 → Dallas Pike → Alexander Rd → Realtree Rd → Access Road\n\nStep-by-step directions:\n1. From I-70, take exit 11 and.\n2. Turn left onto dallas pike for 0.1 miles.\n3. Turn right onto west alexander road for 3.7 miles.\n4. Turn left onto realtree road for 0.5 miles to access road on the right School curfews 5:50-6:45 am (41-3) 7:40-8:20 am (41-3) 2:50-3:40 pm (41-3) 4:15-4:40 pm (41-3)."
+  },
+  "swn--chad-glauser": {
+    "s": "from i70 exit 5 (elm grove & triadelphia) turn left on us 40 turn left first light, kruger st turn left on lounez ave. ( lounez becomes stone church) bear right @ the stop sign. drive 4.30 well pad will be on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → US-40 → Lounez Ave → Pad\n\nStep-by-step directions:\n1. From I-70 exit 5 (elm grove & triadelphia).\n2. Turn left on US-40.\n3. Turn left first light, kruger st.\n4. Turn left on lounez Avenue ( lounez becomes stone church).\n5. Bear right @ the stop sign.\n6. Drive 4.30 well.\n7. Pad will be on the left."
+  },
+  "swn--charles-frye": {
+    "s": "heading I70 east exit 10 turn left @ stop sign right on Mccutheon Dr go past Debra Craig and no truck sign well access on the left. Curfews 610am-800am 300pm-430pm",
+    "r": "Road sequence reference:\nI-70 → Exit 10 → Mccutheon Dr\n\nStep-by-step directions:\n1. Heading I-70 east.\n2. Exit 10.\n3. Turn left @ stop sign.\n4. Turn right on Mccutheon Dr.\n5. Go past Debra Craig and no truck sign well access on the left Curfews 610am-800am 300pm-430pm."
+  },
+  "swn--charles-jamison": {
+    "s": "Starting on Route 2, head east on Route 2 Alt toward Hess lane for 1.52 miles. Slight right onto Co Hwy 88/5 for 1.75 miles. Turn right onto Roberts Ridge Rd for 1.44 miles. Continue onto Roberts Ridge St Joseph Road for 4.38 miles. Road turns slightly left and becomes Roberts Ridge for 1.14 miles. Continue onto Roberts Ridge for 1.16 miles. Slight left onto Bethal Ridge for 1.41 miles. New Bethel turns slightly right and becomes Nauvoo Ridge Rd for 0.823 miles. Continue onto New Bethel for 0.821 miles. Continue onto Goshorn Ridge Rd for 1.55 miles. Goshorn turns slightly right and becomes Co Hwy 62/2 for 1 mile. Turn right onto Grapevine Ridge for 2.38 miles to well pad.¿",
+    "r": "Road sequence reference:\nRoute 2 → Alt Toward Hess Ln → Roberts Ridge Rd → Becomes Roberts Ridge → Bethal Ridge → Becomes Nauvoo Ridge Rd → New Bethel → Goshorn Ridge Rd → Becomes Co Hwy → Grapevine Ridge → Pad\n\nStep-by-step directions:\n1. Starting on Route 2.\n2. Head east on Route 2 Alt toward Hess lane for 1.52 miles Slight.\n3. Turn right onto Co Highway 88/5 for 1.75 miles.\n4. Turn right onto Roberts Ridge Road for 1.44 miles.\n5. Continue onto Roberts Ridge St Joseph Road for 4.38 miles Road turns slightly left and becomes Roberts Ridge for 1.14 miles.\n6. Continue onto Roberts Ridge for 1.16 miles Slight.\n7. Turn left onto Bethal Ridge for 1.41 miles New Bethel turns slightly right and becomes Nauvoo Ridge Road for 0.823 miles.\n8. Continue onto New Bethel for 0.821 miles.\n9. Continue onto Goshorn Ridge Road for 1.55 miles Goshorn turns slightly right and becomes Co Highway 62/2 for 1 mile.\n10. Turn right onto Grapevine Ridge for 2.38 miles to well pad ¿."
+  },
+  "swn--charles-yoho": {
+    "s": "470 to 88 S to 250 S/E 3.6 mi T/L on Stulls Run Rd. (CR-46) .4 mi pad access on the left No bus curfew",
+    "r": "Road sequence reference:\nRoute 88 → Route 250 → T/l On Stulls Run Rd → Access\n\nStep-by-step directions:\n1. 470 to 88 S to 250 S/E 3.6 miles T/L on Stulls Run Road (County Road 46) for 4 miles pad access on the left No bus curfew."
+  },
+  "swn--circosta-unit": {
+    "s": "Circosta South lease road access. From OH SR 78: *CB Channel 26 on Cochran Hill* Turn onto CR 64A Cochran Hill Rd, continue for 2.70 miles to stop sign. Circosta lease rd up hill on Right Hand side. Chain link fence around pad.",
+    "r": "Road sequence reference:\nChannel 26 On Cochran Hill → Cr 64a Cochran Hill Rd → CR-64A → Lease Road\n\nStep-by-step directions:\n1. Circosta South.\n2. Lease road access From OH State Route 78: *CB Channel 26 on Cochran Hill* Turn onto CR 64A Cochran Hill Road.\n3. Continue for 2.70 miles to stop sign Circosta.\n4. Lease Road up hill on Right Hand side Chain link fence around pad."
+  },
+  "swn--clarence-farmer": {
+    "s": "From Exit 5 off 70 Follow 40 east Turn left onto Mcgraw Run Rd Turn right onto GC & P Lease is on the left just past Harvey",
+    "r": "Road sequence reference:\nExit 5 → Route 40 → Mcgraw Run Rd\n\nStep-by-step directions:\n1. From Exit 5 off 70.\n2. Follow 40 east.\n3. Turn left onto Mcgraw Run Road.\n4. Turn right onto GC & P Lease is on the left just past Harvey."
+  },
+  "swn--craig-strope": {
+    "s": "from I470 exit 2 go south on 91/1 (w. Bethlehem blvd.) for 0.45 miles turn right on 88 (ridgecrest rd.) for 8.2 miles turn left on us 250 for 5.6 miles turn left on Irish Ridge rd. for 1.8 miles to split go right.",
+    "r": "Road sequence reference:\nI-470 → Exit 2 → Route 91 → Route 88 → US-250 → Irish Ridge Rd\n\nStep-by-step directions:\n1. From I-470 exit 2.\n2. Go south on 91/1 (w Bethlehem Boulevard ) for 0.45 miles.\n3. Turn right on 88 (ridgecrest Road ) for 8.2 miles.\n4. Turn left on US-250 for 5.6 miles.\n5. Turn left on Irish Ridge Road for 1.8 miles to split.\n6. Go right."
+  },
+  "swn--dallas-hall": {
+    "s": "70 west Route 88N To GC and P road CR- 37 follow to lease road",
+    "r": "Road sequence reference:\nRoute 70 → Route 88N → Gc And P Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 70 west Route 88N To GC and P road County Road 37.\n2. Follow to lease road."
+  },
+  "swn--david-reinbeau": {
+    "s": "from the interstate 470 in wheeling, wv take exit 2 (Bethleham ) turn left after exiting onto cr 91/1 if traveling west bound on I470. turn right onto cr 91/1 if traveling east bound on i470. travel 0.46 miles to sr88 & bear right at the stop light onto sr88 south. (ridgecrest rd ) travel 4.729 miles on cr88 to the intersection of sr88 & cr88/2 (sorghum ridge rd) & turn left onto cr 88/2. travel 0.853 miles on cr88/2 to well on the right",
+    "r": "Road sequence reference:\nI-470 → Exit 2 → SR-88 → CR-88\n\nStep-by-step directions:\n1. From the interstate 470 in wheeling, wv.\n2. Take exit 2 (Bethleham ).\n3. Turn left after exiting onto County Road 91/1 if traveling west bound on I-470.\n4. Turn right onto County Road 91/1 if traveling east bound on I-470 travel for 0.46 miles to State Route 88 &.\n5. Bear.\n6. Turn right at the stop light onto State Route 88 south (ridgecrest Road ) travel for 4.729 miles on County Road 88 to the intersection of State Route 88 & County Road 88/2 (sorghum ridge Road) &.\n7. Turn left onto County Road 88/2 travel for 0.853 miles on County Road 88/2 to well on the right."
+  },
+  "swn--david-stalder": {
+    "s": "From SR 255 Turn onto 486 to stop sign,this is 10 Benwood Road,turn left at stop sign follow about 1 mile entrance on right. School bus black out times for vehicles with more than 2 axles (including 2 axle trucks with trailers) Benwood and Goddard - 7:15am to 8:00am and 2:30pm to 4:00pm. ***WARNING - SHARP CURVES ON SR 225***",
+    "r": "Road sequence reference:\nSR-255 → Route 486 → SR-225\n\nStep-by-step directions:\n1. From State Route 255 Turn onto 486 to stop sign,this is 10 Benwood Road,turn.\n2. Turn left at stop sign.\n3. Follow about for 1 mile entrance on right School bus black out times for vehicles with more than 2 axles (including 2 axle trucks with trailers) Benwood and Goddard - 7:15am to 8:00am and 2:30pm to 4:00pm ***WARNING - SHARP CURVES ON State Route 225***."
+  },
+  "swn--deborah-craig": {
+    "s": "from I70 exit 10 turn left on cabella drive. 0.30 miles turn right on Mccutcheon dr",
+    "r": "Road sequence reference:\nI-70 → Exit 10 → Cabella Dr → Mccutcheon Dr\n\nStep-by-step directions:\n1. From I-70 exit 10.\n2. Turn left on cabella.\n3. Drive 0.30 miles.\n4. Turn right on Mccutcheon dr."
+  },
+  "swn--dmc-east": {
+    "s": "I-70 Exit 11 in PA. Turn on 221 towards Taylorsville. In .9 miles turn L on Rt. 40 at red flashing 4 way. Go 1.3 miles turn L on Sunset Beach. In .5 miles turn R on McClellan. Go 1.1 miles lease road on your L. Channel 7 When leaving pad you must turn L on lease road and go to stop sign and turn R. Go to next stop sign and turn R. Your now back on Rt 40. One way in one way out NO TRUCKS ALLOWED IN TOWN OF CLAYSVILLE",
+    "r": "Road sequence reference:\nI-70 → Exit 11 → Route 221 → Red Flashing 4 Way → Rt 40. One Way → Route 40 → Lease Road\n\nStep-by-step directions:\n1. Follow I-70.\n2. Exit 11 in PA Turn on 221 towards Taylorsville In 9 miles turn L on Rt 40 at red flashing 4 way.\n3. Go 1.3 miles turn L on Sunset Beach In 5 miles turn R on McClellan.\n4. Go 1.1 miles.\n5. Lease road on your L Channel 7 When leaving pad you must turn L on lease road and.\n6. Go to stop sign and turn R.\n7. Go to next stop sign and turn R Your now back on Rt 40 One way in one way out NO TRUCKS ALLOWED IN TOWN OF CLAYSVILLE."
+  },
+  "swn--dnr-a": {
+    "s": "70 west WV 2 To Alt East CR 27 To Mahan road stay right To Ten Church Road Pad is on Putney Ridge",
+    "r": "Road sequence reference:\nRoute 70 → WV-2 → Cr 27 To Mahan Rd → Ten Church Rd → Putney Ridge → Pad\n\nStep-by-step directions:\n1. Follow 70 west WV-2 To Alt East County Road 27 To Mahan road.\n2. Stay right To Ten Church Road.\n3. Pad is on Putney Ridge."
+  },
+  "swn--dnr-b": {
+    "s": "WV 2 ALT27East T/R Tent Church Rd T/L on Amspoker 7/4 (Quinn lane) 1st left on Tent Church Follow road bear left to the pad.",
+    "r": "Road sequence reference:\nWV-2 → Alt27east T/r Tent Church Rd → Tent Church Follow Rd → Pad\n\nStep-by-step directions:\n1. Follow WV-2 ALT27East T/R Tent Church Road T/L on Amspoker 7/4 (Quinn lane) 1st.\n2. Turn left on Tent Church.\n3. Follow road.\n4. Bear left to the pad."
+  },
+  "swn--dnr-c": {
+    "s": "Right 2 to alt 27 stay on alt 27 (turning left top of hill) right turn on.Tent Church.Road slight left on.Putney (pass the DNR a)",
+    "r": "Road sequence reference:\nALT-27 → Tent Church Rd\n\nStep-by-step directions:\n1. Right 2 to alt 27.\n2. Stay on alt 27 (turning left top of hill) right turn on Tent Church Road slight.\n3. Turn left on Putney (pass the DNR a)."
+  },
+  "swn--dremek": {
+    "s": "70.West WV 2.Short.Creek Road.Waddle Road.To.Dremek lease",
+    "r": "Road sequence reference:\nWv 2 Short Creek Rd → WV-2\n\nStep-by-step directions:\n1. 70 West WV-2 Short Creek Road Waddle Road To Dremek lease."
+  },
+  "swn--dytko": {
+    "s": "70 w.Cr 41.Stone.Church Road",
+    "r": "Road sequence reference:\nRoute 70 → Cr 41 Stone Church Rd → CR-41\n\nStep-by-step directions:\n1. Follow 70 w County Road 41 Stone Church Road."
+  },
+  "swn--ester-weeks": {
+    "s": "off I70 take exit 5 (tridelphia/elm grove ) turn left on route 40 first light make left on Kruger st. turn left cr23 (Stone chruch rd. ) proceed straight at 4 way stop sign. bear right to continue on cr 23 drive 6.47 miles on cr 23 to cr23/4 (oklahoma rd) turn left onto oklahoma rd well pad will be on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Route 40 → Kruger St → CR-23 / Stone Chruch Rd → Cr 23 Dr → Oklahoma Rd → Pad\n\nStep-by-step directions:\n1. Off I-70.\n2. Take exit 5 (tridelphia/elm grove ).\n3. Turn left on route 40 first light make.\n4. Turn left on Kruger st.\n5. Turn left County Road 23 (Stone chruch Road ).\n6. Proceed straight at 4 way stop sign.\n7. Bear right to continue on County Road 23.\n8. Drive 6.47 miles on County Road 23 to County Road 23/4 (oklahoma Road).\n9. Turn left onto oklahoma Road well.\n10. Pad will be on the left."
+  },
+  "swn--farley": {
+    "s": "I 77 to exit 16, go east off exit to 821 south, follow for 2.54 miles, turn left onto lease road, top of hill stay right to pad",
+    "r": "Road sequence reference:\nI-77 → Exit 16 → Route 821 → Lease Road\n\nStep-by-step directions:\n1. I-77 to exit 16.\n2. Go east off.\n3. Exit to 821 south.\n4. Follow for 2.54 miles.\n5. Turn left onto lease road, top of hill.\n6. Stay right to pad."
+  },
+  "swn--fork-ridge": {
+    "s": "From exit 2 on I-470 travel south on cr91/1 for .45 miles. Turn right onto Ridge Crest rd ST 88 south and travel 8.1 miles to junction of SR 88 and US 250 Turn left onto US 250 and travel 8.0 miles Turn right onto cr17 & travel 3.60 miles to well pad entrance on right.",
+    "r": "Road sequence reference:\nExit 2 → I-470 → SR-88 → US-250 → CR-17 → Pad\n\nStep-by-step directions:\n1. From exit 2 on I-470 travel south on County Road 91/1 for 45 miles.\n2. Turn right onto Ridge Crest Road ST 88 south and travel for 8.1 miles to junction of State Route 88 and US-250.\n3. Turn left onto US-250 and travel for 8.0 miles.\n4. Turn right onto County Road 17 & travel for 3.60 miles to well pad entrance on right."
+  },
+  "swn--franz-thoman": {
+    "s": "From Route 2 N, Turn right on Short Creek Rd for roughly 3.2mi Turn right up Cherry Hill Rd for roughly 1.8mi You will pass Betty Lane Rd and a right curve sign. The lease road is right before the Parker Ln road sign on your left.",
+    "r": "Road sequence reference:\nRoute 2 → Short Creek Rd → Cherry Hill Rd → Parker Ln Rd → Lease Road\n\nStep-by-step directions:\n1. From Route 2 N.\n2. Turn right on Short Creek Road for roughly 3.2mi.\n3. Turn right up Cherry Hill Road for roughly 1.8mi You will.\n4. Pass Betty Lane Road and a right curve sign The lease road is right before the Parker Ln road sign on your left."
+  },
+  "swn--fred-jones": {
+    "s": "PA 844 At breeze Heights Turn right onto PA 231 South for 2.21 miles. Continue straight onto PA 331 West for 3.29 miles. Turn right to stay onto PA 331 for 1.29 miles. Turn right onto lease for for 528 feet to pad.",
+    "r": "Road sequence reference:\nPA-844 → PA-231 → PA-331 → Pad\n\nStep-by-step directions:\n1. Follow PA-844 At breeze Heights.\n2. Turn right onto PA-231 South for 2.21 miles.\n3. Continue straight onto PA-331 West for 3.29 miles.\n4. Turn right to stay onto PA-331 for 1.29 miles.\n5. Turn right onto lease for 528 feet to pad."
+  },
+  "swn--george-gantzer": {
+    "s": "From I70 east take exit 10. @ stop sign go straight. U will pass sheetz. Continue straight it dead ends into well site.",
+    "r": "Road sequence reference:\nI-70 → Exit 10\n\nStep-by-step directions:\n1. From I-70 east.\n2. Take exit 10 @ stop sign.\n3. Go straight U will.\n4. Pass sheetz.\n5. Continue straight it dead ends into well site."
+  },
+  "swn--gladys-briggs": {
+    "s": "Downtown Cameron school go 3.3mi to fish ridge Turn right go .7 mi turn right to stay on Fish ridge go 3.5 mi (always bare to the right) Road dead ends at pad.",
+    "r": "Road sequence reference:\n3.3mi To Fish Ridge → Fish Ridge → Pad\n\nStep-by-step directions:\n1. Downtown Cameron school.\n2. Go 3.3mi to fish ridge.\n3. Turn right go 7 miles.\n4. Turn right to stay on Fish ridge.\n5. Go 3.5 miles (always bare to the right) Road dead ends at pad."
+  },
+  "swn--guy-avolio": {
+    "s": "Follow 27 east from wellsburgh to 231 north.turn left on 231 pad is 1.1 miles on the right",
+    "r": "Road sequence reference:\nRoute 27 → Route 231 → Pad\n\nStep-by-step directions:\n1. Follow 27 east from wellsburgh to 231 north.\n2. Turn left on 231.\n3. Pad is 1.1 miles on the right."
+  },
+  "swn--gw-rentals": {
+    "s": "From I70 east exit 11. Go past TA straight across from trailer court.",
+    "r": "Road sequence reference:\nI-70 → Exit 11\n\nStep-by-step directions:\n1. From I-70 east.\n2. Exit 11.\n3. Go past TA straight across from trailer court."
+  },
+  "swn--hayes-cgf": {
+    "s": "From SR 513 Turn onto CR 47 Continue for 2.31 miles to TR 475 Left turn onto TR 475, continue for 0.52 miles to Hayes CGF Access Point CB Channel 10 after leaving 265",
+    "r": "Road sequence reference:\nSR-513 → CR-47 → TR-475 → Access\n\nStep-by-step directions:\n1. From State Route 513 Turn onto County Road 47.\n2. Continue for 2.31 miles to Township Road 475 Left turn onto Township Road 475.\n3. Continue for 0.52 miles to Hayes CGF Access Point CB Channel 10 after leaving 265."
+  },
+  "swn--herrick": {
+    "s": "From State Route 255.Turn onto.Turn right 486, continue for 1.17 miles to County Road 10.At 4 way go straight onto County Road 10, continue for 1.3 miles to two 13.Right turn onto.Turn right 13, continue for 0.08 miles to.Herrick Unit.Access Point",
+    "r": "Road sequence reference:\nSR-255 → CR-10 → Access\n\nStep-by-step directions:\n1. From State Route 255 Turn onto Turn right 486.\n2. Continue for 1.17 miles to County Road 10 At 4 way.\n3. Go straight onto County Road 10.\n4. Continue for 1.3 miles to two 13 Right turn onto Turn right 13.\n5. Continue for 0.08 miles to Herrick Unit Access Point."
+  },
+  "swn--holliday-unit": {
+    "s": "From OH SR 78: *CB Channel 26 on Cochran Hill road* Turn onto CR 64A, continue for 2.7 miles to CR 64. At stop sign, turn Left onto CR 64( Cochran hill rd) continue south for 0.43 miles to Holliday lease road.",
+    "r": "Road sequence reference:\nSR-78 → Cochran Hill Rd → CR-64A → CR-64 / Cochran Hill Rd → Lease Road\n\nStep-by-step directions:\n1. From OH State Route 78: *CB Channel 26 on Cochran Hill road* Turn onto CR 64A.\n2. Continue for 2.7 miles to County Road 64 At stop sign.\n3. Turn Left onto County Road 64( Cochran hill Road).\n4. Continue south for 0.43 miles to Holliday.\n5. Lease road."
+  },
+  "swn--huffman": {
+    "s": "Https://maps.App.Goo.Gl/vacHhTfcqkBpU5E16",
+    "r": "Step-by-step directions:\n1. Https://maps App Goo Gl/vacHhTfcqkBpU5E16."
+  },
+  "swn--james-bird": {
+    "s": "70 to tridelphia exit. Take 40 east 6 or 7 miles to north liberty road for 1/2 mile then right on dry ridge and pad entrance on right. The about 3 miles out on right side",
+    "r": "Road sequence reference:\nRoute 40 → OR → Liberty Rd → Dry Ridge → Pad\n\nStep-by-step directions:\n1. Follow 70 to tridelphia.\n2. Exit Take 40 east 6 or for 7 miles to north liberty road for 1/2 miles then.\n3. Turn right on dry ridge and pad entrance on right The about for 3 miles out on right side."
+  },
+  "swn--jesse-stalder": {
+    "s": "Form 70 take exit 208, SR 800, south through Barnesville to Malaga, at caution light turn left onto SR 145 to Jerusalem then turn right onto SR 26, pad is approximately 3.5 miles on right outside of Ozark…..from SR 7 turn onto SR 556 in Clarington and follow to Beallsville, at stop sign continue straight onto SR 145 and continue to Jerusalem, turn left onto SR 26, pad is approximately 3.5 on right outside of Ozark Api# 34-111-2-5009",
+    "r": "Road sequence reference:\nExit 208 → SR-800 → SR-145 → SR-26 → SR-7 → SR-556 → Pad\n\nStep-by-step directions:\n1. Form 70.\n2. Take exit 208, State Route 800, south through Barnesville to Malaga, at caution light.\n3. Turn left onto State Route 145 to Jerusalem then.\n4. Turn right onto State Route 26.\n5. Pad is approximately 3.5 miles on right outside of Ozark… from State Route 7 turn onto State Route 556 in Clarington and.\n6. Follow to Beallsville, at stop sign.\n7. Continue straight onto State Route 145 and.\n8. Continue to Jerusalem.\n9. Turn left onto State Route 26.\n10. Pad is approximately 3.5 on right outside of Ozark Api# 34-111-2-5009."
+  },
+  "swn--john-good-jr": {
+    "s": "Truck-22 East, cross Ohio River and go South on art-2 for 8.5 miles Turn left on Sr-67,,travel 2.5 miles Turn Left on CR-24( McAdoo Ridge rd) Turn immediate Tight Pad is 1.1 miles on the Right",
+    "r": "Road sequence reference:\nRoute 22 → SR-67 → CR-24 / Mcadoo Ridge Rd → Pad\n\nStep-by-step directions:\n1. Truck-22 East.\n2. Cross Ohio River and.\n3. Go South on art-2 for 8.5 miles.\n4. Turn left on State Route 67,,travel for 2.5 miles.\n5. Turn Left on County Road 24( McAdoo Ridge Road) Turn immediate Tight.\n6. Pad is 1.1 miles on the Right."
+  },
+  "swn--john-harwatt": {
+    "s": "John.Harwatt Bus.Schedule 6:00-6:45AM 7:20-8:00AM 2:45-4:20.PM Starting at.Beech Bottom staging, head south on.Route 2 for 2.52 miles.Turn left onto.Short Creek.Road for 0.613 miles.Turn left onto.Girtys Point.Road for 2.56 miles.Turn left onto.Huffs Run for 0.650 miles.Turn right onto.Apple Pie.Ridge for 1.44 miles.Turn left onto the access road for 0.281 miles.Https://www.Google.Com/maps/dir//40.1803769,-80.5974262/@40.1803803,-8 0.5973364,68m/data=!3m2!1e3!4b1!4m2!4m1!3e0?Entry=ttu",
+    "r": "Road sequence reference:\nRoute 2 → Short Creek Rd → Girtys Point Rd → Huffs Run → Apple Pie Ridge → Access Road\n\nStep-by-step directions:\n1. John Harwatt Bus Schedule 6:00-6:45AM 7:20-8:00AM 2:45-4:20 PM Starting at Beech Bottom staging.\n2. Head south on Route 2 for 2.52 miles.\n3. Turn left onto Short Creek Road for 0.613 miles.\n4. Turn left onto Girtys Point Road for 2.56 miles.\n5. Turn left onto Huffs Run for 0.650 miles.\n6. Turn right onto Apple Pie Ridge for 1.44 miles.\n7. Turn left onto the access road for 0.281 miles Https://www Google Com/maps/dir//40.1803769,-80.5974262/@40.1803803,-8 0.5973364,68m/data=!3m2!1e3!4b1!4m2!4m1!3e0?Entry=ttu."
+  },
+  "swn--john-hupp": {
+    "s": "From steubenville oh take route 2 south turn left on to 67 follow 67 until you get to 88 and turn right and go about 2.5 miles, Turn Left on to locust grove rd at old Chesapeake Facility Go 3/4 mile and turn right on to lease rd Note: when first turning on to locust grove there’s a Hupp containment pond, do not turn in there. Keep goin past. Until you see lease rd on right.",
+    "r": "Road sequence reference:\nRoute 2 → Route 67 → Locust Grove Rd → Lease Road\n\nStep-by-step directions:\n1. From steubenville oh.\n2. Take route 2 south.\n3. Turn left on to 67.\n4. Follow 67 until you get to 88 and.\n5. Turn right and.\n6. Go about 2.5 miles.\n7. Turn Left on to locust grove Road at old Chesapeake Facility.\n8. Go 3/4 miles and.\n9. Turn right on to lease Road Note: when first turning on to locust grove there’s a Hupp containment pond, do not turn in there.\n10. Keep goin past Until you see.\n11. Lease Road on right."
+  },
+  "swn--john-mcmurray": {
+    "s": "I-70 exit5 take 40 east to Liberty Rd T/L to Dry Ridge Rd T/R stay on dry ridge lease rd entrance on the right past Main rd",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Route 40 → Liberty Rd → Main Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 exit5.\n2. Take 40 east to Liberty Road T/L to Dry Ridge Road T/R.\n3. Stay on dry ridge.\n4. Lease Road entrance on the right past Main Road."
+  },
+  "swn--joseph-powers": {
+    "s": "From Wellsburg take 27 east to 844 east in Pa. once in Pa take Pa 50 east to the left and follow about a mile and take Fallentimber rd and follow that to the stop sign. Continue straight down the hill and the pad is .5 miles on the right",
+    "r": "Road sequence reference:\nRoute 27 → Route 844 → PA-50 → Fallentimber Rd → Pad\n\nStep-by-step directions:\n1. From Wellsburg take 27 east to 844 east in Pa once in Pa.\n2. Take PA-50 east to the left and.\n3. Follow about a mile and.\n4. Take Fallentimber Road and.\n5. Follow that to the stop sign.\n6. Continue straight down the hill and the pad is 5 miles on the right."
+  },
+  "swn--kathy-mahew": {
+    "s": "From rt 2 turn on short creek, turn left on girtys point,left on huff run,left on apple pie ridge , pad on right just past b&g lane",
+    "r": "Road sequence reference:\nRoute 2 → Short Creek → Girtys Point → Huff Run → Apple Pie Ridge → B&g Ln → Pad\n\nStep-by-step directions:\n1. From rt 2 turn on short creek.\n2. Turn left on girtys point,left on huff run,left on apple pie ridge , pad on right just past b&g lane."
+  },
+  "swn--larry-ball": {
+    "s": "Rt 88 south To Grimes Road To Lease road on left",
+    "r": "Road sequence reference:\nRoute 88 → Grimes Rd → Lease Road\n\nStep-by-step directions:\n1. Rt 88 south To Grimes Road To Lease road on left."
+  },
+  "swn--linda-greathouse": {
+    "s": "Rt2 to short creek,left on girtys point,lefton huff,left on applepiie ridge,right on hukill,right on linda lane",
+    "r": "Road sequence reference:\nRoute 2 → Rt2 To Short Creek → Girtys Point → Applepiie Ridge → Hukill → Linda Ln\n\nStep-by-step directions:\n1. Rt2 to short creek,left on girtys point,lefton huff,left on applepiie ridge,right on hukill,right on linda lane."
+  },
+  "swn--mark-edison": {
+    "s": "from i470 eit 2 go south on cr91-1 (w. Bethlehem blvd. for 0.45 miles turn right 88 (ridgecrest rd) for 5.7 miles turn left cr 88/10 Hanlin hill rd. for 0.7 miles",
+    "r": "Road sequence reference:\nI-470 → CR-91 → Cr 88/10 Hanlin Hill Rd\n\nStep-by-step directions:\n1. From I-470 eit 2.\n2. Go south on County Road 91-1 (w Bethlehem Boulevard for 0.45 miles.\n3. Turn right 88 (ridgecrest Road) for 5.7 miles.\n4. Turn left County Road 88/10 Hanlin hill Road for 0.7 miles."
+  },
+  "swn--mark-hickman": {
+    "s": "from i70 exit 11 turn right on cr41 (dallas pike )for 2.85 miles well pad on the right",
+    "r": "Road sequence reference:\nI-70 → Exit 11 → CR-41 / Dallas Pike → Pad\n\nStep-by-step directions:\n1. From I-70 exit 11.\n2. Turn right on County Road 41 (dallas pike )for 2.85 miles well pad on the right."
+  },
+  "swn--marlin-funka": {
+    "s": "Take I70 take exit 1 west alexander in pa. Head south on Old Brick rd for 4.8 miles. Turn right onto Beham ridge for 1.8 miles and the Funka lease road will be on the left. School curfews 6:15 - 8:45 am 2:20 - 4:15 pm",
+    "r": "Road sequence reference:\nI-70 → Exit 1 → Old Brick Rd → Beham Ridge → Lease Road\n\nStep-by-step directions:\n1. Take I-70.\n2. Take exit 1 west alexander in pa.\n3. Head south on Old Brick Road for 4.8 miles.\n4. Turn right onto Beham ridge for 1.8 miles and the Funka.\n5. Lease road will be on the left School curfews 6:15 - 8:45 am 2:20 - 4:15 pm."
+  },
+  "swn--mercury": {
+    "s": "Mercury.Unit Bus.Schedule: 6:15am - 7:15am & 3:30pm - 4:30pm.Mercury Unit.Access Point -- From State Route 513.Turn onto County Road 47.Putney.Ridge Road, continue east for 1.40 miles to County Road 947.Greenlawn.Road Turn.Right onto County Road 947, continue south for 1.88 miles to.Mercury Unit.Access Point https://www.Google.Com/maps/dir//39.981664,-81.2809714/@39.9804493,-81.2816221,391m/data=!3m1!1e3!4m2!4m1!3e0?Entry=ttu",
+    "r": "Road sequence reference:\nSR-513 → CR-47 → CR-947 → Access\n\nStep-by-step directions:\n1. Mercury Unit Bus Schedule: 6:15am - 7:15am & 3:30pm - 4:30pm Mercury Unit Access Point -- From State Route 513 Turn onto County Road 47 Putney Ridge Road.\n2. Continue east for 1.40 miles to County Road 947 Greenlawn Road Turn.\n3. Turn right onto County Road 947.\n4. Continue south for 1.88 miles to Mercury Unit Access Point https://www Google Com/maps/dir//39.981664,-81.2809714/@39.9804493,-81.2816221,391m/data=!3m1!1e3!4m2!4m1!3e0?Entry=ttu."
+  },
+  "swn--michael-dunn": {
+    "s": "from i470 exit 2 travel south on cr 91/1 for .45 miles turn right on Ridgecrest rd (sr88) travel 8.1 miles to 88 & 250 turn left on 250 & travel 9.9 miles turn left on cr52 POplar springs for 1.9 miles. Right on Dunn dr. Well access on right",
+    "r": "Road sequence reference:\nI-470 → Exit 2 → Ridgecrest Rd → Route 250 → CR-52 → Dunn Dr\n\nStep-by-step directions:\n1. From I-470 exit 2 travel south on County Road 91/1 for 45 miles.\n2. Turn right on Ridgecrest Road (State Route 88) travel for 8.1 miles to 88 & 250.\n3. Turn left on 250 & travel for 9.9 miles.\n4. Turn left on County Road 52 POplar springs for 1.9 miles.\n5. Turn right on Dunn dr Well access on right."
+  },
+  "swn--michael-ratcliffe": {
+    "s": "I470 to i70 first exit xt 5 head north of xt to mcgraws run rd t/l go to stop sign stay to right turns into cc&p rd follow to long run rd t/l pad about 1mile on left",
+    "r": "Road sequence reference:\nI-470 → I-70 → Xt To Mcgraws Run Rd → Turns Into Cc&p Rd → Long Run Rd → Pad\n\nStep-by-step directions:\n1. Follow I-470 to I-70 first.\n2. Exit xt 5.\n3. Head north of xt to mcgraws run Road t/l.\n4. Go to stop sign.\n5. Stay to right turns into cc&p Road.\n6. Follow to long run Road t/l pad about for 1 mile on left."
+  },
+  "swn--michael-ryniawec": {
+    "s": "First pad on left Lazeer Rd off Apple Pie Ridge",
+    "r": "Road sequence reference:\nLazeer Rd → Pad\n\nStep-by-step directions:\n1. First pad on left Lazeer Road off Apple Pie Ridge."
+  },
+  "swn--michael-southworth": {
+    "s": "I-70 eastbound exit 5 T/L at Mickey Ds T/L next intersection by the church T/L go up stone church rd T/R on Walnut Grove T/L on Elliots lane/private drive lease rd entrance down on the Right",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Grove T/l On Elliots Ln → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 eastbound.\n2. Exit 5 T/L at Mickey Ds T/L next intersection by the church T/L.\n3. Go up stone church Road T/R on Walnut Grove T/L on Elliots lane/private.\n4. Drive.\n5. Lease Road entrance down on the Right."
+  },
+  "swn--mildred-mani": {
+    "s": "From Wellsburg wv st rt2 north turn right on to St rt 27 to Brady’s ridge rd turn right pad is about 1.5 miles on the left",
+    "r": "Road sequence reference:\nWellsburg Wv St → Route 2 → Pad\n\nStep-by-step directions:\n1. From Wellsburg wv st rt2 north.\n2. Turn right on to St rt 27 to Brady’s ridge Road.\n3. Turn right pad is about 1.5 miles on the left."
+  },
+  "swn--miller": {
+    "s": "Next to.Randall pad",
+    "r": "Step-by-step directions:\n1. Next to Randall pad."
+  },
+  "swn--mizer-farns": {
+    "s": "From Cadiz In 0.8 mi, turn right onto Cadiz-Dennison Road, US 250 In 5.2 mi, arrive at destination",
+    "r": "Step-by-step directions:\n1. From Cadiz In 0.8 miles.\n2. Turn right onto Cadiz-Dennison Road, US-250 In 5.2 miles, arrive at destination."
+  },
+  "swn--nick-ballota": {
+    "s": "WV 2 TO ALT Route 27 To Eldervilles Road To St Johns Road8",
+    "r": "Road sequence reference:\nWV-2 → Route 27 / Eldervilles Rd\n\nStep-by-step directions:\n1. Follow WV-2 TO ALT Route 27 To Eldervilles Road To St Johns Road8."
+  },
+  "swn--occ-a": {
+    "s": "I 70 exit 5 make a right on rt 40 . Go out about 3.5 miles make a left onto Roneys Point Run Rd. Stay to right onto County Farm Rd up the hill. Lease road on right",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Route 40 → Roneys Point Run Rd → County Farm Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70.\n2. Exit 5 make a.\n3. Turn right on rt 40.\n4. Go out about 3.5 miles make a.\n5. Turn left onto Roneys Point Run Road.\n6. Stay to right onto County Farm Road up the hill.\n7. Lease road on right."
+  },
+  "swn--ormet-15": {
+    "s": "None at this time",
+    "r": "Step-by-step directions:\n1. None at this time."
+  },
+  "swn--ov-royalty-trust": {
+    "s": "Zipcode- 26070 From Sunesis Staging Head South on Route 2 for 2.53 miles. Turn Left onto WV 27 E for 3.19 miles. Turn Left onto Northview Rd. for 2.16 miles. Continue onto Rabbit Hill Rd. for 0.467 miles. Turn Left onto access road for 0.992 miles.",
+    "r": "Road sequence reference:\nRoute 2 → WV-27 → Northview Rd → Rabbit Hill Rd → Access Road\n\nStep-by-step directions:\n1. Zipcode- 26070 From Sunesis Staging.\n2. Head South on Route 2 for 2.53 miles.\n3. Turn Left onto WV-27 E for 3.19 miles.\n4. Turn Left onto Northview Road for 2.16 miles.\n5. Continue onto Rabbit Hill Road for 0.467 miles.\n6. Turn Left onto access road for 0.992 miles."
+  },
+  "swn--peavine": {
+    "s": "From 7&470 take 7South to.Sardis turn.Right onto SR255 go about 9.5 miles turn left onto.Benwood CR10 cross bridge stay right go to.Rolland Unit lease rd drive through that pad to.Peavine Ridge turn.Left go to.Peavine lease.Road on the.Right",
+    "r": "Road sequence reference:\nRoute 7 → SR-255 → Lease Road\n\nStep-by-step directions:\n1. From 7&470 take 7South to Sardis turn.\n2. Turn right onto State Route 255.\n3. Go about 9.5 miles.\n4. Turn left onto Benwood County Road 10.\n5. Cross bridge.\n6. Stay right.\n7. Go to Rolland Unit.\n8. Lease Road.\n9. Drive through that pad to Peavine Ridge.\n10. Turn Left go to Peavine.\n11. Lease Road on the Right."
+  },
+  "swn--posey": {
+    "s": "470 west.To exit 198.Turn on 513.To.Lydick Road",
+    "r": "Road sequence reference:\nRoute 470 → Exit 198 → Route 513 → Lydick Rd\n\nStep-by-step directions:\n1. 470 west To exit 198 Turn on 513 To Lydick Road."
+  },
+  "swn--quality-reclamation": {
+    "s": "INTERSTATE 70.EAST TO 79.SOUTH GET OFF WAYNESBERG EXIT GO THRU TOWN TOGET ON 218.SOUTH TO ROUTE 7.EAST TURN right ON JAKES RUN RD.OLIVE UNITED METHODIST CHUCH ON CORNER go 8.4.MILES RD CHANGES TO 25AT COUNTY LINE CONTINUE FOR 3.MORE MILES TURN right AT 25/5.FOR 0.9.MILES TO LEASE RD ON right.",
+    "r": "Road sequence reference:\nI-70 → Route 218 → Jakes Run Rd → Lease Road\n\nStep-by-step directions:\n1. INTERSTATE 70 EAST TO 79 SOUTH GET OFF WAYNESBERG.\n2. EXIT GO THRU TOWN TOGET ON 218 SOUTH TO ROUTE 7 EAST.\n3. TURN right ON JAKES RUN Road OLIVE UNITED METHODIST CHUCH ON CORNER.\n4. Go 8.4 miles Road CHANGES TO 25AT COUNTY LINE.\n5. CONTINUE FOR 3 MORE MILES.\n6. TURN right AT 25/5 FOR 0.9 miles TO LEASE Road ON right."
+  },
+  "swn--randall": {
+    "s": "255 east around 9 mile post take right on 84 rd top of hill on right next to.Miller and passed.Rufner",
+    "r": "Road sequence reference:\nRoute 255 → Route 84\n\nStep-by-step directions:\n1. Follow 255 east around 9 miles post.\n2. Take right on 84 Road top of hill on right next to Miller and passed Rufner."
+  },
+  "swn--rayle-coal": {
+    "s": "from wheeling Rt2 north to short creek rd go (approx) 3.3 mi turn left on north fork Go 1.8mi lease rd. on left.. but continue .8 mi to turn around on left (red block building) and go back to lease rd.",
+    "r": "Road sequence reference:\nRoute 2 → Short Creek Rd → Lease Road\n\nStep-by-step directions:\n1. Follow from wheeling Rt2 north to short creek Road.\n2. Go (approx) 3.3 miles.\n3. Turn left on north fork.\n4. Go 1.8mi.\n5. Lease Road on left but.\n6. Continue 8 miles to turn around on left (red block building) and.\n7. Go back to lease Road."
+  },
+  "swn--richard-stalder": {
+    "s": "Coming off rt 7 (OH) Turn on to RT 255 Continue up rt 255 for approximately 2 miles CR 724 will be on your left, turn onto 724 Go about 1/4 mi will take you to lease rd (upper pad)",
+    "r": "Road sequence reference:\nRoute 7 → Route 724 → Lease Road\n\nStep-by-step directions:\n1. Coming off rt 7 (OH) Turn on to RT 255.\n2. Continue up rt 255 for approximately 2 miles County Road 724 will be on your left, turn onto 724.\n3. Go about 1/4 miles will.\n4. Take you to lease Road (upper pad)."
+  },
+  "swn--ritchea": {
+    "s": "WV 7",
+    "r": "Step-by-step directions:\n1. Follow WV-7."
+  },
+  "swn--robert-bone": {
+    "s": "From Wellsburg: continue onto 10th Street, WV 27 In 75 ft, turn left onto Commerce Street, WV 2 In 0.6 mi, turn left onto Bethany Pike, WV 67 In 4.5 mi, turn right onto Windy Hill and Hukill Run Road, CH 30 In 0.8 mi, arrive at destination",
+    "r": "Road sequence reference:\n10th St → Commerce St → Bethany Pike → Windy Hill\n\nStep-by-step directions:\n1. From Wellsburg: continue onto 10th Street, WV-27 In 75 feet.\n2. Turn left onto Commerce Street, WV-2 In 0.6 miles.\n3. Turn left onto Bethany Pike, WV-67 In 4.5 miles.\n4. Turn right onto Windy Hill and Hukill Run Road, CH 30 In 0.8 miles, arrive at destination."
+  },
+  "swn--robert-shorts": {
+    "s": "Take exit 5 off I- 70 make a right.Stay on rt 40 for 10 miles crossing into pa. Turn left on to N Liberty rd for o.5. Turn right on dry ridge rd for 522 feet. Turn right onto access . School curfews 6:15 -8:45 am 2:20 - 4:30 pm",
+    "r": "Road sequence reference:\nExit 5 → I-70 → Route 40 → Crossing → N Liberty Rd → Dry Ridge Rd\n\nStep-by-step directions:\n1. Take exit 5 off I-70 make a right.\n2. Stay on rt 40 for 10 miles crossing into pa.\n3. Turn left on to N Liberty Road for o 5.\n4. Turn right on dry ridge Road for 522 feet.\n5. Turn right onto access School curfews 6:15 -8:45 am 2:20 - 4:30 pm."
+  },
+  "swn--robert-young": {
+    "s": "88 south to 250 south left onto McCreary ridge 0.4 miles right on limestone HI Lane lease road on left 0.3 miles",
+    "r": "Road sequence reference:\nRoute 88 → Route 250 → Mccreary Ridge → Limestone Hi Ln → Lease Road\n\nStep-by-step directions:\n1. Follow 88 south to 250 south.\n2. Turn left onto McCreary ridge for 0.4 miles.\n3. Turn right on limestone HI Lane.\n4. Lease road on left for 0.3 miles."
+  },
+  "swn--ross": {
+    "s": "ROSS 7.SOUTH 70.WEST Take exit 215 for US-40/National.Rd0.2 mi.Turn left onto US-40.West/National.Road W1.0 mi.Turn right onto.Vineyard Rd1.0 mi.Turn left onto.Lee Rd0.6 mi.Turn right to stay on.Lee Rd0.8 mi.Turn right onto.Pogue Road.Destination will be on the left 0.1 mi",
+    "r": "Road sequence reference:\nExit 215 → US-40 / West/national Rd → Pogue Rd\n\nStep-by-step directions:\n1. ROSS 7 SOUTH 70 WEST.\n2. Take exit 215 for US-40/National Rd0.2 miles.\n3. Turn left onto US-40 West/National Road W1.0 miles.\n4. Turn right onto Vineyard Rd1.0 miles.\n5. Turn left onto Lee Rd0.6 miles.\n6. Turn right to stay on Lee Rd0.8 miles.\n7. Turn right onto Pogue Road Destination will be on the left for 0.1 miles."
+  },
+  "swn--roth": {
+    "s": "Off 800 south, turn on 255 east approximately 3 miles and turn right on county rd 10A (Griffith.Road) Speed limit 15mph approximately 1.5 miles lease on left.You will pass a farm with 3 red barns.",
+    "r": "Road sequence reference:\nRoute 800 → Route 255 → CR-10A / Griffith Rd\n\nStep-by-step directions:\n1. Off 800 south, turn on 255 east approximately for 3 miles and.\n2. Turn right on county Road 10A (Griffith Road) Speed limit 15mph approximately for 1.5 miles lease on left You will.\n3. Pass a farm with 3 red barns."
+  },
+  "swn--roth-drilling": {
+    "s": "70 w To WV- 2 TO BEACH BOTTOM Road 40.9263 -80.40531 Curfew. - 630 to 8am - 2pm to 4pm",
+    "r": "Road sequence reference:\nRoute 70 → WV-2 → Beach Bottom Rd\n\nStep-by-step directions:\n1. Follow 70 w To WV-2 TO BEACH BOTTOM Road 40.9263 -80.40531 Curfew - 630 to 8am - 2pm to 4pm."
+  },
+  "swn--rothenbuhler": {
+    "s": "Ohio.Street.Route 556.East to.Mellott Ridge and take to.Bowman Ridge to the.Lease",
+    "r": "Road sequence reference:\nOhio St → Route 556 → Mellott Ridge → Bowman Ridge\n\nStep-by-step directions:\n1. Follow Ohio Street Route 556 East to Mellott Ridge and.\n2. Take to Bowman Ridge to the Lease."
+  },
+  "swn--roy-ferrell": {
+    "s": "From 70 take exit 11 Travel south on cr41 ( dallas pike) for 2.16 miles Make left on cr 39/6 (wildlife rd) Travel 0.37 miles to 39/2 (laidley rd) turn right Travel 0.55 miles on 39/2 to well.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 11 → CR-41 / Dallas Pike → Route 39\n\nStep-by-step directions:\n1. From 70 take exit 11 Travel south on County Road 41 ( dallas pike) for 2.16 miles Make.\n2. Turn left on County Road 39/6 (wildlife Road) Travel for 0.37 miles to 39/2 (laidley Road).\n3. Turn right Travel 0.55 miles on 39/2 to well."
+  },
+  "swn--roy-riggle": {
+    "s": "From Bethlehem staging. Turn right onto E Bethlehem blvd for 1.3 miles. Continue onto Us-40 for 10 miles entering pa. Turn left onto North Liberty rd. For 0.528 miles. Turn right onto dry ridge rd for 0.812 miles. Turn left onto T332 (Main rd) for 1.76 miles crossing back into wv. Continue onto Crupes run rd for 1300 feet. Keep right for 0.401 miles to well pad. School curfews 6:15-8:45 am 2:20-4:15 pm",
+    "r": "Road sequence reference:\nE Bethlehem Blvd → US-40 → Liberty Rd → Dry Ridge Rd → Crupes Run Rd → Pad\n\nStep-by-step directions:\n1. From Bethlehem staging.\n2. Turn right onto E Bethlehem Boulevard for 1.3 miles.\n3. Continue onto US-40 for 10 miles entering pa.\n4. Turn left onto North Liberty Road For 0.528 miles.\n5. Turn right onto dry ridge Road for 0.812 miles.\n6. Turn left onto T332 (Main Road) for 1.76 miles crossing back into wv.\n7. Continue onto Crupes run Road for 1300 feet.\n8. Keep right for 0.401 miles to well pad School curfews 6:15-8:45 am 2:20-4:15 pm."
+  },
+  "swn--roy-riggle-ohi": {
+    "s": "From I-70 exit 5, turn right on US RT. 40 east and travel 7.8 miles to Pa. SR-3005, (West Liberty Rd), and turn left on SR-3005. Travel SR- 3005 for 0.5 miles to intersection and stop sign of SR-3005 and SR- 3003,(Dry Run Rd), and turn right on SR-3003. Travel SR-3003 0.8 miles to intersection of SR-3003 and T322,(Main Road), and turn left on Main Road. Travel Main Road 1.9 miles to access road on right. ***Note road sign for T-322 Main Road is faded and T-322 is not visible. Main Road wording recently painted. CB CH 19",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Route 40 → SR-3005 → SR-3003 → Main Rd → Access Road\n\nStep-by-step directions:\n1. From I-70 exit 5.\n2. Turn right on US-40 east and travel for 7.8 miles to Pa State Route 3005, (West Liberty Road), and.\n3. Turn left on State Route 3005 Travel State Route 3005 for 0.5 miles to intersection and stop sign of State Route 3005 and State Route 3003,(Dry Run Road), and.\n4. Turn right on State Route 3003 Travel State Route 3003 for 0.8 miles to intersection of State Route 3003 and T322,(Main Road), and.\n5. Turn left on Main Road Travel Main Road for 1.9 miles to access road on right ***Note road sign for T-322 Main Road is faded and T-322 is not visible Main Road wording recently painted CB CH 19."
+  },
+  "swn--ruth-keller": {
+    "s": "70 east to470 east to exit 2 Bethlehem merge on to 91 to 88 so. to rt on 86 at butchers corner store go 1.2 miles on lft.",
+    "r": "Road sequence reference:\nRoute 70 → Exit 2 → Route 91 → Route 86\n\nStep-by-step directions:\n1. 70 east to470 east to exit 2 Bethlehem.\n2. Merge on to 91 to 88 so to rt on 86 at butchers corner store.\n3. Go 1.2 miles on lft."
+  },
+  "swn--sam-jones": {
+    "s": "Rte 7 in WV Rte 67 East Rte 88 South Turn Left on Locust Grove 11/1 Turn Left on Marlboro Spur 32/1 Lease road on Left past farms.",
+    "r": "Road sequence reference:\nRoute 7 → Route 67 → Lease Road\n\nStep-by-step directions:\n1. Rte 7 in WV Rte 67 East Rte 88 South.\n2. Turn Left on Locust Grove 11/1.\n3. Turn Left on Marlboro Spur 32/1.\n4. Lease road on Left past farms."
+  },
+  "swn--sandra-parr": {
+    "s": "From Dallas Pike take i70 East to Exit 6 Claysville. Turn left at the bottom of the ramp and under 70 to the stop sign. Turn left at stop sign onto US40 West. Follow Us40 West about 5 miles to North Liberty on the right. Turn right onto North Liberty then turn right onto Dry Ridge Rd (1st rd on right). Follow Dry Ridge about 4.8 miles Pad is on the Left.",
+    "r": "Road sequence reference:\nDallas Pike → I-70 → Exit 6 → US-40 → Dry Ridge Rd → Pad\n\nStep-by-step directions:\n1. Follow From Dallas Pike.\n2. Take I-70 East to Exit 6 Claysville.\n3. Turn left at the bottom of the ramp and under 70 to the stop sign.\n4. Turn left at stop sign onto US-40 West.\n5. Follow US-40 West about for 5 miles to North Liberty on the right.\n6. Turn right onto North Liberty then.\n7. Turn right onto Dry Ridge Road (1st Road on right).\n8. Follow Dry Ridge about for 4.8 miles.\n9. Pad is on the Left."
+  },
+  "swn--sawyer": {
+    "s": "Off 78 turn onto pfalzgraf ridge rd, go to end lease on left",
+    "r": "Step-by-step directions:\n1. Off 78 turn onto pfalzgraf ridge Road.\n2. Go to end lease on left."
+  },
+  "swn--serafin-ortiz": {
+    "s": "470 to exit 2. CR 91 88 86 CR 2/4 Lease rd .6 miles on left",
+    "r": "Road sequence reference:\nExit 2 → CR-91 → Lease Road\n\nStep-by-step directions:\n1. 470 to exit 2 County Road 91 88 86 County Road 2/4.\n2. Lease Road 6 miles on left."
+  },
+  "swn--shannon-fields": {
+    "s": "Peters run to wardens run, fools warden run to Boggs hill rd, turn left on Boggs Hill, then will pass Browns Run road on left pass it go approx 150 ft lease road takes off to your right.",
+    "r": "Road sequence reference:\nPeters Run To Wardens Run → Boggs Hill → Lease Road\n\nStep-by-step directions:\n1. Peters run to wardens run, fools warden run to Boggs hill Road.\n2. Turn left on Boggs Hill, then will.\n3. Pass Browns Run road on left.\n4. Pass it.\n5. Go approx 150 feet.\n6. Lease road takes off to your right."
+  },
+  "swn--shawn-couch": {
+    "s": "Shawn Couch Bus Schedule 6:00-6:30AM 7:30-8:20AM 2:55-4:20PM From Bethlehem staging, turn right onto E Bethlehem Blvd for 1.20 miles. Continue onto US 40 (National Road) for 8 miles. Turn left onto Atkinson Crossing for 1.79 miles. Continue onto GC&P Rd for 1.87 miles. Turn left onto Harvey Rd for 0.322 miles. Slight right to stay on Harvey Rd for 0.329 miles Turn left and go 1,198 feet to well pad.",
+    "r": "Road sequence reference:\nE Bethlehem Blvd → US-40 / National Rd → Atkinson Crossing → Gc&p Rd → Harvey Rd → Pad\n\nStep-by-step directions:\n1. Shawn Couch Bus Schedule 6:00-6:30AM 7:30-8:20AM 2:55-4:20PM From Bethlehem staging.\n2. Turn right onto E Bethlehem Boulevard for 1.20 miles.\n3. Continue onto US-40 (National Road) for 8 miles.\n4. Turn left onto Atkinson Crossing for 1.79 miles.\n5. Continue onto GC&P Road for 1.87 miles.\n6. Turn left onto Harvey Road for 0.322 miles Slight right to stay on Harvey Road for 0.329 miles.\n7. Turn left and.\n8. Go 1,198 feet to well pad."
+  },
+  "swn--sonia-r": {
+    "s": "70 east to 88 South to 250 south through Cameron Turn right onto Fish Ridge road Then stay straight onto Reid Ridge Road and lease road will be on the left.",
+    "r": "Road sequence reference:\nRoute 70 → Route 88 → Route 250 → Fish Ridge Rd → Reid Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 70 east to 88 South to 250 south through Cameron.\n2. Turn right onto Fish Ridge road Then.\n3. Stay straight onto Reid Ridge Road and.\n4. Lease road will be on the left."
+  },
+  "swn--stadler": {
+    "s": "State Route 7 south.To County Road 255.Muskeon.Road T0.County Road 724",
+    "r": "Road sequence reference:\nSR-7 → CR-255\n\nStep-by-step directions:\n1. Follow State Route 7 south To County Road 255 Muskeon Road T0 County Road 724."
+  },
+  "swn--susan-scofield": {
+    "s": "From I-70 take exit 11 and turn south onto Dallas Pike for 5.6 miles. Dallas Pike become Beham Ridge ST 3019 once you are in PA. Continue on Beham Ridge for 2.68 miles. Stay right at the fork on Beham Ridge for another 0.409 miles. Turn right onto W Finley Rd SR 3037 for 0.853 miles. Turn right onto Gunn Ridge for 1.45 miles to access road on the left.",
+    "r": "Road sequence reference:\nI-70 → Exit 11 → Dallas Pike → Pa. Continue On Beham Ridge → Beham Ridge → W Finley Rd → Gunn Ridge → Access Road\n\nStep-by-step directions:\n1. From I-70 take exit 11 and turn.\n2. Continue south onto Dallas Pike for 5.6 miles Dallas Pike become Beham Ridge ST 3019 once you are in PA.\n3. Continue on Beham Ridge for 2.68 miles.\n4. Stay.\n5. Turn right at the fork on Beham Ridge for another for 0.409 miles.\n6. Turn right onto W Finley Road State Route 3037 for 0.853 miles.\n7. Turn right onto Gunn Ridge for 1.45 miles to access road on the left."
+  },
+  "swn--thoman": {
+    "s": "WV2.Cherry.Hill Road FRANZ THOMAN.Long lease road.Down over the hill.",
+    "r": "Road sequence reference:\nWV-2 → WV2 Cherry Hill Rd → Lease Road\n\nStep-by-step directions:\n1. Follow WV-2 Cherry Hill Road FRANZ THOMAN Long.\n2. Lease road Down over the hill."
+  },
+  "swn--timmy-minch": {
+    "s": "Take I-70 east to exit 5 in elm grove and go east to Peters run. Turn left and go to warden run and turn left. Go to top of hill and turn left onto Boggs hill and then follow that to browns run and turn left and the lease road is on youâ€™re left",
+    "r": "Road sequence reference:\nI-70 → Exit 5 → Warden Run → Boggs Hill → That To Browns Run → Lease Road\n\nStep-by-step directions:\n1. Take I-70 east to exit 5 in elm grove and.\n2. Go east to Peters run.\n3. Turn left and.\n4. Go to warden run and.\n5. Turn left Go to top of hill and.\n6. Turn left onto Boggs hill and then.\n7. Follow that to browns run and.\n8. Turn left and the lease road is on youâ€™re left."
+  },
+  "swn--van-ashton": {
+    "s": "From Bethlehem WV 88 south continue for 8 miles, Turn left on 250 south continue for 8 miles. Turn right on fork ridge Rd continue for 5 miles Turn left on Brushy Ridge Rd for little over a mile Rd dead end into Van Ashton lease rd",
+    "r": "Road sequence reference:\nWV-88 → Route 250 → Fork Ridge Rd → Brushy Ridge Rd → Lease Road\n\nStep-by-step directions:\n1. From Bethlehem WV-88 south.\n2. Continue for 8 miles.\n3. Turn left on 250 south.\n4. Turn right on fork ridge Road.\n5. Continue for 5 miles.\n6. Turn left on Brushy Ridge Road for little over a mile Road dead end into Van Ashton.\n7. Lease Road."
+  },
+  "swn--van-aston": {
+    "s": "From exit 2 on I-470 travel south on cr91/1 for .45 miles. Turn right onto Ridge Crest rd ST 88 south and travel 8.1 miles to junction of SR 88 and US 250 Turn left onto US 250 and travel 8.0 miles Turn right onto cr17 & travel 3.80 miles to Brushy run. @ church make left. Well pad access begins 0.65 Curfew ==0600-0730. 1530-1700",
+    "r": "Road sequence reference:\nExit 2 → I-470 → SR-88 → US-250 → CR-17 → Access\n\nStep-by-step directions:\n1. From exit 2 on I-470 travel south on County Road 91/1 for 45 miles.\n2. Turn right onto Ridge Crest Road ST 88 south and travel for 8.1 miles to junction of State Route 88 and US-250.\n3. Turn left onto US-250 and travel for 8.0 miles.\n4. Turn right onto County Road 17 & travel for 3.80 miles to Brushy run @ church make left Well pad access begins 0.65 Curfew ==0600-0730 1530-1700."
+  },
+  "swn--vernon-johnson": {
+    "s": "From st.c take 470 east to Bethlehem exit then 88 south to250 south thru Cameron wv. Then 10 miles to rice ridge on rt. From Washington 79 south exit 14 onto 21 west continue onto wv 891 then at stop sign turn left onto 250 south after 14 miles rice ridge rd will be on right",
+    "r": "Road sequence reference:\nRoute 470 → Route 88 → Rice Ridge → Route 79 → Exit 14 → Route 21 → WV-891 → Route 250\n\nStep-by-step directions:\n1. From st c.\n2. Take 470 east to Bethlehem.\n3. Exit then 88 south to250 south thru Cameron wv Then 10 miles to rice ridge on rt From Washington 79 south.\n4. Exit 14 onto 21 west.\n5. Continue onto WV-891 then at stop sign.\n6. Turn left onto 250 south after for 14 miles rice ridge Road will be on right."
+  },
+  "swn--william-rodgers": {
+    "s": "From Bethlehem staging. Turn right onto e Bethlehem blvd for1.20 miles. Continue onto us 40 ( national road) for 8.80 miles.turn left you will see a smiling face on a satellite dish onto access road for0.348 miles. School curfews Lease road is directly off route 40",
+    "r": "Road sequence reference:\nE Bethlehem Blvd → US-40 / National Rd → Lease Road\n\nStep-by-step directions:\n1. From Bethlehem staging.\n2. Turn right onto e Bethlehem Boulevard for1.20 miles.\n3. Continue onto US-40 ( national road) for 8.80 miles.\n4. Turn left you will see a smiling face on a satellite dish onto access road for0.348 miles School curfews.\n5. Lease road is directly off route 40."
+  },
+  "swn--yellow-rose-unit": {
+    "s": "-- From Woodsfield Oh Take East SR 78 for 7.3 miles turn right onto lease road IF YOU SEE SR 536 YOU HAVE GONE TO FAR ALSO IF YOU SWISS HILL CAREER CENTER YOU HAVE GONE TO FAR",
+    "r": "Step-by-step directions:\n1. From Woodsfield Oh.\n2. Take East State Route 78 for 7.3 miles.\n3. Turn right onto lease road IF YOU SEE State Route 536 YOU HAVE GONE TO FAR ALSO IF YOU SWISS HILL CAREER CENTER YOU HAVE GONE TO FAR."
+  },
+  "swn--yocum": {
+    "s": "WV 7.Left to.Doolin Run.Road Follow to.Newdal Right onto.Amos Hollow",
+    "r": "Road sequence reference:\nWV-7 → Doolin Run Rd → Newdal Right Onto Amos Hollow\n\nStep-by-step directions:\n1. Follow WV-7 Left to Doolin Run Road.\n2. Follow to Newdal.\n3. Turn right onto Amos Hollow."
+  }
+}

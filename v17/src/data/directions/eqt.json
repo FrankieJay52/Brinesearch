@@ -1,0 +1,170 @@
+{
+  "eqt--armstrong": {
+    "s": "2.South to.Graysville-Woodland.Road on the left after crossing the RR tracks going south by the gypsum plant.Then turn right on.Rines Ridge go for 8 miles turn right on.Burch ridge then go 2.7 miles to the.Burch Ridge pad entrance on the left go through the.Burch Pad and the ARMSTRONG is on the back side of.Burch Pad",
+    "r": "Road sequence reference:\nGraysville-woodland Rd → Crossing → Rines Ridge → Burch Ridge → Pad\n\nStep-by-step directions:\n1. Follow 2 South to Graysville-Woodland Road on the left after crossing the RR tracks going south by the gypsum plant Then.\n2. Turn right on Rines Ridge.\n3. Go for 8 miles.\n4. Turn right on Burch ridge then.\n5. Go 2.7 miles to the Burch Ridge pad entrance on the left.\n6. Go through the Burch Pad and the ARMSTRONG is on the back side of Burch Pad."
+  },
+  "eqt--barracuda": {
+    "s": "FROM WV 50.East, take 79.North, take exit 7 toward.Kirby, 0.3 miles turn left onto.Kirby road.0.3.Mile arrive at.Kirby road.",
+    "r": "Road sequence reference:\nWV-50 → Route 79 → Exit 7 → Kirby Rd\n\nStep-by-step directions:\n1. FROM WV-50 East.\n2. Take 79 North.\n3. Take exit 7 toward Kirby, for 0.3 miles.\n4. Turn left onto Kirby road for 0.3 miles arrive at Kirby road."
+  },
+  "eqt--big-dawg": {
+    "s": "Exit 202 off I70 follow 800 south (10 miles) thru Barnesville, thru Somerton, to Malaga turn left at stop sign toward Jerusalem on 145 north (6 miles) follow to 4 way stop at Beallsville 556 east go straight (4 miles) out to clover ridge road on left Monroe 24 co. Road follow (4.25 miles) turn right follow (1 mile) stay to right on Gallaher road",
+    "r": "Road sequence reference:\nExit 202 → I-70 → Route 800 → Route 145 → Route 556 → Monroe 24 Co. Rd → Gallaher Rd\n\nStep-by-step directions:\n1. Exit 202 off I-70.\n2. Follow 800 south (10 miles) thru Barnesville, thru Somerton, to Malaga.\n3. Turn left at stop sign toward Jerusalem on 145 north (6 miles).\n4. Follow to 4 way stop at Beallsville 556 east.\n5. Go straight (4 miles) out to clover ridge road on left Monroe 24 co Road.\n6. Follow (4.25 miles).\n7. Turn right follow (1 mile).\n8. Stay to right on Gallaher road."
+  },
+  "eqt--big-tex": {
+    "s": "From I-70 west Take exit 215 National Rd Turn left onto US 40 National Rd and travel approx 0.95 miles Turn left onto CR56 Country Club Rd and travel approx 2 miles Turn left onto Culska Rd and travel 0.1 miles Site entrance will be on the right",
+    "r": "Road sequence reference:\nI-70 → Exit 215 National Rd → Exit 215 → Us 40 National Rd → US-40 → CR56 Country Club Rd → CR-56 → Culska Rd\n\nStep-by-step directions:\n1. From I-70 west.\n2. Take exit 215 National Road.\n3. Turn left onto US-40 National Road and travel approx for 0.95 miles.\n4. Turn left onto County Road 56 Country Club Road and travel approx for 2 miles.\n5. Turn left onto Culska Road and travel for 0.1 miles Site entrance will be on the right."
+  },
+  "eqt--bigfoot": {
+    "s": "From.East -I-70- 1.Take.Warnock Street.Clairsville.Road -State Route 9- south 4.2 miles to.Warnock Road (State Route 149) and turn right.2.Turn left onto.Mckelvey Road (across from cr-82) and follow to pad.",
+    "r": "Road sequence reference:\nI-70 → Warnock St Clairsville Rd → Mckelvey Rd → CR-82 → Pad\n\nStep-by-step directions:\n1. From East -I-70- 1.\n2. Take Warnock Street Clairsville Road -State Route 9- south for 4.2 miles to Warnock Road (State Route 149) and.\n3. Turn right 2.\n4. Turn left onto Mckelvey Road (across from County Road 82) and.\n5. Follow to pad."
+  },
+  "eqt--blue-thunder": {
+    "s": "From East -I-70- 1. Take Warnock St. Clairsville Rd -SR 9- south 4.2 miles to Belmont Warnock Rd (SR 149) and turn right. 2. Take SR 149 northwest to Watertower Rd and turn left. 3. Lease road is up hill on left.",
+    "r": "Road sequence reference:\nI-70 → Warnock St Clairsville Rd → Northwest To Watertower Rd → SR-149 → Lease Road\n\nStep-by-step directions:\n1. From East -I-70- 1.\n2. Take Warnock St Clairsville Road -State Route 9- south for 4.2 miles to Belmont Warnock Road (State Route 149) and.\n3. Turn right 2.\n4. Take State Route 149 northwest to Watertower Road and.\n5. Turn left 3.\n6. Lease road is up hill on left."
+  },
+  "eqt--bounty-hunter": {
+    "s": "From East -I-70- 1. Take Warnock St. Clairsville Rd -SR 9- south 4.2 miles to Belmont Warnock Rd (SR 149) and turn right. 2. Take SR 149 northwest to Watertower Rd and turn left. 3. Lease road is on right just before 147",
+    "r": "Road sequence reference:\nI-70 → Warnock St Clairsville Rd → Northwest To Watertower Rd → SR-149 → Lease Road\n\nStep-by-step directions:\n1. From East -I-70- 1.\n2. Take Warnock St Clairsville Road -State Route 9- south for 4.2 miles to Belmont Warnock Road (State Route 149) and.\n3. Turn right 2.\n4. Take State Route 149 northwest to Watertower Road and.\n5. Turn left 3.\n6. Lease road is on right just before 147."
+  },
+  "eqt--carpenter": {
+    "s": ".",
+    "r": ""
+  },
+  "eqt--del-scorcho": {
+    "s": "From I-70 1.) Take exit 216 for OH-9 toward St. Clairsville (0.2 mi) 2.) Turn onto OH-9 S (4.2 mi) 3.) Turn right onto OH-149 W (4.0 mi) 4.) Turn left onto Watertower Rd (2.2 mi) 5.) Turn left onto OH-147 E (0.8 mi) 6.) Turn right onto Gregg Rd/TWP Rd 200 (0.6 mi) 7.) Stay left onto Secrest Rd/TWP Rd 195 (1.8 mi) 8.) Slight right onto Cat Hollow Rd/Hunter Bethesda Rd/TWP Rd 198 (1.3 mi) 9.) Turn right onto Ballard Hunter/Hunter Bethesda Rd/CR 92 (1.4 mi) 10.) Continue onto CR26 (1.0 mi) 11.) Turn left onto Johnson South Rd (0.3 mi) Site entrance will be on the right",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → OH-9 → OH-149 → Watertower Rd → OH-147 → Gregg Rd/twp Rd → Secrest Rd/twp Rd → Cat Hollow Rd → Ballard Hunter/hunter Bethesda Rd → CR-26 → Johnson South Rd\n\nStep-by-step directions:\n1. From I-70 1 ).\n2. Take exit 216 for OH-9 toward St Clairsville (0.2 miles) 2 ) Turn onto OH-9 S (4.2 miles) 3 ).\n3. Turn right onto OH-149 W (4.0 miles) 4 ).\n4. Turn left onto Watertower Road (2.2 miles) 5 ).\n5. Turn left onto OH-147 E (0.8 miles) 6 ).\n6. Turn right onto Gregg Road/Township Road 200 (0.6 miles) 7 ).\n7. Stay.\n8. Turn left onto Secrest Road/Township Road 195 (1.8 miles) 8 ) Slight.\n9. Turn right onto Cat Hollow Road/Hunter Bethesda Road/Township Road 198 (1.3 miles) 9 ).\n10. Turn right onto Ballard Hunter/Hunter Bethesda Road/County Road 92 (1.4 miles) 10 ).\n11. Continue onto County Road 26 (1.0 mile) 11 ).\n12. Turn left onto Johnson South Road (0.3 miles) Site entrance will be on the right."
+  },
+  "eqt--dominator": {
+    "s": "From I 70.Take the right 9.Exit.Street Clairsville.Follow right 9.South to the right 147.JCT in.Centerville.Follow 147.East out of.Centerville.Turn right onto.Shepherd Hill.Road ( After compressor station turn is directly after the 25MPH turn).Follow.Shepherd Hill.Road the pad will be on your left a good ways back.",
+    "r": "Road sequence reference:\nI-70 → Exit St → Route 9 → Route 147 → Shepherd Hill Rd → Pad\n\nStep-by-step directions:\n1. From I-70 Take the right 9.\n2. Exit Street Clairsville.\n3. Follow right 9 South to the right 147 JCT in Centerville.\n4. Follow 147 East out of Centerville.\n5. Turn right onto Shepherd Hill Road ( After compressor station turn is directly after the 25MPH turn).\n6. Follow Shepherd Hill Road the pad will be on your left a good ways back."
+  },
+  "eqt--dr-awkward": {
+    "s": "Exit 208.. 147 up to twpship 200 (big ten) follow out to 2nd stop.sign make RIGHT... GO bout 2 miles left onto 26th road bout 1.8 miles on right Everett turner dory hill road twnship 192 go bout 2 miles will see sign by road go left by sign into pad bout half mile",
+    "r": "Road sequence reference:\nExit 208 → 26th Rd → Everett Turner Dory Hill Rd → Pad\n\nStep-by-step directions:\n1. Exit 208 147 up to twpship 200 (big ten).\n2. Follow out to 2nd stop sign make RIGHT.\n3. GO bout 2 miles.\n4. Turn left onto 26th road bout for 1.8 miles on right Everett turner dory hill road twnship 192.\n5. Go bout 2 miles will see sign by road.\n6. Go left by sign into pad bout half mile."
+  },
+  "eqt--dragons-breath": {
+    "s": "From I70- CURFEW 6- 7AM 1. Take Exit 208 turn left Take SR 149 south 2.4 miles 2. Turn right onto 147 east go 2 miles,turn right on route 200 (at Ten Mile) 3. Follow TWP 200 to TWP 195 to TWP 198 4. From TWP 198 Turn left at first stop sign onto CR 86. 5. Turn left onto CR 92 off of CR 86. Follow CR 92 to turn left back onto CR 86. 6. Go 1 miles on 86 taco cat is on your right. Turn left onto TWP 194 just after Taco Cat. 7. Lease road is on your right.",
+    "r": "Road sequence reference:\nI-70 → Exit 208 → SR-149 → Route 147 → Route 200 → TR-200 → OR → TR-198 → CR-86 → CR-92 → Route 86 → TR-194 → Lease Road\n\nStep-by-step directions:\n1. From I-70- CURFEW 6- 7AM 1.\n2. Take Exit 208.\n3. Turn left Take State Route 149 south for 2.4 miles 2.\n4. Turn right onto 147 east.\n5. Go 2 miles,turn.\n6. Turn right on route 200 (at Ten Mile) 3.\n7. Follow TWP 200 to TWP 195 to TWP 198 4 From TWP 198.\n8. Turn left at first stop sign onto County Road 86 5.\n9. Turn left onto County Road 92 off of County Road 86.\n10. Follow County Road 92 to turn left back onto County Road 86 6.\n11. Go 1 mile on 86 taco cat is on your right.\n12. Turn left onto TWP 194 just after Taco Cat 7.\n13. Lease road is on your right."
+  },
+  "eqt--dream-weaver": {
+    "s": "From I70 Take Exit 216 for Route 9/St. Clairsville. Turn left on 9s and go 7.9 miles. Turn left on 147E/9 and go 0.8 miles. Turn left on 147E. Turn right onto CR 5. Turn left onto Mt. Victory Rd and go 1.8 miles. Turn right onto Moores Run Rd/Scales Rd and go 0.4 miles. Site entrance will be on your right CB 33 Curfew 6:00a - 7:00a 2:45p - 3:45 m-f",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 9 → Route 147 → CR-5 → Mt. Victory Rd → Moores Run Rd\n\nStep-by-step directions:\n1. From I-70 Take Exit 216 for Route 9/St Clairsville.\n2. Turn left on 9s and.\n3. Go 7.9 miles.\n4. Turn left on 147E/9 and.\n5. Go 0.8 miles.\n6. Turn left on 147E.\n7. Turn right onto County Road 5.\n8. Turn left onto Mt Victory Road and.\n9. Go 1.8 miles.\n10. Turn right onto Moores Run Road/Scales Road and.\n11. Go 0.4 miles Site entrance will be on your right CB 33 Curfew 6:00a - 7:00a 2:45p - 3:45 m-f."
+  },
+  "eqt--gold-digger": {
+    "s": "From I-70 West into Ohio, take EXIT 216, Route 9/St. Clairsville exit. 1.) Make a LEFT off of the ramp onto Warnock St. Clairsville Road (Route 9 SOUTH) follow for 5.8 miles. Pad is on the LEFT. Continue across Son Uva Digger to the Gold Digger access road.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Ramp Onto Warnock St → Access Road\n\nStep-by-step directions:\n1. From I-70 West into Ohio.\n2. Take EXIT 216, Route 9/St Clairsville.\n3. Exit 1 ) Make a LEFT off of the ramp onto Warnock St Clairsville Road (Route 9 SOUTH).\n4. Follow for 5.8 miles.\n5. Pad is on the LEFT.\n6. Continue across Son Uva Digger to the Gold Digger access road."
+  },
+  "eqt--goliath": {
+    "s": "From I-70.West 1.Head.West on I-70.West 0.6 mi 2.Take exit 208 for OH-149 toward.Belmont/Morristown 0.2 mi 3.Turn left onto OH-149.South 2.5 mi 4.Turn right onto OH-147.West 1.5 mi 5.Turn right onto OH-147.West/Maple.Avenue 1.6 mi 6.Turn left onto.Patterson McEndree.Road 148 ft.Site entrance will be on the right",
+    "r": "Road sequence reference:\nI-70 → Exit 208 → OH-149 → OH-147 → Patterson Mcendree Rd\n\nStep-by-step directions:\n1. From I-70 West 1.\n2. Head West on I-70 West for 0.6 miles 2.\n3. Take exit 208 for OH-149 toward Belmont/Morristown for 0.2 miles 3.\n4. Turn left onto OH-149 South for 2.5 miles 4.\n5. Turn right onto OH-147 West for 1.5 miles 5.\n6. Turn right onto OH-147 West/Maple Avenue for 1.6 miles 6.\n7. Turn left onto Patterson McEndree Road 148 feet Site entrance will be on the right."
+  },
+  "eqt--haymaker": {
+    "s": "From I-70.West into.Ohio, take.Exit 216 for.Route 9/Street.Clairsville exit 1.) Turn left at end of exit ramp onto.Warnock Street.Clairsville.Road/OH-9.South (4.2 mi) 2.) Turn right onto OH-149.West/Belmont.Warnock Road (4.0 mi) 3.) Turn left onto.Watertower Road/T202 (2.2 mi) 4.) Sharp left onto OH-147.East/Belmont.Centerville Road (0.9 mi) 5.) Turn right onto.Gregg Road/T200 (0.6 mi) 6.) Slight left onto.Secrest Road/T195 (1.8 mi) 7.) Slight right onto.Cat Hollow.Road (1.1 mi) 8.) Slight left onto.County Road 86/Hunter.Belmont Road (456 ft) 9.) Turn left onto.Hunter Belmont.Road (1.0 mi) 10.) Continue onto.Ballard Hunter/Hunter.Bethesda Road (0.9 mi) Site entrance will be on the left",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Exit 1 → Exit Ramp Onto Warnock St → OH-149 / West/belmont Warnock Rd → Watertower Rd → OH-147 / East/belmont Centerville Rd → Gregg Rd → Secrest Rd → Cat Hollow Rd → CR-86 → Hunter Belmont Rd → Ballard Hunter/hunter Bethesda Rd\n\nStep-by-step directions:\n1. From I-70 West into Ohio.\n2. Take Exit 216 for Route 9/Street Clairsville.\n3. Exit 1 ).\n4. Turn left at end of.\n5. Exit ramp onto Warnock Street Clairsville Road/OH-9 South (4.2 miles) 2 ).\n6. Turn right onto OH-149 West/Belmont Warnock Road (4.0 miles) 3 ).\n7. Turn left onto Watertower Road/T202 (2.2 miles) 4 ) Sharp.\n8. Turn left onto OH-147 East/Belmont Centerville Road (0.9 miles) 5 ).\n9. Turn right onto Gregg Road/T200 (0.6 miles) 6 ) Slight.\n10. Turn left onto Secrest Road/T195 (1.8 miles) 7 ) Slight.\n11. Turn right onto Cat Hollow Road (1.1 miles) 8 ) Slight.\n12. Turn left onto County Road 86/Hunter Belmont Road (456 feet) 9 ).\n13. Turn left onto Hunter Belmont Road (1.0 mile) 10 ).\n14. Continue onto Ballard Hunter/Hunter Bethesda Road (0.9 miles) Site entrance will be on the left."
+  },
+  "eqt--heyl-pad": {
+    "s": "From Washington 79s exit 23 make right continue 1.3 mile turn right onto gaush hill rd pad will be on left From Waynesburg 79n exit 23 make right continue 1.3 mile turn right onto gaush hill rd pad will be on left",
+    "r": "Road sequence reference:\nRoute 79 → Exit 23 → Gaush Hill Rd → Pad\n\nStep-by-step directions:\n1. From Washington 79s.\n2. Exit 23 make right.\n3. Continue 1.3 miles.\n4. Turn right onto gaush hill Road.\n5. Pad will be on left From Waynesburg 79n.\n6. Pad will be on left."
+  },
+  "eqt--iron-warrior": {
+    "s": "From I-70 West 1.) Take Exit 216 (St. Clairsville/State Route 9) 2.) Turn Left onto State Route 9 South (4.1 miles) 3.) Turn Right onto State Route 149 (3.9 miles) 4.) Turn Left onto Water Tower Road (2.0 miles) 5.) Continue straight ahead onto Goshen Twp Road 202 (Noon Road) (0.5 miles) Site entrance is on Left.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → SR-9 → SR-149 → Water Tower Rd → Ahead Onto Goshen Twp Rd\n\nStep-by-step directions:\n1. From I-70 West 1 ).\n2. Take Exit 216 (St Clairsville/State Route 9) 2 ).\n3. Turn Left onto State Route 9 South (4.1 miles) 3 ).\n4. Turn Right onto State Route 149 (3.9 miles) 4 ).\n5. Turn Left onto Water Tower Road (2.0 miles) 5 ).\n6. Continue straight ahead onto Goshen Twp Road 202 (Noon Road) (0.5 miles) Site entrance is on Left."
+  },
+  "eqt--junkyard-dog": {
+    "s": "From 470: 1.) Take exit 6 to State Route 7 2.) Turn right onto State Route 7 South (23.2 miles) 3.) Turn right onto State Route 556 (8.5 miles) 4.) Turn right on Clover Ridge (3.1 miles) 5.) Turn right on Walter Emory Rd (Twp. Rd. 123) (0.8 miles) Pad site enterance is on the Left",
+    "r": "Road sequence reference:\nRoute 470 → Exit 6 → SR-7 → SR-556 → Clover Ridge → Walter Emory Rd → Pad\n\nStep-by-step directions:\n1. From 470: 1 ).\n2. Take exit 6 to State Route 7 2 ).\n3. Turn right onto State Route 7 South (23.2 miles) 3 ).\n4. Turn right onto State Route 556 (8.5 miles) 4 ).\n5. Turn right on Clover Ridge (3.1 miles) 5 ).\n6. Turn right on Walter Emory Road (Township Road 123) (0.8 miles) Pad site enterance is on the Left."
+  },
+  "eqt--king-krunch": {
+    "s": "From I-70 W 1.) Take exit 216 for OH-9 toward St. Clairsville (0.2 miles) 2.) Turn left onto OH-9 S (7.9 miles) 3.) Turn left onto OH-147 E/ OH-9 S (0.8 miles) 4.) Turn left onto OH-147 E (3.2 miles) 5.) Turn Right onto Watt Road (0.81 miles) Pad Entrance will be on your left",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → OH-9 → OH-147 → Watt Rd → Pad\n\nStep-by-step directions:\n1. From I-70 W 1 ).\n2. Take exit 216 for OH-9 toward St Clairsville (0.2 miles) 2 ).\n3. Turn left onto OH-9 S (7.9 miles) 3 ).\n4. Turn left onto OH-147 E/ OH-9 S (0.8 miles) 4 ).\n5. Turn left onto OH-147 E (3.2 miles) 5 ).\n6. Turn Right onto Watt Road (0.81 miles) Pad Entrance will be on your left."
+  },
+  "eqt--krazy-train": {
+    "s": "From I-70 Take exit 216 and go south on rt 9 Follow rt 9 to town of Warnock and turn right on rt 149. Follow 149 to Watertower rd and turn left. Follow Watertower rd to end at stop sign and turn left onto rt 147. Follow 147 to cr 200 and turn right. Go straight at cr 200 split and lease road Is on right for Razin Kane and Krazy Train.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 9 → Route 149 → Watertower Rd → Route 147 → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 and.\n2. Go south on rt 9.\n3. Follow rt 9 to town of Warnock and.\n4. Turn right on rt 149.\n5. Follow 149 to Watertower Road and.\n6. Turn left Follow Watertower Road to end at stop sign and.\n7. Turn left onto rt 147.\n8. Follow 147 to County Road 200 and.\n9. Turn right Go straight at County Road 200 split and.\n10. Lease road Is on right for Razin Kane and Krazy Train."
+  },
+  "eqt--madusa": {
+    "s": "From.East -I-70- 1.Take.Exit 208 turn right.Take State Route 149 north 2.4 miles 2.Turn right onto 147 east go 1.4 miles.To stop sign turn right into 26 3.In 2.1 miles stay left onto 92 4.Look for madusa sign and turn left.5.Follow to lease rd on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 208 → SR-149 → Route 147 → Route 92 → Lease Road\n\nStep-by-step directions:\n1. From East -I-70- 1.\n2. Take Exit 208.\n3. Turn right Take State Route 149 north for 2.4 miles 2.\n4. Turn right onto 147 east.\n5. Go 1.4 miles To stop sign.\n6. Turn right into 26 3 In 2.1 miles.\n7. Stay.\n8. Turn left onto 92 4 Look for madusa sign and.\n9. Turn left 5.\n10. Follow to lease Road on left."
+  },
+  "eqt--mohawk-warrior": {
+    "s": "From I-70 Take exit 216 and go south on rt 9 Follow rt 9 to town of Warnock and turn right on rt 149. Follow 149 to Watertower rd and turn left. Follow Watertower rd to end at stop sign and turn left onto rt 147. Follow 147 to Dysert Rd and turn right. Follow to lease rd on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 9 → Route 149 → Watertower Rd → Route 147 → Dysert Rd → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 and.\n2. Go south on rt 9.\n3. Follow rt 9 to town of Warnock and.\n4. Turn right on rt 149.\n5. Follow 149 to Watertower Road and.\n6. Turn left Follow Watertower Road to end at stop sign and.\n7. Turn left onto rt 147.\n8. Follow 147 to Dysert Road and.\n9. Turn right Follow to lease Road on left."
+  },
+  "eqt--monster-mutt": {
+    "s": "Exit 202 off I-70 follow st. Rt. 800 out to Magalia turn left follow out thru beasville 556 staright thru 4 way stop to clover ridge road turn follow out to monster mutt sign at road",
+    "r": "Road sequence reference:\nExit 202 → I-70 → Monster Mutt Sign At Rd\n\nStep-by-step directions:\n1. Exit 202 off I-70.\n2. Follow st Rt 800 out to Magalia.\n3. Turn left follow out thru beasville 556 staright thru 4 way stop to clover ridge road turn.\n4. Follow out to monster mutt sign at road."
+  },
+  "eqt--radcliff": {
+    "s": "East on wv7.Turn right on 250 south.Go about 12 miles enter mannington wv.Turn right on buffalo.Go 10.3 miles lease road straight up hill",
+    "r": "Road sequence reference:\nWV-7 → Route 250 → Buffalo → Lease Road\n\nStep-by-step directions:\n1. East on WV-7.\n2. Turn right on 250 south.\n3. Go about 12 miles.\n4. Enter mannington wv.\n5. Turn right on buffalo.\n6. Go 10.3 miles.\n7. Lease road straight up hill."
+  },
+  "eqt--rammunition": {
+    "s": "From I-70.Take exit 216 (right 9) south.Follow right 9 south into.Centerville.Go thru.Centerville on right 9 and lease road is on left just south of.Centerville.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 9 → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 (right 9) south.\n2. Follow right 9 south into Centerville.\n3. Go thru Centerville on right 9 and.\n4. Lease road is on left just south of Centerville."
+  },
+  "eqt--razin-kane": {
+    "s": "From I-70 Take exit 216 and go south on rt 9 Follow rt 9 to town of Warnock and turn right on rt 149. Follow 149 to Watertower rd and turn left. Follow Watertower rd to end at stop sign and turn left onto rt 147. Follow 147 to cr 200 and turn right. Go straight at cr 200 split and lease road Is on right for Razin Kane and Krazy Train.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 9 → Route 149 → Watertower Rd → Route 147 → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 and.\n2. Go south on rt 9.\n3. Follow rt 9 to town of Warnock and.\n4. Turn right on rt 149.\n5. Follow 149 to Watertower Road and.\n6. Turn left Follow Watertower Road to end at stop sign and.\n7. Turn left onto rt 147.\n8. Follow 147 to County Road 200 and.\n9. Turn right Go straight at County Road 200 split and.\n10. Lease road Is on right for Razin Kane and Krazy Train."
+  },
+  "eqt--sergeant-smash": {
+    "s": "From Belmont on 147 toward Centerville.Turn left onto cool hill at the \"Dysert Woods\" sign, follow to turn left on crow rd, sign that says \"dead end\". Follow to pad.",
+    "r": "Road sequence reference:\nRoute 147 → Cool Hill → Crow Rd → Pad\n\nStep-by-step directions:\n1. From Belmont on 147 toward Centerville.\n2. Turn left onto cool hill at the \"Dysert Woods\" sign.\n3. Follow to turn.\n4. Turn left on crow Road, sign that says \"dead end\".\n5. Follow to pad."
+  },
+  "eqt--shotski": {
+    "s": "70.East exit 27.Turn right onto.Brownlee Right on.Vanceville for 4 miles.Slight right on.Wherry.7 mile.On left",
+    "r": "Road sequence reference:\nExit 27 → Vanceville → Wherry\n\nStep-by-step directions:\n1. Follow 70 East.\n2. Exit 27.\n3. Turn right onto Brownlee.\n4. Turn right on Vanceville for 4 miles Slight.\n5. Turn right on Wherry for 7 miles On left."
+  },
+  "eqt--skyhawk": {
+    "s": "Take right 9.South from I70.Turn left onto.McMahon.Road/ Turn right 279.Follow to no well traffic sign.Turn left onto access road.Follow access road to the end.Turn left onto.Clark Road.Follow Clark.Road Well site will be on your right.AM Curfew is 7:00am to 7:20am & 8:00am to 8:30am PM Curfew is 2:20pm to 2:45pm & 3:30pm to 3:50pm",
+    "r": "Road sequence reference:\nRoute 9 → I-70 → Mcmahon Rd → Access Road → Clark Rd\n\nStep-by-step directions:\n1. Take right 9 South from I-70.\n2. Turn left onto McMahon Road/.\n3. Turn right 279.\n4. Follow to no well traffic sign.\n5. Turn left onto access road.\n6. Follow access road to the end.\n7. Turn left onto Clark Road.\n8. Follow Clark Road Well.\n9. Site will be on your right AM Curfew is 7:00am to 7:20am & 8:00am to 8:30am PM Curfew is 2:20pm to 2:45pm & 3:30pm to 3:50pm."
+  },
+  "eqt--smashosaurus": {
+    "s": "From I70.Take right 9.Exit.Follow right 9.South to 147.JCT (Centerville) Follow 147.East.Turn Right onto County Road 5 (Just past.Trailer Park) Follow County Road 5 to County Road 56 (Mount.Victory) Pad will be on left",
+    "r": "Road sequence reference:\nI-70 → Route 9 → Route 147 → CR-5 → Rd 5 To County Rd → Pad\n\nStep-by-step directions:\n1. From I-70 Take right 9.\n2. Exit Follow right 9 South to 147 JCT (Centerville).\n3. Follow 147 East.\n4. Turn Right onto County Road 5 (Just past Trailer Park).\n5. Follow County Road 5 to County Road 56 (Mount Victory).\n6. Pad will be on left."
+  },
+  "eqt--son-uva-digger": {
+    "s": "Directions to Gold-Digger From East -I-70- 1. Take Warnock St. Clairsville Rd -SR 9- south 2. Go thru town of Warnock to top of hill and lease rd is on left.",
+    "r": "Road sequence reference:\nWarnock St Clairsville Rd → Lease Road\n\nStep-by-step directions:\n1. Directions to Gold-Digger From East -I-70- 1.\n2. Take Warnock St Clairsville Road -State Route 9- south 2.\n3. Go thru town of Warnock to top of hill and.\n4. Lease Road is on left."
+  },
+  "eqt--spitfire": {
+    "s": "Exit 202 off I70 follow 800 south (10 miles) thru.Barnesville, thru.Somerton, to.Malaga turn left at stop sign toward.Jerusalem on 145 north (6 miles) follow to 4 way stop at.Beallsville 556 east go straight (4 miles) out to clover ridge road on left.Monroe 24 co.Road follow (4.25 miles) turn right follow (1 mile) stay to left on.Gallaher road",
+    "r": "Road sequence reference:\nExit 202 → I-70 → Route 800 → Route 145 → Route 556 → Monroe 24 Co Rd → Gallaher Rd\n\nStep-by-step directions:\n1. Exit 202 off I-70.\n2. Follow 800 south (10 miles) thru Barnesville, thru Somerton, to Malaga.\n3. Turn left at stop sign toward Jerusalem on 145 north (6 miles).\n4. Follow to 4 way stop at Beallsville 556 east.\n5. Go straight (4 miles) out to clover ridge road on left Monroe 24 co Road.\n6. Follow (4.25 miles).\n7. Turn right follow (1 mile).\n8. Stay to left on Gallaher road."
+  },
+  "eqt--thrasher": {
+    "s": "From I-70.Take exit 216 (right 9) and go south to town of.Warnock.Turn right on right 149.Follow 149 to.Watertower rd and turn left.Follow.Watertower rd to end at stop sign.Turn left onto 147.Follow 147 to lease rd on right.(Can see pad from 147).",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 149 → Watertower Rd → Route 147 → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 (right 9) and.\n2. Go south to town of Warnock.\n3. Turn right on right 149.\n4. Follow 149 to Watertower Road and.\n5. Turn left Follow Watertower Road to end at stop sign.\n6. Turn left onto 147.\n7. Follow 147 to lease Road on right (Can see pad from 147)."
+  },
+  "eqt--three-musketeers": {
+    "s": "I70 to 79 Take exit 33 onto route 40 Left onto E national pike 9.3 miles turn right onto kinder road .9 miles lease road on left",
+    "r": "Road sequence reference:\nI-70 → Exit 33 → Route 40 → E National Pike → Kinder Rd → Lease Road\n\nStep-by-step directions:\n1. Follow I-70 to 79.\n2. Take exit 33 onto route 40.\n3. Turn left onto E national pike for 9.3 miles.\n4. Turn right onto kinder road for 9 miles.\n5. Lease road on left."
+  },
+  "eqt--thunder-1": {
+    "s": "79 north Exit 14, rt 21 turn right to Waynesburg Left on Oak Forest Iron rock rd turn right Turkey hollow turn right On left",
+    "r": "Road sequence reference:\nRoute 79 → Exit 14 → Route 21 → Oak Forest Iron Rock Rd → Turkey Hollow\n\nStep-by-step directions:\n1. Follow 79 north.\n2. Exit 14, rt 21.\n3. Turn right to Waynesburg.\n4. Turn left on Oak Forest Iron rock Road.\n5. Turn right Turkey hollow.\n6. Turn right On left."
+  },
+  "eqt--thunderstruck": {
+    "s": "From I-70.Take exit 216 (right 9) and go south to town of.Warnock.Turn right on right 149.Follow 149 to.Watertower rd and turn left.Follow.Watertower rd to end at stop sign.Turn left onto 147.Follow 147 to.Chestnut Level rd and turn right.Follow.Chestnut Level to lease rd on left.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → Route 149 → Watertower Rd → Route 147 → Chestnut Level Rd → Lease Road\n\nStep-by-step directions:\n1. From I-70 Take exit 216 (right 9) and.\n2. Go south to town of Warnock.\n3. Turn right on right 149.\n4. Follow 149 to Watertower Road and.\n5. Turn left Follow Watertower Road to end at stop sign.\n6. Turn left onto 147.\n7. Follow 147 to Chestnut Level Road and.\n8. Turn right Follow Chestnut Level to lease Road on left."
+  },
+  "eqt--titan": {
+    "s": "From I-70.West into.Ohio take.Exit 216 for.Route 9/Street.Clairsville exit turn.Left onto OH-9S and travel 7.9 mi.Turn.Left onto OH-147.East/OH-9S and travel 0.8 mi.Turn.Left onto OH-147E and travel 1.2 mi to site entrance on.Left.",
+    "r": "Road sequence reference:\nI-70 → Exit 216 → OH-9S → OH-147 → OH-147E\n\nStep-by-step directions:\n1. From I-70 West into Ohio.\n2. Take Exit 216 for Route 9/Street Clairsville.\n3. Exit turn.\n4. Turn left onto OH-9S and travel for 7.9 miles Turn.\n5. Turn left onto OH-147 East/OH-9S and travel for 0.8 miles Turn.\n6. Turn left onto OH-147E and travel for 1.2 miles to site entrance on Left."
+  },
+  "eqt--tuna-nut": {
+    "s": "Take exit 208 off of i-70 Turn right (south) onto 149s Follow fo stop sign and turn right onto 147w Follow to Bethesda to 4 way stop and turn left onto main st (26s) Follow rt 26 south to Fitzgerald rd and turn left. Follow Fitzgerald to lease rd.",
+    "r": "Road sequence reference:\nExit 208 → I-70 → Route 149 → Route 147 → Bethesda To 4 Way → Main St → Route 26 → Fitzgerald Rd → Lease Road\n\nStep-by-step directions:\n1. Take exit 208 off of I-70.\n2. Turn right (south) onto 149s.\n3. Follow fo stop sign and.\n4. Turn right onto 147w.\n5. Follow to Bethesda to 4 way stop and.\n6. Turn left onto main st (26s).\n7. Follow rt 26 south to Fitzgerald Road and.\n8. Turn left Follow Fitzgerald to lease Road."
+  },
+  "eqt--walking-tall": {
+    "s": "Turn off SR 149 onto Water Tower Rd",
+    "r": "Road sequence reference:\nSR-149 → Water Tower Rd\n\nStep-by-step directions:\n1. Turn off State Route 149 onto Water Tower Road."
+  },
+  "eqt--wherry": {
+    "s": "In PA",
+    "r": "Step-by-step directions:\n1. In PA."
+  },
+  "eqt--zorro": {
+    "s": "170 to 79.Exit 33 to route 40.Left toward scenery hill 9.3 miles on East national road 40.Right on kinder road.2 miles left on lease road",
+    "r": "Road sequence reference:\nExit 33 → Route 40 → Scenery Hill → National Rd → Kinder Rd → Lease Road\n\nStep-by-step directions:\n1. Follow 170 to 79.\n2. Exit 33 to route 40 Left toward scenery hill 9.3 miles on East national road 40.\n3. Turn right on kinder road for 2 miles.\n4. Turn left on lease road."
+  }
+}
