@@ -1,0 +1,114 @@
+name: Analyze Cologie road mileage example
+
+on:
+  push:
+    branches:
+      - cologie-mileage-example
+    paths:
+      - .github/workflows/cologie-mileage-analysis.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Calculate outbound route from Cologie Pad to US-250
+        run: |
+          python3 - <<'PY'
+          import json
+          import math
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          start = (-80.913577, 40.25403)
+          # Foxes Bottom Road / US-250 junction returned by the map lookup.
+          end = (-81.018721, 40.301178)
+          coords = f"{start[0]},{start[1]};{end[0]},{end[1]}"
+          params = urllib.parse.urlencode({
+              "steps": "true",
+              "overview": "full",
+              "geometries": "geojson",
+              "annotations": "true",
+              "alternatives": "true",
+              "continue_straight": "false",
+          })
+          url = f"https://router.project-osrm.org/route/v1/driving/{coords}?{params}"
+          req = urllib.request.Request(url, headers={"User-Agent": "BrineSearch-Cologie-Route-Audit/1.0"})
+          with urllib.request.urlopen(req, timeout=60) as response:
+              payload = json.load(response)
+
+          if payload.get("code") != "Ok" or not payload.get("routes"):
+              raise SystemExit(f"OSRM route failed: {payload}")
+
+          def miles(meters):
+              return meters / 1609.344
+
+          report = {
+              "source": "OpenStreetMap road network via OSRM public route service",
+              "start": {"name": "Cologie Pad saved GPS", "longitude": start[0], "latitude": start[1]},
+              "end": {"name": "Foxes Bottom Road / US-250", "longitude": end[0], "latitude": end[1]},
+              "request_url": url,
+              "routes": [],
+          }
+          lines = [
+              "# Cologie Pad outbound mileage analysis",
+              "",
+              f"Start: `{start[1]}, {start[0]}`",
+              f"Stop: first highway connection at Foxes Bottom Road / US-250 (`{end[1]}, {end[0]}`)",
+              "",
+          ]
+
+          for route_index, route in enumerate(payload["routes"], start=1):
+              route_row = {
+                  "route_number": route_index,
+                  "distance_miles": round(miles(route["distance"]), 3),
+                  "duration_minutes": round(route["duration"] / 60, 1),
+                  "steps": [],
+              }
+              lines.extend([
+                  f"## Route {route_index}",
+                  f"Total: **{miles(route['distance']):.2f} miles**, about **{route['duration']/60:.1f} minutes** in the passenger-car routing profile.",
+                  "",
+              ])
+              for leg in route.get("legs", []):
+                  for step in leg.get("steps", []):
+                      maneuver = step.get("maneuver", {})
+                      name = (step.get("name") or "Unnamed road").strip()
+                      row = {
+                          "road": name,
+                          "distance_miles": round(miles(step.get("distance", 0)), 3),
+                          "duration_minutes": round(step.get("duration", 0) / 60, 2),
+                          "maneuver_type": maneuver.get("type"),
+                          "turn_modifier": maneuver.get("modifier"),
+                          "bearing_before": maneuver.get("bearing_before"),
+                          "bearing_after": maneuver.get("bearing_after"),
+                          "location": maneuver.get("location"),
+                      }
+                      route_row["steps"].append(row)
+                      turn = " ".join(x for x in [maneuver.get("type"), maneuver.get("modifier")] if x)
+                      lines.append(f"- **{name}** — {miles(step.get('distance', 0)):.2f} mi — {turn or 'continue'}")
+              report["routes"].append(route_row)
+              lines.append("")
+
+          Path("cologie-route-analysis.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
+          Path("cologie-route-analysis.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+          print("\n".join(lines))
+          PY
+
+      - name: Upload Cologie analysis
+        uses: actions/upload-artifact@v4
+        with:
+          name: Cologie-mileage-analysis
+          path: |
+            cologie-route-analysis.json
+            cologie-route-analysis.md
+          if-no-files-found: error
+          retention-days: 7
