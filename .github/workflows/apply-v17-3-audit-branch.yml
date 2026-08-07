@@ -1,0 +1,68 @@
+name: Apply reviewed BrineSearch V17.3 audit branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-v17-3-audit-branch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the V17.3 audit branch
+        uses: actions/checkout@v4
+        with:
+          ref: v17.3-full-product-audit
+          fetch-depth: 0
+
+      - name: Download and verify reviewed V17.3 patch
+        env:
+          SUPABASE_URL: https://wvxzqtoiwhrgovzddtvz.supabase.co
+          SUPABASE_KEY: sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd
+        run: |
+          curl -fsS "$SUPABASE_URL/rest/v1/v17_3_patch_transfer?select=part,payload&order=part.asc" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Accept: application/json" > /tmp/v17-3-parts.json
+          python - <<'PY'
+          import base64
+          import gzip
+          import hashlib
+          import json
+          from pathlib import Path
+
+          rows = json.loads(Path('/tmp/v17-3-parts.json').read_text())
+          if [row['part'] for row in rows] != list(range(7)):
+              raise SystemExit('V17.3 patch transfer is incomplete')
+          encoded = ''.join(row['payload'] for row in rows)
+          patch = gzip.decompress(base64.b64decode(encoded))
+          expected = '35b862d112c8c9d39f093c40d7286c37fcf663874f524d19954c23625dc052e7'
+          actual = hashlib.sha256(patch).hexdigest()
+          if actual != expected:
+              raise SystemExit(f'V17.3 patch checksum mismatch: {actual}')
+          Path('/tmp/v17.3.patch').write_bytes(patch)
+          print(f'Verified V17.3 patch: {len(patch):,} bytes')
+          PY
+          git apply --check /tmp/v17.3.patch
+          git apply /tmp/v17.3.patch
+
+      - name: Remove temporary audit packaging workflow
+        run: rm -f .github/workflows/package-v17-3-audit-source.yml
+
+      - name: Verify assembled V17.3 source
+        run: |
+          node v17/scripts/verify.mjs
+          node v17/scripts/verify-road-manager.mjs
+          node v17/scripts/verify-v17-3.mjs
+
+      - name: Commit reviewed V17.3 product build
+        run: |
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git commit -m "Build BrineSearch V17.3 full product polish"
+          git push origin HEAD:v17.3-full-product-audit
