@@ -36,7 +36,7 @@ jobs:
 
           import networkx as nx
           from pyproj import Transformer
-          from shapely.geometry import Point, LineString, MultiLineString, GeometryCollection, shape, mapping
+          from shapely.geometry import Point, LineString, shape
           from shapely.ops import unary_union, linemerge, nearest_points, transform
 
           PAD = (-80.977135, 40.182544)
@@ -55,7 +55,7 @@ jobs:
             'resultRecordCount': '200000',
           }
           url = SERVICE + '?' + urllib.parse.urlencode(params)
-          req = urllib.request.Request(url, headers={'User-Agent': 'BrineSearch-Pickens-Road-Audit/1.0'})
+          req = urllib.request.Request(url, headers={'User-Agent': 'BrineSearch-Pickens-Road-Audit/1.1'})
           with urllib.request.urlopen(req, timeout=90) as response:
               data = json.load(response)
           if data.get('error'):
@@ -128,25 +128,28 @@ jobs:
                   if weight > 0:
                       graph.add_edge(a, b, weight=weight)
 
-          def insert_point(point, label):
+          def insert_point(point):
               best = None
               for a, b, edge_data in list(graph.edges(data=True)):
                   segment = LineString([a, b])
                   projected = segment.interpolate(segment.project(point))
                   distance = projected.distance(point)
                   if best is None or distance < best[0]:
-                      best = (distance, a, b, projected, edge_data['weight'])
+                      best = (distance, a, b, projected)
               if best is None:
                   raise SystemExit('Could not insert a measurement point into the OH-519 road graph.')
-              distance, a, b, projected, weight = best
-              node = (round(projected.x, 3), round(projected.y, 3), label)
-              graph.remove_edge(a, b)
-              graph.add_edge(a, node, weight=math.dist(a, (projected.x, projected.y)))
-              graph.add_edge(node, b, weight=math.dist((projected.x, projected.y), b))
+              distance, a, b, projected = best
+              node = (round(projected.x, 3), round(projected.y, 3))
+              if node == a or node == b:
+                  return node, distance
+              if graph.has_edge(a, b):
+                  graph.remove_edge(a, b)
+              graph.add_edge(a, node, weight=math.dist(a, node))
+              graph.add_edge(node, b, weight=math.dist(node, b))
               return node, distance
 
-          start_node, start_snap_m = insert_point(intersection_utm, 'OH9_OH519')
-          end_node, end_snap_m = insert_point(pad_projection_utm, 'PAD_APPROACH')
+          start_node, start_snap_m = insert_point(intersection_utm)
+          end_node, end_snap_m = insert_point(pad_projection_utm)
           distance_meters = nx.shortest_path_length(graph, start_node, end_node, weight='weight')
           distance_miles = distance_meters / 1609.344
           pad_offset_meters = pad_utm.distance(pad_projection_utm)
