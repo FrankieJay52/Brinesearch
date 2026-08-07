@@ -1,0 +1,36 @@
+/* BrineSearch V17.3.1 — Road Manager live-use fixes */
+.road-manager-tools-v1731{display:grid;grid-template-columns:minmax(180px,1fr) minmax(130px,170px) minmax(150px,190px) auto;gap:8px;align-items:center}
+.road-manager-tools-v1731 select{min-height:46px;border:1px solid var(--line);background:var(--panel-2);color:var(--text);border-radius:13px;padding:0 34px 0 12px;font-size:.78rem;font-weight:750}
+.road-section-guide{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.road-section-guide span{display:inline-flex;align-items:center;min-height:28px;padding:0 9px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--panel-2) 86%,var(--accent) 14%);font-size:.65rem;font-weight:850;color:var(--muted)}
+.road-manager-directory-card-v1731{padding:12px}
+.road-state-category-county-road>header{background:color-mix(in srgb,var(--panel-2) 88%,#6aa5ff 12%)}
+.road-state-category-township-road>header{background:color-mix(in srgb,var(--panel-2) 88%,#b487ff 12%)}
+.road-state-category-local-road>header{background:color-mix(in srgb,var(--panel-2) 88%,#56c9a9 12%)}
+.road-state-category-access-road>header{background:color-mix(in srgb,var(--panel-2) 88%,#e0a756 12%)}
+.road-state-category-review-road>header{background:color-mix(in srgb,var(--panel-2) 88%,#ef775f 12%)}
+.road-row-grouped{cursor:pointer;outline:none;transition:border-color .16s ease,background .16s ease,transform .16s ease}
+.road-row-grouped:hover,.road-row-grouped:focus-visible,.road-row-selected{border-color:color-mix(in srgb,var(--line) 35%,var(--accent) 65%);background:color-mix(in srgb,var(--panel-2) 84%,var(--accent) 16%)}
+.road-row-grouped:focus-visible{box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 30%,transparent)}
+.road-row-grouped .road-status{pointer-events:none}
+#roadManagerEditor:not(:empty){animation:roadEditorReveal .18s ease-out}
+@keyframes roadEditorReveal{from{opacity:0}to{opacity:1}}
+.route-prep-filters:has(#routePrepCompany){grid-template-columns:minmax(170px,1fr) repeat(3,minmax(135px,180px))}
+.route-prep-company-active{display:inline-flex;margin-top:8px;padding:6px 9px;border:1px solid color-mix(in srgb,var(--line) 55%,var(--accent) 45%);border-radius:999px;background:color-mix(in srgb,var(--panel-2) 82%,var(--accent) 18%);color:var(--accent);font-size:.66rem;font-weight:850;line-height:1.25}
+.route-prep-detail-head>[data-open-route-pad]{align-self:flex-start}
+@media(max-width:820px){
+  .road-manager-tools-v1731{grid-template-columns:minmax(0,1fr) minmax(130px,1fr)}
+  .road-manager-tools-v1731 #roadManagerSearch{grid-column:1/-1}
+  .road-manager-tools-v1731 #roadManagerAdd{grid-column:1/-1}
+  .route-prep-filters:has(#routePrepCompany){grid-template-columns:repeat(2,minmax(0,1fr))}
+  .route-prep-filters #routePrepSearch{grid-column:1/-1}
+}
+@media(max-width:520px){
+  .road-manager-tools-v1731{grid-template-columns:1fr}
+  .road-manager-tools-v1731 #roadManagerSearch,.road-manager-tools-v1731 #roadManagerAdd{grid-column:auto}
+  .route-prep-filters:has(#routePrepCompany){grid-template-columns:1fr}
+  .route-prep-filters #routePrepSearch{grid-column:auto}
+  .road-section-guide{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+  .road-section-guide span{justify-content:center;text-align:center}
+}
+@media(prefers-reduced-motion:reduce){#roadManagerEditor:not(:empty){animation:none}.road-row-grouped{transition:none}}

@@ -1,4 +1,4 @@
-name: Deploy BrineSearch V17.3 to GitHub Pages
+name: Deploy BrineSearch V17.3.1 to GitHub Pages
 
 on:
   push:
@@ -35,7 +35,7 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Verify and build BrineSearch V17.3
+      - name: Verify and build BrineSearch V17.3.1
         run: npm run build
 
       - name: Prepare repository-path assets for GitHub Pages
@@ -50,7 +50,7 @@ jobs:
           test -f dist-pages/pages-deployment.json
           grep -q "/${{ github.event.repository.name }}/app/brinesearch-app.js" dist-pages/index.html
           grep -q "/${{ github.event.repository.name }}/styles/app.css" dist-pages/index.html
-          grep -q '"version": "17.3.0"' dist-pages/pages-deployment.json
+          grep -q '"version": "17.3.1"' dist-pages/pages-deployment.json
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -90,7 +90,7 @@ jobs:
         run: |
           if [ "$DEPLOY_OUTCOME" = "success" ]; then
             STATE="success"
-            DESCRIPTION="BrineSearch V17.3 is live"
+            DESCRIPTION="BrineSearch V17.3.1 is live"
             TARGET_URL="${PAGE_URL:-$FALLBACK_PAGE_URL}"
           else
             STATE="failure"

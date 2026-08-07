@@ -1,5 +1,5 @@
 {
-  "version": "17.3.0",
+  "version": "17.3.1",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -23,7 +23,8 @@
     "17-assistant-answers.js",
     "18-account-theme-startup.js",
     "19-road-manager-route-prep.js",
-    "20-road-manager-sections.js"
+    "20-road-manager-sections.js",
+    "21-road-manager-live-fixes.js"
   ],
-  "assembledSha256": "025ce8db4a0bc33ebc1f031a487afb5828f195107fb4feb16120c9cac422725a"
+  "assembledSha256": "5264fe7b989a08f2d7621b609ef9917a70e37a594954813a667c9b8c22266fea"
 }

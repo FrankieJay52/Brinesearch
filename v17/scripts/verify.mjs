@@ -38,7 +38,8 @@ for (const file of directionManifest.files) {
 if (rewriteCount !== directionManifest.recordCount || rewriteCount < 100) throw new Error('Direction rewrite data did not assemble correctly.');
 const serviceWorker = await fs.readFile(path.join(v17Root, 'public/sw.js'), 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
-if (!serviceWorker.includes("brinesearch-v17-3-0")) throw new Error('V17.3 service-worker cache marker is missing.');
+if (!serviceWorker.includes("brinesearch-v17-3-1")) throw new Error('V17.3.1 service-worker cache marker is missing.');
+if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3.1 service worker is missing live app-asset refresh logic.');
 if (!serviceWorker.includes('./app/front-sign-structured.js')) throw new Error('Structured scanner is missing from the offline shell.');
 if (serviceWorker.includes('./v16-25-hotfix.js')) throw new Error('Legacy V16.25 OCR hotfix is still in the V17.3 offline shell.');
 const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
@@ -47,4 +48,4 @@ for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-
 }
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, ${directionManifest.files.length} direction-data files, structured V17.2 scanner, absolute Field Mark icons, clean index, and valid service worker.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, ${directionManifest.files.length} direction-data files, structured V17.2 scanner, absolute Field Mark icons, clean index, and live-updating service worker.`);

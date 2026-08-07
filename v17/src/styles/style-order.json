@@ -1,5 +1,5 @@
 {
-  "version": "17.3.0",
+  "version": "17.3.1",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -24,7 +24,8 @@
     "27-v17-3-product-polish.css",
     "28-v17-3-icon-and-layout-fixes.css",
     "29-road-manager-route-prep.css",
-    "30-road-manager-sections.css"
+    "30-road-manager-sections.css",
+    "31-road-manager-live-fixes.css"
   ],
-  "assembledSha256": "a742420f6158f97c7d150b6917339538ed1e70719a262ff47406a53e9f0e711e"
+  "assembledSha256": "f1f532728f0cccb4eca4634bd43f26d65bc085a1bdda12a3e3c508319a3ae029"
 }

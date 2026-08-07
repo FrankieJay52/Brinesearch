@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'brinesearch-v17-3-0-source-provenance';
+const CACHE_VERSION = 'brinesearch-v17-3-1-road-manager-live';
 const DIRECTION_DATA_FILES = __DIRECTION_DATA_FILES__;
 const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',
@@ -14,23 +14,33 @@ const APP_SHELL = [
   './icons/fm-profile-inactive.svg', './icons/fm-settings-inactive.svg', './icons/fm-weather-inactive.svg',
   './icons/fm-pad-inactive.svg'
 ].concat(DIRECTION_DATA_FILES);
-self.addEventListener('install', event => event.waitUntil((async () => {
+
+async function refreshAppShell() {
   const cache = await caches.open(CACHE_VERSION);
   await Promise.allSettled(APP_SHELL.map(async asset => {
     const response = await fetch(asset, { cache: 'reload' });
     if (response.ok) await cache.put(asset, response);
   }));
+  return cache;
+}
+
+self.addEventListener('install', event => event.waitUntil((async () => {
+  await refreshAppShell();
   await self.skipWaiting();
 })()));
+
 self.addEventListener('activate', event => event.waitUntil((async () => {
   const keys = await caches.keys();
   await Promise.all(keys.filter(key => key.startsWith('brinesearch-') && key !== CACHE_VERSION).map(key => caches.delete(key)));
   await self.clients.claim();
 })()));
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin && event.request.destination !== 'image') return;
+  const sameOrigin = url.origin === self.location.origin;
+  if (!sameOrigin && event.request.destination !== 'image') return;
+
   if (event.request.mode === 'navigate') {
     event.respondWith(fetch(event.request, { cache: 'no-store' }).then(async response => {
       if (response.ok) (await caches.open(CACHE_VERSION)).put('./index.html', response.clone());
@@ -38,11 +48,27 @@ self.addEventListener('fetch', event => {
     }).catch(() => caches.match('./index.html')));
     return;
   }
+
+  const networkFirstAppAsset = sameOrigin && (
+    /\.(?:js|css|json|webmanifest)$/i.test(url.pathname)
+    || url.pathname.endsWith('/sw.js')
+  );
+
+  if (networkFirstAppAsset) {
+    event.respondWith(fetch(event.request, { cache: 'no-store' }).then(async response => {
+      if (response.ok) (await caches.open(CACHE_VERSION)).put(event.request, response.clone());
+      return response;
+    }).catch(() => caches.match(event.request)));
+    return;
+  }
+
   event.respondWith(caches.match(event.request).then(hit => hit || fetch(event.request).then(async response => {
-    if (response.ok && url.origin === self.location.origin) (await caches.open(CACHE_VERSION)).put(event.request, response.clone());
+    if (response.ok && sameOrigin) (await caches.open(CACHE_VERSION)).put(event.request, response.clone());
     return response;
   })));
 });
+
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') event.waitUntil(self.skipWaiting());
+  if (event.data?.type === 'BRINESEARCH_REFRESH_CACHE') event.waitUntil(refreshAppShell());
 });
