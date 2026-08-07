@@ -19,7 +19,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .github/v16-20-road-db.part-* | base64 -d | gzip -d > road-database.js
+          cat .github/v16-20-road-db.part-* | gzip -d > road-database.js
           python - <<'PY'
           from pathlib import Path
           import re
