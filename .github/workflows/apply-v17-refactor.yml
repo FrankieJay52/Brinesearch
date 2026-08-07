@@ -1,0 +1,49 @@
+name: Build BrineSearch V17 refactor
+
+on:
+  push:
+    branches: [v17-refactor]
+    paths:
+      - '.github/v17-refactor/create_v17.py'
+      - '.github/workflows/apply-v17-refactor.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  refactor:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v17-refactor
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: package-lock.json
+        continue-on-error: true
+
+      - name: Generate modular V17 source
+        run: python .github/v17-refactor/create_v17.py
+
+      - name: Verify source-preserving split
+        run: node v17/scripts/verify.mjs
+
+      - name: Install Vite and build production preview
+        run: |
+          npm install
+          npm run build
+
+      - name: Commit the completed refactor branch
+        run: |
+          rm -rf .github/v17-refactor
+          rm -f .github/workflows/apply-v17-refactor.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Create BrineSearch V17 modular refactor [skip ci]"
+          git push origin v17-refactor
