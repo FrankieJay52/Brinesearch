@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'brinesearch-v16-20';
+const CACHE_VERSION = 'brinesearch-v16-20-contact-1';
+const CONTACT_EMAIL = 'frankjhaller@gmail.com';
 const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallback-data.json', './road-database.js', './road-database.schema.json', './road_name_review.csv', './brand-kit/brinesearch-apple-touch-icon.png', './brand-kit/brinesearch-app-icon-512.png', './brand-kit/brinesearch-app-icon.png', './brand-kit/brinesearch-truck-logo.png', './brand-kit/brinesearch-truck-logo-footer-dark.png', './brand-kit/brinesearch-truck-logo-footer-day.png',
   "./icons/fm-collapse-inactive.svg",
   "./icons/fm-upload-inactive.svg",
@@ -100,6 +101,27 @@ const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallba
   "./icons/large/fm-edit-pad-large.svg",
 ];
 
+async function applyContactEmail(response) {
+  if (!response) return response;
+  const contentType = response.headers.get('content-type') || '';
+  if (!contentType.toLowerCase().includes('text/html')) return response;
+
+  let html = await response.text();
+  html = html
+    .replace(/mailto:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, `mailto:${CONTACT_EMAIL}`)
+    .replace(/[A-Z0-9._%+-]+@brinesearch\.com/gi, CONTACT_EMAIL);
+
+  const headers = new Headers(response.headers);
+  headers.delete('content-length');
+  headers.set('content-type', 'text/html; charset=utf-8');
+
+  return new Response(html, {
+    status: response.status,
+    statusText: response.statusText,
+    headers
+  });
+}
+
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(APP_SHELL)));
 });
@@ -123,6 +145,7 @@ self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
+        .then(applyContactEmail)
         .then(response => {
           if (response.ok) {
             const copy = response.clone();
@@ -130,7 +153,7 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(async () => applyContactEmail(await caches.match('./index.html')))
     );
     return;
   }
