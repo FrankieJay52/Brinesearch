@@ -21,7 +21,7 @@ for (const testCase of cases) {
   const pageErrors = [];
   const assetFailures = [];
 
-  page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('pageerror', error => pageErrors.push(error.stack || error.message));
   page.on('response', response => {
     try {
       const url = new URL(response.url());
@@ -48,15 +48,25 @@ for (const testCase of cases) {
       .filter(Boolean);
 
     const iconUrls = new Set();
+    const stylesheetBase = new URL('/styles/field-mark-icons.css', document.baseURI);
     document.querySelectorAll('.fm-icon').forEach(icon => {
-      const raw = getComputedStyle(icon).getPropertyValue('--fm-icon').trim();
-      const match = raw.match(/url\(["']?([^"')]+)["']?\)/i);
-      if (match) iconUrls.add(new URL(match[1], document.baseURI).href);
+      const style = getComputedStyle(icon);
+      const resolvedMask = style.webkitMaskImage || style.maskImage || '';
+      const resolvedMatch = resolvedMask.match(/url\(["']?([^"')]+)["']?\)/i);
+      if (resolvedMatch) {
+        iconUrls.add(new URL(resolvedMatch[1], document.baseURI).href);
+        return;
+      }
+      const raw = style.getPropertyValue('--fm-icon').trim();
+      const rawMatch = raw.match(/url\(["']?([^"')]+)["']?\)/i);
+      if (rawMatch) iconUrls.add(new URL(rawMatch[1], stylesheetBase).href);
     });
+
+    const imageUrls = new Set();
     document.querySelectorAll('img[src]').forEach(img => {
       try {
         const url = new URL(img.getAttribute('src'), document.baseURI);
-        if (url.origin === location.origin) iconUrls.add(url.href);
+        if (url.origin === location.origin) imageUrls.add(url.href);
       } catch {}
     });
 
@@ -69,13 +79,39 @@ for (const testCase of cases) {
       }
     }));
 
+    const imageChecks = await Promise.all(Array.from(imageUrls).map(async url => {
+      try {
+        const response = await fetch(url, { cache: 'no-store' });
+        return response.ok ? null : `${response.status} ${new URL(url).pathname}`;
+      } catch (error) {
+        return `${new URL(url).pathname}: ${error.message}`;
+      }
+    }));
+
+    const brokenImages = Array.from(document.images)
+      .filter(img => !img.src.startsWith('data:') && img.complete && img.naturalWidth === 0)
+      .map(img => {
+        try { return new URL(img.src, document.baseURI).pathname; }
+        catch { return img.src; }
+      });
+
+    const quickIcons = Array.from(document.querySelectorAll('.dashboard-quick .fm-icon'));
+    const quickIconMasks = quickIcons.map(icon => {
+      const style = getComputedStyle(icon);
+      return style.webkitMaskImage || style.maskImage || '';
+    });
+
     return {
       title: document.title,
       bodyTextLength: bodyText.length,
       hasBrand: /BrineSearch/i.test(document.title + ' ' + bodyText),
       overflow,
       controls,
+      quickIconCount: quickIcons.length,
+      quickIconMasks,
       missingIcons: iconChecks.filter(Boolean),
+      missingImages: imageChecks.filter(Boolean),
+      brokenImages,
       globals: {
         roadDatabase: Boolean(window.BrineSearchRoadDB),
         roadManager: Boolean(window.BrineSearchRoadManager),
@@ -90,19 +126,26 @@ for (const testCase of cases) {
   if (!audit.controls.some(text => /^Home$/i.test(text) || /Search/i.test(text))) {
     failures.push(`${testCase.name}: core navigation controls were not visible`);
   }
+  if (audit.quickIconCount !== 6) failures.push(`${testCase.name}: expected 6 dashboard quick-action icons, found ${audit.quickIconCount}`);
+  if (audit.quickIconMasks.some(mask => !/\/icons\//.test(mask))) failures.push(`${testCase.name}: a dashboard quick-action icon did not resolve to /icons/`);
   if (!audit.globals.roadDatabase) failures.push(`${testCase.name}: Road Database did not start`);
   if (!audit.globals.roadManager) failures.push(`${testCase.name}: Road Manager did not start`);
   if (!audit.globals.frontSignScanner) failures.push(`${testCase.name}: Front Sign Scanner did not start`);
   for (const error of pageErrors) failures.push(`${testCase.name} page error: ${error}`);
   for (const error of assetFailures) failures.push(`${testCase.name} asset failure: ${error}`);
   for (const error of audit.missingIcons) failures.push(`${testCase.name} missing icon: ${error}`);
+  for (const error of audit.missingImages) failures.push(`${testCase.name} missing image: ${error}`);
+  for (const error of audit.brokenImages) failures.push(`${testCase.name} broken image: ${error}`);
 
   results.push({
     case: testCase.name,
     title: audit.title,
     bodyTextLength: audit.bodyTextLength,
     overflow: audit.overflow,
-    iconCount: audit.missingIcons.length,
+    quickIconCount: audit.quickIconCount,
+    missingIconCount: audit.missingIcons.length,
+    missingImageCount: audit.missingImages.length,
+    brokenImages: audit.brokenImages,
     globals: audit.globals,
     pageErrors,
     assetFailures
@@ -116,4 +159,4 @@ if (failures.length) {
   console.error('\nV17 browser audit failed:\n- ' + failures.join('\n- '));
   process.exit(1);
 }
-console.log('\nV17 browser audit passed on iPhone and desktop viewports.');
+console.log('\nV17 browser audit passed on iPhone and desktop viewports with resolved Field Mark icons.');
