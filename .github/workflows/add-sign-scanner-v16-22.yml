@@ -1,0 +1,153 @@
+name: Build and audit BrineSearch V16.22
+
+on:
+  push:
+    paths:
+      - .github/workflows/add-sign-scanner-v16-22.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-audit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - name: Verify required V16.22 source files
+        run: |
+          test -s sign-scanner.js
+          test -s sign-scanner.css
+          test -s tests/sign-scanner-v16-22.cjs
+          test -s CHANGELOG_V16.22.md
+          node --check sign-scanner.js
+
+      - name: Vendor the browser OCR API layer
+        shell: bash
+        run: |
+          mkdir -p vendor/tesseract
+          curl --retry 3 --fail --location --silent --show-error \
+            https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/dist/tesseract.min.js \
+            --output vendor/tesseract/tesseract.min.js
+          curl --retry 3 --fail --location --silent --show-error \
+            https://cdn.jsdelivr.net/npm/tesseract.js@7.0.0/LICENSE.md \
+            --output vendor/tesseract/LICENSE.md
+          test -s vendor/tesseract/tesseract.min.js
+          test -s vendor/tesseract/LICENSE.md
+
+      - name: Integrate scanner into the real application
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          index_path = Path('index.html')
+          sw_path = Path('sw.js')
+          road_manager_path = Path('road-manager.js')
+
+          index = index_path.read_text(encoding='utf-8')
+          assert '</head>' in index.lower(), 'index.html has no closing head tag'
+          assert '</body>' in index.lower(), 'index.html has no closing body tag'
+
+          css_tag = '<link rel="stylesheet" href="./sign-scanner.css?v=16.22" data-brinesearch-sign-scanner="style">'
+          js_tag = '<script src="./sign-scanner.js?v=16.22" defer data-brinesearch-sign-scanner="script"></script>'
+          if 'data-brinesearch-sign-scanner="style"' not in index:
+              index = re.sub(r'</head>', css_tag + '\n</head>', index, count=1, flags=re.I)
+          if 'data-brinesearch-sign-scanner="script"' not in index:
+              index = re.sub(r'</body>', js_tag + '\n</body>', index, count=1, flags=re.I)
+
+          version_patterns = [
+              r"((?:const|let|var)\s+(?:APP_)?VERSION\s*=\s*['\"])16\.21",
+              r"((?:const|let|var)\s+CURRENT_VERSION\s*=\s*['\"])16\.21",
+              r"((?:const|let|var)\s+VERSION_NUMBER\s*=\s*['\"])16\.21",
+          ]
+          for pattern in version_patterns:
+              index = re.sub(pattern, r'\g<1>16.22', index)
+          index_path.write_text(index, encoding='utf-8')
+
+          sw = sw_path.read_text(encoding='utf-8')
+          sw = sw.replace("brinesearch-v16-21", "brinesearch-v16-22")
+          assets = "'./sign-scanner.js', './sign-scanner.css', './vendor/tesseract/tesseract.min.js', "
+          if "'./sign-scanner.js'" not in sw:
+              sw = sw.replace('const APP_SHELL = [', 'const APP_SHELL = [' + assets, 1)
+          sw_path.write_text(sw, encoding='utf-8')
+
+          if road_manager_path.exists():
+              road = road_manager_path.read_text(encoding='utf-8')
+              road = road.replace('BrineSearch V16.21 — Road Manager', 'BrineSearch V16.22 — Road Manager', 1)
+              road = road.replace("var VERSION = '16.21';", "var VERSION = '16.22';", 1)
+              road_manager_path.write_text(road, encoding='utf-8')
+
+          assert index.count('data-brinesearch-sign-scanner="style"') == 1
+          assert index.count('data-brinesearch-sign-scanner="script"') == 1
+          assert 'brinesearch-v16-22' in sw
+          assert "'./sign-scanner.js'" in sw
+
+      - name: Install browser test runner
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install chromium
+
+      - name: Run local BrineSearch server
+        shell: bash
+        run: |
+          python3 -m http.server 8080 > /tmp/brinesearch-v16-22-server.log 2>&1 &
+          echo $! > /tmp/brinesearch-v16-22-server.pid
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/brinesearch-v16-22-server.log
+          exit 1
+
+      - name: Test pad page, Edit Pad, OCR review, themes and iPhone widths
+        run: node tests/sign-scanner-v16-22.cjs
+
+      - name: Write audit report
+        shell: bash
+        run: |
+          cat > AUDIT_V16.22.md <<'REPORT'
+          # BrineSearch V16.22 Audit
+
+          Status: **Passed**
+
+          Automated checks completed against the real BrineSearch application source:
+
+          - JavaScript syntax validation
+          - Pad Page Scan Front Sign control
+          - Edit Pad Scan Front Sign control
+          - OCR sign-text parser
+          - Camera file input and mocked OCR worker boundary
+          - Review-before-apply workflow
+          - Pad Page Front Sign Scan information card
+          - Edit Pad matching-field population
+          - Existing-value review behavior
+          - No full sign photo stored in the saved record
+          - Day theme and night theme
+          - 390 × 844 iPhone layout
+          - 430 × 932 iPhone layout
+          - 1280 × 800 desktop layout
+          - Horizontal-overflow checks on pad, edit, and review screens
+          - Duplicate scanner-control check during SPA navigation
+          - Browser page-error check
+          REPORT
+
+      - name: Commit tested V16.22 integration
+        shell: bash
+        run: |
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add index.html sw.js road-manager.js sign-scanner.js sign-scanner.css vendor/tesseract tests/sign-scanner-v16-22.cjs CHANGELOG_V16.22.md AUDIT_V16.22.md
+          if git diff --cached --quiet; then
+            echo "No V16.22 changes to commit."
+            exit 0
+          fi
+          git commit -m "Integrate and audit BrineSearch V16.22 sign scanner"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
