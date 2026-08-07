@@ -1,5 +1,5 @@
 {
-  "version": "17.2.0",
+  "version": "17.3.0",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -20,7 +20,8 @@
     "23-driver-pad.css",
     "24-weather-feed.css",
     "25-sharing-directions-brand.css",
-    "26-verification-editor-install.css"
+    "26-verification-editor-install.css",
+    "27-v17-3-product-polish.css"
   ],
-  "assembledSha256": "40d56ceaaf400b7164a68f718cab08180de1c830eacfff891e91d308da46df46"
+  "assembledSha256": "0595c814a1033c7a08f83f692a3ac0ac134caafc193d4b0ec25da60d8598e65c"
 }

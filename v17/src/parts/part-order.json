@@ -1,5 +1,5 @@
 {
-  "version": "17.2.0",
+  "version": "17.3.0",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -23,5 +23,5 @@
     "17-assistant-answers.js",
     "18-account-theme-startup.js"
   ],
-  "assembledSha256": "3b4344b2138a16e6b48bc2684af058204e9190387907a4a97e5af6dc0010fb17"
+  "assembledSha256": "2113c2058960878de417667eae4d4c512127c08694a56bd02874ad6a4416bae7"
 }
