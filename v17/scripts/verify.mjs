@@ -16,8 +16,10 @@ const parts = JSON.parse(await fs.readFile(path.join(v17Root, 'src/parts/part-or
 const styles = JSON.parse(await fs.readFile(path.join(v17Root, 'src/styles/style-order.json'), 'utf8'));
 new vm.Script(app, { filename: 'brinesearch-app.js' });
 new vm.Script(structuredScanner, { filename: 'front-sign-structured.js' });
-if (sha256(app) !== parts.assembledSha256) throw new Error('Assembled application differs from the ordered source parts.');
-if (sha256(css) !== styles.assembledSha256) throw new Error('Assembled CSS differs from the ordered source parts.');
+const appSha256 = sha256(app);
+const cssSha256 = sha256(css);
+if (appSha256 !== parts.assembledSha256) throw new Error(`Assembled application differs from the ordered source parts. Expected ${parts.assembledSha256}; generated ${appSha256}.`);
+if (cssSha256 !== styles.assembledSha256) throw new Error(`Assembled CSS differs from the ordered source parts. Expected ${styles.assembledSha256}; generated ${cssSha256}.`);
 if (fieldMarkCss.includes("url('./icons/")) throw new Error('Field Mark override still contains stylesheet-relative icon URLs.');
 for (const requiredIcon of ['/icons/fm-search-inactive.svg','/icons/fm-home-inactive.svg','/icons/fm-feed-inactive.svg','/icons/fm-favorites-inactive.svg','/icons/fm-add-inactive.svg','/icons/fm-offline-inactive.svg']) {
   if (!fieldMarkCss.includes(`url('${requiredIcon}')`)) throw new Error(`Missing absolute Field Mark icon ${requiredIcon}.`);
