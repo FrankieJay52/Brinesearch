@@ -11,13 +11,42 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: brinesearch-v17-3-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  patch-route-families:
+    name: Apply grouped Road Manager route-family patch
+    if: github.event_name == 'pull_request' && github.head_ref == 'road-manager-route-prep-ui'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out Route Prep branch
+        uses: actions/checkout@v4
+        with:
+          ref: road-manager-route-prep-ui
+          fetch-depth: 0
+
+      - name: Patch and commit when helper exists
+        shell: bash
+        run: |
+          if [ ! -f .github/scripts/patch-road-manager-route-families.py ]; then
+            echo "Route-family patch already applied."
+            exit 0
+          fi
+          python3 .github/scripts/patch-road-manager-route-families.py
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No patch changes were produced."
+            exit 0
+          fi
+          git commit -m "Group duplicate route numbers and show ambiguous references safely"
+          git push origin HEAD:road-manager-route-prep-ui
+
   build-test-package:
     name: Build, browser-test, and package V17.3
     runs-on: ubuntu-latest
