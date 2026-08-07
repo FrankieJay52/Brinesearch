@@ -29,3 +29,31 @@
   .dashboard-mini-stats span{font-size:.6rem!important;padding-inline:3px!important}
   .dashboard-mini-stats strong{font-size:.7rem!important}
 }
+
+/* Daylight contrast correction — keep every driver control readable in direct sun. */
+html[data-theme="day"] .v173-dashboard .dashboard-search input{
+  background:#fff!important;
+  color:#102033!important;
+  border-color:#9eb8cf!important;
+  box-shadow:0 5px 16px rgba(24,52,82,.09)!important;
+}
+html[data-theme="day"] .v173-dashboard .dashboard-search input::placeholder{color:#667b8f!important;opacity:1}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary){
+  background:#f5f9fc!important;
+  color:#102033!important;
+  border-color:#b8cadb!important;
+  box-shadow:0 5px 14px rgba(22,48,78,.07)!important;
+}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary) strong{color:#102033!important}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary) small{color:#52677c!important}
+html[data-theme="day"] .v173-dashboard .dashboard-quick:not(.primary)>.fm-icon{color:#087f75!important}
+html[data-theme="day"] .footer{
+  background:#f5f8fb!important;
+  color:#1c3045!important;
+  border-top-color:#c5d4e2!important;
+}
+html[data-theme="day"] .legal-footer-brand,
+html[data-theme="day"] .legal-footer-brand strong,
+html[data-theme="day"] .legal-footer-main{color:#1c3045!important}
+html[data-theme="day"] .legal-footer-note{color:#53687d!important}
+html[data-theme="day"] .legal-footer-links a{color:#087f75!important}
