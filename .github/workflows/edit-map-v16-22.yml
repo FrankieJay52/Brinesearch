@@ -1,0 +1,63 @@
+name: Extract V16.22 Edit Pad Map
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/edit-map-v16-22.yml
+
+permissions:
+  contents: write
+
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract focused Edit Pad integration map
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('index.html').read_text(encoding='utf-8', errors='replace')
+          out=[]
+
+          funcs=[]
+          for m in re.finditer(r'(?:async\s+)?function\s+([A-Za-z0-9_$]+)\s*\(', text):
+            name=m.group(1)
+            if re.search(r'pad|edit|save|detail|route|submit|modal', name, re.I):
+              funcs.append((m.start(),name))
+          out.append('FUNCTIONS')
+          for pos,name in funcs:
+            out.append(f'{pos}: {name}')
+
+          terms=[
+            'PAD_EDIT_STORAGE_KEY','savedPadEdits','Save Pad','Edit Pad','editPadForm',
+            'padEdit','pad-edit','edit-pad','submitPadEdit','savePadEdit','renderPadDetail',
+            'renderPad','openEdit','showEdit','editCompany','editPadName','editAddress',
+            'editCounty','editTownship','editWell','editApi','editProperty','editNotes',
+            'editGate','editPhone','editContact','editDirections'
+          ]
+          for term in terms:
+            ms=list(re.finditer(re.escape(term),text,re.I))
+            out.append('\n'+'='*80+f'\nTERM {term} MATCHES={len(ms)}')
+            for i,m in enumerate(ms[:8],1):
+              out.append(f'\n--- {i} @ {m.start()} ---\n'+text[max(0,m.start()-1400):min(len(text),m.end()+3200)])
+
+          out.append('\n'+'='*80+'\nEDIT-LIKE CONTROL TAGS')
+          for tag in re.findall(r'<(?:input|textarea|select|button|form|label)\b[^>]*>',text,re.I):
+            if re.search(r'edit|pad|company|operator|address|county|township|well|api|property|gate|phone|contact|notes|directions',tag,re.I):
+              out.append(tag)
+
+          Path('V16.22_EDIT_MAP.txt').write_text('\n'.join(out),encoding='utf-8')
+          PY
+      - name: Commit edit map
+        shell: bash
+        run: |
+          git config user.name "BrineSearch Release Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add V16.22_EDIT_MAP.txt
+          git diff --cached --quiet && exit 0
+          git commit -m "Extract V16.22 Edit Pad integration map"
+          git push
