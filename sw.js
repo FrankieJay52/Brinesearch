@@ -1,6 +1,7 @@
-const CACHE_VERSION = 'brinesearch-v16-21';
+const CACHE_VERSION = 'brinesearch-v16-22';
 const CONTACT_EMAIL = 'frankjhaller@gmail.com';
-const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallback-data.json', './road-database.js', './road-manager.js', './road-database.schema.json', './road_name_review.csv', './brand-kit/brinesearch-apple-touch-icon.png', './brand-kit/brinesearch-app-icon-512.png', './brand-kit/brinesearch-app-icon.png', './brand-kit/brinesearch-truck-logo.png', './brand-kit/brinesearch-truck-logo-footer-dark.png', './brand-kit/brinesearch-truck-logo-footer-day.png',
+const SCANNER_SCRIPT = './front-sign-scanner.js';
+const APP_SHELL = ['./', './index.html', SCANNER_SCRIPT, './manifest.webmanifest', './pad-fallback-data.json', './road-database.js', './road-manager.js', './road-database.schema.json', './road_name_review.csv', './brand-kit/brinesearch-apple-touch-icon.png', './brand-kit/brinesearch-app-icon-512.png', './brand-kit/brinesearch-app-icon.png', './brand-kit/brinesearch-truck-logo.png', './brand-kit/brinesearch-truck-logo-footer-dark.png', './brand-kit/brinesearch-truck-logo-footer-day.png',
   "./icons/fm-collapse-inactive.svg",
   "./icons/fm-upload-inactive.svg",
   "./icons/fm-favorites-active.svg",
@@ -93,7 +94,8 @@ const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallba
   "./icons/fm-maps-inactive.svg",
   "./icons/fm-sort.svg",
   "./icons/fm-archived.svg",
-  "./icons/fm-undo.svg",  "./icons/large/fm-directions-large.svg",
+  "./icons/fm-undo.svg",
+  "./icons/large/fm-directions-large.svg",
   "./icons/large/fm-apple-maps-large.svg",
   "./icons/large/fm-share-pad-large.svg",
   "./icons/large/fm-favorite-large.svg",
@@ -101,7 +103,7 @@ const APP_SHELL = ['./', './index.html', './manifest.webmanifest', './pad-fallba
   "./icons/large/fm-edit-pad-large.svg",
 ];
 
-async function applyContactEmail(response) {
+async function applyHtmlUpdates(response) {
   if (!response) return response;
   const contentType = response.headers.get('content-type') || '';
   if (!contentType.toLowerCase().includes('text/html')) return response;
@@ -109,7 +111,16 @@ async function applyContactEmail(response) {
   let html = await response.text();
   html = html
     .replace(/mailto:[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, `mailto:${CONTACT_EMAIL}`)
-    .replace(/[A-Z0-9._%+-]+@brinesearch\.com/gi, CONTACT_EMAIL);
+    .replace(/[A-Z0-9._%+-]+@brinesearch\.com/gi, CONTACT_EMAIL)
+    .replace(/V 16\.21/g, 'V 16.22')
+    .replace(/V16\.21/g, 'V16.22')
+    .replace(/v16\.21/g, 'v16.22');
+
+  if (!/front-sign-scanner\.js/i.test(html)) {
+    const scannerTag = `  <script id="brinesearch-front-sign-scanner" src="${SCANNER_SCRIPT}" defer></script>\n`;
+    if (/<\/body>/i.test(html)) html = html.replace(/<\/body>/i, `${scannerTag}</body>`);
+    else html += scannerTag;
+  }
 
   const headers = new Headers(response.headers);
   headers.delete('content-length');
@@ -145,7 +156,7 @@ self.addEventListener('fetch', event => {
   if (event.request.mode === 'navigate') {
     event.respondWith(
       fetch(event.request)
-        .then(applyContactEmail)
+        .then(applyHtmlUpdates)
         .then(response => {
           if (response.ok) {
             const copy = response.clone();
@@ -153,7 +164,7 @@ self.addEventListener('fetch', event => {
           }
           return response;
         })
-        .catch(async () => applyContactEmail(await caches.match('./index.html')))
+        .catch(async () => applyHtmlUpdates(await caches.match('./index.html')))
     );
     return;
   }
