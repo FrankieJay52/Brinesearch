@@ -37,12 +37,13 @@ for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js',
 for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732']) {
   if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
 }
-for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Official pad name', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged']) {
+for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Official pad name', 'Official location', 'Pad permit', 'Saved API check', 'Official match basis', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged', 'await publicDataPadCardBaseV1736(id)']) {
   if (!app.includes(requiredPublicDataToken)) throw new Error(`V17.3.6 public data pad card is missing ${requiredPublicDataToken}.`);
 }
 for (const requiredRouteReferenceToken of ['brinesearch_driver_route_reference', 'driver-route-reference-card', 'Known Approach Road', 'ROAD TYPE', 'DISTANCE MEANS', 'is_stale', 'not proven a usable truck connection']) {
   if (!app.includes(requiredRouteReferenceToken)) throw new Error(`V17.3.6 driver route intelligence is missing ${requiredRouteReferenceToken}.`);
 }
+if (!css.includes('.public-pad-data-context')) throw new Error('V17.3.6 official pad context grid is missing.');
 const directionManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions/index.json'), 'utf8'));
 let rewriteCount = 0;
 for (const file of directionManifest.files) rewriteCount += Object.keys(JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions', file), 'utf8'))).length;
@@ -57,4 +58,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, richer driver route intelligence, official pad-name snapshot, authoritative live Clear Directions, clean index, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, richer driver route intelligence, richer official pad context after full selected-pad hydration, authoritative live Clear Directions, clean index, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);

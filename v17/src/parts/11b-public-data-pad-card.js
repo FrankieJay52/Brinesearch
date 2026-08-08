@@ -30,12 +30,35 @@
       const officialPadName = normalize(official.pad_name);
       const brineSearchPadName = normalize(p?.padName || p?.name || p?.pad_name);
       const officialNameDiffers = Boolean(officialPadName && brineSearchPadName && officialPadName.toLowerCase() !== brineSearchPadName.toLowerCase());
+      const officialCounty = normalize(official.county) || normalize(p?.county);
+      const officialTownship = normalize(official.township);
+      const officialLocation = [
+        officialCounty && `${display(officialCounty)} County`,
+        officialTownship && `${display(officialTownship)} Township`
+      ].filter(Boolean).join(" · ");
+      const permit = normalize(official.pad_permit);
+      const matchMethod = normalize(official.match_method);
+      const api = fieldApiSummary(p);
+      let apiText = "";
+      let apiTone = "";
+      if (api.savedCount > 0) {
+        const extras = [];
+        if (api.unmatchedCount > 0) extras.push(`${api.unmatchedCount} review`);
+        if (api.pendingCount > 0) extras.push(`${api.pendingCount} pending`);
+        apiText = `${api.exact}/${api.savedCount} matched${extras.length ? ` · ${extras.join(" · ")}` : ""}`;
+        apiTone = api.exact === api.savedCount ? "exact" : "review";
+      }
       return {
         official,
         wells,
         operator: normalize(official.operator) || display(p.company),
         officialPadName,
         officialNameDiffers,
+        officialLocation,
+        permit,
+        matchMethod,
+        apiText,
+        apiTone,
         status: normalize(official.pad_status) || normalize(p.operatingStatus) || "Not listed",
         producing,
         active,
@@ -51,6 +74,12 @@
       const wellCount = data.wells.length;
       const sourceLabel = data.source?.agency || padVerificationSource(p);
       const latestLabel = publicDataPadCardDateV1736(data.latest) || "Not listed";
+      const context = [
+        data.officialLocation ? `<div><small>Official location</small><strong>${esc(data.officialLocation)}</strong></div>` : "",
+        data.permit ? `<div><small>Pad permit</small><strong>${esc(data.permit)}</strong></div>` : "",
+        data.apiText ? `<div class="public-pad-data-api-${esc(data.apiTone)}"><small>Saved API check</small><strong>${esc(data.apiText)}</strong></div>` : "",
+        data.matchMethod ? `<div><small>Official match basis</small><strong>${esc(data.matchMethod)}</strong></div>` : ""
+      ].filter(Boolean).join("");
       return `<section class="public-pad-data-card" id="publicPadDataCard">
         <div class="public-pad-data-head">
           <div><span class="public-pad-data-kicker">✓ OFFICIAL PUBLIC DATA</span><h2>Current Pad Snapshot</h2></div>
@@ -61,11 +90,12 @@
           ${data.officialNameDiffers ? `<div class="public-pad-data-official-name"><small>Official pad name</small><strong>${esc(data.officialPadName)}</strong></div>` : ""}
         </div>
         <div class="public-pad-data-stats">
-          <div><strong>${wellCount}</strong><span>Official wells</span></div>
+          <div><strong>${wellCount}</strong><span>Official wells linked</span></div>
           <div><strong>${data.producing}</strong><span>Producing</span></div>
           <div><strong>${data.active}</strong><span>Active / current</span></div>
           <div><strong>${data.permitted}</strong><span>Permitted / not drilled</span></div>
         </div>
+        ${context ? `<div class="public-pad-data-context">${context}</div>` : ""}
         <div class="public-pad-data-meta">
           <span><small>Latest public check</small><strong>${esc(latestLabel)}</strong></span>
           <span><small>Source</small><strong>${esc(sourceLabel)}</strong></span>
@@ -75,16 +105,17 @@
       </section>`;
     }
 
-    renderPad = function publicDataPadCardRenderV1736(id) {
-      const result = publicDataPadCardBaseV1736(id);
+    renderPad = async function publicDataPadCardRenderV1736(id) {
+      const result = await publicDataPadCardBaseV1736(id);
       const p = padById(id);
       if (!p) return result;
+      document.getElementById("publicPadDataCard")?.remove();
       const html = publicDataPadCardHtmlV1736(p);
       if (!html) return result;
       const wells = document.querySelector(".compact-wells-section");
       const directions = document.querySelector(".compact-directions");
       const anchor = wells || directions;
-      if (anchor && !document.getElementById("publicPadDataCard")) anchor.insertAdjacentHTML("afterend", html);
+      if (anchor) anchor.insertAdjacentHTML("afterend", html);
       document.getElementById("publicPadDataDetails")?.addEventListener("click", () => {
         const officialDetails = [...document.querySelectorAll(".field-reference-details")].find(node => /Official Public Pad Information/i.test(node.textContent || ""));
         if (officialDetails) {
