@@ -105,16 +105,17 @@
       </section>`;
     }
 
-    renderPad = function publicDataPadCardRenderV1736(id) {
-      const result = publicDataPadCardBaseV1736(id);
+    renderPad = async function publicDataPadCardRenderV1736(id) {
+      const result = await publicDataPadCardBaseV1736(id);
       const p = padById(id);
       if (!p) return result;
+      document.getElementById("publicPadDataCard")?.remove();
       const html = publicDataPadCardHtmlV1736(p);
       if (!html) return result;
       const wells = document.querySelector(".compact-wells-section");
       const directions = document.querySelector(".compact-directions");
       const anchor = wells || directions;
-      if (anchor && !document.getElementById("publicPadDataCard")) anchor.insertAdjacentHTML("afterend", html);
+      if (anchor) anchor.insertAdjacentHTML("afterend", html);
       document.getElementById("publicPadDataDetails")?.addEventListener("click", () => {
         const officialDetails = [...document.querySelectorAll(".field-reference-details")].find(node => /Official Public Pad Information/i.test(node.textContent || ""));
         if (officialDetails) {
