@@ -173,7 +173,7 @@ begin
     select 1
     from public.pads
     where lower(company)='ascent'
-      and directions_clear ~* E'(^|\n)[0-9]+[.]\s*(continue|go|follow|proceed)\s+(approximately\s+|about\s+)?[0-9./½¼¾]+\s*(miles?|mi|feet|ft)[.]?\s*($|\n)'
+      and directions_clear ~* E'(^|\\n)[0-9]+[.]\\s*(continue|go|follow|proceed)\\s+(approximately\\s+|about\\s+)?[0-9./½¼¾]+\\s*(miles?|mi|feet|ft)[.]?\\s*($|\\n)'
   ) then
     raise exception 'A separate distance-only direction card remains';
   end if;
@@ -182,7 +182,7 @@ begin
     select 1
     from public.pads
     where lower(company)='ascent'
-      and directions_clear ~* E'(^|\n)[0-9]+[.]\s*(gate code|warning|landmark|note|access warning|truck restriction)'
+      and directions_clear ~* E'(^|\\n)[0-9]+[.]\\s*(gate code|warning|landmark|note|access warning|truck restriction)'
   ) then
     raise exception 'A note-only direction card remains';
   end if;
