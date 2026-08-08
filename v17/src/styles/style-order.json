@@ -26,7 +26,8 @@
     "29-road-manager-route-prep.css",
     "30-road-manager-sections.css",
     "31-road-manager-live-fixes.css",
-    "32-direction-clear-display-fix.css"
+    "32-direction-clear-display-fix.css",
+    "33-security-hardening.css"
   ],
   "assembledSha256": "83cf69a19b659e3fc12f33540cd54b4bf90b3c54689a4dd70ee2cba4f8bc912b"
 }

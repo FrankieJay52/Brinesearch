@@ -14,12 +14,16 @@ const fieldMarkCss = await fs.readFile(path.join(v17Root, 'public/styles/field-m
 const structuredScanner = await fs.readFile(path.join(v17Root, 'public/app/front-sign-structured.js'), 'utf8');
 const parts = JSON.parse(await fs.readFile(path.join(v17Root, 'src/parts/part-order.json'), 'utf8'));
 const styles = JSON.parse(await fs.readFile(path.join(v17Root, 'src/styles/style-order.json'), 'utf8'));
+const sourceParts = await Promise.all(parts.parts.map(name => fs.readFile(path.join(v17Root, 'src/parts', name), 'utf8')));
+const expectedApp = `${parts.wrapperStart}\n${sourceParts.join('\n')}\n${parts.wrapperEnd}\n`;
+const sourceStyles = await Promise.all(styles.styles.map(name => fs.readFile(path.join(v17Root, 'src/styles', name), 'utf8')));
+const expectedCss = sourceStyles.map(value => value.trimEnd()).join('\n\n') + '\n';
 new vm.Script(app, { filename: 'brinesearch-app.js' });
 new vm.Script(structuredScanner, { filename: 'front-sign-structured.js' });
 const appSha256 = sha256(app);
 const cssSha256 = sha256(css);
-if (appSha256 !== parts.assembledSha256) throw new Error(`Assembled application differs from the ordered source parts. Expected ${parts.assembledSha256}; generated ${appSha256}.`);
-if (cssSha256 !== styles.assembledSha256) throw new Error(`Assembled CSS differs from the ordered source parts. Expected ${styles.assembledSha256}; generated ${cssSha256}.`);
+if (app !== expectedApp) throw new Error(`Assembled application differs from the ordered source parts. Generated ${appSha256}.`);
+if (css !== expectedCss) throw new Error(`Assembled CSS differs from the ordered source styles. Generated ${cssSha256}.`);
 if (fieldMarkCss.includes("url('./icons/")) throw new Error('Field Mark override still contains stylesheet-relative icon URLs.');
 for (const requiredIcon of ['/icons/fm-search-inactive.svg','/icons/fm-home-inactive.svg','/icons/fm-feed-inactive.svg','/icons/fm-favorites-inactive.svg','/icons/fm-add-inactive.svg','/icons/fm-offline-inactive.svg']) {
   if (!fieldMarkCss.includes(`url('${requiredIcon}')`)) throw new Error(`Missing absolute Field Mark icon ${requiredIcon}.`);
@@ -48,4 +52,4 @@ for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-
 }
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, ${directionManifest.files.length} direction-data files, structured V17.2 scanner, absolute Field Mark icons, clean index, and live-updating service worker.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, ${directionManifest.files.length} direction-data files, structured V17.2 scanner, absolute Field Mark icons, clean index, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);

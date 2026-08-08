@@ -1,3 +1,8 @@
 node_modules/
 dist-v17/
 v17/public/
+.env
+.env.*
+!.env.example
+supabase/functions/.env
+supabase/functions/.env.*

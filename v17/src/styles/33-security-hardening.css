@@ -1,0 +1,36 @@
+.public-submission-security {
+  display: grid;
+  gap: 8px;
+  grid-column: 1 / -1;
+  width: 100%;
+  margin: 4px 0 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel-2);
+}
+.public-submission-security[hidden] { display: none !important; }
+.public-submission-security-title {
+  color: var(--text);
+  font-size: .82rem;
+  font-weight: 950;
+  letter-spacing: .03em;
+  text-transform: uppercase;
+}
+#publicSubmissionChallengeV174 {
+  min-height: 65px;
+  max-width: 100%;
+  overflow: hidden;
+}
+#publicSubmissionSecurityStatusV174 {
+  margin: 0;
+  color: var(--muted);
+  font-size: .76rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+#publicSubmissionSecurityStatusV174.success { color: var(--success); }
+#publicSubmissionSecurityStatusV174.error { color: var(--danger); }
+@media (max-width: 620px) {
+  .public-submission-security { padding: 10px; border-radius: 12px; }
+}
