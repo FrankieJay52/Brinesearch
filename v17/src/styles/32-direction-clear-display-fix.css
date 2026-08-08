@@ -1,0 +1,61 @@
+/* BrineSearch V17.3.1 — Clear Directions card details and daylight contrast */
+.direction-clear-line{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  width:100%;
+}
+.direction-clear-sign{display:inline-flex;align-items:center;justify-content:center;min-width:0}
+.direction-clear-instruction{
+  min-width:0;
+  color:var(--text);
+  font-size:.96rem;
+  font-weight:800;
+  line-height:1.45;
+  overflow-wrap:anywhere;
+}
+.direction-clear-distance{
+  margin-left:0;
+  align-self:center;
+  padding:5px 9px;
+  border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line));
+  border-radius:999px;
+  background:color-mix(in srgb,var(--accent) 13%,var(--panel-2));
+  color:var(--accent);
+  font-size:.82rem;
+}
+.direction-alternate-route-groups{margin-top:22px}
+
+/* The older direction labels used fixed light colors. They disappeared against
+   the day-theme cards even though the road signs themselves remained visible. */
+html[data-theme="day"] .direction-route-heading{color:#087b75!important}
+html[data-theme="day"] .direction-maneuver,
+html[data-theme="day"] .direction-compass,
+html[data-theme="day"] .direction-custom-instruction,
+html[data-theme="day"] .direction-clear-instruction{
+  color:#14283d!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+html[data-theme="day"] .direction-distance{
+  color:#066c66!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+html[data-theme="day"] .direction-note{
+  color:#435b73!important;
+  opacity:1!important;
+}
+html[data-theme="day"] .direction-pro-line{color:#14283d!important}
+html[data-theme="day"] .direction-clear-distance{
+  background:#e7f6f3!important;
+  border-color:#88c9c1!important;
+  color:#075f5a!important;
+}
+
+@media(max-width:620px){
+  .direction-clear-line{grid-template-columns:auto minmax(0,1fr);align-items:start;gap:10px}
+  .direction-clear-distance{grid-column:2;width:max-content;margin-top:2px}
+  .direction-clear-instruction{font-size:.92rem}
+}
