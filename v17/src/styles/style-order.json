@@ -25,7 +25,8 @@
     "28-v17-3-icon-and-layout-fixes.css",
     "29-road-manager-route-prep.css",
     "30-road-manager-sections.css",
-    "31-road-manager-live-fixes.css"
+    "31-road-manager-live-fixes.css",
+    "32-direction-clear-display-fix.css"
   ],
   "assembledSha256": "f1f532728f0cccb4eca4634bd43f26d65bc085a1bdda12a3e3c508319a3ae029"
 }
