@@ -4,6 +4,7 @@
   "wrapperEnd": "});",
   "parts": [
     "00-core-data.js",
+    "00a-live-clear-directions-precedence.js",
     "01-add-pad-wizard.js",
     "02-pad-location-branding.js",
     "03-global-search.js",
