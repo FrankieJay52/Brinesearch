@@ -51,5 +51,20 @@ jobs:
           grep -q "legacy_id in ('ascent--able','ascent--durr')" "$ruby"
           grep -q 'ascent_clear<>250' "$ruby"
           grep -q 'distance-only direction card remains' "$ruby"
+      - name: Check V17.3.5 public mileage boundary
+        run: |
+          migration=supabase/migrations/20260808202932_publish_public_pad_anchor_mileage.sql
+          publisher=supabase/maintenance/publish_anchor_mileage_snapshot_20260808.sql
+          test -f "$migration"
+          test -f "$publisher"
+          grep -q 'enable row level security' "$migration"
+          grep -q 'using (not is_stale)' "$migration"
+          grep -q 'mark_public_pad_anchor_mileage_stale' "$migration"
+          grep -q 'Internal review evidence and unavailable/conflicted candidates are excluded' "$migration"
+          grep -q "final_candidate_status in" "$publisher"
+          grep -q 'Expected 743 current public anchor rows' "$publisher"
+          grep -q 'Misleading zero-mile display remains' "$publisher"
+          grep -q 'public_pad_anchor_mileage' v17/src/parts/11c-anchor-mileage-card.js
+          grep -q 'VERIFIED ROAD REFERENCE' v17/src/parts/11c-anchor-mileage-card.js
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
