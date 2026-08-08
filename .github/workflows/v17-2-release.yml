@@ -79,7 +79,7 @@ jobs:
           sha256sum BrineSearch-V17.3.zip > BrineSearch-V17.3.sha256
 
       - name: Upload V17.3 release file
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BrineSearch-V17.3
           path: |
@@ -89,7 +89,7 @@ jobs:
           retention-days: 30
 
       - name: Upload V17.3 visual audit
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BrineSearch-V17.3-visual-audit
           path: visual-audit
