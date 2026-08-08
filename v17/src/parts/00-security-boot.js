@@ -21,6 +21,11 @@
       return /^Bearer\s+eyJ[a-zA-Z0-9_-]+\./.test(authorization);
     }
 
+    function securityCanUseEditorVerificationV174() {
+      try { return typeof editorCanEdit === "function" && editorCanEdit(); }
+      catch { return false; }
+    }
+
     function securityJsonBodyV174(init) {
       if (typeof init?.body !== "string") return null;
       try { return JSON.parse(init.body); } catch { return null; }
@@ -80,7 +85,7 @@
         });
       }
 
-      if (isSupabase && !authenticated && method === "POST" && url.pathname === "/rest/v1/rpc/pad_verification_get") {
+      if (isSupabase && method === "POST" && url.pathname === "/rest/v1/rpc/pad_verification_get" && !securityCanUseEditorVerificationV174()) {
         url.pathname = "/rest/v1/rpc/pad_verification_public_status";
         return SECURITY_NATIVE_FETCH_V174(url.toString(), securityFetchOptionsV174(input, init, {
           method,
