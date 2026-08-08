@@ -53,10 +53,12 @@ jobs:
           grep -q 'distance-only direction card remains' "$ruby"
       - name: Check V17.3.6 driver route intelligence migrations
         run: |
-          route_ref=supabase/migrations/20260808211000_driver_route_reference_v1736.sql
-          kind_guard=supabase/migrations/20260808212500_driver_route_reference_kind_guard_v1736.sql
+          route_ref=supabase/migrations/20260808212630_driver_route_reference_v1736.sql
+          kind_guard=supabase/migrations/20260808212856_driver_route_reference_kind_guard_v1736.sql
           test -f "$route_ref"
           test -f "$kind_guard"
+          test ! -e supabase/migrations/20260808211000_driver_route_reference_v1736.sql
+          test ! -e supabase/migrations/20260808212500_driver_route_reference_kind_guard_v1736.sql
           grep -q 'final_distance_unavailable_source_omission' "$route_ref"
           grep -q 'Expected 317 useful unavailable anchors' "$route_ref"
           grep -q 'Expected 678 numeric driver distances' "$route_ref"
