@@ -45,11 +45,13 @@ requireText(publicPadCard,'saved driver/navigation point is unchanged','Navigati
 requireText(publicPadCardStyles,'.public-pad-data-card','Driver public-data card visual layer');
 requireText(anchorMileageCard,'public_pad_anchor_mileage','Hardened public road-reference source');
 requireText(anchorMileageCard,'VERIFIED ROAD REFERENCE','Driver road-reference card');
-requireText(anchorMileageCard,'PAD_ANCHOR_CACHE_KEY_V1735','Offline road-reference cache');
+requireText(anchorMileageCard,'padAnchorMileageLoadV1735','Live road-reference loader');
+requireText(anchorMileageCard,'hiding the mileage card for safety','Fail-closed live-only mileage behavior');
 requireText(anchorMileageCard,'Keep using Clear Directions','Road-reference safety notice');
+if(anchorMileageCard.includes('PAD_ANCHOR_CACHE_KEY_V1735')||anchorMileageCard.includes('localStorage.setItem(PAD_ANCHOR'))throw new Error('Road-reference mileage must not be cached offline.');
 requireText(anchorMileageStyles,'.pad-anchor-mileage-card','Road-reference visual layer');
 requireText(anchorMileageStyles,'html[data-theme="day"]','Daylight road-reference visual layer');
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.5 product layer: driver road-reference mileage, confirmed official-data pad snapshot, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
+console.log('Verified BrineSearch V17.3.5 product layer: live-only driver road-reference mileage, confirmed official-data pad snapshot, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
