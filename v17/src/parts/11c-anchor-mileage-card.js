@@ -3,7 +3,8 @@
        review notes, unavailable distances and conflicts never enter the browser.
        The mileage card intentionally has no offline cache: if the current safe
        snapshot cannot be fetched, the card stays hidden rather than risking a
-       stale reference after a later route edit. */
+       stale reference after a later route edit. The live request never blocks
+       BrineSearch startup. */
     const PAD_ANCHOR_BY_DB_ID_V1735 = new Map();
     const PAD_ANCHOR_BY_LEGACY_ID_V1735 = new Map();
 
@@ -43,7 +44,7 @@
       }
     }
 
-    await padAnchorMileageLoadV1735();
+    const PAD_ANCHOR_LOAD_PROMISE_V1735 = padAnchorMileageLoadV1735();
 
     function padAnchorMileageForPadV1735(p) {
       if (!p) return null;
@@ -72,13 +73,18 @@
       </section>`;
     }
 
-    const padAnchorMileageRenderBaseV1735 = renderPad;
-    renderPad = function padAnchorMileageRenderV1735(id) {
-      const result = padAnchorMileageRenderBaseV1735(id);
-      const p = padById(id);
-      if (!p || document.getElementById("padAnchorMileageCard")) return result;
+    function padAnchorMileageRouteStillCurrentV1735(p) {
+      try {
+        return decodeURIComponent(location.hash.replace(/^#\/?/, "")) === `pad/${p._id}`;
+      } catch {
+        return false;
+      }
+    }
+
+    function padAnchorMileageInsertV1735(p) {
+      if (!p || !padAnchorMileageRouteStillCurrentV1735(p) || document.getElementById("padAnchorMileageCard")) return;
       const html = padAnchorMileageHtmlV1735(p);
-      if (!html) return result;
+      if (!html) return;
       const directions = document.querySelector(".compact-directions");
       if (directions) {
         directions.insertAdjacentHTML("beforebegin", html);
@@ -87,6 +93,17 @@
         const wells = document.querySelector(".compact-wells-section");
         const anchor = official || wells;
         if (anchor) anchor.insertAdjacentHTML("afterend", html);
+      }
+    }
+
+    const padAnchorMileageRenderBaseV1735 = renderPad;
+    renderPad = function padAnchorMileageRenderV1735(id) {
+      const result = padAnchorMileageRenderBaseV1735(id);
+      const p = padById(id);
+      if (!p) return result;
+      padAnchorMileageInsertV1735(p);
+      if (!padAnchorMileageForPadV1735(p)) {
+        PAD_ANCHOR_LOAD_PROMISE_V1735.then(() => padAnchorMileageInsertV1735(p));
       }
       return result;
     };
