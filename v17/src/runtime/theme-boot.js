@@ -21,9 +21,9 @@
 .direction-clear-step{grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start;min-height:0;padding:10px 11px;border-radius:13px;border-color:color-mix(in srgb,var(--line) 82%,transparent);background:var(--panel-2);box-shadow:none}
 .direction-clear-step .direction-pro-number{width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--accent);font-size:.82rem;font-weight:950;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 34%,var(--line))}
 .direction-clear-card{display:grid;gap:5px;min-width:0;padding-top:1px}
-.direction-clear-meta{display:flex;align-items:baseline;gap:8px;min-width:0;min-height:22px}
-.direction-clear-maneuver{min-width:0;color:var(--text);font-size:.78rem;font-weight:950;line-height:1.15;letter-spacing:.035em;text-transform:uppercase;overflow-wrap:anywhere}
-.direction-clear-distance{flex:0 0 auto;margin-left:auto;padding:0;border:0;border-radius:0;background:transparent;color:var(--accent);font-size:.8rem;font-weight:950;line-height:1;white-space:nowrap}
+.direction-clear-meta{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:baseline;gap:8px;min-width:0;min-height:22px}
+.direction-clear-maneuver{min-width:0;color:var(--text);font-size:.78rem;font-weight:950;line-height:1.15;letter-spacing:.035em;text-transform:uppercase;overflow-wrap:normal;word-break:normal}
+.direction-clear-distance{flex:0 0 auto;width:auto!important;max-width:max-content;margin-left:auto!important;padding:0;border:0;border-radius:0;background:transparent;color:var(--accent);font-size:.8rem;font-weight:950;line-height:1;white-space:nowrap}
 .direction-clear-road-row{display:flex;align-items:center;flex-wrap:wrap;gap:7px;min-width:0}
 .direction-clear-sign{display:inline-flex;align-items:center;justify-content:flex-start;max-width:100%;min-width:0}
 .direction-clear-sign .direction-road-sign{max-width:100%;min-width:0}
@@ -47,7 +47,7 @@ html[data-theme="day"] .direction-clear-step .direction-pro-number{background:#e
   .direction-clear-card{gap:4px}
   .direction-clear-meta{min-height:20px}
   .direction-clear-maneuver{font-size:.75rem}
-  .direction-clear-distance{font-size:.76rem}
+  .direction-clear-distance{width:auto!important;font-size:.76rem}
   .direction-clear-sign .street-sign-board{font-size:.67rem;padding:5px 8px}
   .direction-clear-sign .direction-highway-badge{min-width:44px;font-size:.68rem;padding:4px 6px}
   .direction-clear-cardinal{font-size:.69rem}
