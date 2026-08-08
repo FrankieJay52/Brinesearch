@@ -15,6 +15,7 @@
     "09-editor-dashboard-rewrite.js",
     "10-live-pad-editor.js",
     "11-pad-page.js",
+    "22-direction-clear-display-fix.js",
     "12-verification-queue.js",
     "13-verification-detail.js",
     "14-field-feed-profile.js",
@@ -24,8 +25,7 @@
     "18-account-theme-startup.js",
     "19-road-manager-route-prep.js",
     "20-road-manager-sections.js",
-    "21-road-manager-live-fixes.js",
-    "22-direction-clear-display-fix.js"
+    "21-road-manager-live-fixes.js"
   ],
   "assembledSha256": "95d08f0c6d3a2399653c0ae0eb7ab89a6909542a8eed7f7efa25e9eb16366503"
 }
