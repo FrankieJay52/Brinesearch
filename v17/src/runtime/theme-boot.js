@@ -6,9 +6,10 @@
   document.documentElement.setAttribute("data-theme", t);
 })();
 
-/* V17.3.1 field-first Clear Directions cleanup.
-   Kept as a tiny early runtime override so the existing assembled CSS integrity
-   remains unchanged while the live card layout can be tightened safely. */
+/* V17.3.1 field-first direction-card standard.
+   This early runtime override keeps the assembled CSS integrity untouched while
+   making Clear Directions and older saved route cards share one driver-first
+   presentation. It changes layout only; it never creates route facts. */
 (function () {
   if (document.getElementById("brinesearch-direction-cleanup-v1731")) return;
   var style = document.createElement("style");
@@ -35,10 +36,35 @@
 .direction-clear-note::before{content:"• ";color:var(--accent)}
 .direction-clear-fallback{color:var(--text);font-size:.82rem;font-weight:800;line-height:1.35;overflow-wrap:anywhere}
 .direction-alternate-route-groups{margin-top:16px}
+
+/* Older/structured routes use the same visual hierarchy as Clear Directions.
+   Existing maneuver, road, mileage, compass and note values are only rearranged. */
+.direction-route-groups:not(.direction-clear-route-groups){gap:14px}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-route-group{gap:9px}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-steps{gap:7px}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-step{grid-template-columns:32px minmax(0,1fr);gap:10px;align-items:start;min-height:0;padding:10px 11px;border-radius:13px;border-color:color-mix(in srgb,var(--line) 82%,transparent);background:var(--panel-2);box-shadow:none}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-number{width:30px;height:30px;border-radius:9px;background:color-mix(in srgb,var(--accent) 18%,var(--panel));color:var(--accent);font-size:.82rem;font-weight:950;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--accent) 34%,var(--line))}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-main{min-width:0}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-auto-rows:auto;align-items:center;gap:8px;min-height:0}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-maneuver{grid-column:1;grid-row:1;min-width:0;color:var(--text);font-size:.88rem;font-weight:950;line-height:1.15;letter-spacing:.035em;text-transform:uppercase;overflow-wrap:normal;word-break:normal}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-distance{grid-column:2;grid-row:1;width:auto!important;max-width:max-content;margin-left:auto!important;padding:5px 10px!important;border:1px solid color-mix(in srgb,var(--accent) 48%,var(--line))!important;border-radius:999px!important;background:color-mix(in srgb,var(--accent) 13%,var(--panel-2))!important;color:var(--accent)!important;font-size:.82rem;font-weight:950;line-height:1;white-space:nowrap}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line>.direction-road-sign,
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line>.direction-highway-badge{grid-column:1;grid-row:2;justify-self:start;max-width:100%}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-compass{grid-column:2;grid-row:2;justify-self:start;margin:0;padding:4px 9px;border:1px solid color-mix(in srgb,var(--accent) 30%,var(--line));border-radius:999px;background:color-mix(in srgb,var(--accent) 7%,var(--panel-2));color:var(--text);font-size:.76rem;font-weight:900;white-space:nowrap}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-custom-instruction{grid-column:1;grid-row:1;min-width:0;color:var(--text);font-size:.88rem;font-weight:900;line-height:1.3;overflow-wrap:anywhere}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line:not(:has(.direction-maneuver))>.direction-road-sign,
+.direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line:not(:has(.direction-maneuver))>.direction-highway-badge{grid-row:1}
+.direction-route-groups:not(.direction-clear-route-groups) .direction-note{margin-top:8px}
+
 html[data-theme="day"] .direction-clear-distance{color:#066c66!important;background:transparent!important;border:0!important}
 html[data-theme="day"] .direction-clear-cardinal{background:transparent!important;border:0!important;color:#526a7d!important}
 html[data-theme="day"] .direction-clear-step{background:#f7faff!important;border-color:#d8e1eb!important}
 html[data-theme="day"] .direction-clear-step .direction-pro-number{background:#e7f6f3!important;color:#075f5a!important;box-shadow:inset 0 0 0 1px #aad8d3!important}
+html[data-theme="day"] .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-step{background:#f7faff!important;border-color:#d8e1eb!important}
+html[data-theme="day"] .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-number{background:#e7f6f3!important;color:#075f5a!important;box-shadow:inset 0 0 0 1px #aad8d3!important}
+html[data-theme="day"] .direction-route-groups:not(.direction-clear-route-groups) .direction-distance{background:#e7f6f3!important;border-color:#88c9c1!important;color:#075f5a!important}
+html[data-theme="day"] .direction-route-groups:not(.direction-clear-route-groups) .direction-compass{background:#edf7f6!important;border-color:#aad8d3!important;color:#16443f!important}
+
 @media(max-width:620px){
   .direction-clear-route-groups{gap:12px}
   .direction-clear-steps{gap:6px}
@@ -52,6 +78,16 @@ html[data-theme="day"] .direction-clear-step .direction-pro-number{background:#e
   .direction-clear-sign .direction-highway-badge{min-width:44px;font-size:.68rem;padding:4px 6px}
   .direction-clear-cardinal{font-size:.69rem}
   .direction-clear-note,.direction-clear-fallback{font-size:.74rem}
+
+  .direction-route-groups:not(.direction-clear-route-groups){gap:12px}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-steps{gap:6px}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-step{grid-template-columns:29px minmax(0,1fr);gap:9px;padding:9px 10px;border-radius:12px}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-number{width:28px;height:28px;border-radius:8px;font-size:.78rem}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-pro-line{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:center}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-maneuver{font-size:.84rem}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-distance{width:auto!important;margin-left:auto!important;padding:5px 9px!important;font-size:.78rem}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-compass{font-size:.72rem;padding:4px 8px}
+  .direction-route-groups:not(.direction-clear-route-groups) .direction-custom-instruction{font-size:.82rem}
 }
 `;
   (document.head || document.documentElement).appendChild(style);
