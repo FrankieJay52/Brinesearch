@@ -1,5 +1,5 @@
 {
-  "version": "17.3.4",
+  "version": "17.3.5",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -21,6 +21,7 @@
     "11-pad-page.js",
     "11a-security-public-pad-detail.js",
     "11b-public-data-pad-card.js",
+    "11c-driver-route-reference.js",
     "22-direction-clear-display-fix.js",
     "22a-direction-clear-polish.js",
     "12-verification-queue.js",
