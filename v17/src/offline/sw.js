@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'brinesearch-v17-3-4-public-data-pad-card';
+const CACHE_VERSION = 'brinesearch-v17-3-5-driver-route-reference';
 const DIRECTION_DATA_FILES = __DIRECTION_DATA_FILES__;
 const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',
