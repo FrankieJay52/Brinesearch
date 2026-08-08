@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'brinesearch-v17-3-2-ascent-clear-live';
+const CACHE_VERSION = 'brinesearch-v17-3-3-public-data-review';
 const DIRECTION_DATA_FILES = __DIRECTION_DATA_FILES__;
 const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',

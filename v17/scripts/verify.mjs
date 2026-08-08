@@ -35,7 +35,7 @@ for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js',
   new vm.Script(await fs.readFile(path.join(v17Root, 'public/app', file), 'utf8'), { filename: file });
 }
 for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732']) {
-  if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3.2 direction hardening is missing ${requiredDirectionToken}.`);
+  if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
 }
 const directionManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions/index.json'), 'utf8'));
 let rewriteCount = 0;
@@ -45,8 +45,8 @@ for (const file of directionManifest.files) {
 if (rewriteCount !== directionManifest.recordCount || rewriteCount < 100) throw new Error('Direction rewrite data did not assemble correctly.');
 const serviceWorker = await fs.readFile(path.join(v17Root, 'public/sw.js'), 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
-if (!serviceWorker.includes("brinesearch-v17-3-2")) throw new Error('V17.3.2 service-worker cache marker is missing.');
-if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3.2 service worker is missing live app-asset refresh logic.');
+if (!serviceWorker.includes("brinesearch-v17-3-3")) throw new Error('V17.3.3 service-worker cache marker is missing.');
+if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3 service worker is missing live app-asset refresh logic.');
 if (!serviceWorker.includes('./app/front-sign-structured.js')) throw new Error('Structured scanner is missing from the offline shell.');
 if (serviceWorker.includes('./v16-25-hotfix.js')) throw new Error('Legacy V16.25 OCR hotfix is still in the V17.3 offline shell.');
 const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
