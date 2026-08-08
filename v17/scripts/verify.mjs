@@ -37,11 +37,11 @@ for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js',
 for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732']) {
   if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
 }
-for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged']) {
-  if (!app.includes(requiredPublicDataToken)) throw new Error(`V17.3.4 public data pad card is missing ${requiredPublicDataToken}.`);
+for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Official pad name', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged']) {
+  if (!app.includes(requiredPublicDataToken)) throw new Error(`V17.3.6 public data pad card is missing ${requiredPublicDataToken}.`);
 }
-for (const requiredRouteReferenceToken of ['brinesearch_driver_route_reference', 'driver-route-reference-card', 'Approach Reference', 'TO PAD / ACCESS', 'not proven a usable truck connection']) {
-  if (!app.includes(requiredRouteReferenceToken)) throw new Error(`V17.3.5 driver route reference is missing ${requiredRouteReferenceToken}.`);
+for (const requiredRouteReferenceToken of ['brinesearch_driver_route_reference', 'driver-route-reference-card', 'Known Approach Road', 'ROAD TYPE', 'DISTANCE MEANS', 'is_stale', 'not proven a usable truck connection']) {
+  if (!app.includes(requiredRouteReferenceToken)) throw new Error(`V17.3.6 driver route intelligence is missing ${requiredRouteReferenceToken}.`);
 }
 const directionManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions/index.json'), 'utf8'));
 let rewriteCount = 0;
@@ -49,7 +49,7 @@ for (const file of directionManifest.files) rewriteCount += Object.keys(JSON.par
 if (rewriteCount !== directionManifest.recordCount || rewriteCount < 100) throw new Error('Direction rewrite data did not assemble correctly.');
 const serviceWorker = await fs.readFile(path.join(v17Root, 'public/sw.js'), 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
-if (!serviceWorker.includes("brinesearch-v17-3-5-driver-route-reference")) throw new Error('V17.3.5 service-worker cache marker is missing.');
+if (!serviceWorker.includes("brinesearch-v17-3-6-pad-card-intelligence")) throw new Error('V17.3.6 service-worker cache marker is missing.');
 if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3 service worker is missing live app-asset refresh logic.');
 if (!serviceWorker.includes('./app/front-sign-structured.js')) throw new Error('Structured scanner is missing from the offline shell.');
 if (serviceWorker.includes('./v16-25-hotfix.js')) throw new Error('Legacy V16.25 OCR hotfix is still in the V17.3 offline shell.');
@@ -57,4 +57,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, driver approach reference, confirmed public-data pad card, authoritative live Clear Directions, clean index, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, richer driver route intelligence, official pad-name snapshot, authoritative live Clear Directions, clean index, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);

@@ -51,5 +51,23 @@ jobs:
           grep -q "legacy_id in ('ascent--able','ascent--durr')" "$ruby"
           grep -q 'ascent_clear<>250' "$ruby"
           grep -q 'distance-only direction card remains' "$ruby"
+      - name: Check V17.3.6 driver route intelligence migrations
+        run: |
+          route_ref=supabase/migrations/20260808212630_driver_route_reference_v1736.sql
+          kind_guard=supabase/migrations/20260808212856_driver_route_reference_kind_guard_v1736.sql
+          test -f "$route_ref"
+          test -f "$kind_guard"
+          test ! -e supabase/migrations/20260808211000_driver_route_reference_v1736.sql
+          test ! -e supabase/migrations/20260808212500_driver_route_reference_kind_guard_v1736.sql
+          grep -q 'final_distance_unavailable_source_omission' "$route_ref"
+          grep -q 'Expected 317 useful unavailable anchors' "$route_ref"
+          grep -q 'Expected 678 numeric driver distances' "$route_ref"
+          grep -q 'Private/non-driving details are visible after V17.3.6 refresh' "$route_ref"
+          grep -q 'driver_route_reference_kind_v1736' "$kind_guard"
+          grep -q "return 'route_reference'" "$kind_guard"
+          grep -q "return 'county_road'" "$kind_guard"
+          grep -q "return 'township_road'" "$kind_guard"
+          grep -q 'Expected 4 mixed-family route references' "$kind_guard"
+          grep -q 'Numeric driver-distance count changed during road-type normalization' "$kind_guard"
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
