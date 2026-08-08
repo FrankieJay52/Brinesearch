@@ -63,6 +63,7 @@ requireText(publicPadCard,'Official location','Official location visibility');
 requireText(publicPadCard,'Pad permit','Official pad permit visibility');
 requireText(publicPadCard,'Saved API check','Saved-to-official API match visibility');
 requireText(publicPadCard,'Official match basis','Official match-method visibility');
+requireText(publicPadCard,'await publicDataPadCardBaseV1736(id)','Full selected-pad detail hydration before snapshot render');
 requireText(publicPadCard,'official_well_records','Confirmed official well source');
 requireText(publicPadCard,'saved driver/navigation point is unchanged','Navigation safety notice');
 requireText(publicPadCardStyles,'.public-pad-data-card','Driver public-data card visual layer');
@@ -77,4 +78,4 @@ requireText(driverRouteReferenceStyles,'.driver-route-reference-meta','Driver ro
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.6 product layer: richer driver approach intelligence, official pad identity/location/permit/API context, stale-reference protection, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
+console.log('Verified BrineSearch V17.3.6 product layer: richer driver approach intelligence, fully hydrated official pad identity/location/permit/API context, stale-reference protection, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
