@@ -55,6 +55,26 @@ Before production application, both migrations were executed inside a rollback t
 
 The release branch also runs the full V17 build, assembled-JavaScript syntax check, security wiring checks, migration guard checks, and production dependency audit before merge.
 
+## Production rollout completed
+
+The two production migrations completed successfully and are recorded with the exact applied versions used by Supabase:
+
+- `20260808064425_harden_public_pad_projection.sql`
+- `20260808064502_publish_ruby_opal_verified_route.sql`
+
+Post-deployment checks confirmed:
+
+- 1,173 private pad records and 1,173 synchronized public-detail records
+- anonymous direct access to `public.pads` denied with HTTP 401
+- anonymous access to both safe public pad relations available
+- Ruby-Opal returned through the live public-detail API with all eight direction steps and the left-side entrance
+- projection synchronization passed a transaction-wrapped update test and returned cleanly after rollback
+- 252 Ascent records total, 250 with standardized Clear Directions, and ABLE/DURR still blank
+- zero distance-only cards, note-only cards, nonstandard Clear Directions, or blocked pads accidentally published
+- the prior security-advisor errors for owner-rights public views and the no-policy notices for the explicitly denied internal tables were removed
+
 ## Deliberate fail-closed control
 
-The anonymous Add-a-Pad gateway remains unavailable until production Cloudflare Turnstile credentials are configured. It returns a controlled temporary-unavailable response rather than accepting unchallenged public submissions. Signed-in editor tools and the public directory are separate from this control.
+The anonymous Add-a-Pad gateway remains unavailable until production Cloudflare Turnstile credentials are configured. It returns a controlled temporary-unavailable response rather than accepting unchallenged public submissions. A production POST test returned HTTP 503 and inserted no submission. Signed-in editor tools and the public directory are separate from this control.
+
+Supabase Auth leaked-password protection remains a platform-level setting to enable in the Supabase dashboard; the available project tools do not expose a safe write action for that setting.

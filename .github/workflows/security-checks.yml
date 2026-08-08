@@ -38,10 +38,12 @@ jobs:
           grep -R -q 'submit_pad_server' supabase/migration_sources/20260808050000_urgent_security_hardening
       - name: Check Ruby-Opal and public projection migrations
         run: |
-          projection=supabase/migrations/20260808070000_harden_public_pad_projection.sql
-          ruby=supabase/migrations/20260808070500_publish_ruby_opal_verified_route.sql
+          projection=supabase/migrations/20260808064425_harden_public_pad_projection.sql
+          ruby=supabase/migrations/20260808064502_publish_ruby_opal_verified_route.sql
           test -f "$projection"
           test -f "$ruby"
+          test ! -e supabase/migrations/20260808070000_harden_public_pad_projection.sql
+          test ! -e supabase/migrations/20260808070500_publish_ruby_opal_verified_route.sql
           grep -q 'security_invoker=true' "$projection"
           grep -q 'sync_public_pad_detail_projection' "$projection"
           grep -q 'Anonymous direct pads-table access returned' "$projection"
