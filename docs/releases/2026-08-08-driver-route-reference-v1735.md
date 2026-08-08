@@ -8,17 +8,21 @@ The displayed reference is the closest road or route point that BrineSearch can 
 
 ## All-pad audit
 
-The private audit covers all 1,173 BrineSearch pad/facility records.
+The private audit and finalized safe public table cover all 1,173 BrineSearch pad/facility records.
 
 - 1,173 total records
 - 0 records left in review
-- 679 records with a numeric saved/measured distance
-- 3 records with a saved mileage range preserved as a range
+- 678 publishable numeric driver distances
+  - 541 verified/saved exact distances
+  - 137 approximate saved/measured distances
+- 3 saved mileage ranges preserved as ranges
 - 7 records located directly on a verified road or at an explicit route marker
-- 44 records with research-only nearest-highway references that are not allowed to become driver routes
-- 317 records where a safe road reference exists but the remaining mileage is not verified
+- 374 records where mileage could not be safely verified
 - 61 records with insufficient route evidence
+- 44 records with research-only nearest-highway references that are not allowed to become driver routes
 - 6 records blocked because route/location evidence conflicts
+
+The private staging audit contains one additional intermediate numeric value for Gulfport Shannon, but it is deliberately not published because the saved 2.0 miles ends at another turn before the pad. The safe public table therefore contains 678 numeric driver distances.
 
 No midpoint is invented for saved ranges. No straight-line distance is shown as road mileage. No private or lease-road mileage is inferred from a pad-center coordinate.
 
@@ -51,9 +55,25 @@ The browser reads only `public.brinesearch_driver_route_reference`, a deliberate
 
 Private staging notes, candidate roads, raw official feature metadata, review evidence, and straight-line research distances remain in `private_verification` and are not published to the browser.
 
+Post-migration security validation confirmed:
+
+- all 1,173 safe rows are present
+- anonymous users have SELECT only
+- anonymous INSERT/UPDATE/DELETE are denied
+- anonymous refresh-RPC execution is denied
+- research-only, no-route, and blocked rows expose no private anchor name, numeric distance, or reference point
+
 ## Refresh system
 
 `public.refresh_driver_route_reference()` is owner/service-only. It republishes the safe table from the finalized private mileage audit after future review work. Anonymous and ordinary authenticated users have read-only access to the safe table and no write access.
+
+## Production migration
+
+Supabase applied the rollout as:
+
+`20260808202232_driver_route_reference_v1735`
+
+The repository records the same versioned migration so future migration runners do not replay the already-applied schema change.
 
 ## Compatibility
 
