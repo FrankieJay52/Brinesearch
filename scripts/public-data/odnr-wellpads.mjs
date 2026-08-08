@@ -14,7 +14,13 @@ function arg(name, fallback = null) {
 }
 function norm(v) { return String(v ?? '').trim(); }
 function operatorNorm(v) { return norm(v).toUpperCase().replace(/[^A-Z0-9]+/g, ' ').replace(/\s+/g, ' ').trim(); }
-function stableId(a) { return norm(a.NewPadID) || (a.OBJECTID != null ? `OBJECTID:${a.OBJECTID}` : ''); }
+function stableId(a) { return a.OBJECTID != null ? `OBJECTID:${a.OBJECTID}` : ''; }
+function entityType(a) {
+  const type = norm(a.PAD_TYPE).toUpperCase();
+  if (type === 'GATHERING AREA' || type === 'WORK AREA') return 'facility';
+  if (type === 'PROPOSED') return 'unknown';
+  return 'pad';
+}
 function hash(value) { return createHash('sha256').update(JSON.stringify(value)).digest('hex'); }
 
 const offset = Number(arg('offset', '0'));
@@ -53,7 +59,8 @@ const fetchedAt = new Date().toISOString();
 const records = (payload.features ?? []).map(({ attributes: a }) => {
   const normalized = {
     source_record_id: stableId(a),
-    entity_type: 'pad',
+    source_object_id: a.OBJECTID ?? null,
+    entity_type: entityType(a),
     state: 'Ohio',
     official_name: norm(a.PadName),
     official_status: norm(a.PadStatus_desc || a.PadStatus),
