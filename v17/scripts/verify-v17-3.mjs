@@ -9,7 +9,7 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, publicDataReview, publicDataReviewStyles] = await Promise.all([
   read(path.join(v17Root, 'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root, 'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root, 'src/parts/16-router-assistant-shell.js')),
@@ -22,7 +22,9 @@ const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyle
   read(path.join(v17Root, 'src/styles/style-order.json')),
   read(path.join(v17Root, 'src/offline/sw.js')),
   read(path.join(v17Root, 'src/parts/00a-live-clear-directions-precedence.js')),
-  read(path.join(v17Root, 'src/parts/22a-direction-clear-polish.js'))
+  read(path.join(v17Root, 'src/parts/22a-direction-clear-polish.js')),
+  read(path.join(v17Root, 'src/parts/09a-public-data-review.js')),
+  read(path.join(v17Root, 'src/styles/34-public-data-review.css'))
 ]);
 
 const iconNames = [
@@ -65,19 +67,27 @@ requireText(roadLiveStyles, '.road-row-grouped .road-status{pointer-events:none}
 requireText(styleManifest, '27-v17-3-product-polish.css', 'Style manifest');
 requireText(styleManifest, '28-v17-3-icon-and-layout-fixes.css', 'Final layout-fix stylesheet');
 requireText(styleManifest, '31-road-manager-live-fixes.css', 'Road Manager live stylesheet');
+requireText(styleManifest, '34-public-data-review.css', 'Public Data Review stylesheet');
 requireText(partManifest, '21-road-manager-live-fixes.js', 'Road Manager live JavaScript');
 requireText(partManifest, '22a-direction-clear-polish.js', 'Final direction-card polish');
-requireText(partManifest, '"version": "17.3.2"', 'Part manifest version');
-requireText(styleManifest, '"version": "17.3.2"', 'Style manifest version');
-requireText(packageJson, '"version": "17.3.2"', 'Package version');
-requireText(sw, 'brinesearch-v17-3-2', 'Service-worker cache version');
+requireText(partManifest, '09a-public-data-review.js', 'Public Data Review JavaScript');
+requireText(partManifest, '"version": "17.3.3"', 'Part manifest version');
+requireText(styleManifest, '"version": "17.3.3"', 'Style manifest version');
+requireText(packageJson, '"version": "17.3.3"', 'Package version');
+requireText(sw, 'brinesearch-v17-3-3', 'Service-worker cache version');
 requireText(sw, 'networkFirstAppAsset', 'Service-worker live asset update strategy');
 requireText(liveDirections, '/rest/v1/public_pad_detail', 'Authoritative public Clear Directions view');
 requireText(liveDirections, '__brineLiveClearDirectionsAuthoritative', 'Live Clear Directions precedence marker');
 requireText(directionPolish, 'directionClearNoteOnlyV1732', 'Direction note-card merger');
 requireText(directionPolish, 'directionClearDistanceOnlyV1732', 'Direction distance-card merger');
+requireText(publicDataReview, '/rest/v1/rpc/public_data_review_summary', 'Owner public data summary RPC');
+requireText(publicDataReview, '/rest/v1/rpc/public_data_review_queue', 'Owner public data queue RPC');
+requireText(publicDataReview, '/rest/v1/rpc/public_data_review_detail', 'Owner public data detail RPC');
+requireText(publicDataReview, '/rest/v1/rpc/public_data_review_decide', 'Owner public data decision RPC');
+requireText(publicDataReview, 'It will NOT publish', 'Public Data Review safety confirmation');
+requireText(publicDataReviewStyles, '.public-data-review-panel', 'Public Data Review visual layer');
 const iconEncoded = (await Promise.all([0, 1, 2, 3].map(part => read(path.join(v17Root, 'src/icons', `field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g, '');
 const iconManifest = JSON.parse(gunzipSync(Buffer.from(iconEncoded, 'base64')).toString('utf8'));
 if (iconManifest.version !== '17.3.0' || Object.keys(iconManifest.icons || {}).length < 90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
 
-console.log('Verified BrineSearch V17.3.2 product layer: authoritative live Clear Directions, compact driver cards, V17.3 interface, grouped and fully clickable Road Manager, Ascent-focused Route Prep, automatic installed-app asset updates, distinct Field Mark icons, and current cache/version markers.');
+console.log('Verified BrineSearch V17.3.3 product layer: Owner-only Public Data Review, authoritative live Clear Directions, compact driver cards, V17.3 interface, grouped and fully clickable Road Manager, automatic installed-app asset updates, distinct Field Mark icons, and current cache/version markers.');
