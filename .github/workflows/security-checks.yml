@@ -51,5 +51,14 @@ jobs:
           grep -q "legacy_id in ('ascent--able','ascent--durr')" "$ruby"
           grep -q 'ascent_clear<>250' "$ruby"
           grep -q 'distance-only direction card remains' "$ruby"
+      - name: Check V17.3.6 driver route intelligence migration
+        run: |
+          route_ref=supabase/migrations/20260808211000_driver_route_reference_v1736.sql
+          test -f "$route_ref"
+          grep -q 'final_distance_unavailable_source_omission' "$route_ref"
+          grep -q 'Expected 317 useful unavailable anchors' "$route_ref"
+          grep -q 'Expected 678 numeric driver distances' "$route_ref"
+          grep -q 'Obvious road-kind mismatches remain' "$route_ref"
+          grep -q 'Private/non-driving details are visible after V17.3.6 refresh' "$route_ref"
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
