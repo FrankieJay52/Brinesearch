@@ -1,5 +1,6 @@
     /* Search results use the safe summary view. Load the selected pad's safe
-       public details only when the driver opens that pad page. */
+       public details only when the driver opens that pad page. Live Supabase
+       directions_clear always overrides packaged/offline direction rewrites. */
     const securityPadDetailRequestsV174 = new Map();
     const securityRenderPadBaseV174 = renderPad;
 
@@ -25,15 +26,19 @@
             Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
             Accept: "application/json"
           },
-          cache: "default"
+          cache: "no-store"
         });
         if (!response.ok) throw new Error(`Pad details returned ${response.status}`);
         const rows = await response.json();
         const row = Array.isArray(rows) ? rows[0] : null;
         if (!row) throw new Error("Pad details were not found");
         const mapped = mapSupabasePad(row);
+        const liveClear = String(row.directions_clear ?? "").trim();
         Object.assign(pad, mapped, {
           originalWrittenDirections: mapped.writtenDirections || pad.originalWrittenDirections || null,
+          directionsClear: liveClear || null,
+          directionsClearMethod: liveClear ? (row.directions_clear_method || "Live Clear Directions") : null,
+          directionsClearUpdatedAt: liveClear ? (row.directions_clear_updated_at || null) : null,
           _public_summary: false
         });
         return pad;

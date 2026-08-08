@@ -1,7 +1,8 @@
-    /* BrineSearch V17.3.1 — live Clear Directions are authoritative.
-       Packaged direction rewrites are offline fallbacks. Some older packaged
-       entries were masking newer Supabase turn-by-turn directions and mileage.
-       Refresh the current live fields before any pad page can render. */
+    /* BrineSearch V17.3.2 — live Clear Directions are authoritative.
+       Packaged direction rewrites are offline fallbacks only. Refresh the
+       current public detail view before any pad page can render, and while the
+       live database is available never let an older packaged route stand in
+       for a pad whose live directions_clear is intentionally blank. */
 
     async function applyLiveClearDirectionsV1732() {
       if (DATA_SOURCE_LABEL !== "Live database") return 0;
@@ -9,7 +10,7 @@
       const rows = [];
       const limit = 1000;
       for (let offset = 0; ; offset += limit) {
-        const url = new URL(`${SUPABASE_URL}/rest/v1/pads`);
+        const url = new URL(`${SUPABASE_URL}/rest/v1/public_pad_detail`);
         url.searchParams.set("select", "id,legacy_id,directions_clear,directions_clear_method,directions_clear_updated_at");
         url.searchParams.set("directions_clear", "not.is.null");
         url.searchParams.set("order", "id.asc");
@@ -19,6 +20,7 @@
         const response = await fetch(url.toString(), {
           headers: {
             apikey: SUPABASE_PUBLISHABLE_KEY,
+            Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
             Accept: "application/json"
           },
           cache: "no-store"
@@ -42,7 +44,12 @@
       let applied = 0;
       pads.forEach(pad => {
         const row = byKey.get(String(pad?._id ?? "")) || byKey.get(String(pad?._dbId ?? ""));
-        if (!row) return;
+        if (!row) {
+          pad.directionsClear = null;
+          pad.directionsClearMethod = null;
+          pad.directionsClearUpdatedAt = null;
+          return;
+        }
         pad.directionsClear = String(row.directions_clear).trim();
         pad.directionsClearMethod = row.directions_clear_method || "Live Clear Directions";
         pad.directionsClearUpdatedAt = row.directions_clear_updated_at || null;
@@ -50,6 +57,7 @@
       });
 
       window.__brineLiveClearDirectionsApplied = applied;
+      window.__brineLiveClearDirectionsAuthoritative = true;
       return applied;
     }
 
