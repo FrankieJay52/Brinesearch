@@ -1,7 +1,9 @@
     /* V17.3.5 driver-safe road reference mileage.
-       Only the hardened public projection is loaded. Private staging, review
-       notes, unavailable distances and conflicts never enter the browser. */
-    const PAD_ANCHOR_CACHE_KEY_V1735 = "brinesearch.padAnchorMileage.v1735";
+       Only the hardened live public projection is loaded. Private staging,
+       review notes, unavailable distances and conflicts never enter the browser.
+       The mileage card intentionally has no offline cache: if the current safe
+       snapshot cannot be fetched, the card stays hidden rather than risking a
+       stale reference after a later route edit. */
     const PAD_ANCHOR_BY_DB_ID_V1735 = new Map();
     const PAD_ANCHOR_BY_LEGACY_ID_V1735 = new Map();
 
@@ -12,15 +14,6 @@
         if (!row || row.is_stale) continue;
         if (row.pad_id) PAD_ANCHOR_BY_DB_ID_V1735.set(String(row.pad_id), row);
         if (row.legacy_id) PAD_ANCHOR_BY_LEGACY_ID_V1735.set(String(row.legacy_id), row);
-      }
-    }
-
-    function padAnchorMileageCachedV1735() {
-      try {
-        const rows = JSON.parse(localStorage.getItem(PAD_ANCHOR_CACHE_KEY_V1735) || "[]");
-        return Array.isArray(rows) ? rows : [];
-      } catch {
-        return [];
       }
     }
 
@@ -42,10 +35,9 @@
         const rows = await response.json();
         if (!Array.isArray(rows)) throw new Error("Unexpected anchor mileage response");
         padAnchorMileageRememberV1735(rows);
-        try { localStorage.setItem(PAD_ANCHOR_CACHE_KEY_V1735, JSON.stringify(rows)); } catch {}
       } catch (error) {
-        console.warn("Live road-reference mileage unavailable; using cached references when available.", error);
-        padAnchorMileageRememberV1735(padAnchorMileageCachedV1735());
+        console.warn("Current road-reference mileage unavailable; hiding the mileage card for safety.", error);
+        padAnchorMileageRememberV1735([]);
       } finally {
         clearTimeout(timer);
       }
