@@ -31,6 +31,9 @@ jobs:
           grep -q '14a-field-profile-security.js' v17/src/parts/part-order.json
           grep -q '33-security-hardening.css' v17/src/styles/style-order.json
           grep -q 'Content-Security-Policy-Report-Only' netlify.toml
-          grep -q 'road_manager_route_prep_summary' supabase/migrations/20260808050000_urgent_security_hardening.sql
+          test "$(find supabase/migration_sources/20260808050000_urgent_security_hardening -name '*.sql' | wc -l)" -eq 8
+          grep -R -q 'road_manager_route_prep_summary' supabase/migration_sources/20260808050000_urgent_security_hardening
+          grep -R -q 'pad_verification_public_status' supabase/migration_sources/20260808050000_urgent_security_hardening
+          grep -R -q 'submit_pad_server' supabase/migration_sources/20260808050000_urgent_security_hardening
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
