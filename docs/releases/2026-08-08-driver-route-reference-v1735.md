@@ -13,14 +13,17 @@ The private audit and finalized safe public table cover all 1,173 BrineSearch pa
 - 1,173 total records
 - 0 records left in review
 - 678 publishable numeric driver distances
-  - 541 verified/saved exact distances
-  - 137 approximate saved/measured distances
+  - 546 verified/saved exact distances
+  - 132 approximate saved/measured distances
 - 3 saved mileage ranges preserved as ranges
 - 7 records located directly on a verified road or at an explicit route marker
 - 374 records where mileage could not be safely verified
 - 61 records with insufficient route evidence
 - 44 records with research-only nearest-highway references that are not allowed to become driver routes
 - 6 records blocked because route/location evidence conflicts
+- 0 private-reference leaks in the public table
+
+The final road-alignment pass moved stale highway labels forward to the actual verified public road where official evidence supported it. Where the final local road could not be uniquely verified, the prior verified highway remains the anchor and the card stores the exact departure/reference point plus the complete downstream saved mileage. No numeric mileage is silently paired with the wrong road.
 
 The private staging audit contains one additional intermediate numeric value for Gulfport Shannon, but it is deliberately not published because the saved 2.0 miles ends at another turn before the pad. The safe public table therefore contains 678 numeric driver distances.
 
@@ -34,11 +37,14 @@ Typical examples:
 
 - `FROM OH-800` / `4.5 mi` / `TO PAD / ACCESS`
 - `FROM Barton Rd / CR-4` / `1.6 mi`
+- `FROM Fulton Hill Rd / CR-42` / `0.3 mi`
 - `FROM Chapel Dr / CR-20` / `On this road`
 - `FROM CR-15` / `3.0–4.0 mi`
 - `OH-151` / `at mile marker 9`
 
-If the road is known but mileage is not verified, the card says `Mileage not verified` rather than generating a number.
+If a verified highway is the last defensible anchor before an unverified local road, the card also shows the departure/reference point so the mileage cannot be mistaken for mileage traveled along the highway.
+
+If mileage cannot be verified, the card says `Mileage not verified` rather than generating a number.
 
 Research-only nearest highways do not expose the straight-line measurement as a driving instruction. Route conflicts display a warning instead of a route.
 
