@@ -53,15 +53,19 @@ Unavailable/conflicted/reference-only records do not render a card.
 
 ## Offline behavior
 
-The app preloads the safe public reference snapshot from Supabase and stores it locally. If the network is unavailable later, the last successful public snapshot remains available on the device.
+Road-reference mileage is intentionally **live-only**. The app does not cache the mileage snapshot in local storage.
+
+If the current safe Supabase snapshot cannot be fetched during app startup, the road-reference card stays hidden for that session. Clear Directions keep their existing offline behavior independently.
+
+This is deliberate: a route may change while an installed phone still has older cached app data. Hiding mileage when the current safe snapshot cannot be confirmed is safer than displaying a stale road-distance reference.
 
 ## Automatic stale protection
 
-Migration `20260808202932_publish_public_pad_anchor_mileage.sql` adds a safe public projection and a route-hash trigger.
+Migration `20260808202932_publish_public_pad_anchor_mileage.sql` adds a safe public table and a route-hash trigger.
 
 If a pad's company, state, county, coordinates, structured route, written directions, or Clear Directions change, its mileage row is automatically marked stale. RLS hides stale rows from anonymous/authenticated clients until the mileage is re-reviewed and republished.
 
-This prevents an old mileage card from surviving a later route edit.
+Together with the live-only browser behavior, this prevents an old mileage card from surviving a later route edit.
 
 ## Important examples
 
