@@ -1,0 +1,36 @@
+name: BrineSearch security checks
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches:
+      - "security/**"
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Check assembled JavaScript syntax
+        run: node --check v17/public/app/brinesearch-app.js
+      - name: Check security files are wired into the build
+        run: |
+          grep -q '00-security-boot.js' v17/src/parts/part-order.json
+          grep -q '01a-public-submission-security.js' v17/src/parts/part-order.json
+          grep -q '11a-security-public-pad-detail.js' v17/src/parts/part-order.json
+          grep -q '14a-field-profile-security.js' v17/src/parts/part-order.json
+          grep -q '33-security-hardening.css' v17/src/styles/style-order.json
+          grep -q 'Content-Security-Policy-Report-Only' netlify.toml
+          grep -q 'road_manager_route_prep_summary' supabase/migrations/20260808050000_urgent_security_hardening.sql
+      - name: Production dependency audit
+        run: npm audit --omit=dev --audit-level=high
