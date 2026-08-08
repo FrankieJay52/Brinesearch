@@ -4,6 +4,7 @@
   "wrapperEnd": "});",
   "parts": [
     "00-core-data.js",
+    "00a-live-clear-directions-precedence.js",
     "01-add-pad-wizard.js",
     "02-pad-location-branding.js",
     "03-global-search.js",
@@ -27,5 +28,5 @@
     "20-road-manager-sections.js",
     "21-road-manager-live-fixes.js"
   ],
-  "assembledSha256": "e6ea8886a68ef31d2bdbf2b7bfef42810e1af6630436b8d594952cd5e71ad383"
+  "assembledSha256": "abc8f0799945194975a304da0124e2ecf1d3cc503d75df3181580a786e3ce882"
 }
