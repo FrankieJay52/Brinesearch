@@ -7,8 +7,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles] = await Promise.all([
-  read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')), read(path.join(v17Root,'src/parts/14-field-feed-profile.js')), read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')), read(path.join(v17Root,'src/styles/27-v17-3-product-polish.css')), read(path.join(v17Root,'src/styles/28-v17-3-icon-and-layout-fixes.css')), read(path.join(v17Root,'src/parts/21-road-manager-live-fixes.js')), read(path.join(v17Root,'src/styles/31-road-manager-live-fixes.css')), read(path.join(projectRoot,'package.json')), read(path.join(v17Root,'src/parts/part-order.json')), read(path.join(v17Root,'src/styles/style-order.json')), read(path.join(v17Root,'src/offline/sw.js')), read(path.join(v17Root,'src/parts/00a-live-clear-directions-precedence.js')), read(path.join(v17Root,'src/parts/22a-direction-clear-polish.js')), read(path.join(v17Root,'src/parts/09a-public-data-review.js')), read(path.join(v17Root,'src/styles/34-public-data-review.css')), read(path.join(v17Root,'src/parts/11b-public-data-pad-card.js')), read(path.join(v17Root,'src/styles/35-public-data-pad-card.css'))
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, anchorMileageCard, anchorMileageStyles] = await Promise.all([
+  read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')), read(path.join(v17Root,'src/parts/14-field-feed-profile.js')), read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')), read(path.join(v17Root,'src/styles/27-v17-3-product-polish.css')), read(path.join(v17Root,'src/styles/28-v17-3-icon-and-layout-fixes.css')), read(path.join(v17Root,'src/parts/21-road-manager-live-fixes.js')), read(path.join(v17Root,'src/styles/31-road-manager-live-fixes.css')), read(path.join(projectRoot,'package.json')), read(path.join(v17Root,'src/parts/part-order.json')), read(path.join(v17Root,'src/styles/style-order.json')), read(path.join(v17Root,'src/offline/sw.js')), read(path.join(v17Root,'src/parts/00a-live-clear-directions-precedence.js')), read(path.join(v17Root,'src/parts/22a-direction-clear-polish.js')), read(path.join(v17Root,'src/parts/09a-public-data-review.js')), read(path.join(v17Root,'src/styles/34-public-data-review.css')), read(path.join(v17Root,'src/parts/11b-public-data-pad-card.js')), read(path.join(v17Root,'src/styles/35-public-data-pad-card.css')), read(path.join(v17Root,'src/parts/11c-anchor-mileage-card.js')), read(path.join(v17Root,'src/styles/36-anchor-mileage-card.css'))
 ]);
 const iconNames=['fm-legal.svg','fm-profile-inactive.svg','fm-notifications-inactive.svg','fm-settings-inactive.svg','fm-weather-inactive.svg','fm-offline-inactive.svg','fm-warning.svg','fm-role-owner.svg','fm-road-inactive.svg','fm-pad-inactive.svg','fm-wells.svg','fm-companies.svg','fm-like-inactive.svg'];
 const iconBuffers=await Promise.all(iconNames.map(name=>fs.readFile(path.join(v17Root,'public','icons',name))));
@@ -24,12 +24,14 @@ requireText(roadLiveFixes,'Interstates and U.S. highways','Grouped Road Manager 
 requireText(roadLiveStyles,'.road-row-grouped .road-status{pointer-events:none}','Whole-road-row click behavior');
 requireText(styleManifest,'34-public-data-review.css','Public Data Review stylesheet');
 requireText(styleManifest,'35-public-data-pad-card.css','Public Data pad card stylesheet');
+requireText(styleManifest,'36-anchor-mileage-card.css','Road-reference mileage stylesheet');
 requireText(partManifest,'09a-public-data-review.js','Public Data Review JavaScript');
 requireText(partManifest,'11b-public-data-pad-card.js','Public Data pad card JavaScript');
-requireText(partManifest,'"version": "17.3.4"','Part manifest version');
-requireText(styleManifest,'"version": "17.3.4"','Style manifest version');
-requireText(packageJson,'"version": "17.3.4"','Package version');
-requireText(sw,'brinesearch-v17-3-4','Service-worker cache version');
+requireText(partManifest,'11c-anchor-mileage-card.js','Road-reference mileage JavaScript');
+requireText(partManifest,'"version": "17.3.5"','Part manifest version');
+requireText(styleManifest,'"version": "17.3.5"','Style manifest version');
+requireText(packageJson,'"version": "17.3.5"','Package version');
+requireText(sw,'brinesearch-v17-3-5','Service-worker cache version');
 requireText(sw,'networkFirstAppAsset','Service-worker live asset update strategy');
 requireText(liveDirections,'/rest/v1/public_pad_detail','Authoritative public Clear Directions view');
 requireText(liveDirections,'__brineLiveClearDirectionsAuthoritative','Live Clear Directions precedence marker');
@@ -41,7 +43,13 @@ requireText(publicPadCard,'Current Pad Snapshot','Driver public-data snapshot');
 requireText(publicPadCard,'official_well_records','Confirmed official well source');
 requireText(publicPadCard,'saved driver/navigation point is unchanged','Navigation safety notice');
 requireText(publicPadCardStyles,'.public-pad-data-card','Driver public-data card visual layer');
+requireText(anchorMileageCard,'public_pad_anchor_mileage','Hardened public road-reference source');
+requireText(anchorMileageCard,'VERIFIED ROAD REFERENCE','Driver road-reference card');
+requireText(anchorMileageCard,'PAD_ANCHOR_CACHE_KEY_V1735','Offline road-reference cache');
+requireText(anchorMileageCard,'Keep using Clear Directions','Road-reference safety notice');
+requireText(anchorMileageStyles,'.pad-anchor-mileage-card','Road-reference visual layer');
+requireText(anchorMileageStyles,'html[data-theme="day"]','Daylight road-reference visual layer');
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.4 product layer: confirmed official-data pad snapshot, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
+console.log('Verified BrineSearch V17.3.5 product layer: driver road-reference mileage, confirmed official-data pad snapshot, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
