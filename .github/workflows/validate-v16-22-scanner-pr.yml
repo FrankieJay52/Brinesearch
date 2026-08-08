@@ -1,0 +1,149 @@
+name: Validate BrineSearch V16.22 scanner
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Integrate scanner in the test workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          index_path = Path('index.html')
+          html = index_path.read_text(encoding='utf-8')
+          html = re.sub(r'\s*<script[^>]*(?:id=["\']brinesearch-front-sign-scanner["\']|src=["\'][^"\']*front-sign-scanner\.js[^"\']*["\'])[^>]*>\s*</script>\s*', '\n', html, flags=re.I)
+          tag = '  <script id="brinesearch-front-sign-scanner" src="./front-sign-scanner.js" defer></script>\n'
+          pos = html.lower().rfind('</body>')
+          if pos < 0:
+              raise SystemExit('index.html has no closing body tag')
+          html = html[:pos] + tag + html[pos:]
+          html = html.replace('V 16.21', 'V 16.22').replace('V16.21', 'V16.22').replace('v16.21', 'v16.22')
+          if html.count('front-sign-scanner.js') != 1:
+              raise SystemExit('front sign scanner must be loaded exactly once')
+          index_path.write_text(html, encoding='utf-8')
+
+          sw_path = Path('sw.js')
+          sw = sw_path.read_text(encoding='utf-8')
+          sw = re.sub(r"const CACHE_VERSION = ['\"]brinesearch-v\d+-\d+['\"];", "const CACHE_VERSION = 'brinesearch-v16-22';", sw, count=1)
+          sw = sw.replace("'./front-sign-scanner.js', ", '').replace("'./front-sign-scanner.js',", '')
+          marker = "const APP_SHELL = ['./', './index.html',"
+          if marker not in sw:
+              raise SystemExit('APP_SHELL marker not found')
+          sw = sw.replace(marker, "const APP_SHELL = ['./', './index.html', './front-sign-scanner.js',", 1)
+          if sw.count('./front-sign-scanner.js') != 1:
+              raise SystemExit('front sign scanner must be cached exactly once')
+          sw_path.write_text(sw, encoding='utf-8')
+          PY
+
+      - name: Check JavaScript and parser behavior
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check front-sign-scanner.js
+          node --check sw.js
+          node --check tests/front-sign-scanner-v16-22-browser.cjs
+          node <<'NODE'
+          global.Event = class Event {
+            constructor(type, options) { this.type = type; this.bubbles = Boolean(options && options.bubbles); }
+          };
+          const scanner = require('./front-sign-scanner.js');
+          const sample = `ASCENT RESOURCES
+          MILLER PAD
+          Operator: Ascent Resources
+          Address: 1234 Bean Ridge Road, Barnesville OH 43713
+          County: Belmont County
+          Township: Warren Township
+          Latitude: 39.875432
+          Longitude: -81.123456
+          Well: Miller 1H
+          API: 34-013-2-1234
+          Property No: 908772
+          Gate Code: 2468
+          Emergency Contact 740-555-1212
+          H2S AREA - PPE REQUIRED - 10 MPH`;
+          const parsed = scanner.parseSignText(sample);
+          const checks = {
+            version: scanner.version === '16.22',
+            company: parsed.fields.company === 'Ascent Resources',
+            pad: /Miller/i.test(parsed.fields.padName || ''),
+            address: /1234 Bean Ridge/i.test(parsed.fields.address || ''),
+            county: parsed.fields.county === 'Belmont',
+            township: parsed.fields.township === 'Warren',
+            latitude: parsed.fields.latitude === '39.875432',
+            longitude: parsed.fields.longitude === '-81.123456',
+            well: /1H/.test(parsed.fields.wellName || ''),
+            api: parsed.fields.api === '34-013-21234',
+            property: parsed.fields.property === '908772',
+            gate: parsed.details.gateCode === '2468',
+            phone: (parsed.details.phoneNumbers || []).includes('740-555-1212'),
+            emergency: (parsed.details.emergency || []).length > 0,
+            safety: (parsed.details.safetyNotes || []).length > 0
+          };
+          const failed = Object.entries(checks).filter(([, ok]) => !ok).map(([name]) => name);
+          if (failed.length) throw new Error('Parser checks failed: ' + failed.join(', '));
+
+          function control(value = '') {
+            return { value, events: [], dispatchEvent(event) { this.events.push(event.type); } };
+          }
+          const controls = {
+            padName: control('Old Pad'), company: control('Old Operator'), state: control('OH'), county: control(''), township: control(''), address: control(''),
+            latitude: control(''), longitude: control(''), wellName: control('Old 1H'), api: control('34-001-00001'), property: control(''), writtenDirections: control('Turn left.')
+          };
+          const form = { elements: { namedItem(name) { return controls[name] || null; } } };
+          scanner.applyParsedToForm(form, parsed.fields, parsed.details, { appendSignNotes: true, capturedAt: '2026-08-07T03:00:00Z' });
+          if (controls.padName.value !== 'Miller Pad') throw new Error('Pad name was not filled');
+          if (!controls.wellName.value.includes('Old 1H') || !controls.wellName.value.includes('Miller 1H')) throw new Error('Wells were not safely merged');
+          if (!controls.api.value.includes('34-001-00001') || !controls.api.value.includes('34-013-21234')) throw new Error('API numbers were not safely merged');
+          if (!controls.writtenDirections.value.includes('Gate/access code: 2468')) throw new Error('Front-sign notes were not appended');
+          console.log('Parser and Edit Pad form-fill checks passed.');
+          NODE
+
+      - name: Verify production integration targets
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -o 'front-sign-scanner.js' index.html | wc -l | tr -d ' ')" = "1"
+          grep -q 'id="brinesearch-front-sign-scanner"' index.html
+          grep -q 'src="./front-sign-scanner.js"' index.html
+          grep -q "brinesearch-v16-22" sw.js
+          test "$(grep -o './front-sign-scanner.js' sw.js | wc -l | tr -d ' ')" = "1"
+          grep -q "const VERSION = '16.22'" front-sign-scanner.js
+          grep -q 'capture=\"environment\"' front-sign-scanner.js
+          grep -q 'padEditorForm' front-sign-scanner.js
+          grep -q 'liveEditorForm' front-sign-scanner.js
+          grep -q 'Apply and Save to Pad' front-sign-scanner.js
+          grep -q 'Fill Edit Pad Form' front-sign-scanner.js
+
+      - name: Install Chromium audit runner
+        shell: bash
+        run: |
+          npm install --no-save --no-package-lock playwright@1.54.2
+          npx playwright install chromium
+
+      - name: Start local test server
+        shell: bash
+        run: |
+          python3 -m http.server 8080 > /tmp/brinesearch-v16-22.log 2>&1 &
+          for i in {1..30}; do
+            curl -fsS http://127.0.0.1:8080/ >/dev/null && exit 0
+            sleep 1
+          done
+          cat /tmp/brinesearch-v16-22.log
+          exit 1
+
+      - name: Audit Pad Page and both Edit Pad experiences
+        run: node tests/front-sign-scanner-v16-22-browser.cjs
