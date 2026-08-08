@@ -76,7 +76,7 @@ jobs:
 
       - name: Deploy BrineSearch
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
 
       - name: Record deployment result on the commit
         if: always()
