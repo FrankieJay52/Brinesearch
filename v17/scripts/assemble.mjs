@@ -46,6 +46,14 @@ await fs.writeFile(path.join(stylesRoot, 'field-mark-icons.css'), fieldMarkAbsol
 for (const file of ['theme-boot.js', 'weather-feature.js', 'root-scroll-guard.js', 'field-mark-runtime.js', 'front-sign-structured.js', 'front-sign-hidden.js']) {
   await fs.copyFile(path.join(srcRoot, 'runtime', file), path.join(appRoot, file));
 }
+
+// Direction fallback cleanup must execute before brinesearch-app.js begins loading
+// the packaged direction JSON. Append it to theme-boot so no new script tag or
+// service-worker asset is needed; theme-boot is already first-paint critical and
+// part of the offline shell.
+const directionSourceCleanup = await fs.readFile(path.join(srcRoot, 'runtime', 'direction-source-cleanup.js'), 'utf8');
+await fs.appendFile(path.join(appRoot, 'theme-boot.js'), `\n\n${directionSourceCleanup.trim()}\n`);
+
 const directionManifest = await readJson(path.join(srcRoot, 'data', 'directions', 'index.json'));
 await copyIfPresent(path.join(srcRoot, 'data'), path.join(publicRoot, 'data'));
 const swTemplate = await fs.readFile(path.join(srcRoot, 'offline', 'sw.js'), 'utf8');
