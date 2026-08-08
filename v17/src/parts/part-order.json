@@ -1,5 +1,5 @@
 {
-  "version": "17.3.2",
+  "version": "17.3.3",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -16,6 +16,7 @@
     "07-pad-editor-core.js",
     "08-editor-auth-account.js",
     "09-editor-dashboard-rewrite.js",
+    "09a-public-data-review.js",
     "10-live-pad-editor.js",
     "11-pad-page.js",
     "11a-security-public-pad-detail.js",
