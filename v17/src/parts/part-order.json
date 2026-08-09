@@ -39,6 +39,7 @@
     "22h-direction-fragment-reassembly.js",
     "22i-lee-written-step-prototype.js",
     "22j-global-written-directions.js",
+    "22k-global-written-alias-safety.js",
     "12-verification-queue.js",
     "13-verification-detail.js",
     "14-field-feed-profile.js",
