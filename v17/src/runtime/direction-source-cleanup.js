@@ -1,4 +1,4 @@
-/* BrineSearch V17.3.1 — conservative saved-direction fallback cleanup.
+/* BrineSearch V17.3.19 — conservative saved-direction fallback cleanup.
    Reviewed live Supabase directions_clear remains authoritative. This only repairs
    older packaged rewrites by rebuilding explicit numbered saved directions from
    their original saved source text. It never invents a road, turn, mileage, or
@@ -9,6 +9,8 @@
   window.__brineDirectionSourceCleanupInstalled = true;
 
   const nativeFetch = window.fetch.bind(window);
+
+  const ESTHER_WEEKS_CLEAR_V17319 = `Road sequence reference:\nI-70 → Exit 5 → US-40 → Kruger St → Lounez Ave → CR-23 / Stone Church Rd → Oklahoma Rd → Pad\n\nStep-by-step directions:\n1. Take Exit 5 to US-40.\n2. Turn left on Kruger St.\n3. Turn left on Lounez Ave.\n4. Veer right on CR-23 / Stone Church Rd. Continue approximately 6 miles.\n5. Turn left on Oklahoma Rd. The saved directions describe Oklahoma Rd as gravel/dirt and single lane; the pad is on the left.`;
 
   function requestUrl(input) {
     try {
@@ -31,9 +33,6 @@
       .replace(/\s+/g, " ")
       .trim();
 
-    // The imported Ascent-style source often used periods as visual separators
-    // between words (US-40.East, Road.And, I77.Exit). Repair only letter/number
-    // separators; decimal mileage such as 6.9 is intentionally untouched.
     text = text
       .replace(/([A-Za-z0-9)])\.(?=[A-Z][A-Za-z-]*\b)/g, "$1 ")
       .replace(/\s+([,.;:])/g, "$1")
@@ -49,10 +48,6 @@
     const fromIndex = lower.lastIndexOf("from ");
     if (fromIndex >= 0) heading = heading.slice(fromIndex).trim();
     if (!/^from\b/i.test(heading)) return "";
-
-    // The display parser uses the comma before the driving action as the end of
-    // the start label. Remove commas inside parenthetical city/state labels so
-    // "Flushing, OH" does not truncate to "Flushing".
     heading = heading.replace(/\(([^)]*)\)/g, (whole, inner) => `(${String(inner).replace(/,/g, "")})`);
     return heading;
   }
@@ -71,10 +66,6 @@
   function buildNumberedRewrite(source, existingRewrite) {
     const raw = String(source || "").replace(/\r\n?/g, "\n").trim();
     if (!raw) return "";
-
-    // Multiple approach routes are separated in the saved field text by long
-    // divider lines. Rebuild the first/primary approach only; the app already
-    // renders saved alternate road sequences separately and we do not infer them.
     const primary = raw.split(/\s*-{8,}\s*/)[0].trim();
     if (!primary) return "";
 
@@ -88,10 +79,6 @@
         number: Number(match[2])
       });
     }
-
-    // Require an actual numbered route beginning at step 1. This prevents road
-    // numbers, phone numbers, mileages, and other numeric text from being treated
-    // as turn markers.
     if (matches.length < 2 || matches[0].number !== 1) return "";
 
     const steps = [];
@@ -113,6 +100,13 @@
     return `${reference ? `Road sequence reference:\n${reference}\n\n` : ""}Step-by-step directions:\n${lines.join("\n")}`;
   }
 
+  function reviewedKnownRewrite(key, value) {
+    if (key !== "expand--esther-weeks") return "";
+    const source = String(value?.s || "");
+    if (!/Kruger St/i.test(source) || !/stone church/i.test(source) || !/Oklahoma/i.test(source) || !/roughly\s+6\s+miles/i.test(source)) return "";
+    return ESTHER_WEEKS_CLEAR_V17319;
+  }
+
   window.fetch = async function brineDirectionSourceFetch(input, init) {
     const url = requestUrl(input);
     const response = await nativeFetch(input, init);
@@ -129,7 +123,8 @@
           repaired[key] = value;
           continue;
         }
-        const rebuilt = buildNumberedRewrite(value.s, value.r);
+        const known = reviewedKnownRewrite(key, value);
+        const rebuilt = known || buildNumberedRewrite(value.s, value.r);
         if (rebuilt && rebuilt !== value.r) {
           repaired[key] = { ...value, r: rebuilt };
           changed += 1;

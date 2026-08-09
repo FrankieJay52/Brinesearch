@@ -20,15 +20,15 @@ const [pkgText,partsText,stylesText,source,sw,migrationA,migrationB,migrationC,m
   read(path.join(projectRoot,'supabase/migrations/20260809222000_v17318_explicit_start_road_leg_measurement.sql'))
 ]);
 const pkg=JSON.parse(pkgText),parts=JSON.parse(partsText),styles=JSON.parse(stylesText);
-if(pkg.version!=='17.3.18'||parts.version!=='17.3.18'||styles.version!=='17.3.18') throw new Error('V17.3.18 version markers are not synchronized.');
+if(pkg.version!=='17.3.19'||parts.version!=='17.3.19'||styles.version!=='17.3.19') throw new Error('V17.3.19 version markers are not synchronized.');
 const u=parts.parts.indexOf('22u-direction-road-data-enrichment.js');
 const t=parts.parts.indexOf('22t-known-source-cleanups.js');
 const startup=parts.parts.indexOf('18-account-theme-startup.js');
-if(u<=t||startup<=u) throw new Error('V17.3.18 road data layer must load after V17.3.17 cleanup and before startup.');
+if(u<=t||startup<=u) throw new Error('V17.3.19 road data layer must load after V17.3.17 cleanup and before startup.');
 for(const token of ['brinesearch_pad_measured_road_segments','brinesearch_pad_official_road_aliases','directionGroupRoadCardsV17318','directionRoadDataHydrateV17318']) if(!source.includes(token)) throw new Error(`Road data source is missing ${token}.`);
-if(!sw.includes('brinesearch-v17-3-18-road-mileage-recovery')) throw new Error('V17.3.18 cache marker is missing.');
+if(!sw.includes('brinesearch-v17-3-19-all-road-deep-pass')) throw new Error('V17.3.19 cache marker is missing.');
 for(const token of ['usable boolean','rejection_reason','brinesearch_sync_pad_measured_road_segments','measurement withheld by prior mileage audit']) if(!migrationA.includes(token)) throw new Error(`Measured-road migration missing ${token}.`);
-for(const token of ['verification_status=\'verified\'','brinesearch_pad_official_road_aliases','canonical_name','aliases']) if(!migrationB.includes(token)) throw new Error(`Official-road RPC migration missing ${token}.`);
+for(const token of ["verification_status='verified'",'brinesearch_pad_official_road_aliases','canonical_name','aliases']) if(!migrationB.includes(token)) throw new Error(`Official-road RPC migration missing ${token}.`);
 for(const token of ['measurement_scope','direction_road_leg','official_centerline_neighbor_intersections','official_centerline_previous_road_to_pad','brinesearch_measure_safe_oh_road_legs']) if(!migrationC.includes(token)) throw new Error(`Safe road-leg migration missing ${token}.`);
 for(const token of ['brinesearch_apply_exact_saved_step_road_identities','road_identity_v17318','brinesearch_rebuild_direction_road_neighbors_v17318','brinesearch_refresh_all_direction_intelligence_v17318_base']) if(!migrationD.includes(token)) throw new Error(`Exact road-identity migration missing ${token}.`);
 for(const token of ['official_centerline_explicit_start_to_next_road','^From[[:space:]]+((?:I|US|OH|SR)-[0-9]+)','Town/city-only origins are intentionally not measured']) if(!migrationE.includes(token)) throw new Error(`Explicit-start road-leg migration missing ${token}.`);
@@ -105,5 +105,5 @@ const recovered={state:'Ohio',officialRoadAliasesV17318:[],measuredRoadSegmentsV
 const recoveredCards=context.directionGroupRoadCardsV17318([card('Turn right on TR-221')],recovered);
 if(recoveredCards[0].distance!=='≈ 0.53 mi') throw new Error('Recovered direct road-leg mileage did not fill a blank badge.');
 
-if(source.includes('street-sign-board')||source.includes('direction-highway-badge')) throw new Error('V17.3.18 road cards must remain signless.');
-console.log('Verified BrineSearch V17.3.18: COLOGIE keeps saved miles and gains exact official CR/TR double names; accepted historical and direct ODOT road-leg measurements safely fill missing mileage; repeated same-road instructions collapse into notes; saved mileage wins over measurements; ambiguous route-only names stay unguessed; differently named segments of one route remain separate; exact saved-step identities and road neighbors persist across refreshes; and vague town-only origins are not measured.');
+if(source.includes('street-sign-board')||source.includes('direction-highway-badge')) throw new Error('V17.3.19 road cards must remain signless.');
+console.log('Verified BrineSearch V17.3.19 deep road pass: COLOGIE is the card contract; saved mileage remains authoritative; accepted historical/direct ODOT road-leg mileage fills only blank unambiguous badges; exact saved-step road identities and road neighbors persist across refreshes; true route/local double names stay inline; ambiguous route-number aliases remain unguessed; differently named segments of one route remain separate; and vague town-only origins are not measured.');
