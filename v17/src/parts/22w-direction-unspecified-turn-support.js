@@ -13,8 +13,54 @@
         const explicit = directionExplicitRoadDisplayFinalV17317(road, p);
         if (explicit?.road) road = explicit.road;
       } catch {}
+      try {
+        road = directionNormalizeTargetRoadV17310(road, p) || road;
+      } catch {}
       return directionMainCleanV17317(road);
     }
+
+    function directionSourceActionNormalizeV17320(value, p) {
+      let text = directionTruthCleanV17320(value);
+      text = text
+        .replace(/^Turn\s+(northwest|northeast|southwest|southeast|north|south|east|west)\s+onto\s+/i, (_, bearing) => `Turn ${bearing.toLowerCase()} on `)
+        .replace(/^Turn\s+onto\s+/i, "Turn on ")
+        .replace(/^(Travel|Go|Proceed)\s+(northwest|northeast|southwest|southeast|north|south|east|west)\s+on\s+/i, (_, action, bearing) => `Head ${bearing.toLowerCase()} on `);
+
+      /* If a source says "Turn onto US-30 east", east is the travel direction,
+         not a local road alias. Put the bearing in the action. */
+      let match = text.match(/^Turn\s+on\s+((?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?)\s+(northwest|northeast|southwest|southeast|north|south|east|west)(\b[\s\S]*)$/i);
+      if (match) {
+        let road = match[1];
+        try { road = directionNormalizeTargetRoadV17310(road, p) || road; } catch {}
+        return `Turn ${match[2].toLowerCase()} on ${road}${match[3] || ""}`;
+      }
+      return text;
+    }
+
+    function directionOriginActionEntryV17320(entry, p) {
+      const raw = directionTruthCleanV17320(entry?.instruction || "");
+      if (!/^From\b/i.test(raw)) return entry;
+      let match = raw.match(/^From\s+(.+?),\s*((?:Turn|Head|Travel|Go|Proceed)\b[\s\S]+)$/i);
+      if (!match) {
+        match = raw.match(/^From\s+(.+?)\s+((?:Turn(?:\s+(?:left|right|northwest|northeast|southwest|southeast|north|south|east|west))?\s+(?:on|onto)|Head\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Travel\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Go\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Proceed\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on)[\s\S]+)$/i);
+      }
+      if (!match) return entry;
+      const start = directionTruthCleanV17320(match[1]);
+      const action = directionSourceActionNormalizeV17320(match[2], p);
+      if (!action) return entry;
+      return {
+        ...entry,
+        instruction:action,
+        notes:directionUniqueNotesV17317([...(entry?.notes || []), start ? `Start: ${start}` : ""]),
+        disableRoadIntel:true,
+        sourceTruthOriginV17320:true
+      };
+    }
+
+    const directionTruthEntriesBeforeOriginV17320 = directionTruthEntriesV17320;
+    directionTruthEntriesV17320 = function directionTruthEntriesOriginV17320(entries, p) {
+      return directionTruthEntriesBeforeOriginV17320((entries || []).map(entry => directionOriginActionEntryV17320(entry, p)), p);
+    };
 
     const directionMainActionBeforeUnspecifiedTurnV17320 = directionMainActionFinalV17317;
     directionMainActionFinalV17317 = function directionMainActionUnspecifiedTurnV17320(value, p) {
@@ -55,3 +101,4 @@
     };
 
     window.directionMainActionFinalV17320 = directionMainActionFinalV17317;
+    window.directionOriginActionEntryV17320 = directionOriginActionEntryV17320;
