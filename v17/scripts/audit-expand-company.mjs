@@ -8,6 +8,13 @@ const projectRoot = path.resolve(v17Root, '..');
 const data = JSON.parse(await fs.readFile(path.join(projectRoot, 'pad-fallback-data.json'), 'utf8'));
 const cleanup = await fs.readFile(path.join(v17Root, 'src/parts/00zz-expand-company-cleanup.js'), 'utf8');
 const headerGuard = await fs.readFile(path.join(v17Root, 'src/parts/11g-pad-header-data-guard.js'), 'utf8');
+const partManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'src/parts/part-order.json'), 'utf8'));
+
+const cleanupIndex = partManifest.parts.indexOf('00zz-expand-company-cleanup.js');
+const coreIndex = partManifest.parts.indexOf('00-core-data.js');
+if (cleanupIndex < 0 || coreIndex < 0 || cleanupIndex <= coreIndex) {
+  throw new Error('Expand company cleanup must load immediately after core pad data.');
+}
 
 const pads = Array.isArray(data.pads) ? data.pads : [];
 const expand = pads.filter(row => String(row.company || '').trim().toLowerCase() === 'expand');
