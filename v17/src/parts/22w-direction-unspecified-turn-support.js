@@ -26,8 +26,6 @@
         .replace(/^Turn\s+onto\s+/i, "Turn on ")
         .replace(/^(Travel|Go|Proceed)\s+(northwest|northeast|southwest|southeast|north|south|east|west)\s+on\s+/i, (_, action, bearing) => `Head ${bearing.toLowerCase()} on `);
 
-      /* If a source says "Turn onto US-30 east", east is the travel direction,
-         not a local road alias. Put the bearing in the action. */
       let match = text.match(/^Turn\s+on\s+((?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?)\s+(northwest|northeast|southwest|southeast|north|south|east|west)(\b[\s\S]*)$/i);
       if (match) {
         let road = match[1];
@@ -40,9 +38,12 @@
     function directionOriginActionEntryV17320(entry, p) {
       const raw = directionTruthCleanV17320(entry?.instruction || "");
       if (!/^From\b/i.test(raw)) return entry;
-      let match = raw.match(/^From\s+(.+?),\s*((?:Turn|Head|Travel|Go|Proceed)\b[\s\S]+)$/i);
+      /* Take is included here so a sentence such as
+         "From Bloomingdale, take US-22 and go south on SR-152" stays intact for
+         the two-road transition splitter instead of swallowing the US-22 leg. */
+      let match = raw.match(/^From\s+(.+?),\s*((?:Take|Turn|Head|Travel|Go|Proceed)\b[\s\S]+)$/i);
       if (!match) {
-        match = raw.match(/^From\s+(.+?)\s+((?:Turn(?:\s+(?:left|right|northwest|northeast|southwest|southeast|north|south|east|west))?\s+(?:on|onto)|Head\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Travel\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Go\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on|Proceed\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on)[\s\S]+)$/i);
+        match = raw.match(/^From\s+(.+?)\s+((?:Take\s+[\s\S]+|Turn(?:\s+(?:left|right|northwest|northeast|southwest|southeast|north|south|east|west))?\s+(?:on|onto)[\s\S]+|Head\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on[\s\S]+|Travel\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on[\s\S]+|Go\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on[\s\S]+|Proceed\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)\s+on[\s\S]+))$/i);
       }
       if (!match) return entry;
       const start = directionTruthCleanV17320(match[1]);
