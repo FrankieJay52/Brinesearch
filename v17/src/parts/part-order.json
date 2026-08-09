@@ -56,6 +56,7 @@
     "22n-direction-context-coalescing.js",
     "22o-direction-mileage-badges-double-name.js",
     "22p-direction-concise-driver-cards.js",
+    "22q-direction-road-pair-safety.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
