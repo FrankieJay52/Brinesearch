@@ -68,7 +68,7 @@
           if (notes.length && steps.length) steps[steps.length - 1].notes.push(...notes);
           continue;
         }
-        steps.push({ instruction, notes });
+        steps.push({ instruction, notes, sourceStepOrder: entry.sourceStepOrder });
       }
       return { reference: directionSanitizeReferenceV1738(parsed.reference), steps };
     };
