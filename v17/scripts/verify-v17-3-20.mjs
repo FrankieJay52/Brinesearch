@@ -7,7 +7,7 @@ const scriptDir=path.dirname(fileURLToPath(import.meta.url));
 const v17Root=path.resolve(scriptDir,'..');
 const projectRoot=path.resolve(v17Root,'..');
 const read=file=>fs.readFile(file,'utf8');
-const [pkgText,partsText,stylesText,roadData,truthSource,turnSource,sw,migrationA,migrationB,migrationC]=await Promise.all([
+const [pkgText,partsText,stylesText,roadData,truthSource,turnSource,sw,migrationA,migrationB,migrationC,migrationD,migrationE]=await Promise.all([
   read(path.join(projectRoot,'package.json')),
   read(path.join(v17Root,'src/parts/part-order.json')),
   read(path.join(v17Root,'src/styles/style-order.json')),
@@ -17,7 +17,9 @@ const [pkgText,partsText,stylesText,roadData,truthSource,turnSource,sw,migration
   read(path.join(v17Root,'src/offline/sw.js')),
   read(path.join(projectRoot,'supabase/migrations/20260809230000_v17320_road_turn_mileage_truth.sql')),
   read(path.join(projectRoot,'supabase/migrations/20260809231500_v17320_target_road_and_alias_truth.sql')),
-  read(path.join(projectRoot,'supabase/migrations/20260809232500_v17320_alias_sanity_and_direct_fractional_legs.sql'))
+  read(path.join(projectRoot,'supabase/migrations/20260809232500_v17320_alias_sanity_and_direct_fractional_legs.sql')),
+  read(path.join(projectRoot,'supabase/migrations/20260809233500_v17320_unspecified_turn_class_truth.sql')),
+  read(path.join(projectRoot,'supabase/migrations/20260809234500_v17320_no_side_turn_precedence_fix.sql'))
 ]);
 const pkg=JSON.parse(pkgText),parts=JSON.parse(partsText),styles=JSON.parse(stylesText);
 if(pkg.version!=='17.3.20'||parts.version!=='17.3.20'||styles.version!=='17.3.20') throw new Error('V17.3.20 version markers are not synchronized.');
@@ -32,6 +34,8 @@ for(const token of ['Turn on','Turn west on','directionOriginActionEntryV17320',
 for(const token of ['deferred_saved_distance_v17320','brinesearch_target_fractional_route_v17320','brinesearch_apply_v17320_direction_truth','compound left/right source row']) if(!migrationA.includes(token)) throw new Error(`V17.3.20 truth migration missing ${token}.`);
 for(const token of ['brinesearch_explicit_target_route_v17320','explicit saved driving action target v17.3.20','navigation_context_only_v17320','brinesearch_apply_v17320_target_road_truth']) if(!migrationB.includes(token)) throw new Error(`V17.3.20 target-road migration missing ${token}.`);
 for(const token of ['invalid_alias_removed_v17320','Waynesburg Rd NW','Autumn Rd SW','direct_fractional_leg_v17320','CR-67/1 / McCords Hill Road']) if(!migrationC.includes(token)) throw new Error(`V17.3.20 alias/fraction migration missing ${token}.`);
+for(const token of ['turn_unspecified','brinesearch_apply_v17320_unspecified_turn_classes','turn on/onto road but provides no left/right side']) if(!migrationD.includes(token)) throw new Error(`V17.3.20 unspecified-turn migration missing ${token}.`);
+for(const token of ['directional left/right wording outranks generic turn-on/onto classification','bear|veer|slight|stay|keep','brinesearch_apply_v17320_unspecified_turn_classes']) if(!migrationE.includes(token)) throw new Error(`V17.3.20 turn-precedence migration missing ${token}.`);
 
 // Preserve V17.3.18 road-card invariants while the truth layers are added.
 const context={
@@ -69,4 +73,4 @@ if(context.directionGroupRoadCardsV17318([card('Turn right on CR-82 / McCoy Rd',
 const ambiguous={state:'Ohio',officialRoadAliasesV17318:[{route_label:'CR-5',canonical_name:'Crescent Rd',aliases:['CR-5']},{route_label:'CR-5',canonical_name:'Glencoe Rd',aliases:['CR-5']}],measuredRoadSegmentsV17318:[]};
 if(context.directionGroupRoadCardsV17318([card('Turn left on CR-5')],ambiguous)[0].instruction!=='Turn left on CR-5') throw new Error('Ambiguous CR-5 received an invented local name.');
 
-console.log('Verified BrineSearch V17.3.20 product contract: COLOGIE stays exact; Noelle measured-road recovery stays safe; saved mileage beats measured mileage; ambiguous route names remain unguessed; and the new road/turn/mileage truth layers plus all three live migrations are present in the release.');
+console.log('Verified BrineSearch V17.3.20 product contract: COLOGIE stays exact; Noelle measured-road recovery stays safe; saved mileage beats measured mileage; ambiguous route names remain unguessed; all five V17.3.20 road/turn/mileage truth migrations are present; generic no-side turns are preserved without overriding explicit left/right directional maneuvers.');
