@@ -26,6 +26,7 @@
     "11d-verification-cleanup.js",
     "11e-route-reference-audit-fixes.js",
     "11f-well-list-polish.js",
+    "11g-pad-header-data-guard.js",
     "22-direction-clear-display-fix.js",
     "22a-direction-clear-polish.js",
     "22b-direction-landmark-cleanup.js",
