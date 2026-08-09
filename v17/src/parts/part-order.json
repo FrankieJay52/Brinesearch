@@ -59,6 +59,7 @@
     "22q-direction-road-pair-safety.js",
     "22r-direction-final-card-contract.js",
     "22s-direction-range-mileage-final-scrub.js",
+    "22t-known-source-cleanups.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
