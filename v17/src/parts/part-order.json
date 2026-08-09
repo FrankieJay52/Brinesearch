@@ -1,5 +1,5 @@
 {
-  "version": "17.3.16",
+  "version": "17.3.17",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -54,6 +54,7 @@
     "21-road-manager-live-fixes.js",
     "22m-direction-source-priority-and-coalescer.js",
     "22n-direction-context-coalescing.js",
+    "22o-direction-mileage-badges-double-name.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
