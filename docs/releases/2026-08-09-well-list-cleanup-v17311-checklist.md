@@ -7,5 +7,5 @@
 - [x] Cross Creek seven-row list verified after cleanup.
 - [x] Official-source button mobile centering fix included.
 - [x] Unnamed unresolved API rows display `Name needs review`.
-- [ ] GitHub build/security/browser/deploy checks pass.
-- [ ] Merge V17.3.11 to main.
+- [x] GitHub build/security/browser/deploy checks pass.
+- [x] Merge V17.3.11 to main.
