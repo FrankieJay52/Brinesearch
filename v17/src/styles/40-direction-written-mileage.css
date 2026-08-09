@@ -14,31 +14,13 @@
   align-self:flex-start;
   margin-left:auto;
 }
-.direction-written-double-name-v17317{
-  display:inline-flex;
-  align-items:center;
-  width:max-content;
-  max-width:100%;
-  padding:4px 8px;
-  border:1px solid color-mix(in srgb,var(--accent) 38%,var(--line));
-  border-radius:999px;
-  background:color-mix(in srgb,var(--accent) 8%,var(--panel-2));
-  color:var(--accent);
-  font-size:.67rem;
-  font-weight:950;
-  letter-spacing:.08em;
-  line-height:1;
-  white-space:nowrap;
-}
-
-html[data-theme="day"] .direction-written-double-name-v17317{
-  background:#edf7f6;
-  border-color:#aad8d3;
-  color:#075f5a;
+/* Double-name roads stay inline as "road name / route number". The class is
+   retained only as a semantic hook; no extra badge or label is rendered. */
+.direction-written-double-road-v17317 .direction-written-instruction{
+  font-weight:850;
 }
 
 @media(max-width:620px){
   .direction-written-row-v17317{gap:9px}
   .direction-written-distance-v17317{margin-top:0}
-  .direction-written-double-name-v17317{font-size:.62rem;padding:4px 7px}
 }
