@@ -31,7 +31,7 @@
     function directionClearPolishedStepsV1732(clearText) {
       const parsed = directionClearSectionsV1732(clearText);
       const steps = [];
-      parsed.steps.forEach(instruction => {
+      parsed.steps.forEach((instruction, sourceIndex) => {
         const text = String(instruction || "").trim();
         if (!text) return;
         if (directionClearNoteOnlyV1732(text) && steps.length) {
@@ -42,7 +42,7 @@
           steps[steps.length - 1].instruction = `${steps[steps.length - 1].instruction} ${text}`.replace(/\s{2,}/g, " ").trim();
           return;
         }
-        steps.push({ instruction: text, notes: [] });
+        steps.push({ instruction: text, notes: [], sourceStepOrder: sourceIndex + 1 });
       });
       return { reference: parsed.reference, steps };
     }
