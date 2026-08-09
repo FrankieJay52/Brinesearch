@@ -1,5 +1,5 @@
 {
-  "version": "17.3.0",
+  "version": "17.3.19",
   "files": [
     "antero.json",
     "ascent-1.json",
@@ -22,6 +22,7 @@
     "hg.json",
     "hilcorp.json",
     "infinity.json",
+    "infinity-v17319.json",
     "lola.json",
     "montage.json",
     "penn-energy.json",
@@ -29,5 +30,5 @@
     "swn.json",
     "xto.json"
   ],
-  "recordCount": 1160
+  "recordCount": 1161
 }
