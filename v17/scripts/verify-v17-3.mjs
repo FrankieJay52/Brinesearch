@@ -7,7 +7,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, directionRoadIntel, directionRoadIntelStyles, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceAudit, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, directionRoadIntel, directionTargetRoadFix, directionRoadIntelStyles, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceAudit, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
   read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root,'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')),
@@ -23,6 +23,7 @@ const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyle
   read(path.join(v17Root,'src/parts/22a-direction-clear-polish.js')),
   read(path.join(v17Root,'src/parts/22b-direction-landmark-cleanup.js')),
   read(path.join(v17Root,'src/parts/22c-direction-road-intelligence.js')),
+  read(path.join(v17Root,'src/parts/22d-direction-target-road-fix.js')),
   read(path.join(v17Root,'src/styles/38-direction-road-intelligence.css')),
   read(path.join(v17Root,'src/parts/09a-public-data-review.js')),
   read(path.join(v17Root,'src/styles/34-public-data-review.css')),
@@ -58,6 +59,7 @@ requireText(partManifest,'11d-verification-cleanup.js','Pad verification cleanup
 requireText(partManifest,'11e-route-reference-audit-fixes.js','Route reference audit fixes JavaScript');
 requireText(partManifest,'22b-direction-landmark-cleanup.js','Direction landmark cleanup JavaScript');
 requireText(partManifest,'22c-direction-road-intelligence.js','Direction road intelligence JavaScript');
+requireText(partManifest,'22d-direction-target-road-fix.js','Target-road parsing JavaScript');
 requireText(partManifest,'"version": "17.3.10"','Part manifest version');
 requireText(styleManifest,'"version": "17.3.10"','Style manifest version');
 requireText(packageJson,'"version": "17.3.10"','Package version');
@@ -75,6 +77,8 @@ requireText(directionRoadIntel,'same_road_continuation','Same-road continuation 
 requireText(directionRoadIntel,'shared_road_consensus','Shared-road mileage handling');
 requireText(directionRoadIntel,'entry?.sourceStepOrder','Road-intelligence source-step alignment');
 requireText(directionRoadIntel,'savedDistance','Short saved-distance label handling');
+requireText(directionTargetRoadFix,'directionClearRoadTextTargetV17310','Target-road parser override');
+requireText(directionTargetRoadFix,'prefer the explicit target road','Target-road parser audit explanation');
 requireText(directionRoadIntelStyles,'.direction-clear-road-alias','Dual road-name visual');
 requireText(publicDataReview,'/rest/v1/rpc/public_data_review_summary','Owner public data summary RPC');
 requireText(publicDataReview,'It will NOT publish','Public Data Review safety confirmation');
@@ -106,4 +110,4 @@ requireText(verificationCleanupStyles,'.pad-check-reviewed-row','Compact verific
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.10 product layer: audited pad-specific mileage, source-step-aligned road intelligence, short-foot distance handling, dual road names, and current version markers.');
+console.log('Verified BrineSearch V17.3.10 product layer: audited pad-specific mileage, source-step-aligned road intelligence, target-road parsing, short-foot distance handling, dual road names, and current version markers.');
