@@ -1,5 +1,5 @@
 {
-  "version": "17.3.16",
+  "version": "17.3.17",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -33,7 +33,8 @@
     "36-driver-route-reference.css",
     "37-verification-cleanup.css",
     "38-direction-road-intelligence.css",
-    "39-well-list-polish.css"
+    "39-well-list-polish.css",
+    "40-direction-written-mileage.css"
   ],
   "assembledSha256": ""
 }
