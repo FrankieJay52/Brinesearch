@@ -18,6 +18,17 @@
     const SUPABASE_URL = "https://wvxzqtoiwhrgovzddtvz.supabase.co";
     const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd";
     const PAGE_SIZE = 1000;
+    const LIVE_DATABASE_FETCH_TIMEOUT_MS = 2200;
+
+    async function fetchLiveDatabasePage(url, options = {}) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(new Error("Live database request timed out")), LIVE_DATABASE_FETCH_TIMEOUT_MS);
+      try {
+        return await fetch(url, { ...options, signal: controller.signal });
+      } finally {
+        clearTimeout(timer);
+      }
+    }
 
     function mapSupabasePad(row) {
       const extra = row.extra_data && typeof row.extra_data === "object" ? row.extra_data : {};
@@ -81,7 +92,7 @@
         url.searchParams.set("limit", String(PAGE_SIZE));
         url.searchParams.set("offset", String(offset));
 
-        const response = await fetch(url.toString(), {
+        const response = await fetchLiveDatabasePage(url.toString(), {
           headers: {
             apikey: SUPABASE_PUBLISHABLE_KEY,
             Accept: "application/json"

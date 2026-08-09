@@ -1,5 +1,5 @@
 {
-  "version": "17.3.11",
+  "version": "17.3.12",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -35,5 +35,5 @@
     "38-direction-road-intelligence.css",
     "39-well-list-polish.css"
   ],
-  "assembledSha256": "83cf69a19b659e3fc12f33540cd54b4bf90b3c54689a4dd70ee2cba4f8bc912b"
+  "assembledSha256": ""
 }

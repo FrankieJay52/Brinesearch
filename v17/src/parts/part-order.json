@@ -1,10 +1,12 @@
 {
-  "version": "17.3.11",
+  "version": "17.3.12",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
     "00-security-boot.js",
     "00-core-data.js",
+    "00zz-expand-company-cleanup.js",
+    "00zb-startup-resilience.js",
     "00a-live-clear-directions-precedence.js",
     "01-add-pad-wizard.js",
     "01a-public-submission-security.js",
@@ -25,12 +27,15 @@
     "11d-verification-cleanup.js",
     "11e-route-reference-audit-fixes.js",
     "11f-well-list-polish.js",
+    "11g-pad-header-data-guard.js",
     "22-direction-clear-display-fix.js",
     "22a-direction-clear-polish.js",
     "22b-direction-landmark-cleanup.js",
     "22c-direction-road-intelligence.js",
     "22d-direction-target-road-fix.js",
     "22e-direction-compound-step-safety.js",
+    "22f-direction-road-rebuild.js",
+    "22g-inline-dual-road-names.js",
     "12-verification-queue.js",
     "13-verification-detail.js",
     "14-field-feed-profile.js",
@@ -39,10 +44,10 @@
     "15a-provenance-cleanup.js",
     "16-router-assistant-shell.js",
     "17-assistant-answers.js",
-    "18-account-theme-startup.js",
     "19-road-manager-route-prep.js",
     "20-road-manager-sections.js",
-    "21-road-manager-live-fixes.js"
+    "21-road-manager-live-fixes.js",
+    "18-account-theme-startup.js"
   ],
-  "assembledSha256": "15cf04dcba2e9fef550370ce81c80ab70ec00f94b87b2e50ad879b308702cb10"
+  "assembledSha256": ""
 }
