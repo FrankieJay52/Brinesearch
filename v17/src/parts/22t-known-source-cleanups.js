@@ -28,8 +28,13 @@
       if (meta?.suppress) return meta;
       const raw = directionStepCleanV17316(entry?.instruction || "");
       const takeBearing = raw.match(/^From\s+.+?,\s*take\s+.+?\s+(northwest|northeast|southwest|southeast|north|south|east|west)\.?$/i);
-      if (takeBearing && /^Take\b/i.test(String(meta?.instruction || "")) && !new RegExp(`\\b${takeBearing[1]}$`, "i").test(meta.instruction)) {
-        meta.instruction = `${directionMainCleanV17317(meta.instruction)} ${directionTitleCaseBearingV17317(takeBearing[1])}`;
+      if (takeBearing && /^Take\b/i.test(String(meta?.instruction || ""))) {
+        const bearing = directionTitleCaseBearingV17317(takeBearing[1]);
+        if (/\b(?:northwest|northeast|southwest|southeast|north|south|east|west)$/i.test(meta.instruction)) {
+          meta.instruction = String(meta.instruction).replace(/\b(?:northwest|northeast|southwest|southeast|north|south|east|west)$/i, bearing);
+        } else {
+          meta.instruction = `${directionMainCleanV17317(meta.instruction)} ${bearing}`;
+        }
       }
       return meta;
     };
