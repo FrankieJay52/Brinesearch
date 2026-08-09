@@ -1,9 +1,10 @@
     /* BrineSearch V17.3.17 — written directions with right-side mileage badges.
        Keep the V17.3.16 live-source priority and fragment cleanup, but restore the
        fast-scanning distance badge from the older driver cards. Road/highway sign
-       graphics stay removed. Genuine route/local-name pairs are marked as DOUBLE
-       NAME only when the displayed instruction itself proves the pair or when the
-       existing shared-saved-direction intelligence already inserted that pair. */
+       graphics stay removed. A double name is represented directly in the road
+       text itself (for example CR-23 / High St or Fernwood-Bloomingdale Rd / CR-26),
+       not with a separate badge. Only named-road + numbered-route pairs count as
+       double names; route concurrencies such as OH-147 / OH-149 do not. */
 
     function directionDistanceUnitV17317(unit) {
       const value = String(unit || "").toLowerCase();
@@ -27,13 +28,37 @@
       const label = `${prefix}${amount} ${unit}`;
       let text = `${sentence.slice(0, match.index)}${sentence.slice((match.index || 0) + match[0].length)}`;
       text = text.replace(/\s+([,.;])/g, "$1").replace(/\s{2,}/g, " ").trim();
-      text = text.replace(/\s*;\s*$/g, ".");
+      text = text.replace(/\.\s*;/g, ";").replace(/\s*;\s*$/g, ".");
       if (text && !/[.!?]$/.test(text)) text += ".";
       return { text, label, extracted:true };
     }
 
+    function directionSentenceHasDistanceUnitV17317(value) {
+      return /(\d+(?:\.\d+)?|\.\d+|\d+\s*\/\s*\d+|[½¼¾])\s*(?:miles?|mile|mi\b|feet|foot|ft\b|yards?|yd\b)/i.test(String(value || ""));
+    }
+
+    function directionSavedDistanceFromIntelV17317(entry, p) {
+      if (entry?.fragmentReassembled || entry?.disableRoadIntel) return "";
+      const sourceStepOrder = Number(entry?.sourceStepOrder || 0);
+      if (!sourceStepOrder) return "";
+      const rows = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
+      const intel = rows.find(row => Number(row?.step_order) === sourceStepOrder);
+      if (!intel || String(intel?.distance_source || "") !== "saved_direction") return "";
+      if (intel?.suspicious_distance === true) return "";
+      if (Number(intel?.distance_confidence || 0) < 0.99) return "";
+      const label = directionWrittenCleanV17315(intel?.distance_label);
+      if (!label) return "";
+
+      // The intelligence distance must belong to this exact saved source step.
+      const evidence = intel?.evidence && typeof intel.evidence === "object" ? intel.evidence : {};
+      const evidenceInstruction = directionWrittenCleanV17315(evidence?.instruction);
+      const rawInstruction = directionWrittenCleanV17315(entry?.instruction);
+      if (!evidenceInstruction || evidenceInstruction !== rawInstruction) return "";
+      return label;
+    }
+
     function directionRouteTokenV17317(value) {
-      return /\b(?:(?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|(?:State|County|Township)\s+(?:Route|Road|Rd|Hwy|Highway)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?)\b/i.test(String(value || ""));
+      return /\b(?:(?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|(?:C\.?\s*R\.?|T\.?\s*R\.?)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|(?:State|County|Township)\s+(?:Route|Road|Rd|Hwy|Highway)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?)\b/i.test(String(value || ""));
     }
 
     function directionLocalRoadTokenV17317(value) {
@@ -52,9 +77,10 @@
         if ((leftRoute && rightLocal && !rightRoute) || (rightRoute && leftLocal && !leftRoute)) return true;
       }
 
-      const localThenRoute = /\b[A-Za-z0-9][A-Za-z0-9 .'-]{0,64}\s+(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Run|Ridge|Fork|Hollow|Creek|Crossing|Way)\s*\((?:(?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|(?:State|County|Township)\s+(?:Route|Road|Rd|Hwy)\s*[- ]?\s*\d{1,4})\)/i;
-      const routeThenLocal = /\b(?:(?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|(?:State|County|Township)\s+(?:Route|Road|Rd|Hwy)\s*[- ]?\s*\d{1,4})\s*\([^)]*[A-Za-z][^)]*(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Run|Ridge|Fork|Hollow|Creek|Crossing|Way)[^)]*\)/i;
-      return localThenRoute.test(text) || routeThenLocal.test(text);
+      const route = "(?:(?:I|US|OH|WV|PA|SR|CR|TR)\\s*[- ]?\\s*\\d{1,4}(?:\\/\\d+)?[A-Z]?|(?:C\\.?\\s*R\\.?|T\\.?\\s*R\\.?)\\s*[- ]?\\s*\\d{1,4}(?:\\/\\d+)?[A-Z]?|(?:State|County|Township)\\s+(?:Route|Road|Rd|Hwy)\\s*[- ]?\\s*\\d{1,4}(?:\\/\\d+)?[A-Z]?)";
+      const local = "[A-Za-z0-9][A-Za-z0-9 .'-]{0,64}\\s+(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Run|Ridge|Fork|Hollow|Creek|Crossing|Way)";
+      return new RegExp(`\\b${local}\\s*\\(${route}\\)`, "i").test(text)
+        || new RegExp(`\\b${route}\\s*\\([^)]*${local}[^)]*\\)`, "i").test(text);
     }
 
     function directionDoubleNameFromIntelV17317(p, sourceStepOrder, sentence) {
@@ -87,12 +113,16 @@
       const raw = directionStepCleanV17316(entry?.instruction || "");
       let sentence = directionWrittenSentenceV17315(raw, p, sourceStepOrder);
       sentence = directionSimpleStartFromV17317(raw, sentence);
-      const distance = directionDistanceBadgeFromSentenceV17317(sentence);
-      const doubleName = directionExplicitDoubleNameV17317(distance.text)
-        || directionDoubleNameFromIntelV17317(p, sourceStepOrder, distance.text);
+      const extracted = directionDistanceBadgeFromSentenceV17317(sentence);
+      let distance = extracted.label;
+      if (!distance && !directionSentenceHasDistanceUnitV17317(sentence)) {
+        distance = directionSavedDistanceFromIntelV17317(entry, p);
+      }
+      const doubleName = directionExplicitDoubleNameV17317(extracted.text)
+        || directionDoubleNameFromIntelV17317(p, sourceStepOrder, extracted.text);
       return {
-        instruction:distance.text,
-        distance:distance.label,
+        instruction:extracted.text,
+        distance,
         doubleName
       };
     }
@@ -107,14 +137,13 @@
           const display = directionWrittenDisplayMetaV17317(entry, p);
           const notes = (entry.notes || []).map(note => directionWrittenSentenceV17315(note, p, entry.sourceStepOrder)).filter(Boolean);
           if (!display.instruction) return "";
-          return `<li class="direction-pro-step direction-clear-step direction-written-step">
+          return `<li class="direction-pro-step direction-clear-step direction-written-step${display.doubleName ? " direction-written-double-road-v17317" : ""}">
             <span class="direction-pro-number">${index + 1}</span>
             <div class="direction-pro-main direction-clear-card direction-written-card-v17317">
               <div class="direction-written-row-v17317">
                 <div class="direction-clear-fallback direction-written-instruction">${esc(display.instruction)}</div>
                 ${display.distance ? `<span class="direction-clear-distance direction-written-distance-v17317">${esc(display.distance)}</span>` : ""}
               </div>
-              ${display.doubleName ? `<div class="direction-written-double-name-v17317" title="This road is saved with two names for this segment">DOUBLE NAME</div>` : ""}
               ${notes.length ? `<div class="direction-clear-note direction-written-note">${esc(notes.join(" · "))}</div>` : ""}
             </div>
           </li>`;
