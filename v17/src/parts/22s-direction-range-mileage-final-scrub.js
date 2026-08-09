@@ -1,7 +1,9 @@
-    /* BrineSearch V17.3.17 — final mileage-range scrub.
+    /* BrineSearch V17.3.17 — final mileage-range + road-pair scrub.
        Handles legacy saved forms such as 1-2 miles, 300 feet, and 500ft after
        the main maneuver/road has been selected. Ranges stay ranges; nothing is
-       averaged or guessed. */
+       averaged or guessed. Explicit local-road / numbered-route pairs also get
+       one final preservation check so Brushy Run / CR-17 cannot collapse to a
+       route number alone. */
 
     const directionDistanceFactsBeforeRangeV17317 = directionDistanceFactsFinalV17317;
     directionDistanceFactsFinalV17317 = function directionDistanceFactsRangeSafeV17317(value) {
@@ -24,9 +26,6 @@
           raw:String(match[0] || "").slice(prefixLength).trim()
         });
       }
-
-      // A range can also be partially detected as the second number by the base
-      // parser. Prefer the full saved range and discard overlapping base facts.
       if (!ranges.length) return base;
       return [
         ...base.filter(fact => !ranges.some(range => fact.start < range.end && fact.end > range.start)),
@@ -45,6 +44,23 @@
       return text || "Continue";
     }
 
+    function directionRestoreExplicitPairV17317(mainValue, entry, p) {
+      const main = directionMainCleanV17317(mainValue);
+      const raw = directionStepCleanV17316(entry?.instruction || "");
+      let pair = null;
+      try { pair = directionExplicitRoadDisplayFinalV17317(raw, p); } catch {}
+      if (!pair?.doubleName || !pair.road || main.includes("/")) return { main, doubleName:false };
+
+      // Only replace the road portion of an actual maneuver/continuation. The
+      // pair itself comes from the saved instruction, never from a catalog-only
+      // alias. This handles forms like Brushy Run / County Road 17.
+      const action = main.match(/^((?:Turn\s+(?:left|right)|Slight\s+(?:left|right)|Veer\s+(?:left|right)|Bear\s+(?:left|right)|Stay\s+(?:left|right)|Keep\s+(?:left|right)|Continue|Head\s+(?:north|south|east|west)|Take|Merge))\b/i);
+      if (!action) return { main, doubleName:false };
+      const prefix = action[1].replace(/\s+$/g, "");
+      const joiner = /^(?:Take)$/i.test(prefix) ? " " : /^(?:Head)\b/i.test(prefix) ? " on " : " on ";
+      return { main:`${prefix}${joiner}${pair.road}`, doubleName:true };
+    }
+
     const directionFinalMetaBeforeRangeV17317 = directionFinalMetaV17317;
     directionFinalMetaV17317 = function directionFinalMetaRangeSafeV17317(entry, p) {
       const meta = directionFinalMetaBeforeRangeV17317(entry, p);
@@ -57,7 +73,9 @@
         main = directionStripOneDistanceFinalV17317(main, mainFacts[0]);
       }
       main = directionTrimFinalMainV17317(main);
-      return { ...meta, instruction:main, distance };
+      const restored = directionRestoreExplicitPairV17317(main, entry, p);
+      main = restored.main;
+      return { ...meta, instruction:main, distance, doubleName:Boolean(meta.doubleName || restored.doubleName) };
     };
 
     directionWrittenDisplayMetaV17317 = directionFinalMetaV17317;
