@@ -44,7 +44,7 @@ for (const token of [
   'fieldWellCardsV17311'
 ]) requireText(app, token, 'Assembled BrineSearch app');
 
-requireText(sw, 'brinesearch-v17-3-14-lee-written-step-prototype', 'V17.3.14 service worker cache');
+requireText(sw, 'networkFirstAppAsset', 'Service-worker live asset strategy');
 new vm.Script(app, { filename:'brinesearch-app.js' });
 new vm.Script(sw, { filename:'sw.js' });
 
