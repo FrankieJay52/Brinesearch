@@ -38,10 +38,10 @@ Cross Creek now resolves to seven aligned rows, including `Nac 3p-20` for API `3
 
 ## Production migrations already applied
 
-- `20260809064605` — `v17311_well_list_cleanup_and_official_sync`
-- `20260809071911` — `v17311_confirmed_cross_pad_well_conflicts`
-- `20260809072821` — `v17311_finish_duplicate_well_audit`
-- `20260809073138` — `v17311_verify_surviving_conflict_well_rows`
-- `20260809074629` — `v17311_resolve_remaining_name_only_wells`
+- `20260809063910` — `v17311_well_list_cleanup_and_official_sync`
+- `20260809064409` — `v17311_confirmed_cross_pad_well_conflicts`
+- `20260809064721` — `v17311_finish_duplicate_well_audit`
+- `20260809064815` — `v17311_verify_surviving_conflict_well_rows`
+- `20260809065240` — `v17311_resolve_remaining_name_only_wells`
 
 All destructive cleanup stages were preceded by private backup tables in production.
