@@ -34,8 +34,8 @@ for (const requiredScannerToken of ['Read Database Fields', 'findSignBounds', 'p
 for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js','field-mark-runtime.js']) {
   new vm.Script(await fs.readFile(path.join(v17Root, 'public/app', file), 'utf8'), { filename: file });
 }
-for (const requiredStartupToken of ['Live database startup deadline exceeded', 'setTimeout(() => resolve(local), 500)', 'V17.3.12 — startup resilience']) {
-  if (!app.includes(requiredStartupToken)) throw new Error(`V17.3.12 startup resilience is missing ${requiredStartupToken}.`);
+for (const requiredStartupToken of ['Live database startup deadline exceeded', 'setTimeout(() => resolve(local), 500)', 'V17.3.12 — startup + saved-mileage resilience', 'directionRewriteAddsMileageV17312', 'directionSavedMileageSourceV17312', 'Rejected direction rewrite because saved mileage could not be preserved']) {
+  if (!app.includes(requiredStartupToken)) throw new Error(`V17.3.12 startup/mileage resilience is missing ${requiredStartupToken}.`);
 }
 for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732', 'directionSanitizeInstructionV1738', 'directionDriverSafeClearTextV1738', 'brinesearch_direction_step_intelligence', 'same_road_continuation', 'shared_road_consensus', 'sourceStepOrder', 'savedDistance', 'directionClearRoadTextTargetV17310', 'directionNormalizeTargetRoadV17310', 'directionCompoundDistanceCountV17310', 'compoundSource', 'directionGenericRouteLabelV17312', 'directionSplitDriverStepV17312', 'directionRoadIntelRoadRebuiltV17312', 'directionSequenceSummaryRebuiltV17312']) {
   if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
@@ -72,4 +72,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, bounded startup dependencies, rebuilt driver directions, canonical highway families, dual-name road support, audited mileage safety, synchronized well rows, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, bounded startup dependencies, saved-mileage rewrite safety, rebuilt driver directions, canonical highway families, dual-name road support, synchronized well rows, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
