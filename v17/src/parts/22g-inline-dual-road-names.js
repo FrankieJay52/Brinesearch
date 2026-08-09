@@ -86,6 +86,13 @@
       return null;
     }
 
+    const directionReferencePartBeforeOfficialV17312 = directionReferencePartV17312;
+    directionReferencePartV17312 = function directionReferencePartOfficialV17312(part, p) {
+      const official = directionOfficialRoadIdentityV17312(part, p);
+      if (official) return `${official.text} / ${official.alias}`;
+      return directionReferencePartBeforeOfficialV17312(part, p);
+    };
+
     const directionClearRoadTextBeforeDualV17312 = directionClearRoadTextV1732;
     directionClearRoadTextV1732 = function directionClearRoadTextDualV17312(instruction, p) {
       return directionInlineDualRoadV17312(instruction, p)
