@@ -7,7 +7,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, directionRoadIntel, directionTargetRoadFix, directionCompoundSafety, directionRoadIntelStyles, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceAudit, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, directionRoadIntel, directionTargetRoadFix, directionCompoundSafety, directionRoadIntelStyles, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceAudit, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles, wellListPolish, wellListPolishStyles] = await Promise.all([
   read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root,'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')),
@@ -34,7 +34,9 @@ const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyle
   read(path.join(v17Root,'src/parts/11e-route-reference-audit-fixes.js')),
   read(path.join(v17Root,'src/styles/36-driver-route-reference.css')),
   read(path.join(v17Root,'src/parts/11d-verification-cleanup.js')),
-  read(path.join(v17Root,'src/styles/37-verification-cleanup.css'))
+  read(path.join(v17Root,'src/styles/37-verification-cleanup.css')),
+  read(path.join(v17Root,'src/parts/11f-well-list-polish.js')),
+  read(path.join(v17Root,'src/styles/39-well-list-polish.css'))
 ]);
 const iconNames=['fm-legal.svg','fm-profile-inactive.svg','fm-notifications-inactive.svg','fm-settings-inactive.svg','fm-weather-inactive.svg','fm-offline-inactive.svg','fm-warning.svg','fm-role-owner.svg','fm-road-inactive.svg','fm-pad-inactive.svg','fm-wells.svg','fm-companies.svg','fm-like-inactive.svg'];
 const iconBuffers=await Promise.all(iconNames.map(name=>fs.readFile(path.join(v17Root,'public','icons',name))));
@@ -53,19 +55,21 @@ requireText(styleManifest,'35-public-data-pad-card.css','Public Data pad card st
 requireText(styleManifest,'36-driver-route-reference.css','Driver route-reference stylesheet');
 requireText(styleManifest,'37-verification-cleanup.css','Pad verification cleanup stylesheet');
 requireText(styleManifest,'38-direction-road-intelligence.css','Direction road intelligence stylesheet');
+requireText(styleManifest,'39-well-list-polish.css','Well-list polish stylesheet');
 requireText(partManifest,'09a-public-data-review.js','Public Data Review JavaScript');
 requireText(partManifest,'11b-public-data-pad-card.js','Public Data pad card JavaScript');
 requireText(partManifest,'11c-driver-route-reference.js','Driver route-reference JavaScript');
 requireText(partManifest,'11d-verification-cleanup.js','Pad verification cleanup JavaScript');
 requireText(partManifest,'11e-route-reference-audit-fixes.js','Route reference audit fixes JavaScript');
+requireText(partManifest,'11f-well-list-polish.js','Well-list polish JavaScript');
 requireText(partManifest,'22b-direction-landmark-cleanup.js','Direction landmark cleanup JavaScript');
 requireText(partManifest,'22c-direction-road-intelligence.js','Direction road intelligence JavaScript');
 requireText(partManifest,'22d-direction-target-road-fix.js','Target-road parsing JavaScript');
 requireText(partManifest,'22e-direction-compound-step-safety.js','Compound direction safety JavaScript');
-requireText(partManifest,'"version": "17.3.10"','Part manifest version');
-requireText(styleManifest,'"version": "17.3.10"','Style manifest version');
-requireText(packageJson,'"version": "17.3.10"','Package version');
-requireText(sw,'brinesearch-v17-3-10-audit-fixes','Service-worker cache version');
+requireText(partManifest,'"version": "17.3.11"','Part manifest version');
+requireText(styleManifest,'"version": "17.3.11"','Style manifest version');
+requireText(packageJson,'"version": "17.3.11"','Package version');
+requireText(sw,'brinesearch-v17-3-11-well-list-cleanup','Service-worker cache version');
 requireText(sw,'networkFirstAppAsset','Service-worker live asset update strategy');
 requireText(liveDirections,'/rest/v1/public_pad_detail','Authoritative public Clear Directions view');
 requireText(liveDirections,'__brineLiveClearDirectionsAuthoritative','Live Clear Directions precedence marker');
@@ -113,7 +117,12 @@ requireText(verificationCleanup,'Checked automatically or previously','Evidence-
 requireText(verificationCleanup,'Confirm all manually','Manual confirmation safety wording');
 requireText(verificationCleanup,'padVerificationEvidenceFor','Verification evidence renderer');
 requireText(verificationCleanupStyles,'.pad-check-reviewed-row','Compact verification styles');
+requireText(wellListPolish,'fieldWellCardsV17311','Audited well-list renderer');
+requireText(wellListPolish,'Name needs review','Unresolved well-name placeholder');
+requireText(wellListPolish,'This saved well name does not have a confirmed API number yet.','Name-only review explanation');
+requireText(wellListPolishStyles,'.field-official-source-card .field-source-link','Centered official source button');
+requireText(wellListPolishStyles,'.well-name-review-placeholder','Unresolved well-name styling');
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.10 product layer: audited pad-specific mileage, source-step-aligned road intelligence, target-road parsing, compound-route safety, short-foot distance handling, dual road names, and current version markers.');
+console.log('Verified BrineSearch V17.3.11 product layer: synchronized one-well-per-row display, review-safe unresolved names, centered official-source action, audited direction/mileage safety, and current version markers.');

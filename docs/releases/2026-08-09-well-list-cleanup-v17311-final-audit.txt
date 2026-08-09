@@ -1,0 +1,22 @@
+BrineSearch V17.3.11 final well audit
+2026-08-09
+
+Total audited well rows: 3670
+Rows with API: 3667
+Verified official attachments: 3664
+API rows remaining Review: 3
+Name-only rows remaining Review: 3
+Verified repeated API alias values: 7
+Unsafe/unclassified duplicate API values: 0
+Pads with structured well rows: 850
+API / well_entries count mismatches: 0
+Well-name / well_entries count mismatches: 0
+Property / well_entries count mismatches: 0
+
+Remaining Review rows:
+- ascent--puggle: Nac-B-Wyn-Jf-7H (no confirmed API)
+- ascent--puggle: Nac-B-Wyn-Jf-9H (no confirmed API)
+- ascent--sheporgi: Sheporgi-W-Grn-Hr-1H (no confirmed API)
+- disposals--clearwater-5: 34-059-2-4527-00-00 (no confirmed official name)
+- disposals--dennison: 34-157-2-5521-00-00 (no confirmed official name)
+- xto--northwest: 2H / 34-013-2-5080-00-00 (no current exact official record)
