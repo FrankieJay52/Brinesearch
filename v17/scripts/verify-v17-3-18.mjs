@@ -7,14 +7,17 @@ const scriptDir=path.dirname(fileURLToPath(import.meta.url));
 const v17Root=path.resolve(scriptDir,'..');
 const projectRoot=path.resolve(v17Root,'..');
 const read=file=>fs.readFile(file,'utf8');
-const [pkgText,partsText,stylesText,source,sw,migrationA,migrationB]=await Promise.all([
+const [pkgText,partsText,stylesText,source,sw,migrationA,migrationB,migrationC,migrationD,migrationE]=await Promise.all([
   read(path.join(projectRoot,'package.json')),
   read(path.join(v17Root,'src/parts/part-order.json')),
   read(path.join(v17Root,'src/styles/style-order.json')),
   read(path.join(v17Root,'src/parts/22u-direction-road-data-enrichment.js')),
   read(path.join(v17Root,'src/offline/sw.js')),
   read(path.join(projectRoot,'supabase/migrations/20260809214000_v17318_preserve_measured_road_segments.sql')),
-  read(path.join(projectRoot,'supabase/migrations/20260809215000_v17318_pad_official_road_alias_rpc.sql'))
+  read(path.join(projectRoot,'supabase/migrations/20260809215000_v17318_pad_official_road_alias_rpc.sql')),
+  read(path.join(projectRoot,'supabase/migrations/20260809220500_v17318_measure_safe_oh_road_legs.sql')),
+  read(path.join(projectRoot,'supabase/migrations/20260809221500_v17318_exact_saved_step_road_identities.sql')),
+  read(path.join(projectRoot,'supabase/migrations/20260809222000_v17318_explicit_start_road_leg_measurement.sql'))
 ]);
 const pkg=JSON.parse(pkgText),parts=JSON.parse(partsText),styles=JSON.parse(stylesText);
 if(pkg.version!=='17.3.18'||parts.version!=='17.3.18'||styles.version!=='17.3.18') throw new Error('V17.3.18 version markers are not synchronized.');
@@ -26,6 +29,9 @@ for(const token of ['brinesearch_pad_measured_road_segments','brinesearch_pad_of
 if(!sw.includes('brinesearch-v17-3-18-road-mileage-recovery')) throw new Error('V17.3.18 cache marker is missing.');
 for(const token of ['usable boolean','rejection_reason','brinesearch_sync_pad_measured_road_segments','measurement withheld by prior mileage audit']) if(!migrationA.includes(token)) throw new Error(`Measured-road migration missing ${token}.`);
 for(const token of ['verification_status=\'verified\'','brinesearch_pad_official_road_aliases','canonical_name','aliases']) if(!migrationB.includes(token)) throw new Error(`Official-road RPC migration missing ${token}.`);
+for(const token of ['measurement_scope','direction_road_leg','official_centerline_neighbor_intersections','official_centerline_previous_road_to_pad','brinesearch_measure_safe_oh_road_legs']) if(!migrationC.includes(token)) throw new Error(`Safe road-leg migration missing ${token}.`);
+for(const token of ['brinesearch_apply_exact_saved_step_road_identities','road_identity_v17318','brinesearch_rebuild_direction_road_neighbors_v17318','brinesearch_refresh_all_direction_intelligence_v17318_base']) if(!migrationD.includes(token)) throw new Error(`Exact road-identity migration missing ${token}.`);
+for(const token of ['official_centerline_explicit_start_to_next_road','^From[[:space:]]+((?:I|US|OH|SR)-[0-9]+)','Town/city-only origins are intentionally not measured']) if(!migrationE.includes(token)) throw new Error(`Explicit-start road-leg migration missing ${token}.`);
 
 const context={
   console:{log(){},warn(){}},window:{},navigator:{onLine:false},
@@ -95,5 +101,9 @@ if(routeOnly[0].instruction!=='Turn left on CR-5') throw new Error('Route-only c
 const renamedSegments=context.directionGroupRoadCardsV17318([card('Turn left on CR-5 / Crescent Rd'),card('Continue on CR-5 / Glencoe Rd')],ambiguous);
 if(renamedSegments.length!==2) throw new Error('Different named segments of the same county route were incorrectly collapsed.');
 
+const recovered={state:'Ohio',officialRoadAliasesV17318:[],measuredRoadSegmentsV17318:[{road_key:'TR-221',distance_miles:0.53}]};
+const recoveredCards=context.directionGroupRoadCardsV17318([card('Turn right on TR-221')],recovered);
+if(recoveredCards[0].distance!=='≈ 0.53 mi') throw new Error('Recovered direct road-leg mileage did not fill a blank badge.');
+
 if(source.includes('street-sign-board')||source.includes('direction-highway-badge')) throw new Error('V17.3.18 road cards must remain signless.');
-console.log('Verified BrineSearch V17.3.18: COLOGIE keeps saved miles and gains exact official CR/TR double names; accepted backward-measured road segments safely fill missing mileage; repeated same-road instructions collapse into notes; saved mileage wins over measurements; ambiguous route-only names stay unguessed; and differently named segments of one route remain separate.');
+console.log('Verified BrineSearch V17.3.18: COLOGIE keeps saved miles and gains exact official CR/TR double names; accepted historical and direct ODOT road-leg measurements safely fill missing mileage; repeated same-road instructions collapse into notes; saved mileage wins over measurements; ambiguous route-only names stay unguessed; differently named segments of one route remain separate; exact saved-step identities and road neighbors persist across refreshes; and vague town-only origins are not measured.');
