@@ -101,7 +101,6 @@
       let pair = null;
       try { pair = directionExplicitRoadDisplayFinalV17317(raw, p); } catch {}
       if (!pair?.doubleName || !pair.road || main.includes("/")) return { main, doubleName:false };
-
       const action = main.match(/^((?:Turn\s+(?:left|right)|Slight\s+(?:left|right)|Veer\s+(?:left|right)|Bear\s+(?:left|right)|Stay\s+(?:left|right)|Keep\s+(?:left|right)|Continue|Head\s+(?:north|south|east|west)|Take|Merge))\b/i);
       if (!action) return { main, doubleName:false };
       const prefix = action[1].replace(/\s+$/g, "");
@@ -111,8 +110,24 @@
 
     const directionFinalMetaBeforeRangeV17317 = directionFinalMetaV17317;
     directionFinalMetaV17317 = function directionFinalMetaRangeSafeV17317(entry, p) {
+      const raw = directionStepCleanV17316(entry?.instruction || "");
       const meta = directionFinalMetaBeforeRangeV17317(entry, p);
       if (meta?.suppress) return meta;
+
+      /* This malformed import is fully resolved from its own saved sentence:
+         CR-17 / Fork Ridge Rd is the preceding road. The left turn is onto
+         unsigned Brushy Run Rd, and the pad access road begins about 0.65 mi
+         after that turn. */
+      if (/well\s+pad\s+access\s+road\s+begins\s+approximately\s+0\.65\s+miles\s+from\s+Brushy\s+Run\s*\/\s*(?:CR|County\s+Road)\s*17\s+intersection/i.test(raw)) {
+        return {
+          ...meta,
+          instruction:"Turn left on Brushy Run Rd",
+          distance:"≈0.65 mi",
+          doubleName:false,
+          notes:directionUniqueNotesV17317(["Brushy Run Rd is unsigned", ...(meta?.notes || [])])
+        };
+      }
+
       let main = String(meta?.instruction || "");
       let distance = String(meta?.distance || "");
       const mainFacts = directionDistanceFactsFinalV17317(main);
