@@ -6,6 +6,7 @@
     "00-security-boot.js",
     "00zz-startup-probe.js",
     "00-core-data.js",
+    "00zb-startup-resilience.js",
     "00zza-after-core-probe.js",
     "00a-live-clear-directions-precedence.js",
     "00az-after-clear-probe.js",
