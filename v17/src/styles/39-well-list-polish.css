@@ -1,0 +1,19 @@
+/* BrineSearch V17.3.11 — well-list and official-source mobile polish. */
+.field-official-source-card{overflow:hidden}
+.field-official-source-card .field-source-link{
+  display:flex;
+  width:100%;
+  max-width:100%;
+  margin:16px 0 0!important;
+  box-sizing:border-box;
+  align-self:stretch;
+  justify-content:center;
+  align-items:center;
+  text-align:center;
+}
+.well-name-review-placeholder{color:#e8c777;font-style:normal}
+.compact-well-name .pending{white-space:nowrap}
+@media(max-width:520px){
+  .field-official-source-card .field-source-link{width:100%;margin-inline:0!important}
+  .well-name-review-placeholder{font-size:.94em}
+}
