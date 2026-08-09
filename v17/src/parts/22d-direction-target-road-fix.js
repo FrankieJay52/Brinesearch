@@ -18,5 +18,15 @@
         const target = match?.[1];
         if (target) return { kind:"route", text:normalizeRoadName(target, p).text };
       }
+
+      const namedTarget = text.match(/\b(?:onto|along|on)\s+(?:the\s+)?([A-Za-z0-9][A-Za-z0-9 .'-]*?(?:Rd|Road|St|Street|Dr|Drive|Ave|Avenue|Hwy|Highway|Ln|Lane))\b/i);
+      if (namedTarget?.[1]) {
+        const candidate = namedTarget[1].trim();
+        if (!/^(?:the\s+)?(?:left|right)$/i.test(candidate)) return { kind:"road", text:normalizeRoadName(candidate, p).text };
+      }
+
+      const intersection = text.match(new RegExp(`\\b${routePattern}\\s+(?:and|&)\\s+${routePattern}\\s+intersection\\b[^.;]*?\\bturn\\s+(?:left|right)`, 'i'));
+      if (intersection?.[2]) return { kind:"route", text:normalizeRoadName(intersection[2], p).text };
+
       return directionClearRoadTextBeforeV17310(instruction, p);
     };
