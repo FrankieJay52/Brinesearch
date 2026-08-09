@@ -35,9 +35,11 @@
       return request;
     }
 
-    function directionRoadIntelForStepV1739(p, index) {
+    function directionRoadIntelForStepV1739(p, index, entry) {
+      if (entry?.disableRoadIntel) return null;
       const rows = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
-      return rows.find(row => Number(row?.step_order) === index + 1) || null;
+      const sourceOrder = Number(entry?.sourceStepOrder || index + 1);
+      return rows.find(row => Number(row?.step_order) === sourceOrder) || null;
     }
 
     function directionRoadIntelManeuverV1739(view, intel) {
@@ -59,21 +61,33 @@
     directionClearPrimaryHtmlV1732 = function directionClearPrimaryHtmlRoadIntelV1739(clearText, p) {
       const parsed = directionClearPolishedStepsV1732(clearText);
       if (!parsed.steps.length) return "";
-      const intelligence = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
-      if (!intelligence.length) return directionClearPrimaryHtmlBeforeV1739(clearText, p);
 
       return `<section class="direction-route-group direction-clear-primary">
         <div class="direction-route-heading"><span>PRIMARY ROUTE</span></div>
         <ol class="direction-pro-steps direction-clear-steps">${parsed.steps.map((entry, index) => {
+          if (entry.compoundSource) {
+            const noteParts = [...(entry.notes || [])].filter(Boolean);
+            return `<li class="direction-pro-step direction-clear-step direction-compound-source">
+              <span class="direction-pro-number">${index + 1}</span>
+              <div class="direction-pro-main direction-clear-card">
+                <div class="direction-clear-meta"><span class="direction-clear-maneuver">Detailed route</span></div>
+                <div class="direction-clear-fallback">${esc(entry.instruction)}</div>
+                ${noteParts.length ? `<div class="direction-clear-note">${esc(noteParts.join(" · "))}</div>` : ""}
+                <div class="direction-intel-warning">Multiple turns or mileages are stored in this one source step. BrineSearch is showing the saved wording together instead of attaching one mileage to the wrong road.</div>
+              </div>
+            </li>`;
+          }
+
           const view = directionClearStepViewV1733(entry.instruction, p);
-          const intel = directionRoadIntelForStepV1739(p, index);
+          const intel = directionRoadIntelForStepV1739(p, index, entry);
           const road = directionRoadIntelRoadV1739(view, intel);
           const sign = directionClearSignForRoadV1733(road, p);
           const maneuver = directionRoadIntelManeuverV1739(view, intel);
+          const savedDistance = intel?.distance_source === "saved_direction" ? normalize(intel.distance_label) : "";
           const inferredDistance = !view.distance && intel?.distance_source === "shared_road_consensus" && !intel?.same_road_continuation
             ? normalize(intel.distance_label)
             : "";
-          const distanceText = view.distance ? `${view.distance} mi` : inferredDistance;
+          const distanceText = savedDistance || (view.distance ? `${view.distance} mi` : inferredDistance);
           const meta = maneuver || distanceText
             ? `<div class="direction-clear-meta">${maneuver ? `<span class="direction-clear-maneuver">${esc(maneuver)}</span>` : ""}${distanceText ? `<span class="direction-distance direction-clear-distance${inferredDistance ? " direction-distance-shared" : ""}">${esc(distanceText)}</span>` : ""}</div>`
             : "";
