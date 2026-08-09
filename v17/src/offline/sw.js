@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'brinesearch-v17-3-18-road-mileage-recovery';
+const CACHE_VERSION = 'brinesearch-v17-3-19-all-road-deep-pass';
 const DIRECTION_DATA_FILES = __DIRECTION_DATA_FILES__;
 const APP_SHELL = [
   './', './index.html', './styles/app.css', './styles/field-mark-icons.css', './app/theme-boot.js',
