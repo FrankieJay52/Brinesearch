@@ -36,6 +36,7 @@
     }
 
     function directionRoadIntelForStepV1739(p, index, entry) {
+      if (entry?.disableRoadIntel) return null;
       const rows = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
       const sourceOrder = Number(entry?.sourceStepOrder || index + 1);
       return rows.find(row => Number(row?.step_order) === sourceOrder) || null;
@@ -60,12 +61,23 @@
     directionClearPrimaryHtmlV1732 = function directionClearPrimaryHtmlRoadIntelV1739(clearText, p) {
       const parsed = directionClearPolishedStepsV1732(clearText);
       if (!parsed.steps.length) return "";
-      const intelligence = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
-      if (!intelligence.length) return directionClearPrimaryHtmlBeforeV1739(clearText, p);
 
       return `<section class="direction-route-group direction-clear-primary">
         <div class="direction-route-heading"><span>PRIMARY ROUTE</span></div>
         <ol class="direction-pro-steps direction-clear-steps">${parsed.steps.map((entry, index) => {
+          if (entry.compoundSource) {
+            const noteParts = [...(entry.notes || [])].filter(Boolean);
+            return `<li class="direction-pro-step direction-clear-step direction-compound-source">
+              <span class="direction-pro-number">${index + 1}</span>
+              <div class="direction-pro-main direction-clear-card">
+                <div class="direction-clear-meta"><span class="direction-clear-maneuver">Detailed route</span></div>
+                <div class="direction-clear-fallback">${esc(entry.instruction)}</div>
+                ${noteParts.length ? `<div class="direction-clear-note">${esc(noteParts.join(" · "))}</div>` : ""}
+                <div class="direction-intel-warning">Multiple turns or mileages are stored in this one source step. BrineSearch is showing the saved wording together instead of attaching one mileage to the wrong road.</div>
+              </div>
+            </li>`;
+          }
+
           const view = directionClearStepViewV1733(entry.instruction, p);
           const intel = directionRoadIntelForStepV1739(p, index, entry);
           const road = directionRoadIntelRoadV1739(view, intel);
