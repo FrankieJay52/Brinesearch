@@ -9,12 +9,13 @@ const publicRoot = path.join(v17Root, 'public');
 const read = file => fs.readFile(file, 'utf8');
 const normalize = value => String(value ?? '').replace(/\r\n?/g, '\n').trim();
 
-const [fallbackText, directionManifestText, globalSource, aliasSafetySource, sourcePrioritySource, app] = await Promise.all([
+const [fallbackText, directionManifestText, globalSource, aliasSafetySource, sourcePrioritySource, contextCoalescingSource, app] = await Promise.all([
   read(path.join(publicRoot, 'pad-fallback-data.json')),
   read(path.join(publicRoot, 'data/directions/index.json')),
   read(path.join(v17Root, 'src/parts/22j-global-written-directions.js')),
   read(path.join(v17Root, 'src/parts/22k-global-written-alias-safety.js')),
   read(path.join(v17Root, 'src/parts/22m-direction-source-priority-and-coalescer.js')),
+  read(path.join(v17Root, 'src/parts/22n-direction-context-coalescing.js')),
   read(path.join(publicRoot, 'app/brinesearch-app.js'))
 ]);
 const fallback = JSON.parse(fallbackText);
@@ -72,6 +73,7 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(sourcePrioritySource, context, { filename:'22m-direction-source-priority-and-coalescer.js' });
+vm.runInContext(contextCoalescingSource, context, { filename:'22n-direction-context-coalescing.js' });
 
 const stateDual = /\b(?:(?:OH|WV|PA|SR)\s*[- ]?\s*\d{1,4}[A-Z]?|State\s+Route\s*[- ]?\s*\d{1,4}[A-Z]?)[^\n.;]{0,90}\s*\/\s*[^\n.;]{1,90}/i;
 const countyDual = /\b(?:(?:CR|C\.?\s*R\.?)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?|County\s+(?:Road|Rd|Route|Hwy)\s*[- ]?\s*\d{1,4}(?:\/\d+)?[A-Z]?)[^\n.;]{0,90}\s*\/\s*[^\n.;]{1,90}/i;
@@ -155,9 +157,11 @@ const noellePad = pads.find(pad => idOf(pad) === 'ascent--noelle');
 if (!noellePad) throw new Error('Noelle regression pad is missing from the packaged directory.');
 const noelleRaw = parseClearEntries(clearOf(noellePad));
 const noelleClean = context.directionCoalesceEntriesV17316(noelleRaw);
-if (noelleClean.length > 10) throw new Error(`Noelle still produces ${noelleClean.length} written cards; expected 10 or fewer after coalescing.`);
+if (noelleClean.length > 9) throw new Error(`Noelle still produces ${noelleClean.length} written cards; expected 9 or fewer after coalescing: ${JSON.stringify(noelleClean.map(entry => entry.instruction))}`);
 if (noelleClean.some(entry => obviousFragment(entry.instruction))) throw new Error(`Noelle still contains an orphan fragment: ${JSON.stringify(noelleClean)}`);
 if (!/\bexit\b/i.test(noelleClean[0]?.instruction || '')) throw new Error(`Noelle's first exit instruction was not reassembled: ${noelleClean[0]?.instruction}`);
+if (noelleClean.some(entry => /^Go into Bloomingdale\.?$/i.test(entry.instruction))) throw new Error('Noelle still renders Go into Bloomingdale as its own card.');
+if (noelleClean.some(entry => /Jefferson county air park/i.test(entry.instruction))) throw new Error('Noelle still renders the air-park landmark as its own direction card.');
 
 const dualFixture = context.directionCoalesceEntriesV17316([
   { instruction:'Turn right on OH-151 / Mill St for 0.2 mi.', notes:[], sourceStepOrder:1 },
@@ -185,7 +189,12 @@ for (const token of [
   '__brineLiveClearDirectionsReadyV17316',
   'DATA_SOURCE_LABEL being "Live database"'
 ]) if (!sourcePrioritySource.includes(token)) throw new Error(`V17.3.16 source-priority layer is missing ${token}.`);
-for (const token of ['directionGlobalWrittenEntriesV17315','directionWrittenHasExplicitReverseAliasV17315','directionCoalesceEntriesV17316','directionHydrateSelectedLiveClearV17316']) {
+for (const token of [
+  'directionApproachContextV17316',
+  'directionTransientContinuationV17316',
+  'directionCoalesceEntriesContextV17316'
+]) if (!contextCoalescingSource.includes(token)) throw new Error(`V17.3.16 final context coalescer is missing ${token}.`);
+for (const token of ['directionGlobalWrittenEntriesV17315','directionWrittenHasExplicitReverseAliasV17315','directionCoalesceEntriesV17316','directionHydrateSelectedLiveClearV17316','directionCoalesceEntriesContextV17316']) {
   if (!app.includes(token)) throw new Error(`Assembled app is missing ${token}.`);
 }
 if (globalSource.includes('direction-highway-badge') || globalSource.includes('street-sign-board')) throw new Error('Global written renderer contains road-sign graphics.');
@@ -210,6 +219,6 @@ console.log(JSON.stringify({
   clearPadsWithTownshipRoadDoubleNames:townshipDualPads,
   clearPadsWithReverseLocalNameNumberPairs:reverseDualPads,
   exampleDoubleNamePads:dualExamples,
-  displayPolicy:'live Clear Directions win when online; packaged fallback is fragment-coalesced; numbered written sentences; no road-sign graphics; explicit dual names preserved; no invented roads/turns/mileage',
+  displayPolicy:'live Clear Directions win when online; packaged fallback is fragment/context-coalesced; numbered written sentences; no road-sign graphics; explicit double names preserved; no invented roads/turns/mileage',
   result:'pass'
 }, null, 2));
