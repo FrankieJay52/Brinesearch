@@ -46,17 +46,22 @@ for (const requiredRouteReferenceToken of ['brinesearch_driver_route_reference',
 for (const requiredVerificationToken of ['Pad checks','Checked automatically or previously','Confirm all manually','padVerificationEvidenceFor']) {
   if (!app.includes(requiredVerificationToken)) throw new Error(`V17.3.7 pad verification cleanup is missing ${requiredVerificationToken}.`);
 }
+for (const requiredWellToken of ['fieldWellCardsV17311','Name needs review','This saved API does not have a confirmed official well name yet.']) {
+  if (!app.includes(requiredWellToken)) throw new Error(`V17.3.11 well-list safety is missing ${requiredWellToken}.`);
+}
 if (!css.includes('.public-pad-data-context')) throw new Error('V17.3.6 official pad context grid is missing.');
 if (!css.includes('.pad-check-reviewed-row')) throw new Error('V17.3.7 pad verification cleanup styles are missing.');
 if (!css.includes('.direction-clear-road-alias')) throw new Error('V17.3.9 dual road-name styles are missing.');
 if (!css.includes('.direction-compound-source')) throw new Error('V17.3.10 compound route safety styles are missing.');
+if (!css.includes('.field-official-source-card .field-source-link')) throw new Error('V17.3.11 centered official-source button style is missing.');
+if (!css.includes('.well-name-review-placeholder')) throw new Error('V17.3.11 unresolved-well placeholder style is missing.');
 const directionManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions/index.json'), 'utf8'));
 let rewriteCount = 0;
 for (const file of directionManifest.files) rewriteCount += Object.keys(JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions', file), 'utf8'))).length;
 if (rewriteCount !== directionManifest.recordCount || rewriteCount < 100) throw new Error('Direction rewrite data did not assemble correctly.');
 const serviceWorker = await fs.readFile(path.join(v17Root, 'public/sw.js'), 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
-if (!serviceWorker.includes("brinesearch-v17-3-10-audit-fixes")) throw new Error('V17.3.10 service-worker cache marker is missing.');
+if (!serviceWorker.includes("brinesearch-v17-3-11-well-list-cleanup")) throw new Error('V17.3.11 service-worker cache marker is missing.');
 if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3 service worker is missing live app-asset refresh logic.');
 if (!serviceWorker.includes('./app/front-sign-structured.js')) throw new Error('Structured scanner is missing from the offline shell.');
 if (serviceWorker.includes('./v16-25-hotfix.js')) throw new Error('Legacy V16.25 OCR hotfix is still in the V17.3 offline shell.');
@@ -64,4 +69,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, audited pad-specific mileage, source-step-aligned road intelligence, target-road parsing, compound-route safety, short-distance labels, dual road names, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, synchronized well rows, unresolved-well review labels, centered official-source action, audited mileage/directions, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
