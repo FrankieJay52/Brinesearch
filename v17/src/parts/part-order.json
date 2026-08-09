@@ -1,7 +1,7 @@
 {
   "version": "17.3.12",
   "wrapperStart": "(async () => {",
-  "wrapperEnd": "});",
+  "wrapperEnd": "})();",
   "parts": [
     "00-security-boot.js",
     "00-core-data.js",
