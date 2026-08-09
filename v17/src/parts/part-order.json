@@ -1,5 +1,5 @@
 {
-  "version": "17.3.19",
+  "version": "17.3.20",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -61,6 +61,8 @@
     "22s-direction-range-mileage-final-scrub.js",
     "22t-known-source-cleanups.js",
     "22u-direction-road-data-enrichment.js",
+    "22v-direction-road-turn-mileage-truth.js",
+    "22w-direction-unspecified-turn-support.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
