@@ -7,7 +7,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceStyles] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
   read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root,'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')),
@@ -26,7 +26,9 @@ const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyle
   read(path.join(v17Root,'src/parts/11b-public-data-pad-card.js')),
   read(path.join(v17Root,'src/styles/35-public-data-pad-card.css')),
   read(path.join(v17Root,'src/parts/11c-driver-route-reference.js')),
-  read(path.join(v17Root,'src/styles/36-driver-route-reference.css'))
+  read(path.join(v17Root,'src/styles/36-driver-route-reference.css')),
+  read(path.join(v17Root,'src/parts/11d-verification-cleanup.js')),
+  read(path.join(v17Root,'src/styles/37-verification-cleanup.css'))
 ]);
 const iconNames=['fm-legal.svg','fm-profile-inactive.svg','fm-notifications-inactive.svg','fm-settings-inactive.svg','fm-weather-inactive.svg','fm-offline-inactive.svg','fm-warning.svg','fm-role-owner.svg','fm-road-inactive.svg','fm-pad-inactive.svg','fm-wells.svg','fm-companies.svg','fm-like-inactive.svg'];
 const iconBuffers=await Promise.all(iconNames.map(name=>fs.readFile(path.join(v17Root,'public','icons',name))));
@@ -43,13 +45,15 @@ requireText(roadLiveStyles,'.road-row-grouped .road-status{pointer-events:none}'
 requireText(styleManifest,'34-public-data-review.css','Public Data Review stylesheet');
 requireText(styleManifest,'35-public-data-pad-card.css','Public Data pad card stylesheet');
 requireText(styleManifest,'36-driver-route-reference.css','Driver route-reference stylesheet');
+requireText(styleManifest,'37-verification-cleanup.css','Pad verification cleanup stylesheet');
 requireText(partManifest,'09a-public-data-review.js','Public Data Review JavaScript');
 requireText(partManifest,'11b-public-data-pad-card.js','Public Data pad card JavaScript');
 requireText(partManifest,'11c-driver-route-reference.js','Driver route-reference JavaScript');
-requireText(partManifest,'"version": "17.3.6"','Part manifest version');
-requireText(styleManifest,'"version": "17.3.6"','Style manifest version');
-requireText(packageJson,'"version": "17.3.6"','Package version');
-requireText(sw,'brinesearch-v17-3-6-pad-card-intelligence','Service-worker cache version');
+requireText(partManifest,'11d-verification-cleanup.js','Pad verification cleanup JavaScript');
+requireText(partManifest,'"version": "17.3.7"','Part manifest version');
+requireText(styleManifest,'"version": "17.3.7"','Style manifest version');
+requireText(packageJson,'"version": "17.3.7"','Package version');
+requireText(sw,'brinesearch-v17-3-7-verification-cleanup','Service-worker cache version');
 requireText(sw,'networkFirstAppAsset','Service-worker live asset update strategy');
 requireText(liveDirections,'/rest/v1/public_pad_detail','Authoritative public Clear Directions view');
 requireText(liveDirections,'__brineLiveClearDirectionsAuthoritative','Live Clear Directions precedence marker');
@@ -75,7 +79,11 @@ requireText(driverRouteReference,'DISTANCE MEANS','Distance-semantics pad-card d
 requireText(driverRouteReference,'is_stale','Stale reference safety gate');
 requireText(driverRouteReference,'not proven a usable truck connection','Research-only safety boundary');
 requireText(driverRouteReferenceStyles,'.driver-route-reference-meta','Driver route-reference detail grid');
+requireText(verificationCleanup,'Checked automatically or previously','Evidence-backed checked group');
+requireText(verificationCleanup,'Confirm all manually','Manual confirmation safety wording');
+requireText(verificationCleanup,'padVerificationEvidenceFor','Verification evidence renderer');
+requireText(verificationCleanupStyles,'.pad-check-reviewed-row','Compact verification styles');
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.6 product layer: richer driver approach intelligence, fully hydrated official pad identity/location/permit/API context, stale-reference protection, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
+console.log('Verified BrineSearch V17.3.7 product layer: evidence-backed pad checks, richer driver approach intelligence, fully hydrated official pad identity/location/permit/API context, stale-reference protection, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
