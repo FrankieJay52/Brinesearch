@@ -18,6 +18,16 @@ const sourceParts = await Promise.all(parts.parts.map(name => fs.readFile(path.j
 const expectedApp = `${parts.wrapperStart}\n${sourceParts.join('\n')}\n${parts.wrapperEnd}\n`;
 const sourceStyles = await Promise.all(styles.styles.map(name => fs.readFile(path.join(v17Root, 'src/styles', name), 'utf8')));
 const expectedCss = sourceStyles.map(value => value.trimEnd()).join('\n\n') + '\n';
+const appLines = app.split('\n');
+const roadCorrectionDeclarations = appLines
+  .map((line, index) => ({ line, index }))
+  .filter(entry => entry.line.includes('const ROAD_NAME_CORRECTIONS'));
+if (roadCorrectionDeclarations.length > 1) {
+  console.error(`Duplicate ROAD_NAME_CORRECTIONS declarations: ${roadCorrectionDeclarations.map(entry => entry.index + 1).join(', ')}`);
+  for (const entry of roadCorrectionDeclarations) {
+    console.error(`--- ROAD_NAME_CORRECTIONS around line ${entry.index + 1} ---\n${appLines.slice(Math.max(0, entry.index - 4), entry.index + 12).join('\n')}`);
+  }
+}
 new vm.Script(app, { filename: 'brinesearch-app.js' });
 new vm.Script(structuredScanner, { filename: 'front-sign-structured.js' });
 const appSha256 = sha256(app);
