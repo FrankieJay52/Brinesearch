@@ -67,6 +67,6 @@ where legacy_id='ascent--durr'
   and nullif(btrim(coalesce(directions_clear,'')),'') is null
   and written_directions ilike '%Sidwell Well%';
 
--- Refresh direction intelligence so Esther becomes available through the same
--- road/mileage pipeline as the rest of the directory.
-select public.brinesearch_refresh_all_direction_intelligence();
+-- Intentionally no full-directory intelligence refresh here. The app reads the
+-- saved Clear Directions directly, and the normal refresh pipeline can process
+-- this pad later without putting unnecessary load on production Postgres.
