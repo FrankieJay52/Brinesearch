@@ -11,7 +11,7 @@
     "verify:concise-cards": "node v17/scripts/audit-concise-driver-cards.mjs",
     "verify:road-cards": "node v17/scripts/audit-road-leg-cards-v17318.mjs",
     "verify:direction-gaps": "node v17/scripts/audit-direction-gap-repairs-v17319.mjs",
-    "verify:road-truth": "node v17/scripts/audit-road-turn-mileage-v17320.mjs",
+    "verify:road-truth": "node v17/scripts/audit-road-turn-mileage-v17320-v2.mjs",
     "verify:road-identity": "node v17/scripts/audit-road-identity.mjs",
     "verify:expand": "node v17/scripts/audit-expand-company.mjs",
     "verify:expand-live": "node v17/scripts/audit-expand-live.mjs",
