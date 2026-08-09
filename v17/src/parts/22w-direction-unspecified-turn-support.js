@@ -3,6 +3,11 @@
        left/right side. Preserve that truth exactly: Turn on / Turn west on. Never
        invent a left/right side just to fit the older renderer. */
 
+    const directionTruthNormalizeTurnTailBeforePunctuationV17320 = directionTruthNormalizeTurnTailV17320;
+    directionTruthNormalizeTurnTailV17320 = function directionTruthNormalizeTurnTailPunctuationV17320(value) {
+      return String(directionTruthNormalizeTurnTailBeforePunctuationV17320(value) || "").replace(/[.;,]+\s*$/g, "").trim();
+    };
+
     function directionTurnRoadTextV17320(value, p) {
       let road = directionMainCleanV17317(value || "")
         .replace(/[.;,]\s*$/g, "")
