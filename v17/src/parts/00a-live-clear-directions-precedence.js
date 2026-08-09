@@ -1,8 +1,7 @@
-    /* BrineSearch V17.3.2 — live Clear Directions are authoritative.
+    /* BrineSearch V17.3.12 — live Clear Directions are authoritative when reachable.
        Packaged direction rewrites are offline fallbacks only. Refresh the
-       current public detail view before any pad page can render, and while the
-       live database is available never let an older packaged route stand in
-       for a pad whose live directions_clear is intentionally blank. */
+       current public detail view before pad rendering, but never leave the app
+       startup blocked indefinitely if the live public detail endpoint is slow. */
 
     async function applyLiveClearDirectionsV1732() {
       if (DATA_SOURCE_LABEL !== "Live database") return 0;
@@ -17,7 +16,7 @@
         url.searchParams.set("limit", String(limit));
         url.searchParams.set("offset", String(offset));
 
-        const response = await fetch(url.toString(), {
+        const response = await fetchLiveDatabasePage(url.toString(), {
           headers: {
             apikey: SUPABASE_PUBLISHABLE_KEY,
             Authorization: `Bearer ${SUPABASE_PUBLISHABLE_KEY}`,
@@ -64,5 +63,5 @@
     try {
       await applyLiveClearDirectionsV1732();
     } catch (error) {
-      console.warn("Live Clear Directions refresh failed; keeping packaged offline directions.", error);
+      console.warn("Live Clear Directions refresh timed out or failed; keeping packaged offline directions.", error);
     }
