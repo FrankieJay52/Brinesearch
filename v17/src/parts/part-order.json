@@ -33,6 +33,7 @@
     "22d-direction-target-road-fix.js",
     "22e-direction-compound-step-safety.js",
     "22f-direction-road-rebuild.js",
+    "22g-inline-dual-road-names.js",
     "12-verification-queue.js",
     "13-verification-detail.js",
     "14-field-feed-profile.js",
