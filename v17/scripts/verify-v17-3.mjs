@@ -66,10 +66,10 @@ requireText(partManifest,'22b-direction-landmark-cleanup.js','Direction landmark
 requireText(partManifest,'22c-direction-road-intelligence.js','Direction road intelligence JavaScript');
 requireText(partManifest,'22d-direction-target-road-fix.js','Target-road parsing JavaScript');
 requireText(partManifest,'22e-direction-compound-step-safety.js','Compound direction safety JavaScript');
-requireText(partManifest,'"version": "17.3.11"','Part manifest version');
-requireText(styleManifest,'"version": "17.3.11"','Style manifest version');
-requireText(packageJson,'"version": "17.3.11"','Package version');
-requireText(sw,'brinesearch-v17-3-11-well-list-cleanup','Service-worker cache version');
+requireText(partManifest,'"version": "17.3.12"','Part manifest version');
+requireText(styleManifest,'"version": "17.3.12"','Style manifest version');
+requireText(packageJson,'"version": "17.3.12"','Package version');
+requireText(sw,'brinesearch-v17-3-12-deep-inventory','Service-worker cache version');
 requireText(sw,'networkFirstAppAsset','Service-worker live asset update strategy');
 requireText(liveDirections,'/rest/v1/public_pad_detail','Authoritative public Clear Directions view');
 requireText(liveDirections,'__brineLiveClearDirectionsAuthoritative','Live Clear Directions precedence marker');
@@ -125,4 +125,4 @@ requireText(wellListPolishStyles,'.well-name-review-placeholder','Unresolved wel
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.11 product layer: synchronized one-well-per-row display, review-safe unresolved names, centered official-source action, audited direction/mileage safety, and current version markers.');
+console.log('Verified BrineSearch V17.3.12 product layer: deep official-pad/well inventory release markers, synchronized one-well-per-row display, review-safe unresolved names, centered official-source action, audited direction/mileage safety, and current version markers.');
