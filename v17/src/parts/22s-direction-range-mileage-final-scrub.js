@@ -1,9 +1,8 @@
     /* BrineSearch V17.3.17 — final mileage-range + road-pair scrub.
        Handles legacy saved forms such as 1-2 miles, 300 feet, and 500ft after
        the main maneuver/road has been selected. Ranges stay ranges; nothing is
-       averaged or guessed. Explicit local-road / numbered-route pairs also get
-       one final preservation check so Brushy Run / CR-17 cannot collapse to a
-       route number alone. */
+       averaged or guessed. Same-road local-name / route-number pairs remain
+       inline, while slash-separated intersection references stay notes. */
 
     const directionDistanceFactsBeforeRangeV17317 = directionDistanceFactsFinalV17317;
     directionDistanceFactsFinalV17317 = function directionDistanceFactsRangeSafeV17317(value) {
@@ -44,20 +43,69 @@
       return text || "Continue";
     }
 
+    function directionIntersectionReferenceV17317(value) {
+      const text = String(value || "").replace(/\s{2,}/g, " ");
+      return /\b(?:from|at)\b[^.;]{0,180}\s*\/\s*[^.;]{0,100}\bintersection\b/i.test(text)
+        || /\bintersection\s+(?:of|at)\b[^.;]{0,180}\s*\/\s*[^.;]{0,100}/i.test(text);
+    }
+
+    function directionTargetHasExplicitSlashPairV17317(value) {
+      const text = String(value || "").replace(/\bonto\b/ig, "on");
+      return /^(?:Turn\s+(?:left|right)|Slight\s+(?:left|right)|Veer\s+(?:left|right)|Bear\s+(?:left|right)|Stay\s+(?:left|right)|Keep\s+(?:left|right)|Take|Head|Continue|Follow|Travel|Proceed|Merge)\b[^.;]{0,90}\bon\s+[^.;]{0,100}\s*\/\s*[^.;]{1,100}/i.test(text);
+    }
+
+    const directionExplicitRoadDisplayBeforeIntersectionV17317 = directionExplicitRoadDisplayFinalV17317;
+    directionExplicitRoadDisplayFinalV17317 = function directionExplicitRoadDisplayIntersectionSafeV17317(value, p) {
+      if (directionIntersectionReferenceV17317(value) && !directionTargetHasExplicitSlashPairV17317(value)) return null;
+      return directionExplicitRoadDisplayBeforeIntersectionV17317(value, p);
+    };
+
+    function directionNormalizeIntersectionReferenceV17317(value) {
+      return directionMainCleanV17317(value)
+        .replace(/\bCounty\s+(?:Road|Rd|Route|Hwy)\s*[- ]?\s*(\d{1,4}(?:\/\d+)?[A-Z]?)/ig, "CR-$1")
+        .replace(/\bTownship\s+(?:Road|Rd|Route|Hwy)\s*[- ]?\s*(\d{1,4}(?:\/\d+)?[A-Z]?)/ig, "TR-$1")
+        .replace(/\bCR\s*[- ]?\s*(\d{1,4}(?:\/\d+)?[A-Z]?)/ig, "CR-$1")
+        .replace(/\bTR\s*[- ]?\s*(\d{1,4}(?:\/\d+)?[A-Z]?)/ig, "TR-$1")
+        .replace(/\s*\/\s*/g, " / ")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+    }
+
+    const directionMainActionBeforeIntersectionV17317 = directionMainActionFinalV17317;
+    directionMainActionFinalV17317 = function directionMainActionIntersectionSafeV17317(value, p) {
+      const text = directionNormalizeShorthandFinalV17317(value).replace(/\bonto\b/ig, "on");
+      const turn = text.match(/^Turn\s+(left|right)\b/i);
+      if (turn && directionIntersectionReferenceV17317(text) && !/^Turn\s+(?:left|right)\b[^.;]{0,40}\bon\s+/i.test(text)) {
+        let view = null;
+        try { view = directionClearStepViewV1733(text, p); } catch {}
+        return { main:`Turn ${turn[1].toLowerCase()}`, roadInfo:{ road:"", doubleName:false, view }, view };
+      }
+      return directionMainActionBeforeIntersectionV17317(value, p);
+    };
+
+    const directionNotesBeforeIntersectionV17317 = directionNotesFinalV17317;
+    directionNotesFinalV17317 = function directionNotesIntersectionSafeV17317(original, working, mainInfo, distanceFact, seedNotes) {
+      const notes = directionNotesBeforeIntersectionV17317(original, working, mainInfo, distanceFact, seedNotes);
+      const text = String(original || "").replace(/\s{2,}/g, " ");
+      let match = text.match(/\b(?:well\s*)?pad\s+access\s+road\s+begins[\s\S]{0,100}?\bfrom\s+(.+?)\s+intersection\b/i);
+      if (match) notes.push(`Reference: ${directionNormalizeIntersectionReferenceV17317(match[1])} intersection`);
+      match = text.match(/\bNearest\s+Hospital\s+(.+)$/i);
+      if (match) notes.push(`Nearest hospital: ${directionMainCleanV17317(match[1])}`);
+      return directionUniqueNotesV17317(notes);
+    };
+
     function directionRestoreExplicitPairV17317(mainValue, entry, p) {
       const main = directionMainCleanV17317(mainValue);
       const raw = directionStepCleanV17316(entry?.instruction || "");
+      if (directionIntersectionReferenceV17317(raw) && !directionTargetHasExplicitSlashPairV17317(raw)) return { main, doubleName:false };
       let pair = null;
       try { pair = directionExplicitRoadDisplayFinalV17317(raw, p); } catch {}
       if (!pair?.doubleName || !pair.road || main.includes("/")) return { main, doubleName:false };
 
-      // Only replace the road portion of an actual maneuver/continuation. The
-      // pair itself comes from the saved instruction, never from a catalog-only
-      // alias. This handles forms like Brushy Run / County Road 17.
       const action = main.match(/^((?:Turn\s+(?:left|right)|Slight\s+(?:left|right)|Veer\s+(?:left|right)|Bear\s+(?:left|right)|Stay\s+(?:left|right)|Keep\s+(?:left|right)|Continue|Head\s+(?:north|south|east|west)|Take|Merge))\b/i);
       if (!action) return { main, doubleName:false };
       const prefix = action[1].replace(/\s+$/g, "");
-      const joiner = /^(?:Take)$/i.test(prefix) ? " " : /^(?:Head)\b/i.test(prefix) ? " on " : " on ";
+      const joiner = /^(?:Take)$/i.test(prefix) ? " " : " on ";
       return { main:`${prefix}${joiner}${pair.road}`, doubleName:true };
     }
 
