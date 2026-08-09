@@ -1,9 +1,10 @@
     /* BrineSearch V17.3.12 — explicit dual-name road fallback.
-       Live road intelligence remains authoritative. When it is unavailable,
-       preserve an explicit numbered-road/local-road pair written in the saved
-       driver directions instead of dropping the local road name. Narrative
-       slash text is deliberately rejected so phrases such as "Left/East Onto"
-       never become road aliases. */
+       Live road intelligence remains preferred, but an official county-road
+       identity may override a contradictory inferred row. When live road
+       intelligence is unavailable, preserve explicit numbered-road/local-road
+       pairs written in saved driver directions instead of dropping the local
+       road name. Narrative slash text is deliberately rejected so phrases such
+       as "Left/East Onto" never become road aliases. */
 
     function directionUsefulAliasV17312(value) {
       const alias = normalize(value);
@@ -50,9 +51,46 @@
       return null;
     }
 
+    /* Jefferson County's official road list resolves a cluster that appears in
+       many saved Ascent routes around Bloomingdale. These are not guesses:
+       County Highway 22 = Steubenville Street, County Highway 23 =
+       Bloomingdale-Smithfield-Chandler Road, and County Highway 26 =
+       Fernwood-Bloomingdale Road. Saved driver directions also identify High St
+       as the in-town CR-23 name. Keeping this small authoritative fallback here
+       prevents a bad shared-intelligence row from relabeling the same physical
+       road differently on two nearby pads. */
+    function directionOfficialRoadIdentityV17312(instruction, p) {
+      if (directionStateCodeV17312(p) !== "OH") return null;
+      const county = normalize(p?.county).replace(/\s+county$/i, "");
+      if (!/^Jefferson$/i.test(county)) return null;
+
+      const text = String(instruction || "").replace(/[._]+/g, " ").replace(/\s{2,}/g, " ").trim();
+      if (!text) return null;
+
+      if (/\b(?:East\s+|E\s+)?Steubenville\s+(?:St|Street)\b/i.test(text)) {
+        return { kind:"route", text:"CR-22", alias:/\b(?:East|E)\s+Steubenville\b/i.test(text) ? "E Steubenville St" : "Steubenville St" };
+      }
+
+      if (/\bBloomingdale[\s-]*Smithfield[\s-]*(?:Chandl(?:er)?|Chandler)\b/i.test(text)) {
+        return {
+          kind:"route",
+          text:"CR-23",
+          alias:/\bHigh\s+(?:St|Street)\b/i.test(text) ? "High St" : "Bloomingdale-Smithfield-Chandler Rd"
+        };
+      }
+
+      if (/\bFernwood[\s-]*Bloomingdale\s+(?:Rd|Road)\b/i.test(text)) {
+        return { kind:"route", text:"CR-26", alias:"Fernwood-Bloomingdale Rd" };
+      }
+
+      return null;
+    }
+
     const directionClearRoadTextBeforeDualV17312 = directionClearRoadTextV1732;
     directionClearRoadTextV1732 = function directionClearRoadTextDualV17312(instruction, p) {
-      return directionInlineDualRoadV17312(instruction, p) || directionClearRoadTextBeforeDualV17312(instruction, p);
+      return directionInlineDualRoadV17312(instruction, p)
+        || directionOfficialRoadIdentityV17312(instruction, p)
+        || directionClearRoadTextBeforeDualV17312(instruction, p);
     };
 
     const directionClearSignForRoadBeforeDualV17312 = directionClearSignForRoadV1733;
