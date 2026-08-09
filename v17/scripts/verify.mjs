@@ -37,7 +37,7 @@ for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js',
 for (const requiredStartupToken of ['Live database startup deadline exceeded', 'setTimeout(() => resolve(local), 500)', 'V17.3.12 — startup + saved-mileage resilience', 'directionRewriteAddsMileageV17312', 'directionSavedMileageSourceV17312', 'Rejected direction rewrite because saved mileage could not be preserved']) {
   if (!app.includes(requiredStartupToken)) throw new Error(`V17.3.12 startup/mileage resilience is missing ${requiredStartupToken}.`);
 }
-for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732', 'directionSanitizeInstructionV1738', 'directionDriverSafeClearTextV1738', 'brinesearch_direction_step_intelligence', 'same_road_continuation', 'shared_road_consensus', 'sourceStepOrder', 'savedDistance', 'directionClearRoadTextTargetV17310', 'directionNormalizeTargetRoadV17310', 'directionCompoundDistanceCountV17310', 'compoundSource', 'directionGenericRouteLabelV17312', 'directionSplitDriverStepV17312', 'directionRoadIntelRoadRebuiltV17312', 'directionSequenceSummaryRebuiltV17312', 'directionGlobalWrittenEntriesV17315', 'directionWrittenStrongSharedAliasV17315', 'directionCoalesceEntriesV17316', 'directionHydrateSelectedLiveClearV17316', '__brineLiveClearDirectionsReadyV17316']) {
+for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732', 'directionSanitizeInstructionV1738', 'directionDriverSafeClearTextV1738', 'brinesearch_direction_step_intelligence', 'same_road_continuation', 'shared_road_consensus', 'sourceStepOrder', 'savedDistance', 'directionClearRoadTextTargetV17310', 'directionNormalizeTargetRoadV17310', 'directionCompoundDistanceCountV17310', 'compoundSource', 'directionGenericRouteLabelV17312', 'directionSplitDriverStepV17312', 'directionRoadIntelRoadRebuiltV17312', 'directionSequenceSummaryRebuiltV17312', 'directionGlobalWrittenEntriesV17315', 'directionWrittenStrongSharedAliasV17315', 'directionCoalesceEntriesV17316', 'directionHydrateSelectedLiveClearV17316', '__brineLiveClearDirectionsReadyV17316', 'directionDistanceBadgeFromSentenceV17317', 'directionConciseMetaV17317', 'directionNormalizeRoadPairSafeV17317']) {
   if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
 }
 for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Official pad name', 'Official location', 'Pad permit', 'Saved API check', 'Official match basis', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged', 'await publicDataPadCardBaseV1736(id)']) {
@@ -58,13 +58,14 @@ if (!css.includes('.direction-clear-road-alias')) throw new Error('V17.3.9 dual 
 if (!css.includes('.direction-compound-source')) throw new Error('V17.3.10 compound route safety styles are missing.');
 if (!css.includes('.field-official-source-card .field-source-link')) throw new Error('V17.3.11 centered official-source button style is missing.');
 if (!css.includes('.well-name-review-placeholder')) throw new Error('V17.3.11 unresolved-well placeholder style is missing.');
+if (!css.includes('.direction-written-distance-v17317')) throw new Error('V17.3.17 right-side mileage badge style is missing.');
 const directionManifest = JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions/index.json'), 'utf8'));
 let rewriteCount = 0;
 for (const file of directionManifest.files) rewriteCount += Object.keys(JSON.parse(await fs.readFile(path.join(v17Root, 'public/data/directions', file), 'utf8'))).length;
 if (rewriteCount !== directionManifest.recordCount || rewriteCount < 100) throw new Error('Direction rewrite data did not assemble correctly.');
 const serviceWorker = await fs.readFile(path.join(v17Root, 'public/sw.js'), 'utf8');
 new vm.Script(serviceWorker, { filename: 'sw.js' });
-if (!serviceWorker.includes("brinesearch-v17-3-16-direction-source-priority")) throw new Error('V17.3.16 service-worker cache marker is missing.');
+if (!serviceWorker.includes("brinesearch-v17-3-17-concise-mileage-cards")) throw new Error('V17.3.17 service-worker cache marker is missing.');
 if (!serviceWorker.includes('networkFirstAppAsset')) throw new Error('V17.3 service worker is missing live app-asset refresh logic.');
 if (!serviceWorker.includes('./app/front-sign-structured.js')) throw new Error('Structured scanner is missing from the offline shell.');
 if (serviceWorker.includes('./v16-25-hotfix.js')) throw new Error('Legacy V16.25 OCR hotfix is still in the V17.3 offline shell.');
@@ -72,4 +73,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, bounded startup dependencies, live Clear Direction source priority, packaged fragment coalescing, saved-mileage safety, conservative double-road naming, synchronized well rows, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, live Clear Direction source priority, fragment coalescing, concise maneuver+road cards, right-side saved-mileage badges, inline road/route double names, synchronized well rows, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
