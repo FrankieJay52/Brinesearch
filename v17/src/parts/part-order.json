@@ -1,5 +1,5 @@
 {
-  "version": "17.3.9",
+  "version": "17.3.10",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -23,6 +23,7 @@
     "11b-public-data-pad-card.js",
     "11c-driver-route-reference.js",
     "11d-verification-cleanup.js",
+    "11e-route-reference-audit-fixes.js",
     "22-direction-clear-display-fix.js",
     "22a-direction-clear-polish.js",
     "22b-direction-landmark-cleanup.js",
