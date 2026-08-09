@@ -61,6 +61,20 @@ function parseCsvLine(line) {
   return values;
 }
 
+function structuredAliasDisplay(value) {
+  const text = normalize(value).replace(/\s{2,}/g, ' ');
+  if (!text || !text.includes('/')) return false;
+  const suffix = '(?:Rd|Road|St|Street|Ave|Avenue|Hwy|Highway|Ln|Lane|Dr|Drive|Pike|Ridge|Crossing|Run|Hollow|Hill|Creek|Fork)';
+  const compass = '(?:northwest|northeast|southwest|southeast|north|south|east|west|NW|NE|SW|SE|N|S|E|W)';
+  const numbered = '(?:I|US|OH|WV|PA|SR|CR|TR)\\s*[- ]?\\s*\\d{1,4}[A-Z]?';
+  const worded = '(?:(?:State\\s+Route|County\\s+(?:Road|Rd|Route|Hwy)|Township\\s+(?:Road|Rd|Route|Hwy)|C\\.?\\s*R\\.?|T\\.?\\s*R\\.?|Co\\.?\\s*Rd\\.?)\\s*[- ]?\\s*\\d{1,4}[A-Z]?)';
+  const generic = '(?:Route\\s*[- ]?\\s*\\d{1,4}[A-Z]?)';
+  const primary = `(?:${numbered}|${worded}|${generic})`;
+  if (new RegExp(`\\b${primary}(?:\\s+${compass})?\\s*\\/\\s*(?:${compass}\\s*\\/\\s*)?[A-Za-z0-9][A-Za-z0-9 .'-]{0,70}?${suffix}\\b`, 'i').test(text)) return true;
+  if (new RegExp(`\\b[A-Za-z0-9][A-Za-z0-9 .'-]{0,70}?${suffix}\\.?\\s*\\/\\s*(?:C\\.?\\s*R\\.?|CR|T\\.?\\s*R\\.?|TR)\\s*[- ]?\\s*\\d{1,4}[A-Z]?\\b`, 'i').test(text)) return true;
+  return false;
+}
+
 const fallback = await readJson(path.join(publicRoot, 'pad-fallback-data.json'));
 const pads = Array.isArray(fallback?.pads) ? fallback.pads : [];
 if (pads.length < 1000) throw new Error(`Direction audit expected the full fallback directory; found only ${pads.length} records.`);
@@ -137,8 +151,17 @@ for (const line of roadReviewLines) {
   const row = parseCsvLine(line);
   if (row[reasonIndex] === 'slash/alias road name needs source verification') aliasRows.push(row);
 }
+const structuredAliasRows = aliasRows.filter(row => structuredAliasDisplay(row[displayIndex]));
+const slashNoiseRows = aliasRows.filter(row => !structuredAliasDisplay(row[displayIndex]));
+if (structuredAliasRows.length && (!app.includes('directionInlineDualRoadV17312') || !app.includes('directionUsefulAliasV17312'))) {
+  throw new Error(`${structuredAliasRows.length} structured dual-road rows exist but the explicit dual-name runtime fallback is missing.`);
+}
+if (app.includes('Left/East Onto County Rd') && app.includes('directionInlineDualRoadV17312("Left/East Onto County Rd"')) {
+  throw new Error('Narrative slash text must not be promoted as a dual road name.');
+}
+
 const aliasSupport = new Map();
-for (const row of aliasRows) {
+for (const row of structuredAliasRows) {
   const key = `${row[stateIndex]}|${row[displayIndex]}`;
   if (!aliasSupport.has(key)) aliasSupport.set(key, new Set());
   aliasSupport.get(key).add(row[recordIndex]);
@@ -168,5 +191,8 @@ console.log(JSON.stringify({
   fusedRouteMileageExamples:fusedExamples,
   roadNameReviewRows:roadReviewLines.length,
   explicitSlashAliasRows:aliasRows.length,
-  repeatedAliasPairs:repeatedAliasPairs.slice(0,20)
+  structuredDualRoadRows:structuredAliasRows.length,
+  slashNarrativeOrAmbiguousRowsHeldForReview:slashNoiseRows.length,
+  slashNoiseExamples:slashNoiseRows.slice(0,12).map(row => `${row[recordIndex]}: ${row[displayIndex]}`),
+  repeatedStructuredAliasPairs:repeatedAliasPairs.slice(0,20)
 }, null, 2));
