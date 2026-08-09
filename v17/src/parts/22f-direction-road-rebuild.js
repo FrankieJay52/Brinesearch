@@ -26,20 +26,20 @@
       const state = directionStateCodeV17312(p);
       if (state && new RegExp(`\\b(?:State\\s+Route|S\\.?R\\.?|SR|${state})[ -]*0*${n}\\b`, "i").test(text)) return `${state}-${n}`;
 
+      // Only normalize a bare Route N without DB evidence when the highway family is
+      // unambiguous in this service area. Do not turn local Route/CR/TR numbers into
+      // state highways just because a state has a highway with the same number.
       if (state === "OH") {
         if (["70","77","470"].includes(n)) return `I-${n}`;
         if (["22","30","40","250"].includes(n)) return `US-${n}`;
-        return `OH-${n}`;
       }
       if (state === "WV") {
         if (["64","68","70","77","79","81"].includes(n)) return `I-${n}`;
         if (["19","22","33","40","50","119","250"].includes(n)) return `US-${n}`;
-        return `WV-${n}`;
       }
       if (state === "PA") {
         if (["70","76","79","80","376"].includes(n)) return `I-${n}`;
         if (["19","22","30","40","119","219","250"].includes(n)) return `US-${n}`;
-        return `PA-${n}`;
       }
       return `Route ${n}`;
     }
@@ -51,16 +51,37 @@
       return `${directionGenericRouteLabelV17312(match[1], p, source || text)}${match[2] || ""}`.trim();
     }
 
+    function directionActionableRoadV17312(value, p) {
+      const text = normalize(value);
+      return Boolean(text && (
+        /^(?:I|US|OH|WV|PA|SR|CR|TR)-\d/i.test(text)
+        || /^Route\s+\d/i.test(text)
+        || /\b(?:Rd|Road|St|Street|Ave|Avenue|Blvd|Boulevard|Ln|Lane|Dr|Drive|Pike|Hwy|Highway|Way|Run|Ridge)\b/i.test(text)
+        || /^(?:Access|Lease) Road$/i.test(text)
+        || directionBadge(text, p)
+      ));
+    }
+
     const directionClearRoadTextBeforeV17312 = directionClearRoadTextV1732;
     directionClearRoadTextV1732 = function directionClearRoadTextRebuiltV17312(instruction, p) {
       const text = String(instruction || "").replace(/\s{2,}/g, " ").trim();
+
+      let match = text.match(/^From\s+(?:I|Interstate)\s*[- ]?\s*\d{1,3}\b[^.;]{0,45}?\b(?:State\s+Route|SR|OH)\s*[- ]?\s*(\d{1,4}[A-Z]?)\s+(?:north|south|east|west)\b/i);
+      if (match) return { kind:"route", text:`${directionStateCodeV17312(p) || "OH"}-${match[1].toUpperCase()}` };
+      match = text.match(/^From\s+[^.;]{0,60}?\b(?:take|follow|head[^.;]{0,20}?\bon)\s+(?:the\s+)?((?:I|US|OH|WV|PA|SR|CR|TR)\s*[- ]?\s*\d{1,4}[A-Z]?|Route\s+\d{1,4}[A-Z]?)/i);
+      if (match?.[1]) {
+        const raw = match[1].trim();
+        const generic = raw.match(/^Route\s+(\d{1,4}[A-Z]?)/i);
+        return { kind:"route", text:generic ? directionGenericRouteLabelV17312(generic[1], p, text) : normalizeRoadName(raw, p).text };
+      }
+
       let road = directionClearRoadTextBeforeV17312(instruction, p);
       if (road?.text && /^Route\s*[- ]?\s*\d/i.test(road.text)) {
         road = { ...road, kind:"route", text:directionCanonicalizeRouteTextV17312(road.text, p, text) };
       }
-      if (road?.text) return road;
+      if (directionActionableRoadV17312(road?.text, p)) return road;
 
-      let match = text.match(/\b(?:Take\s+(?:the\s+)?right|Follow\s+right)\s+(\d{1,4}[A-Z]?)\b/i)
+      match = text.match(/\b(?:Take\s+(?:the\s+)?right|Follow\s+right)\s+(\d{1,4}[A-Z]?)\b/i)
         || text.match(/^Follow\s+(\d{1,4}[A-Z]?)\b/i)
         || text.match(/\b(?:from|on)\s+(\d{1,4}[A-Z]?)\s+(?:east|west|north|south)\b/i);
       if (match) return { kind:"route", text:directionGenericRouteLabelV17312(match[1], p, text) };
