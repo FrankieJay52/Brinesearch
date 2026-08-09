@@ -36,6 +36,7 @@
     "14-field-feed-profile.js",
     "14a-field-profile-security.js",
     "15-settings-road-tools.js",
+    "15a-provenance-cleanup.js",
     "16-router-assistant-shell.js",
     "17-assistant-answers.js",
     "18-account-theme-startup.js",
