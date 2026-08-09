@@ -9,9 +9,12 @@
       window.__brineStartupNativeFetch = globalThis.fetch.bind(globalThis);
       globalThis.fetch = async (input, init = {}) => {
         const url = String(typeof input === "string" ? input : input?.url || input || "");
-        const shortUrl = url.replace(location.origin, "").slice(0, 150);
-        document.documentElement.dataset.brinesearchStartupStage = `fetch:${shortUrl}`;
-        document.title = `BrineSearch startup probe · fetch ${shortUrl}`;
+        const shortUrl = url.replace(location.origin, "").slice(0, 170);
+        const tracked = /(?:\/data\/directions\/|pad-fallback-data\.json|supabase\.co\/rest\/v1\/(?:pads|public_pad_detail))/i.test(url);
+        if (tracked) {
+          document.documentElement.dataset.brinesearchStartupStage = `fetch:${shortUrl}`;
+          document.title = `BrineSearch startup probe · fetch ${shortUrl}`;
+        }
         const timeoutMs = /supabase\.co/i.test(url) ? 2400 : 2200;
         const controller = new AbortController();
         const upstream = init?.signal;
@@ -23,22 +26,24 @@
         const timer = setTimeout(() => controller.abort(new Error(`Startup request timed out after ${timeoutMs} ms`)), timeoutMs);
         try {
           const response = await window.__brineStartupNativeFetch(input, { ...init, signal:controller.signal });
-          document.title = `BrineSearch startup probe · body ${shortUrl}`;
+          if (tracked) document.title = `BrineSearch startup probe · body ${shortUrl}`;
           await response.clone().arrayBuffer();
           try {
             const nativeJson = response.json.bind(response);
             Object.defineProperty(response, "json", {
               configurable:true,
               value:async () => {
-                document.title = `BrineSearch startup probe · json ${shortUrl}`;
+                if (tracked) document.title = `BrineSearch startup probe · json ${shortUrl}`;
                 const value = await nativeJson();
-                document.title = `BrineSearch startup probe · parsed ${shortUrl}`;
+                if (tracked) document.title = `BrineSearch startup probe · parsed ${shortUrl}`;
                 return value;
               }
             });
           } catch {}
-          document.documentElement.dataset.brinesearchStartupStage = `fetched:${shortUrl}`;
-          document.title = `BrineSearch startup probe · fetched ${shortUrl}`;
+          if (tracked) {
+            document.documentElement.dataset.brinesearchStartupStage = `fetched:${shortUrl}`;
+            document.title = `BrineSearch startup probe · fetched ${shortUrl}`;
+          }
           return response;
         } finally {
           clearTimeout(timer);
