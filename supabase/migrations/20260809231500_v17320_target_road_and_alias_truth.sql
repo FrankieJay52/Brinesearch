@@ -20,15 +20,10 @@ declare
   state_code text;
 begin
   if coalesce(p_instruction,'') !~* '^From' then return null; end if;
-
-  -- Prefer a concrete action target after the origin: turn/head/travel/go/proceed
-  -- ON/ONTO a numbered road. Intersections merely mentioned before that action do
-  -- not qualify.
   m:=regexp_match(p_instruction,
     '(?:turn(?:[[:space:]]+(?:left|right|west|east|north|south))?|head(?:[[:space:]]+(?:northwest|northeast|southwest|southeast|north|south|east|west))?|travel(?:[[:space:]]+(?:northwest|northeast|southwest|southeast|north|south|east|west))?|go(?:[[:space:]]+(?:northwest|northeast|southwest|southeast|north|south|east|west))?|proceed(?:[[:space:]]+(?:northwest|northeast|southwest|southeast|north|south|east|west))?)[^.;]{0,80}(?:on|onto|along)[[:space:]]+(?:the[[:space:]]+)?(I|US|OH|WV|PA|SR|CR|TR)[[:space:]-]*([0-9]{1,4}(?:/[0-9]{1,3})?[A-Z]?)[[:>:]]',
     'i');
   if m is null then return null; end if;
-
   fam:=upper(m[1]);
   body:=upper(regexp_replace(m[2],'[[:space:]]','','g'));
   state_code:=case lower(btrim(coalesce(p_state,'')))
@@ -59,31 +54,22 @@ declare
 begin
   if nullif(btrim(coalesce(p_instruction,'')),'') is null
      or nullif(btrim(coalesce(p_road_key,'')),'') is null then return null; end if;
-
-  -- Local road name, optionally followed by a directional suffix, then / route.
   m:=regexp_match(p_instruction,
     '([A-Za-z][A-Za-z0-9 .''-]{0,70}'||suffix||'(?:[[:space:]]+'||bearing||')?)[[:space:]]*/[[:space:]]*(I|US|OH|WV|PA|SR|CR|TR)[[:space:]-]*([0-9]{1,4}(?:/[0-9]{1,3})?[A-Z]?)[[:>:]]',
     'i');
   if m is not null and public.brinesearch_route_equivalent_v17320(p_road_key,m[2],m[3],p_state) then a:=m[1]; end if;
-
-  -- Route / local road name, optionally with directional suffix.
   if a is null then
     m:=regexp_match(p_instruction,
       '(I|US|OH|WV|PA|SR|CR|TR)[[:space:]-]*([0-9]{1,4}(?:/[0-9]{1,3})?[A-Z]?)[[:>:]][[:space:]]*/[[:space:]]*([A-Za-z][A-Za-z0-9 .''-]{0,70}'||suffix||'(?:[[:space:]]+'||bearing||')?)',
       'i');
     if m is not null and public.brinesearch_route_equivalent_v17320(p_road_key,m[1],m[2],p_state) then a:=m[3]; end if;
   end if;
-
-  -- Route immediately followed by its local name, e.g. CR 47 Putney Ridge Rd.
-  -- This is constrained to the already-selected route key so a later destination
-  -- route/name pair cannot leak backward onto the current road.
   if a is null then
     m:=regexp_match(p_instruction,
       '(I|US|OH|WV|PA|SR|CR|TR)[[:space:]-]*([0-9]{1,4}(?:/[0-9]{1,3})?[A-Z]?)[[:>:]][[:space:]]+([A-Za-z][A-Za-z0-9 .''-]{0,70}'||suffix||'(?:[[:space:]]+'||bearing||')?)',
       'i');
     if m is not null and public.brinesearch_route_equivalent_v17320(p_road_key,m[1],m[2],p_state) then a:=m[3]; end if;
   end if;
-
   a:=public.brinesearch_clean_road_alias(a);
   if a is null then return null; end if;
   if a ~* '^(to|at|from|and|also|for|travel|intersection|junction|stop|exit|turn|left|right)([[:space:]]|$)' then return null; end if;
@@ -91,9 +77,6 @@ begin
 end
 $$;
 
--- Expand the fractional-route target grammar to include direct forms such as
--- "Travel CR-41/3" and "Follow CR 67/1" while still excluding "travel X miles TO
--- the CR-7/3 intersection".
 create or replace function public.brinesearch_target_fractional_route_v17320(p_instruction text)
 returns text
 language plpgsql
@@ -126,10 +109,9 @@ declare
   fractional_rows integer:=0;
   alias_rows integer:=0;
   compound_rows integer:=0;
+  extra_compound_rows integer:=0;
   neighbor_rows integer:=0;
 begin
-  -- Triplett is a two-action instruction and should never be represented as just
-  -- one left or right maneuver in intelligence.
   update public.brinesearch_direction_step_intelligence
   set maneuver_class='compound',
       evidence=evidence||jsonb_build_object('maneuver_review_v17320','stay-right then turn-left source row; display splitter owns both actions')
@@ -137,8 +119,6 @@ begin
     and coalesce(evidence->>'instruction','') ~* '^Stay right.*turn left';
   get diagnostics compound_rows=row_count;
 
-  -- Any row that starts with a stay/keep/bear/veer/slight action in one direction
-  -- and later explicitly turns the other way is compound as well.
   update public.brinesearch_direction_step_intelligence
   set maneuver_class='compound',
       evidence=evidence||jsonb_build_object('maneuver_review_v17320','multiple directional maneuvers in one saved source row')
@@ -147,10 +127,9 @@ begin
       coalesce(evidence->>'instruction','') ~* '^(Stay|Keep|Bear|Veer|Slight)[[:space:]]+right.*turn[[:space:]]+left'
       or coalesce(evidence->>'instruction','') ~* '^(Stay|Keep|Bear|Veer|Slight)[[:space:]]+left.*turn[[:space:]]+right'
     );
-  get diagnostics compound_rows=compound_rows+row_count;
+  get diagnostics extra_compound_rows=row_count;
+  compound_rows:=compound_rows+extra_compound_rows;
 
-  -- Correct origin-vs-target route parsing for source rows whose action explicitly
-  -- names a different numbered road.
   with c as (
     select d.pad_id,d.step_order,d.road_key,p.state,
       public.brinesearch_explicit_target_route_v17320(d.evidence->>'instruction',p.state) target
@@ -169,9 +148,6 @@ begin
     and not public.brinesearch_route_equivalent_v17320(d.road_key,split_part(c.target,'-',1),regexp_replace(c.target,'^[^-]+-',''),c.state);
   get diagnostics target_rows=row_count;
 
-  -- Re-run the stricter actionable fractional route resolver after target-road
-  -- correction. Mark rows with multiple route-changing actions as compound instead
-  -- of forcing one fractional route.
   with c as (
     select d.pad_id,d.step_order,d.road_key,p.state,
       public.brinesearch_target_fractional_route_v17320(d.evidence->>'instruction') target,
@@ -187,14 +163,10 @@ begin
     and c.target is not null and c.action_count<=1
     and (
       d.road_key is null
-      or public.brinesearch_route_equivalent_v17320(d.road_key,split_part(c.target,'-',1),split_part(regexp_replace(c.target,'^[^-]+-',''),'/ ',1),c.state)
-      or split_part(regexp_replace(d.road_key,'^[^-]+-',''),'/ ',1)=split_part(regexp_replace(c.target,'^[^-]+-',''),'/ ',1)
+      or split_part(regexp_replace(d.road_key,'^[^-]+-',''), '/',1)=split_part(regexp_replace(c.target,'^[^-]+-',''), '/',1)
     );
   get diagnostics fractional_rows=row_count;
 
-  -- Known compressed source rows with two different route-changing actions are
-  -- compound; do not collapse them to one route simply because one target appears
-  -- later in the string.
   update public.brinesearch_direction_step_intelligence
   set maneuver_class='compound',
       evidence=evidence||jsonb_build_object('maneuver_review_v17320','multiple route-changing actions in compressed source row')
@@ -204,8 +176,6 @@ begin
 
   neighbor_rows:=public.brinesearch_rebuild_direction_road_neighbors_v17318();
 
-  -- Reapply exact aliases after route-key corrections. Directional suffixes and
-  -- Trail are supported here in addition to the earlier exact-pair grammar.
   with a as (
     select d.pad_id,d.step_order,
       coalesce(
@@ -223,8 +193,6 @@ begin
   where d.pad_id=a.pad_id and d.step_order=a.step_order and a.alias is not null;
   get diagnostics alias_rows=row_count;
 
-  -- The phrase "travel straight across CR-41/1 to Gantzer Ridge Rd" is crossing
-  -- context, not a CR-41 local-road alias or a leg on CR-41/1.
   update public.brinesearch_direction_step_intelligence
   set road_key=null,primary_road=null,local_road_name=null,display_road=null,
       evidence=(evidence-'dual_name_source'-'dual_name_support')||jsonb_build_object('navigation_context_only_v17320',true)
@@ -247,7 +215,6 @@ revoke all on function public.brinesearch_explicit_target_route_v17320(text,text
 revoke all on function public.brinesearch_directional_alias_v17320(text,text,text) from public,anon,authenticated;
 revoke all on function public.brinesearch_apply_v17320_target_road_truth() from public,anon,authenticated;
 
--- Extend the refresh wrapper: base rebuild -> V17.3.20 core truth -> target/alias truth.
 create or replace function public.brinesearch_refresh_all_direction_intelligence()
 returns jsonb
 language plpgsql
