@@ -6,8 +6,8 @@
     function directionLandmarkPhraseV1738(text) {
       const value = String(text || "").toLowerCase();
       if (!value) return false;
-      if (/\b(?:church|cemetery)\s+(?:rd|road|ln|lane|dr|drive|st|street|ave|avenue|hwy|highway)\b/i.test(value)) return false;
-      return /\b(?:landmark|dairy queen|trump sign|yard fence|old general store|general-store|cemetery|church|school|high school|prison|storage unit|storage-unit|ballfield|police department|fire department|mailbox|house|barn|bar|scrap yard|rest area|rest-area|water tower|power station)\b/i.test(value);
+      const withoutRoadNames = value.replace(/\b(?:church|cemetery)\s+(?:rd|road|ln|lane|dr|drive|st|street|ave|avenue|hwy|highway)\b/gi, "");
+      return /\b(?:landmark|dairy queen|trump sign|yard fence|old general store|general-store|cemetery|church|school|high school|prison|storage unit|storage-unit|ballfield|police department|fire department|mailbox|house|barn|bar|scrap yard|rest area|rest-area|water tower|power station)\b/i.test(withoutRoadNames);
     }
 
     function directionSafetyPhraseV1738(text) {
