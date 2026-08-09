@@ -34,7 +34,7 @@ for (const requiredScannerToken of ['Read Database Fields', 'findSignBounds', 'p
 for (const file of ['theme-boot.js','weather-feature.js','root-scroll-guard.js','field-mark-runtime.js']) {
   new vm.Script(await fs.readFile(path.join(v17Root, 'public/app', file), 'utf8'), { filename: file });
 }
-for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732', 'directionSanitizeInstructionV1738', 'directionDriverSafeClearTextV1738', 'brinesearch_direction_step_intelligence', 'same_road_continuation', 'shared_road_consensus', 'sourceStepOrder', 'savedDistance']) {
+for (const requiredDirectionToken of ['public_pad_detail', '__brineLiveClearDirectionsAuthoritative', 'directionClearPolishedStepsV1732', 'directionClearNoteOnlyV1732', 'directionSanitizeInstructionV1738', 'directionDriverSafeClearTextV1738', 'brinesearch_direction_step_intelligence', 'same_road_continuation', 'shared_road_consensus', 'sourceStepOrder', 'savedDistance', 'directionClearRoadTextTargetV17310']) {
   if (!app.includes(requiredDirectionToken)) throw new Error(`V17.3 direction hardening is missing ${requiredDirectionToken}.`);
 }
 for (const requiredPublicDataToken of ['public-pad-data-card', 'Current Pad Snapshot', 'Official pad name', 'Official location', 'Pad permit', 'Saved API check', 'Official match basis', 'Public Data / Well Details', 'official_well_records', 'saved driver/navigation point is unchanged', 'await publicDataPadCardBaseV1736(id)']) {
@@ -63,4 +63,4 @@ const index = await fs.readFile(path.join(v17Root, 'index.html'), 'utf8');
 for (const required of ['/styles/app.css','/app/brinesearch-app.js','/app/theme-boot.js']) if (!index.includes(required)) throw new Error(`Missing ${required} from V17 index.`);
 if (/<style(?:\s|>)/i.test(index)) throw new Error('Inline style blocks remain in V17 index.');
 if (/<script(?![^>]+src=)/i.test(index)) throw new Error('Inline script blocks remain in V17 index.');
-console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, audited pad-specific mileage, source-step-aligned road intelligence, short-distance labels, dual road names, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
+console.log(`Verified V${parts.version}: ${parts.parts.length} JS parts, ${styles.styles.length} CSS parts, audited pad-specific mileage, source-step-aligned road intelligence, target-road parsing, short-distance labels, dual road names, and live-updating service worker. Build hashes: ${appSha256.slice(0,12)} / ${cssSha256.slice(0,12)}.`);
