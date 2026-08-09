@@ -4,6 +4,7 @@
   "wrapperEnd": "});",
   "parts": [
     "00-security-boot.js",
+    "00zz-startup-probe.js",
     "00-core-data.js",
     "00a-live-clear-directions-precedence.js",
     "01-add-pad-wizard.js",
