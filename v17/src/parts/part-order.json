@@ -1,5 +1,5 @@
 {
-  "version": "17.3.12",
+  "version": "17.3.13",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -36,6 +36,7 @@
     "22e-direction-compound-step-safety.js",
     "22f-direction-road-rebuild.js",
     "22g-inline-dual-road-names.js",
+    "22h-direction-fragment-reassembly.js",
     "12-verification-queue.js",
     "13-verification-detail.js",
     "14-field-feed-profile.js",
