@@ -7,7 +7,7 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
-const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
+const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyles, packageJson, partManifest, styleManifest, sw, liveDirections, directionPolish, directionLandmarkCleanup, directionRoadIntel, directionRoadIntelStyles, publicDataReview, publicDataReviewStyles, publicPadCard, publicPadCardStyles, driverRouteReference, driverRouteReferenceStyles, verificationCleanup, verificationCleanupStyles] = await Promise.all([
   read(path.join(v17Root,'src/parts/04-dashboard-favorites-offline.js')),
   read(path.join(v17Root,'src/parts/14-field-feed-profile.js')),
   read(path.join(v17Root,'src/parts/16-router-assistant-shell.js')),
@@ -22,6 +22,8 @@ const [dashboard, feed, router, polish, finalFixes, roadLiveFixes, roadLiveStyle
   read(path.join(v17Root,'src/parts/00a-live-clear-directions-precedence.js')),
   read(path.join(v17Root,'src/parts/22a-direction-clear-polish.js')),
   read(path.join(v17Root,'src/parts/22b-direction-landmark-cleanup.js')),
+  read(path.join(v17Root,'src/parts/22c-direction-road-intelligence.js')),
+  read(path.join(v17Root,'src/styles/38-direction-road-intelligence.css')),
   read(path.join(v17Root,'src/parts/09a-public-data-review.js')),
   read(path.join(v17Root,'src/styles/34-public-data-review.css')),
   read(path.join(v17Root,'src/parts/11b-public-data-pad-card.js')),
@@ -47,22 +49,27 @@ requireText(styleManifest,'34-public-data-review.css','Public Data Review styles
 requireText(styleManifest,'35-public-data-pad-card.css','Public Data pad card stylesheet');
 requireText(styleManifest,'36-driver-route-reference.css','Driver route-reference stylesheet');
 requireText(styleManifest,'37-verification-cleanup.css','Pad verification cleanup stylesheet');
+requireText(styleManifest,'38-direction-road-intelligence.css','Direction road intelligence stylesheet');
 requireText(partManifest,'09a-public-data-review.js','Public Data Review JavaScript');
 requireText(partManifest,'11b-public-data-pad-card.js','Public Data pad card JavaScript');
 requireText(partManifest,'11c-driver-route-reference.js','Driver route-reference JavaScript');
 requireText(partManifest,'11d-verification-cleanup.js','Pad verification cleanup JavaScript');
 requireText(partManifest,'22b-direction-landmark-cleanup.js','Direction landmark cleanup JavaScript');
-requireText(partManifest,'"version": "17.3.8"','Part manifest version');
-requireText(styleManifest,'"version": "17.3.8"','Style manifest version');
-requireText(packageJson,'"version": "17.3.8"','Package version');
-requireText(sw,'brinesearch-v17-3-8-direction-cleanup','Service-worker cache version');
+requireText(partManifest,'22c-direction-road-intelligence.js','Direction road intelligence JavaScript');
+requireText(partManifest,'"version": "17.3.9"','Part manifest version');
+requireText(styleManifest,'"version": "17.3.9"','Style manifest version');
+requireText(packageJson,'"version": "17.3.9"','Package version');
+requireText(sw,'brinesearch-v17-3-9-road-intelligence','Service-worker cache version');
 requireText(sw,'networkFirstAppAsset','Service-worker live asset update strategy');
 requireText(liveDirections,'/rest/v1/public_pad_detail','Authoritative public Clear Directions view');
 requireText(liveDirections,'__brineLiveClearDirectionsAuthoritative','Live Clear Directions precedence marker');
 requireText(directionPolish,'directionClearNoteOnlyV1732','Direction note-card merger');
 requireText(directionLandmarkCleanup,'directionSanitizeInstructionV1738','Landmark sanitizer');
 requireText(directionLandmarkCleanup,'directionDriverSafeClearTextV1738','Landmark-safe copy directions');
-requireText(directionLandmarkCleanup,'transient landmark identifiers','Landmark cleanup safety comment');
+requireText(directionRoadIntel,'brinesearch_direction_step_intelligence','Shared-road intelligence RPC');
+requireText(directionRoadIntel,'same_road_continuation','Same-road continuation handling');
+requireText(directionRoadIntel,'shared_road_consensus','Shared-road mileage handling');
+requireText(directionRoadIntelStyles,'.direction-clear-road-alias','Dual road-name visual');
 requireText(publicDataReview,'/rest/v1/rpc/public_data_review_summary','Owner public data summary RPC');
 requireText(publicDataReview,'It will NOT publish','Public Data Review safety confirmation');
 requireText(publicDataReviewStyles,'.public-data-review-panel','Public Data Review visual layer');
@@ -91,4 +98,4 @@ requireText(verificationCleanupStyles,'.pad-check-reviewed-row','Compact verific
 const iconEncoded=(await Promise.all([0,1,2,3].map(part=>read(path.join(v17Root,'src/icons',`field-mark-icons.${part}.b64`))))).join('').replace(/\s+/g,'');
 const iconManifest=JSON.parse(gunzipSync(Buffer.from(iconEncoded,'base64')).toString('utf8'));
 if(iconManifest.version!=='17.3.0'||Object.keys(iconManifest.icons||{}).length<90) throw new Error('The V17.3 Field Mark icon source manifest is incomplete.');
-console.log('Verified BrineSearch V17.3.8 product layer: landmark-free driver direction display/copy, evidence-backed pad checks, richer driver approach intelligence, fully hydrated official pad identity/location/permit/API context, stale-reference protection, Owner Public Data Review, authoritative live Clear Directions, Road Manager, installed-app updates, and current version markers.');
+console.log('Verified BrineSearch V17.3.9 product layer: dual road names, shared-route mileage consensus, same-road continuation cues, landmark-free driver directions, evidence-backed pad checks, and current version markers.');
