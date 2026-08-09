@@ -35,9 +35,10 @@
       return request;
     }
 
-    function directionRoadIntelForStepV1739(p, index) {
+    function directionRoadIntelForStepV1739(p, index, entry) {
       const rows = Array.isArray(p?.directionRoadIntelligence) ? p.directionRoadIntelligence : [];
-      return rows.find(row => Number(row?.step_order) === index + 1) || null;
+      const sourceOrder = Number(entry?.sourceStepOrder || index + 1);
+      return rows.find(row => Number(row?.step_order) === sourceOrder) || null;
     }
 
     function directionRoadIntelManeuverV1739(view, intel) {
@@ -66,14 +67,15 @@
         <div class="direction-route-heading"><span>PRIMARY ROUTE</span></div>
         <ol class="direction-pro-steps direction-clear-steps">${parsed.steps.map((entry, index) => {
           const view = directionClearStepViewV1733(entry.instruction, p);
-          const intel = directionRoadIntelForStepV1739(p, index);
+          const intel = directionRoadIntelForStepV1739(p, index, entry);
           const road = directionRoadIntelRoadV1739(view, intel);
           const sign = directionClearSignForRoadV1733(road, p);
           const maneuver = directionRoadIntelManeuverV1739(view, intel);
+          const savedDistance = intel?.distance_source === "saved_direction" ? normalize(intel.distance_label) : "";
           const inferredDistance = !view.distance && intel?.distance_source === "shared_road_consensus" && !intel?.same_road_continuation
             ? normalize(intel.distance_label)
             : "";
-          const distanceText = view.distance ? `${view.distance} mi` : inferredDistance;
+          const distanceText = savedDistance || (view.distance ? `${view.distance} mi` : inferredDistance);
           const meta = maneuver || distanceText
             ? `<div class="direction-clear-meta">${maneuver ? `<span class="direction-clear-maneuver">${esc(maneuver)}</span>` : ""}${distanceText ? `<span class="direction-distance direction-clear-distance${inferredDistance ? " direction-distance-shared" : ""}">${esc(distanceText)}</span>` : ""}</div>`
             : "";
