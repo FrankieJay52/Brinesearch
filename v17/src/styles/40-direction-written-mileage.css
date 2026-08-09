@@ -1,0 +1,26 @@
+/* BrineSearch V17.3.17 — signless written directions with right-side distance. */
+.direction-written-row-v17317{
+  display:flex;
+  align-items:flex-start;
+  gap:12px;
+  min-width:0;
+}
+.direction-written-row-v17317 .direction-written-instruction{
+  flex:1 1 auto;
+  min-width:0;
+}
+.direction-written-distance-v17317{
+  flex:0 0 auto;
+  align-self:flex-start;
+  margin-left:auto;
+}
+/* Double-name roads stay inline as "road name / route number". The class is
+   retained only as a semantic hook; no extra badge or label is rendered. */
+.direction-written-double-road-v17317 .direction-written-instruction{
+  font-weight:850;
+}
+
+@media(max-width:620px){
+  .direction-written-row-v17317{gap:9px}
+  .direction-written-distance-v17317{margin-top:0}
+}
