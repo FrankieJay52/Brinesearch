@@ -1,6 +1,7 @@
     /* BrineSearch V17.3.17 — final source/context corrections.
-       Fix the generic From-prefix action parser and one verified malformed Van Aston
-       import. No road, turn, or mileage is invented. */
+       Fix generic From-prefix action parsing, normalize arrival-only rows, and
+       repair one verified malformed Van Aston import. No road, turn, or mileage
+       is invented. */
 
     /* The V17.3.17 leading-context regex used a lookahead capture for the first
        action and then accidentally concatenated that capture with the unchanged
@@ -22,9 +23,38 @@
       return directionLeadingContextBeforeActionFixV17317(value);
     };
 
+    function directionPromoteArrivalNoteV17317(meta, raw) {
+      const main = directionMainCleanV17317(meta?.instruction || "");
+      const notes = Array.isArray(meta?.notes) ? [...meta.notes] : [];
+      const rawText = directionMainCleanV17317(raw);
+
+      // The older road extractor can misread the side word in an arrival-only
+      // sentence ("Pad ... on the right") as a road and produce "Continue on
+      // right". Only promote an arrival note when the saved row itself is an
+      // arrival statement and does not contain a real maneuver before it.
+      if (!/^(?:Continue(?:\s+on\s+(?:left|right))?|Arrive)$/i.test(main)) {
+        return { ...meta, instruction:main, notes };
+      }
+      if (/^(?:Turn|Take|Head|Follow|Continue|Go|Merge|Veer|Bear|Stay|Keep|Slight|Sharp|Travel|Proceed)\b/i.test(rawText)) {
+        return { ...meta, instruction:main, notes };
+      }
+
+      const rawArrival = rawText.match(/\b(pad|well\s*pad|access\s+road|lease[- ]?road(?:\s+entrance)?|entrance)\b[\s\S]{0,90}?\b(?:on\s+)?(?:the\s+)?(left|right)\b/i);
+      if (!rawArrival) return { ...meta, instruction:main, notes };
+
+      const side = rawArrival[2].toLowerCase();
+      const type = rawArrival[1].toLowerCase();
+      const target = /access/.test(type) ? `Access road on ${side}`
+        : /lease/.test(type) ? `Lease road entrance on ${side}`
+        : /entrance/.test(type) ? `Entrance on ${side}`
+        : `Pad on ${side}`;
+      const filtered = notes.filter(note => directionMainCleanV17317(note).toLowerCase() !== target.toLowerCase());
+      return { ...meta, instruction:target, notes:filtered };
+    }
+
     const directionFinalMetaBeforeActionFixV17317 = directionFinalMetaV17317;
     directionFinalMetaV17317 = function directionFinalMetaActionFixV17317(entry, p) {
-      const meta = directionFinalMetaBeforeActionFixV17317(entry, p);
+      let meta = directionFinalMetaBeforeActionFixV17317(entry, p);
       if (meta?.suppress) return meta;
       const raw = directionStepCleanV17316(entry?.instruction || "");
       const takeBearing = raw.match(/^From\s+.+?,\s*take\s+.+?\s+(northwest|northeast|southwest|southeast|north|south|east|west)\.?$/i);
@@ -36,6 +66,7 @@
           meta.instruction = `${directionMainCleanV17317(meta.instruction)} ${bearing}`;
         }
       }
+      meta = directionPromoteArrivalNoteV17317(meta, raw);
       return meta;
     };
     directionWrittenDisplayMetaV17317 = directionFinalMetaV17317;
