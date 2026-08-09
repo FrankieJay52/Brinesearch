@@ -11,11 +11,12 @@ const requireText = (source, token, label) => {
   if (!source.includes(token)) throw new Error(`${label} is missing ${token}`);
 };
 
-const [packageText, partText, styleText, globalSource, app, sw] = await Promise.all([
+const [packageText, partText, styleText, globalSource, aliasSafetySource, app, sw] = await Promise.all([
   read(path.join(projectRoot, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(v17Root, 'src/styles/style-order.json')),
   read(path.join(v17Root, 'src/parts/22j-global-written-directions.js')),
+  read(path.join(v17Root, 'src/parts/22k-global-written-alias-safety.js')),
   read(path.join(v17Root, 'public/app/brinesearch-app.js')),
   read(path.join(v17Root, 'public/sw.js'))
 ]);
@@ -26,9 +27,13 @@ const styles = JSON.parse(styleText);
 if (packageJson.version !== '17.3.15') throw new Error(`Package version is ${packageJson.version}, expected 17.3.15.`);
 if (parts.version !== '17.3.15') throw new Error(`Part manifest version is ${parts.version}, expected 17.3.15.`);
 if (styles.version !== '17.3.15') throw new Error(`Style manifest version is ${styles.version}, expected 17.3.15.`);
+const prototypeIndex = parts.parts.indexOf('22i-lee-written-step-prototype.js');
 const globalIndex = parts.parts.indexOf('22j-global-written-directions.js');
+const aliasSafetyIndex = parts.parts.indexOf('22k-global-written-alias-safety.js');
 if (globalIndex < 0) throw new Error('Global written direction renderer is not assembled.');
-if (globalIndex <= parts.parts.indexOf('22i-lee-written-step-prototype.js')) throw new Error('Global renderer must load after the approved LEE prototype.');
+if (aliasSafetyIndex < 0) throw new Error('Global reverse-order alias safety is not assembled.');
+if (globalIndex <= prototypeIndex) throw new Error('Global renderer must load after the approved LEE prototype.');
+if (aliasSafetyIndex <= globalIndex) throw new Error('Reverse-order alias safety must load after the global renderer.');
 
 for (const token of [
   'directionGlobalWrittenEntriesV17315',
@@ -39,6 +44,11 @@ for (const token of [
   'ROUTE SEQUENCE ONLY',
   'Turn-by-turn directions are not verified for this pad yet.'
 ]) requireText(globalSource, token, 'V17.3.15 global written directions');
+for (const token of [
+  'directionWrittenHasExplicitReverseAliasV17315',
+  'directionWrittenStrongSharedAliasReverseSafeV17315',
+  'Fernwood-Bloomingdale Rd / CR-26'
+]) requireText(aliasSafetySource, token, 'V17.3.15 reverse dual-name safety');
 
 if (globalSource.includes('directionClearSignForRoadV1733(') || globalSource.includes('direction-highway-badge') || globalSource.includes('street-sign-board')) {
   throw new Error('V17.3.15 global written renderer must not create road/highway sign graphics.');
@@ -53,6 +63,7 @@ for (const token of [
   'directionInlineDualRoadV17312',
   'directionGlobalWrittenEntriesV17315',
   'directionWrittenStrongSharedAliasV17315',
+  'directionWrittenHasExplicitReverseAliasV17315',
   'brinesearch_driver_route_reference',
   'fieldWellCardsV17311'
 ]) requireText(app, token, 'Assembled BrineSearch app');
@@ -78,6 +89,7 @@ const context = {
 };
 vm.createContext(context);
 vm.runInContext(globalSource, context, { filename:'22j-global-written-directions.js' });
+vm.runInContext(aliasSafetySource, context, { filename:'22k-global-written-alias-safety.js' });
 
 const lee = [
   'From Colerain, head south on US-250. Continue 1.1 miles.',
@@ -99,6 +111,8 @@ const countyAlias = context.directionWrittenSentenceV17315('Turn right onto CR-2
 if (countyAlias !== 'Turn right on CR-24 / Cow Path Rd for about 0.3 mi.') throw new Error(`County-road/local-name pair was not preserved: ${countyAlias}`);
 const concurrency = context.directionWrittenSentenceV17315('Turn right onto OH-147 / OH-149. Continue 0.2 mile.', { directionRoadIntelligence:[] }, 1);
 if (concurrency !== 'Turn right on OH-147 / OH-149 for 0.2 mi.') throw new Error(`State-route concurrency was not preserved: ${concurrency}`);
+const reverseStateAlias = context.directionWrittenSentenceV17315('Turn right onto Mill St / OH-151. Continue 0.2 mile.', { directionRoadIntelligence:[] }, 1);
+if (reverseStateAlias !== 'Turn right on Mill St / OH-151 for 0.2 mi.') throw new Error(`Reverse state-route/local-name pair was not preserved: ${reverseStateAlias}`);
 
 const strongSharedPad = { directionRoadIntelligence:[{
   step_order:1,
@@ -127,4 +141,4 @@ const explicitWinsPad = { directionRoadIntelligence:[{
 const explicitWins = context.directionWrittenSentenceV17315('Turn left onto Fernwood-Bloomingdale Rd / CR-26. Continue 2.2 miles.', explicitWinsPad, 1);
 if (!explicitWins.includes('Fernwood-Bloomingdale Rd / CR-26') || explicitWins.includes('Lincoln Ave')) throw new Error(`Saved explicit dual name did not win over inferred alias: ${explicitWins}`);
 
-console.log('Verified BrineSearch V17.3.15: every Clear Direction can render as a numbered written sentence with no sign graphics; explicit state/county/township dual names and route concurrencies are preserved; only strongly supported shared aliases may be added; ambiguous catalog-only aliases stay suppressed.');
+console.log('Verified BrineSearch V17.3.15: every Clear Direction can render as a numbered written sentence with no sign graphics; forward and reverse state/county/township dual names and route concurrencies are preserved; only strongly supported shared aliases may be added; ambiguous catalog-only aliases stay suppressed.');
