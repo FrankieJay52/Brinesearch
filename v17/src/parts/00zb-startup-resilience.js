@@ -111,8 +111,20 @@
       return rewriteValues.some(value => !sourceValues.some(saved => Math.abs(saved - value) <= 0.00001));
     }
 
+    function directionFusedRouteMileagePatternV17312() {
+      return /\b((?:(?:I|US|OH|WV|PA|SR)-\d{1,4})|(?:(?:County|Township)\s+(?:Road|Rd|Route|Hwy)\s*[- ]?\s*\d{1,4})|(?:(?:C\.?\s*R\.?|T\.?\s*R\.?|CR|TR|Co\.?\s*Rd\.?)\s*[- ]?\s*\d{1,4}))\.(\d+)(?=\s*\.?\s*(?:miles?|mile|mi)\b)/gi;
+    }
+
+    function directionSourceNeedsMileageRepairV17312(value) {
+      const pattern = directionFusedRouteMileagePatternV17312();
+      return pattern.test(String(value ?? ""));
+    }
+
     function directionSavedMileageSourceV17312(value) {
       return String(value ?? "")
+        // "OH-39.5 miles" / "Township Road 118.1 mile" are a route number
+        // immediately followed by a legacy leading-decimal mileage.
+        .replace(directionFusedRouteMileagePatternV17312(), (_, road, digits) => `${road} for 0.${digits}`)
         // ".5 miles", ".02 mile", ".75.MILES" are legacy decimal-mile forms.
         .replace(/(^|[^0-9])\.(\d+)(?=\s*\.?\s*(?:miles?|mile|mi)\b)/gi, (_, prefix, digits) => `${prefix}0.${digits}`)
         // ".300ft" is punctuation followed by 300 ft, not three-tenths of a foot.
@@ -124,7 +136,8 @@
       const current = String(source ?? "").trim();
       if (!entry || String(entry.s ?? "").trim() !== current) return "";
       const rewrite = String(entry.r ?? "");
-      if (!directionRewriteAddsMileageV17312(current, rewrite)) return rewrite;
+      const sourceNeedsRepair = directionSourceNeedsMileageRepairV17312(current);
+      if (!sourceNeedsRepair && !directionRewriteAddsMileageV17312(current, rewrite)) return rewrite;
 
       const safeSource = directionSavedMileageSourceV17312(current);
       const record = Array.isArray(DB?.pads) ? DB.pads.find(row => String(row?._id || "") === String(id || "")) : null;
