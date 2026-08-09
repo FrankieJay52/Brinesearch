@@ -1,7 +1,7 @@
 {
   "version": "17.3.12",
   "wrapperStart": "(async () => {",
-  "wrapperEnd": "})();",
+  "wrapperEnd": "});",
   "parts": [
     "00-security-boot.js",
     "00-core-data.js",
@@ -40,11 +40,10 @@
     "15a-provenance-cleanup.js",
     "16-router-assistant-shell.js",
     "17-assistant-answers.js",
-    "18-account-theme-startup.js",
-    "18a-startup-error-close.js",
     "19-road-manager-route-prep.js",
     "20-road-manager-sections.js",
-    "21-road-manager-live-fixes.js"
+    "21-road-manager-live-fixes.js",
+    "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
 }
