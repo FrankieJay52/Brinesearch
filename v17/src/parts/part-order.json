@@ -1,5 +1,5 @@
 {
-  "version": "17.3.17",
+  "version": "17.3.18",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -60,6 +60,7 @@
     "22r-direction-final-card-contract.js",
     "22s-direction-range-mileage-final-scrub.js",
     "22t-known-source-cleanups.js",
+    "22u-direction-road-data-enrichment.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
