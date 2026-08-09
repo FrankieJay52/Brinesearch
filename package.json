@@ -6,9 +6,10 @@
   "scripts": {
     "prepare:v17": "node v17/scripts/assemble.mjs",
     "verify:v17": "node v17/scripts/verify.mjs",
+    "verify:direction-data": "node v17/scripts/audit-direction-data.mjs",
     "verify:roads": "node v17/scripts/verify-road-manager.mjs",
     "dev": "npm run prepare:v17 && vite --config v17/vite.config.js",
-    "build": "npm run verify:v17 && npm run verify:roads && npm run verify:product && vite build --config v17/vite.config.js",
+    "build": "npm run verify:v17 && npm run verify:direction-data && npm run verify:roads && npm run verify:product && vite build --config v17/vite.config.js",
     "preview": "vite preview --config v17/vite.config.js",
     "verify:product": "node v17/scripts/verify-v17-3.mjs"
   },
