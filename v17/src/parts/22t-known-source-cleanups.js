@@ -1,8 +1,40 @@
-    /* BrineSearch V17.3.17 — known source cleanup for a verified malformed import.
-       Van Aston's saved source was split into five parser fragments. The 0.65-mile
-       distance belongs to Brushy Run after the left turn, while CR-17 / Fork Ridge
-       Rd is the preceding double-name road. Keep those facts in their correct
-       driver steps and move schedule/unsigned-road context into notes. */
+    /* BrineSearch V17.3.17 — final source/context corrections.
+       Fix the generic From-prefix action parser and one verified malformed Van Aston
+       import. No road, turn, or mileage is invented. */
+
+    /* The V17.3.17 leading-context regex used a lookahead capture for the first
+       action and then accidentally concatenated that capture with the unchanged
+       remainder. "From Cadiz, take US-250 south" became "taketake US-250 south"
+       and fell back to Continue. Keep the action exactly once. */
+    const directionLeadingContextBeforeActionFixV17317 = directionLeadingContextFinalV17317;
+    directionLeadingContextFinalV17317 = function directionLeadingContextActionFixV17317(value) {
+      const text = directionMainCleanV17317(value);
+      if (!text) return directionLeadingContextBeforeActionFixV17317(value);
+      const action = "(?:turn|take|head|go|follow|continue|merge|veer|bear|stay|keep|slight|sharp|travel|proceed)";
+      const match = text.match(new RegExp(`^From\\s+(.+?)(?:,\\s*|\\s+)(?=(${action})\\b)([\\s\\S]+)$`, "i"));
+      if (match) {
+        return {
+          work:directionMainCleanV17317(match[3]),
+          notes:[`Start: ${directionMainCleanV17317(match[1])}`],
+          contextOnly:false
+        };
+      }
+      return directionLeadingContextBeforeActionFixV17317(value);
+    };
+
+    const directionFinalMetaBeforeActionFixV17317 = directionFinalMetaV17317;
+    directionFinalMetaV17317 = function directionFinalMetaActionFixV17317(entry, p) {
+      const meta = directionFinalMetaBeforeActionFixV17317(entry, p);
+      if (meta?.suppress) return meta;
+      const raw = directionStepCleanV17316(entry?.instruction || "");
+      const takeBearing = raw.match(/^From\s+.+?,\s*take\s+.+?\s+(northwest|northeast|southwest|southeast|north|south|east|west)\.?$/i);
+      if (takeBearing && /^Take\b/i.test(String(meta?.instruction || "")) && !new RegExp(`\\b${takeBearing[1]}$`, "i").test(meta.instruction)) {
+        meta.instruction = `${directionMainCleanV17317(meta.instruction)} ${directionTitleCaseBearingV17317(takeBearing[1])}`;
+      }
+      return meta;
+    };
+    directionWrittenDisplayMetaV17317 = directionFinalMetaV17317;
+    window.directionFinalMetaV17317 = directionFinalMetaV17317;
 
     const VAN_ASTON_CLEAR_V17317 = `Road sequence reference:\nWV-250 → CR-17 / Fork Ridge Rd → Brushy Run Rd → Access Road\n\nStep-by-step directions:\n1. Head south on WV-250. Continue 14.17 miles.\n2. Turn right on CR-17 / Fork Ridge Rd. Continue 3.80 miles.\n3. Turn left on Brushy Run Rd. Continue approximately 0.65 miles.\n4. Take the well pad access road.`;
 
