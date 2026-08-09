@@ -1,7 +1,9 @@
-    /* BrineSearch V17.3.12 — startup resilience.
+    /* BrineSearch V17.3.12 — startup + saved-mileage resilience.
        Live Supabase and IndexedDB improve the directory, but neither is allowed
-       to hold the driver UI on a loading screen. These later declarations are
-       intentionally hoisted over the legacy implementations in 00-core-data.js. */
+       to hold the driver UI on a loading screen. Packaged direction rewrites are
+       also rejected when they introduce a mileage value that is not present in
+       the saved source text. These later declarations are intentionally hoisted
+       over the legacy implementations in 00-core-data.js. */
 
     async function fetchLivePads() {
       const load = async () => {
@@ -75,4 +77,60 @@
       } finally {
         clearTimeout(timer);
       }
+    }
+
+    function directionMileageTokensV17312(value) {
+      const text = String(value ?? "");
+      const regex = /(\d+\s*\/\s*\d+|[½¼¾]|\d+\.\d+|\.\d+|\d+)\s*\.?\s*(miles?|mile|mi\b|feet|foot|ft\b)/gi;
+      const values = [];
+      let match;
+      while ((match = regex.exec(text))) {
+        const raw = String(match[1] || "").replace(/\s+/g, "");
+        const unit = String(match[2] || "").toLowerCase();
+        let number = null;
+        if (raw === "½") number = 0.5;
+        else if (raw === "¼") number = 0.25;
+        else if (raw === "¾") number = 0.75;
+        else if (/^\d+\/\d+$/.test(raw)) {
+          const [a,b] = raw.split("/").map(Number);
+          if (b) number = a / b;
+        } else if (raw.startsWith(".") && /^(?:feet|foot|ft)/i.test(unit)) {
+          // Legacy workbook punctuation sometimes produced ".300ft" for 300 ft.
+          number = Number(raw.slice(1));
+        } else number = Number(raw);
+        if (!Number.isFinite(number)) continue;
+        values.push(/^(?:feet|foot|ft)/i.test(unit) ? number / 5280 : number);
+      }
+      return values;
+    }
+
+    function directionRewriteAddsMileageV17312(source, rewrite) {
+      const sourceValues = directionMileageTokensV17312(source);
+      const rewriteValues = directionMileageTokensV17312(rewrite);
+      if (!rewriteValues.length) return false;
+      return rewriteValues.some(value => !sourceValues.some(saved => Math.abs(saved - value) <= 0.00001));
+    }
+
+    function directionSavedMileageSourceV17312(value) {
+      return String(value ?? "")
+        // ".5 miles", ".02 mile", ".75.MILES" are legacy decimal-mile forms.
+        .replace(/(^|[^0-9])\.(\d+)(?=\s*\.?\s*(?:miles?|mile|mi)\b)/gi, (_, prefix, digits) => `${prefix}0.${digits}`)
+        // ".300ft" is punctuation followed by 300 ft, not three-tenths of a foot.
+        .replace(/(^|[^0-9])\.(\d+)(?=\s*(?:feet|foot|ft)\b)/gi, (_, prefix, digits) => `${prefix}${digits}`);
+    }
+
+    function verifiedDirectionFor(id, source) {
+      const entry = VERIFIED_DIRECTION_REWRITES[String(id || "")];
+      const current = String(source ?? "").trim();
+      if (!entry || String(entry.s ?? "").trim() !== current) return "";
+      const rewrite = String(entry.r ?? "");
+      if (!directionRewriteAddsMileageV17312(current, rewrite)) return rewrite;
+
+      const safeSource = directionSavedMileageSourceV17312(current);
+      const record = Array.isArray(DB?.pads) ? DB.pads.find(row => String(row?._id || "") === String(id || "")) : null;
+      const regenerated = smartRewriteDirections(safeSource, record?.Structured_Road_Sequence || "");
+      if (regenerated && !directionRewriteAddsMileageV17312(safeSource, regenerated)) return regenerated;
+
+      console.warn("Rejected direction rewrite because saved mileage could not be preserved", id);
+      return "";
     }
