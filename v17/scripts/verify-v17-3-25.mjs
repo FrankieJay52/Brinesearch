@@ -27,7 +27,7 @@ const directionIndex = parts.parts.indexOf('22m-direction-source-priority-and-co
 if (mapperIndex < 0 || polishIndex <= mapperIndex || backtraceIndex <= polishIndex || refineIndex <= backtraceIndex || directionIndex <= refineIndex) throw new Error('V17.3.25 backtrace load order is incorrect.');
 if (!styles.styles.includes('42-road-manager-backtrace-route.css')) throw new Error('V17.3.25 backtrace CSS is missing.');
 if (!sw.includes('brinesearch-v17-3-25-backtrace-route-highlight')) throw new Error('V17.3.25 cache marker is missing.');
-for (const token of ['Route Mapper', 'OpenStreetMap', 'brinesearch_route_reviews']) if (!mapper.includes(token)) throw new Error(`V17.3.24 Route Mapper dependency missing ${token}.`);
+for (const token of ['Route Mapper', 'routeMapperOsmUrlV17324', 'brinesearch_route_reviews']) if (!mapper.includes(token)) throw new Error(`V17.3.24 Route Mapper dependency missing ${token}.`);
 for (const token of ['routeBacktraceRoadTokensV17325', 'routeBacktraceBuildTraceV17325', 'Highlight route backward', 'overpass-api.de', 'not drawn', 'route-backtrace-overlay-v17325']) if (!backtrace.includes(token)) throw new Error(`V17.3.25 backtrace source missing ${token}.`);
 for (const token of ['routeBacktraceTokenPartsV17325', 'Structured_Road_Sequence', 'routeBacktraceOverpassDualPatternV17325', 'routeBacktraceOsmDualMatchScoreV17325']) if (!refinements.includes(token)) throw new Error(`V17.3.25 backtrace refinement missing ${token}.`);
 for (const token of ['route-backtrace-road-v17325', 'route-backtrace-chip.missing', 'route-backtrace-pad-v17325']) if (!backtraceCss.includes(token)) throw new Error(`V17.3.25 backtrace CSS missing ${token}.`);
