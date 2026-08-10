@@ -1,5 +1,5 @@
 {
-  "version": "17.3.23",
+  "version": "17.3.24",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -34,7 +34,8 @@
     "37-verification-cleanup.css",
     "38-direction-road-intelligence.css",
     "39-well-list-polish.css",
-    "40-direction-written-mileage.css"
+    "40-direction-written-mileage.css",
+    "41-road-manager-route-mapper.css"
   ],
   "assembledSha256": ""
 }
