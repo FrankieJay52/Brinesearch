@@ -7,15 +7,16 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [pkgText, partsText, stylesText, vite, sw, audit, migration, whitespaceFix] = await Promise.all([
+const [pkgText, partsText, stylesText, vite, sw, audit, migration, whitespaceFix, parserWording] = await Promise.all([
   read(path.join(projectRoot, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(v17Root, 'src/styles/style-order.json')),
   read(path.join(v17Root, 'vite.config.js')),
   read(path.join(v17Root, 'src/offline/sw.js')),
   read(path.join(v17Root, 'scripts/audit-authoritative-driver-directions-issue81.mjs')),
-  read(path.join(projectRoot, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql')),
-  read(path.join(projectRoot, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql'))
+  read(path.join(projectRoot, 'supabase/migrations/20260810233900_authoritative_driver_directions_issue_81.sql')),
+  read(path.join(projectRoot, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql')),
+  read(path.join(projectRoot, 'supabase/migrations/20260810234337_authoritative_driver_directions_issue_81_parser_wording.sql'))
 ]);
 const pkg = JSON.parse(pkgText), parts = JSON.parse(partsText), styles = JSON.parse(stylesText);
 if (pkg.version !== '17.3.30' || parts.version !== '17.3.30' || styles.version !== '17.3.30') {
@@ -48,6 +49,9 @@ for (const token of ['brinesearch_driver_directions_public','brinesearch_driver_
 for (const token of ['brinesearch_driver_safe_clear_v17330', "'[ \\t]{2,}'", 'public line breaks lost']) {
   if (!whitespaceFix.includes(token)) throw new Error(`V17.3.30 whitespace follow-up missing ${token}.`);
 }
+for (const token of ['From westbound I-70, take Exit 198.', 'US-40 / National Rd eastbound', "display_road is distinct from 'US-40 / National Rd'"]) {
+  if (!parserWording.includes(token)) throw new Error(`V17.3.30 parser-wording follow-up missing ${token}.`);
+}
 
 // #81 deliberately does not modify the V17.3.28 structural map implementation.
 for (const mapPart of [
@@ -59,4 +63,4 @@ for (const mapPart of [
   if (!parts.parts.includes(mapPart)) throw new Error(`#81 unexpectedly dropped map dependency ${mapPart}.`);
 }
 
-console.log('Verified BrineSearch V17.3.30: live driver directions use one narrow sanitized Supabase contract, stale packaged cards are not allowed to override live truth, pad-specific direction facts were moved out of assembled frontend renderers, transient landmark/contact identifiers are removed from driver output, production line breaks are preserved, and #69 map code remains untouched.');
+console.log('Verified BrineSearch V17.3.30: live driver directions use one narrow sanitized Supabase contract, stale packaged cards are not allowed to override live truth, pad-specific direction facts were moved out of assembled frontend renderers, transient landmark/contact identifiers are removed from driver output, production line breaks and route aliases are preserved, and #69 map code remains untouched.');
