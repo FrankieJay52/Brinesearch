@@ -7,14 +7,15 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [pkgText, partsText, stylesText, vite, sw, audit, migration] = await Promise.all([
+const [pkgText, partsText, stylesText, vite, sw, audit, migration, whitespaceFix] = await Promise.all([
   read(path.join(projectRoot, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(v17Root, 'src/styles/style-order.json')),
   read(path.join(v17Root, 'vite.config.js')),
   read(path.join(v17Root, 'src/offline/sw.js')),
   read(path.join(v17Root, 'scripts/audit-authoritative-driver-directions-issue81.mjs')),
-  read(path.join(projectRoot, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql'))
+  read(path.join(projectRoot, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql')),
+  read(path.join(projectRoot, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql'))
 ]);
 const pkg = JSON.parse(pkgText), parts = JSON.parse(partsText), styles = JSON.parse(stylesText);
 if (pkg.version !== '17.3.30' || parts.version !== '17.3.30' || styles.version !== '17.3.30') {
@@ -38,11 +39,14 @@ if (!(genericT < genericX && genericX < genericZ && genericZ < safety)) throw ne
 for (const obsolete of ['00a-live-clear-directions-precedence.js','22i-lee-written-step-prototype.js','22t-known-source-cleanups.js','22x-direction-final-integrity-v17321.js','22z-direction-exit-road-truth-v17323.js']) {
   if (parts.parts.includes(obsolete)) throw new Error(`V17.3.30 still assembles obsolete direction layer ${obsolete}.`);
 }
-for (const token of ['liveContract','padSpecificFrontendRouteFacts','legacyHospitalFallbacksExercised']) {
+for (const token of ['liveContract','padSpecificFrontendRouteFacts','legacyHospitalFallbacksExercised','productionMigrationChain']) {
   if (!audit.includes(token)) throw new Error(`V17.3.30 #81 audit missing ${token}.`);
 }
 for (const token of ['brinesearch_driver_directions_public','brinesearch_driver_safe_clear_v17330','ascent--albert','expand--timmy-minch','expand--van-aston']) {
   if (!migration.includes(token)) throw new Error(`V17.3.30 migration missing ${token}.`);
+}
+for (const token of ['brinesearch_driver_safe_clear_v17330', "'[ \\t]{2,}'", 'public line breaks lost']) {
+  if (!whitespaceFix.includes(token)) throw new Error(`V17.3.30 whitespace follow-up missing ${token}.`);
 }
 
 // #81 deliberately does not modify the V17.3.28 structural map implementation.
@@ -55,4 +59,4 @@ for (const mapPart of [
   if (!parts.parts.includes(mapPart)) throw new Error(`#81 unexpectedly dropped map dependency ${mapPart}.`);
 }
 
-console.log('Verified BrineSearch V17.3.30: live driver directions use one narrow sanitized Supabase contract, stale packaged cards are not allowed to override live truth, pad-specific direction facts were moved out of assembled frontend renderers, transient landmark/contact identifiers are removed from driver output, and #69 map code remains untouched.');
+console.log('Verified BrineSearch V17.3.30: live driver directions use one narrow sanitized Supabase contract, stale packaged cards are not allowed to override live truth, pad-specific direction facts were moved out of assembled frontend renderers, transient landmark/contact identifiers are removed from driver output, production line breaks are preserved, and #69 map code remains untouched.');
