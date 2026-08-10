@@ -9,14 +9,16 @@ const migrationDir = path.join(projectRoot, 'supabase/migrations');
 const partsDir = path.join(projectRoot, 'v17/src/parts');
 
 const stage1Path = path.join(migrationDir, '20260810213933_editor_revision_boundary_issue_74.sql');
+const stage1FixPath = path.join(migrationDir, '20260810214239_editor_revision_boundary_issue_74_runtime_fix.sql');
 const stage2Path = path.join(migrationDir, '20260810215000_editor_revision_lockdown_issue_74.sql');
 const bridgePath = path.join(partsDir, '11aa-editor-revision-security-issue74.js');
 const orderPath = path.join(partsDir, 'part-order.json');
 const packagePath = path.join(projectRoot, 'package.json');
 const legacyEditorPath = path.join(partsDir, '11-pad-page.js');
 
-const [stage1, stage2, bridge, orderRaw, packageRaw, legacyEditor] = await Promise.all([
+const [stage1, stage1Fix, stage2, bridge, orderRaw, packageRaw, legacyEditor] = await Promise.all([
   fs.readFile(stage1Path, 'utf8'),
+  fs.readFile(stage1FixPath, 'utf8'),
   fs.readFile(stage2Path, 'utf8'),
   fs.readFile(bridgePath, 'utf8'),
   fs.readFile(orderPath, 'utf8'),
@@ -25,6 +27,12 @@ const [stage1, stage2, bridge, orderRaw, packageRaw, legacyEditor] = await Promi
 ]);
 const order = JSON.parse(orderRaw);
 const pkg = JSON.parse(packageRaw);
+
+// Preserve the exact production migration chain. Stage 1 exposed a runtime-only
+// NULLIF qualification mistake during rollback testing; the immediately
+// following production migration replaces the function before client rollout.
+assert.ok(stage1.includes('pg_catalog.nullif'), 'Historical stage-1 runtime witness changed unexpectedly.');
+assert.ok(!stage1Fix.includes('pg_catalog.nullif'), 'The production runtime correction must not schema-qualify NULLIF.');
 
 for (const token of [
   'create or replace function public.editor_update_pad',
@@ -40,10 +48,10 @@ for (const token of [
   'return pg_catalog.to_jsonb(v_row)',
   'grant execute on function public.editor_update_pad'
 ]) {
-  assert.ok(stage1.toLowerCase().includes(token.toLowerCase()), `Issue #74 stage 1 missing ${token}.`);
+  assert.ok(stage1Fix.toLowerCase().includes(token.toLowerCase()), `Issue #74 corrected RPC missing ${token}.`);
 }
 
-const allowedBlock = stage1.match(/v_allowed_keys constant text\[\] := array\[([\s\S]*?)\]::text\[];/)?.[1] || '';
+const allowedBlock = stage1Fix.match(/v_allowed_keys constant text\[\] := array\[([\s\S]*?)\]::text\[];/)?.[1] || '';
 for (const key of [
   'pad_name','company','state','county','township','address','latitude','longitude',
   'well_name','api','property_number','well_entries','structured_road_sequence',
@@ -59,9 +67,11 @@ for (const key of [
   assert.ok(!allowedBlock.includes(`'${key}'`), `Unsafe editor allow-list includes protected field ${key}.`);
 }
 assert.ok(!allowedBlock.includes("'directions_clear_method'"), 'Client must not control directions_clear_method provenance.');
-assert.ok(stage1.includes("'BrineSearch smart rewrite reviewed by editor'"), 'Server must derive clearer-direction provenance.');
+assert.ok(stage1Fix.includes("'BrineSearch smart rewrite reviewed by editor'"), 'Server must derive clearer-direction provenance.');
 
-assert.ok(!/revoke\s+insert\s*,\s*update\s+on\s+table\s+public\.pads/i.test(stage1), 'Stage 1 must not revoke the legacy browser path before deployment.');
+for (const preDeploy of [stage1, stage1Fix]) {
+  assert.ok(!/revoke\s+insert\s*,\s*update\s+on\s+table\s+public\.pads/i.test(preDeploy), 'Pre-deploy migrations must not revoke the legacy browser path.');
+}
 for (const token of [
   'revoke insert, update on table public.pads from authenticated',
   'drop policy if exists "Editors can insert pads" on public.pads',
@@ -115,6 +125,7 @@ console.log(JSON.stringify({
   authorization: 'approved editor required server-side',
   fieldBoundary: 'explicit allow-list; hidden/revision/route-snapshot fields rejected',
   concurrency: 'updated_at optimistic revision under row lock',
-  deployment: 'stage 1 RPC before browser deploy; stage 2 raw table-write lockdown after live verification'
+  productionRPC: 'stage-1 function live-tested after immediate runtime correction',
+  deployment: 'RPC migrations before browser deploy; raw table-write lockdown after live verification'
 }, null, 2));
 console.log('GitHub #74 editor revision boundary audit passed.');
