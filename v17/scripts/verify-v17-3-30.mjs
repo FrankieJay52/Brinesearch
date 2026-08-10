@@ -38,7 +38,7 @@ if (!(genericT < genericX && genericX < genericZ && genericZ < safety)) throw ne
 for (const obsolete of ['00a-live-clear-directions-precedence.js','22i-lee-written-step-prototype.js','22t-known-source-cleanups.js','22x-direction-final-integrity-v17321.js','22z-direction-exit-road-truth-v17323.js']) {
   if (parts.parts.includes(obsolete)) throw new Error(`V17.3.30 still assembles obsolete direction layer ${obsolete}.`);
 }
-for (const token of ['public driver-direction contract','padSpecificFrontendRouteFacts','legacyHospitalFallbacksExercised']) {
+for (const token of ['liveContract','padSpecificFrontendRouteFacts','legacyHospitalFallbacksExercised']) {
   if (!audit.includes(token)) throw new Error(`V17.3.30 #81 audit missing ${token}.`);
 }
 for (const token of ['brinesearch_driver_directions_public','brinesearch_driver_safe_clear_v17330','ascent--albert','expand--timmy-minch','expand--van-aston']) {
