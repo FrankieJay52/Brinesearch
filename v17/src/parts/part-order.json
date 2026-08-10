@@ -1,5 +1,5 @@
 {
-  "version": "17.3.23",
+  "version": "17.3.24",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -53,6 +53,8 @@
     "19-road-manager-route-prep.js",
     "20-road-manager-sections.js",
     "21-road-manager-live-fixes.js",
+    "21a-road-manager-route-mapper-v17324.js",
+    "21b-road-manager-route-mapper-input-polish-v17324.js",
     "22m-direction-source-priority-and-coalescer.js",
     "22n-direction-context-coalescing.js",
     "22o-direction-mileage-badges-double-name.js",
