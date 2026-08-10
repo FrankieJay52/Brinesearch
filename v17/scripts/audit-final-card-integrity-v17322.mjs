@@ -24,6 +24,19 @@ for(const file of manifest.files||[]) Object.assign(rewrites,JSON.parse(await re
 if(Object.keys(rewrites).length<1000) throw new Error(`Expected full packaged direction set; found ${Object.keys(rewrites).length}.`);
 
 const clean=v=>String(v??'').replace(/\r\n?/g,'\n').trim();
+function sourceDistanceFacts(value){
+  const text=String(value||''),out=[],re=/(^|[^0-9])((?:\.\d+|\d+(?:\.\d+)?))\s*(miles?|mile|mi|feet|foot|ft|yards?|yard|yd)\b/ig;let m;
+  while((m=re.exec(text))){const prefix=String(m[1]||'').length,num=String(m[2]||''),unitRaw=String(m[3]||'').toLowerCase(),unit=/^(?:mile|miles|mi)$/.test(unitRaw)?'mi':/^(?:feet|foot|ft)$/.test(unitRaw)?'ft':'yd',start=(m.index||0)+prefix;out.push({number:num,unit,start,end:start+num.length});}
+  return out;
+}
+function repairLeadingDecimals(sourceValue,clearValue){
+  const source=String(sourceValue||'');let clear=String(clearValue||'');
+  if(!source||!clear||!/(?:^|[^0-9])\.\d+\s*(?:miles?|mile|mi|feet|foot|ft|yards?|yard|yd)\b/i.test(source))return clear;
+  const s=sourceDistanceFacts(source),c=sourceDistanceFacts(clear),changes=[];
+  for(let i=0;i<Math.min(s.length,c.length);i+=1){if(!/^\.\d+$/.test(s[i].number)||s[i].unit!==c[i].unit)continue;const digits=s[i].number.slice(1);if(String(Number(c[i].number))!==String(Number(digits)))continue;changes.push({start:c[i].start,end:c[i].end,replacement:`0${s[i].number}`});}
+  for(const x of changes.sort((a,b)=>b.start-a.start))clear=`${clear.slice(0,x.start)}${x.replacement}${clear.slice(x.end)}`;
+  return clear;
+}
 function parseEntries(clearText){
   const text=clean(clearText),marker=/Step-by-step directions\s*:/i.exec(text),body=marker?text.slice(marker.index+marker[0].length):text,out=[];
   const re=/(?:^|\n)\s*(\d+)\.\s*([\s\S]*?)(?=(?:\n\s*\d+\.\s)|$)/g; let m;
@@ -59,32 +72,38 @@ const context={
   directionWrittenSentenceV17315:v=>String(v||'').replace(/\s{2,}/g,' ').trim(),
   directionGlobalWrittenEntriesV17315:v=>v,directionGlobalWrittenPrimaryHtmlV17315:()=>'',
   directionInlineDualRoadV17312:simpleDualRoad,directionClearStepViewV1733:simpleStepView,directionSplitDriverStepV17312:simpleLegacySplit,
-  directionNormalizeTargetRoadV17310:(v)=>canonicalRoute(v)
+  directionNormalizeTargetRoadV17310:(v)=>canonicalRoute(v),directionRepairLeadingDecimalMileageV17322:repairLeadingDecimals
 };
 vm.createContext(context);sources.forEach((source,i)=>vm.runInContext(source,context,{filename:partNames[i]}));
 if(typeof context.directionCompactFinalCardsV17322!=='function')throw new Error('V17.3.22 global card compactor unavailable.');
 
-const malformedRoad=/\bon\s+(?:CR|TR|SR|County\s+Road|Township\s+Road|State\s+Route|North\s+East|North\s+West|South\s+East|South\s+West|Left\s+Nearest|Right\s+Nearest)\s*$/i;
+const malformedRoad=/\bon\s+(?:CR|TR|SR|Route|Road|County\s+Road|Township\s+Road|State\s+Route|North\s+East|North\s+West|South\s+East|South\s+West|Left\s+Nearest|Right\s+Nearest)\s*$/i;
 const generic=/^(?:Continue|Continue\s+on|Head\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)|Continue\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)|Turn\s+(?:left|right)|Turn|Merge|Take\s+route)$/i;
-let padsAudited=0,cardsAudited=0,genericCards=0,malformedCards=0,orphanMileage=0,hospitalLeaks=0;const failures=[];
+const gapNote='Road name not present in saved directions';
+let padsAudited=0,cardsAudited=0,unsafeGenericCards=0,sourceLimitedCards=0,malformedCards=0,orphanMileage=0,hospitalLeaks=0,leadingDecimalRepairs=0;const failures=[];
 for(const [id,record] of Object.entries(rewrites)){
-  const raw=parseEntries(record?.r);if(!raw.length)continue;padsAudited++;
+  const repaired=repairLeadingDecimals(record?.s,record?.r);if(repaired!==String(record?.r||''))leadingDecimalRepairs++;
+  const raw=parseEntries(repaired);if(!raw.length)continue;padsAudited++;
   const coalesced=context.directionCoalesceEntriesV17316(raw);
   const pad={_id:id,legacy_id:id,state:'',directionRoadIntelligence:[],officialRoadAliasesV17318:[],measuredRoadSegmentsV17318:[]};
   let cards;try{cards=context.directionFinalCardsFromEntriesV17317(coalesced,pad)||[];}catch(error){failures.push(`${id}: render error: ${error.message}`);continue;}
   cardsAudited+=cards.length;
   for(const card of cards){
-    const main=String(card?.instruction||'').replace(/\s{2,}/g,' ').trim();
-    if(generic.test(main)){genericCards++;if(failures.length<80)failures.push(`${id}: roadless card: ${main}${card?.distance?` [${card.distance}]`:''}`);}
+    const main=String(card?.instruction||'').replace(/\s{2,}/g,' ').trim(),notes=(card?.notes||[]).map(String),sourceLimited=notes.some(n=>n===gapNote);
+    if(generic.test(main)){if(sourceLimited)sourceLimitedCards++;else{unsafeGenericCards++;if(failures.length<80)failures.push(`${id}: unresolved roadless card: ${main}${card?.distance?` [${card.distance}]`:''}`);}}
     if(malformedRoad.test(main)){malformedCards++;if(failures.length<80)failures.push(`${id}: malformed road: ${main}`);}
-    if(card?.distance&&generic.test(main)){orphanMileage++;}
-    if(/Nearest\s+Hospital|Medical\s+Park/i.test(main)||((card?.notes||[]).some(n=>/Nearest\s+Hospital/i.test(String(n))))){hospitalLeaks++;if(failures.length<80)failures.push(`${id}: hospital leak: ${main}`);}
+    if(card?.distance&&generic.test(main)&&!sourceLimited){orphanMileage++;}
+    if(/Nearest\s+Hospital|Medical\s+Park/i.test(main)||notes.some(n=>/Nearest\s+Hospital/i.test(n))){hospitalLeaks++;if(failures.length<80)failures.push(`${id}: hospital leak: ${main}`);}
   }
 }
-const atmosRaw=parseEntries(rewrites['ascent--atmos']?.r),atmosCoalesced=context.directionCoalesceEntriesV17316(atmosRaw),atmosCards=context.directionFinalCardsFromEntriesV17317(atmosCoalesced,{_id:'ascent--atmos',legacy_id:'ascent--atmos',state:'Ohio',directionRoadIntelligence:[],officialRoadAliasesV17318:[],measuredRoadSegmentsV17318:[]});
+const atmosRecord=rewrites['ascent--atmos'];
+const atmosClear=repairLeadingDecimals(atmosRecord?.s,atmosRecord?.r),atmosRaw=parseEntries(atmosClear),atmosCoalesced=context.directionCoalesceEntriesV17316(atmosRaw),atmosCards=context.directionFinalCardsFromEntriesV17317(atmosCoalesced,{_id:'ascent--atmos',legacy_id:'ascent--atmos',state:'Ohio',directionRoadIntelligence:[],officialRoadAliasesV17318:[],measuredRoadSegmentsV17318:[]});
 const atmosMain=atmosCards.map(c=>`${c.instruction}${c.distance?` — ${c.distance}`:''}`);
-if(atmosCards.some(c=>generic.test(String(c.instruction||''))||malformedRoad.test(String(c.instruction||''))))failures.unshift(`ascent--atmos regression: ${JSON.stringify(atmosMain)}`);
-console.log(JSON.stringify({version:'17.3.22',padsAudited,cardsAudited,genericCards,malformedCards,orphanMileage,hospitalLeaks,atmos:atmosMain,examples:failures.slice(0,80)},null,2));
+if(atmosCards.some(c=>generic.test(String(c.instruction||''))&&!((c.notes||[]).includes(gapNote)))||atmosCards.some(c=>malformedRoad.test(String(c.instruction||''))))failures.unshift(`ascent--atmos regression: ${JSON.stringify(atmosMain)}`);
+if(!atmosMain.some(v=>/Fair Road.*0\.5 mi/i.test(v)))failures.unshift(`ascent--atmos saved .5 mile was not restored: ${JSON.stringify(atmosMain)}`);
+if(atmosCards.filter(c=>/^Arrive$/i.test(String(c.instruction||''))).length)failures.unshift(`ascent--atmos duplicate Arrive card remains: ${JSON.stringify(atmosMain)}`);
+console.log(JSON.stringify({version:'17.3.22',padsAudited,cardsAudited,unsafeGenericCards,sourceLimitedCards,malformedCards,orphanMileage,hospitalLeaks,leadingDecimalRepairs,atmos:atmosMain,examples:failures.slice(0,80)},null,2));
 if(padsAudited<1000)throw new Error(`Only ${padsAudited} pads audited.`);
-if(genericCards||malformedCards||orphanMileage||hospitalLeaks||failures.length)throw new Error(`Final driver-card integrity failed: generic=${genericCards}, malformed=${malformedCards}, orphanMileage=${orphanMileage}, hospitalLeaks=${hospitalLeaks}. Examples: ${failures.slice(0,20).join(' | ')}`);
+if(leadingDecimalRepairs<1)throw new Error('No saved leading-decimal mileage repair was exercised.');
+if(unsafeGenericCards||malformedCards||orphanMileage||hospitalLeaks||failures.length)throw new Error(`Final driver-card integrity failed: unresolved=${unsafeGenericCards}, malformed=${malformedCards}, orphanMileage=${orphanMileage}, hospitalLeaks=${hospitalLeaks}. Examples: ${failures.slice(0,20).join(' | ')}`);
 console.log('V17.3.22 all-pad final driver-card integrity audit passed.');
