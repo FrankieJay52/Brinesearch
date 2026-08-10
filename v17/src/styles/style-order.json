@@ -1,5 +1,5 @@
 {
-  "version": "17.3.27",
+  "version": "17.3.28",
   "styles": [
     "00-base-foundation.css",
     "01-well-property.css",
@@ -37,7 +37,8 @@
     "40-direction-written-mileage.css",
     "41-road-manager-route-mapper.css",
     "42-road-manager-backtrace-route.css",
-    "43-road-manager-interactive-route-map.css"
+    "43-road-manager-interactive-route-map.css",
+    "44-road-manager-step-snap-route-editor.css"
   ],
   "assembledSha256": ""
 }
