@@ -1,7 +1,7 @@
 {
   "name": "brinesearch",
   "private": true,
-  "version": "17.3.24",
+  "version": "17.3.25",
   "type": "module",
   "scripts": {
     "prepare:v17": "node v17/scripts/assemble.mjs",
@@ -16,13 +16,14 @@
     "verify:final-card-integrity": "node v17/scripts/audit-final-card-integrity-v17322.mjs",
     "verify:exit-road-truth": "node v17/scripts/audit-exit-road-truth-v17323.mjs",
     "verify:route-mapper": "node v17/scripts/audit-route-mapper-v17324.mjs",
+    "verify:route-backtrace": "node v17/scripts/audit-route-backtrace-v17325.mjs",
     "verify:expand": "node v17/scripts/audit-expand-company.mjs",
     "verify:expand-live": "node v17/scripts/audit-expand-live.mjs",
     "verify:roads": "node v17/scripts/verify-road-manager.mjs",
     "dev": "npm run prepare:v17 && vite --config v17/vite.config.js",
-    "build": "npm run verify:v17 && npm run verify:direction-data && npm run verify:written-directions && npm run verify:concise-cards && npm run verify:road-cards && npm run verify:direction-gaps && npm run verify:road-truth && npm run verify:road-identity && npm run verify:final-card-integrity && npm run verify:exit-road-truth && npm run verify:route-mapper && npm run verify:roads && npm run verify:product && npm run verify:expand && vite build --config v17/vite.config.js",
+    "build": "npm run verify:v17 && npm run verify:direction-data && npm run verify:written-directions && npm run verify:concise-cards && npm run verify:road-cards && npm run verify:direction-gaps && npm run verify:road-truth && npm run verify:road-identity && npm run verify:final-card-integrity && npm run verify:exit-road-truth && npm run verify:route-mapper && npm run verify:route-backtrace && npm run verify:roads && npm run verify:product && npm run verify:expand && vite build --config v17/vite.config.js",
     "preview": "vite preview --config v17/vite.config.js",
-    "verify:product": "node v17/scripts/verify-v17-3-24.mjs"
+    "verify:product": "node v17/scripts/verify-v17-3-25.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.0"
