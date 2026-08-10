@@ -36,7 +36,7 @@ begin
 
   v := pg_catalog.regexp_replace(v, '[[:space:]]{2,}', ' ', 'g');
   v := pg_catalog.regexp_replace(v, '[[:space:]]+([,.;])', '\\1', 'g');
-  return pg_catalog.nullif(pg_catalog.btrim(v), '');
+  return nullif(pg_catalog.btrim(v), '');
 end;
 $$;
 
