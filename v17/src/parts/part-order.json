@@ -1,5 +1,5 @@
 {
-  "version": "17.3.28",
+  "version": "17.3.30",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -8,7 +8,7 @@
     "00zy-direction-decimal-truth-v17322.js",
     "00zz-expand-company-cleanup.js",
     "00zb-startup-resilience.js",
-    "00a-live-clear-directions-precedence.js",
+    "00a-authoritative-driver-directions-v17330.js",
     "01-add-pad-wizard.js",
     "01a-public-submission-security.js",
     "02-pad-location-branding.js",
@@ -39,7 +39,6 @@
     "22f-direction-road-rebuild.js",
     "22g-inline-dual-road-names.js",
     "22h-direction-fragment-reassembly.js",
-    "22i-lee-written-step-prototype.js",
     "22j-global-written-directions.js",
     "22k-global-written-alias-safety.js",
     "22l-global-written-start-context-fix.js",
@@ -70,13 +69,14 @@
     "22q-direction-road-pair-safety.js",
     "22r-direction-final-card-contract.js",
     "22s-direction-range-mileage-final-scrub.js",
-    "22t-known-source-cleanups.js",
+    "22t-generic-source-cleanups-v17330.js",
     "22u-direction-road-data-enrichment.js",
     "22v-direction-road-turn-mileage-truth.js",
     "22w-direction-unspecified-turn-support.js",
-    "22x-direction-final-integrity-v17321.js",
+    "22x-generic-direction-integrity-v17330.js",
     "22y-direction-global-card-compactor-v17322.js",
-    "22z-direction-exit-road-truth-v17323.js",
+    "22z-generic-exit-road-truth-v17330.js",
+    "22za-driver-safety-contract-v17330.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
