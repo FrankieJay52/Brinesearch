@@ -28,12 +28,12 @@
       const text=directionMainCleanV17317(value||"");
       if (/^(?:Continue|Continue\s+on)$/i.test(text)) return true;
       if (/^(?:Head|Continue)\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)$/i.test(text)) return true;
-      if (/^(?:Turn\s+(?:left|right)|Turn|Merge|Take\s+route)$/i.test(text)) return true;
+      if (/^(?:(?:Stay|Keep|Bear|Veer|Slight|Sharp)\s+(?:left|right)|Turn\s+(?:left|right)|Turn|Merge|Take\s+route)$/i.test(text)) return true;
       return false;
     }
 
     function directionCardGenericTurnV17322(value) {
-      return /^(?:Turn\s+(?:left|right)|Turn)$/i.test(directionMainCleanV17317(value||""));
+      return /^(?:(?:Stay|Keep|Bear|Veer|Slight|Sharp)\s+(?:left|right)|Turn\s+(?:left|right)|Turn)$/i.test(directionMainCleanV17317(value||""));
     }
 
     function directionCardGenericContinuationV17322(value) {
@@ -43,9 +43,20 @@
     function directionCardMalformedRoadActionV17322(value) {
       const text=directionMainCleanV17317(value||"");
       const bad="(?:CR|TR|SR|Route|Road|County\\s+Road|Township\\s+Road|State\\s+Route|North\\s+East|North\\s+West|South\\s+East|South\\s+West|Left\\s+Nearest|Right\\s+Nearest)";
-      let match=text.match(new RegExp(`^(Turn\\s+(?:left|right)|Turn|Continue|Head\\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)|Merge)\\s+on\\s+${bad}$`,'i'));
-      if (!match) return "";
-      return directionMainCleanV17317(match[1]);
+      const action="(?:Turn\\s+(?:left|right)|Turn|Continue|Head\\s+(?:northwest|northeast|southwest|southeast|north|south|east|west)|Merge|(?:Stay|Keep|Bear|Veer|Slight|Sharp)\\s+(?:left|right))";
+      const match=text.match(new RegExp(`^(${action})\\s+on\\s+${bad}$`,'i'));
+      return match ? directionMainCleanV17317(match[1]) : "";
+    }
+
+    function directionMainWithoutHospitalV17322(value) {
+      const original=directionMainCleanV17317(value||"");
+      if (!original) return "";
+      const sideLeak=original.match(/^(?:Continue\s+on|Turn\s+(?:left|right)\s+on)\s+(left|right)\s+Nearest\s+Hospital\b/i);
+      if (sideLeak) return `Access road on ${sideLeak[1].toLowerCase()}`;
+      const stripped=original.replace(/\s*\bNearest\s+Hospital\b[\s\S]*$/i,"").trim();
+      const bareSide=stripped.match(/^Continue\s+on\s+(left|right)$/i);
+      if (bareSide) return `Access road on ${bareSide[1].toLowerCase()}`;
+      return stripped;
     }
 
     function directionCleanDriverNoteV17322(value) {
@@ -62,7 +73,7 @@
     function directionArrivalFromNotesV17322(notes) {
       for (const note of notes||[]) {
         const text=directionMainCleanV17317(note||"");
-        let m=text.match(/^(Access\s+road|Lease\s+road(?:\s+entrance)?|Entrance|Pad)\s+on\s+(left|right)$/i);
+        const m=text.match(/^(Access\s+road|Lease\s+road(?:\s+entrance)?|Entrance|Pad)\s+on\s+(left|right)$/i);
         if (!m) continue;
         const kind=m[1].toLowerCase(),side=m[2].toLowerCase();
         if (/^access/.test(kind)) return `Access road on ${side}`;
@@ -84,9 +95,10 @@
     function directionNextUsableRoadV17322(cards,index) {
       for(let i=index+1;i<Math.min((cards||[]).length,index+4);i+=1) {
         const next=cards[i];
-        const road=directionCardRoadTailV17322(next?.instruction);
-        if (road&&directionCardHasUsableRoadV17322(next?.instruction)) return road;
-        if (!directionCardGenericRoadlessV17322(next?.instruction)&&!/^Arrive$/i.test(String(next?.instruction||""))) break;
+        const cleaned=directionMainWithoutHospitalV17322(next?.instruction);
+        const road=directionCardRoadTailV17322(cleaned);
+        if (road&&directionCardHasUsableRoadV17322(cleaned)) return road;
+        if (!directionCardGenericRoadlessV17322(cleaned)&&!/^Arrive$/i.test(cleaned)) break;
       }
       return "";
     }
@@ -96,13 +108,31 @@
     }
 
     function directionCompactFinalCardsV17322(cards) {
-      const source=(cards||[]).map(card=>({...card,notes:directionCleanDriverNotesV17322(card?.notes||[])}));
+      const source=(cards||[]).map(card=>({
+        ...card,
+        instruction:directionMainWithoutHospitalV17322(card?.instruction),
+        notes:directionCleanDriverNotesV17322(card?.notes||[])
+      }));
       const out=[];
       let pending=[];
       for (let index=0;index<source.length;index+=1) {
         const raw=source[index];
         const card={...raw,notes:[...(raw?.notes||[])]};
         let main=directionMainCleanV17317(card.instruction||"");
+        if (!main) { pending=directionUniqueNotesV17317([...pending,...card.notes]); continue; }
+
+        if (directionCardIsArrivalV17322(main)) {
+          const prev=out[out.length-1];
+          if (prev&&directionCardIsArrivalV17322(prev.instruction)&&prev.instruction.toLowerCase()===main.toLowerCase()) {
+            prev.notes=directionUniqueNotesV17317([...(prev.notes||[]),...pending,...card.notes]);
+          } else {
+            card.notes=directionUniqueNotesV17317([...pending,...card.notes]);
+            out.push(card);
+          }
+          pending=[];
+          continue;
+        }
+
         const malformedAction=directionCardMalformedRoadActionV17322(main);
         if (malformedAction) {
           main=malformedAction;
@@ -154,6 +184,16 @@
 
         if (generic&&card.distance&&directionCardGenericTurnV17322(main)) {
           card.instruction=main;
+          card.notes=directionUniqueNotesV17317([...pending,...directionSourceGapNotesV17322(card.notes)]);
+          pending=[];
+          out.push(card);
+          if (arrival) out.push({...card,instruction:arrival,distance:"",notes:[]});
+          continue;
+        }
+
+        if (generic&&card.distance) {
+          const nextRoad=directionNextUsableRoadV17322(source,index);
+          card.instruction=nextRoad?`Continue toward ${nextRoad}`:"Proceed";
           card.notes=directionUniqueNotesV17317([...pending,...directionSourceGapNotesV17322(card.notes)]);
           pending=[];
           out.push(card);
