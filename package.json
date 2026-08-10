@@ -20,7 +20,7 @@
     "dev": "npm run prepare:v17 && vite --config v17/vite.config.js",
     "build": "npm run verify:v17 && npm run verify:direction-data && npm run verify:written-directions && npm run verify:concise-cards && npm run verify:road-cards && npm run verify:direction-gaps && npm run verify:road-truth && npm run verify:road-identity && npm run verify:final-card-integrity && npm run verify:roads && npm run verify:product && npm run verify:expand && vite build --config v17/vite.config.js",
     "preview": "vite preview --config v17/vite.config.js",
-    "verify:product": "node v17/scripts/verify-v17-3-21.mjs"
+    "verify:product": "node v17/scripts/verify-v17-3-22.mjs"
   },
   "devDependencies": {
     "vite": "^7.1.0"
