@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'brinesearch-v17-3-21-final-direction-integrity';
+const CACHE_VERSION = 'brinesearch-v17-3-22-all-pad-direction-cleanup';
+// Previous cache marker retained for release-audit continuity: brinesearch-v17-3-21-final-direction-integrity
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-20-road-turn-mileage-truth
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-19-all-road-deep-pass
 // Earlier cache marker retained for release-audit continuity: brinesearch-v17-3-18-road-mileage-recovery
