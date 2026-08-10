@@ -20,7 +20,7 @@ begin
   -- appended to the final imported step without a reliable sentence boundary.
   v := pg_catalog.regexp_replace(
     v,
-    '[[:space:]]+Nearest[[:space:]]+Hospital[[:space:]]+.*$',
+    '[[:space:]]+Nearest[[:space:]]+Hospital.*$',
     '',
     'i'
   );
