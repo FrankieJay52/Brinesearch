@@ -1,5 +1,5 @@
 {
-  "version": "17.3.20",
+  "version": "17.3.21",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -63,6 +63,7 @@
     "22u-direction-road-data-enrichment.js",
     "22v-direction-road-turn-mileage-truth.js",
     "22w-direction-unspecified-turn-support.js",
+    "22x-direction-final-integrity-v17321.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
