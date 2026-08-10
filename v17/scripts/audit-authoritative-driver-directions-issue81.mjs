@@ -10,7 +10,8 @@ const read = file => fs.readFile(file, 'utf8');
 
 const [
   packageRaw, orderRaw, styleRaw, vite, sw, directionManifestRaw, authoritative,
-  genericT, genericX, genericZ, safety, migration, whitespaceFix, parserWording
+  genericT, genericX, genericZ, safety, migration, whitespaceFix, parserWording,
+  projectionSecurityRestore
 ] = await Promise.all([
   read(path.join(root, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
@@ -25,7 +26,8 @@ const [
   read(path.join(v17Root, 'src/parts/22za-driver-safety-contract-v17330.js')),
   read(path.join(root, 'supabase/migrations/20260810233900_authoritative_driver_directions_issue_81.sql')),
   read(path.join(root, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql')),
-  read(path.join(root, 'supabase/migrations/20260810234337_authoritative_driver_directions_issue_81_parser_wording.sql'))
+  read(path.join(root, 'supabase/migrations/20260810234337_authoritative_driver_directions_issue_81_parser_wording.sql')),
+  read(path.join(root, 'supabase/migrations/20260810234927_authoritative_driver_directions_issue_81_projection_security_restore.sql'))
 ]);
 
 const pkg = JSON.parse(packageRaw);
@@ -103,6 +105,12 @@ for (const token of [
   'US-40 / National Rd eastbound',
   "display_road is distinct from 'US-40 / National Rd'"
 ]) assert.ok(parserWording.includes(token), `Issue #81 parser-wording follow-up missing ${token}`);
+for (const token of [
+  'security_invoker = true',
+  'security_barrier = true',
+  "has_table_privilege('anon','private_verification.public_pad_projection_source','SELECT')",
+  "grant select on private_verification.public_pad_projection_source to service_role"
+]) assert.ok(projectionSecurityRestore.includes(token), `Issue #81 projection-security restore missing ${token}`);
 
 // The public contract must never grow hidden/private columns.
 for (const forbidden of [
@@ -150,7 +158,8 @@ console.log(JSON.stringify({
   productionMigrationChain: [
     '20260810233900_authoritative_driver_directions_issue_81',
     '20260810234024_authoritative_driver_directions_issue_81_whitespace_fix',
-    '20260810234337_authoritative_driver_directions_issue_81_parser_wording'
+    '20260810234337_authoritative_driver_directions_issue_81_parser_wording',
+    '20260810234927_authoritative_driver_directions_issue_81_projection_security_restore'
   ],
   padSpecificFrontendRouteFacts: 0
 }, null, 2));
