@@ -76,4 +76,27 @@
       }
     };
 
+    function routeInteractivePreferredFixStepV17327() {
+      const unresolvedTrace = routeInteractiveTraceResultV17327?.selected?.find(row => !row?.matched && row?.token?.label);
+      if (unresolvedTrace) {
+        let best = { index: -1, score: 0 };
+        routeMapperSegmentsV17324.forEach((segment, index) => {
+          const score = routeBacktraceSimilarityV17325(unresolvedTrace.token.label, segment?.roadName);
+          if (score > best.score) best = { index, score };
+        });
+        if (best.index >= 0 && best.score >= 0.55) return best.index;
+      }
+      const missingRoadId = routeMapperSegmentsV17324.findIndex(segment => !segment?.roadId);
+      return missingRoadId >= 0 ? missingRoadId : 0;
+    }
+
+    const routeInteractiveToggleEditBeforePreferredV17327 = routeInteractiveToggleEditV17327;
+    routeInteractiveToggleEditV17327 = async function routeInteractiveToggleEditPreferredV17327() {
+      if (!routeInteractiveEditModeV17327) {
+        await routeInteractiveSeedSegmentsV17327();
+        routeInteractiveSelectedStepV17327 = routeInteractivePreferredFixStepV17327();
+      }
+      return routeInteractiveToggleEditBeforePreferredV17327();
+    };
+
     window.routeInteractiveCanonicalCandidateV17327 = routeInteractiveCanonicalCandidateV17327;
