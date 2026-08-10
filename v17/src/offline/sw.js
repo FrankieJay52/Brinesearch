@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'brinesearch-v17-3-27-interactive-route-map';
+const CACHE_VERSION = 'brinesearch-v17-3-28-step-snap-route-editor';
+// Previous cache marker retained for release-audit continuity: brinesearch-v17-3-27-interactive-route-map
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-26-responsive-backtrace
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-25-backtrace-route-highlight
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-24-road-manager-route-mapper
