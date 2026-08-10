@@ -1,0 +1,141 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const scriptDir = path.dirname(fileURLToPath(import.meta.url));
+const v17Root = path.resolve(scriptDir, '..');
+const root = path.resolve(v17Root, '..');
+const read = file => fs.readFile(file, 'utf8');
+
+const [
+  packageRaw, orderRaw, styleRaw, vite, sw, directionManifestRaw, authoritative,
+  genericT, genericX, genericZ, safety, migration
+] = await Promise.all([
+  read(path.join(root, 'package.json')),
+  read(path.join(v17Root, 'src/parts/part-order.json')),
+  read(path.join(v17Root, 'src/styles/style-order.json')),
+  read(path.join(v17Root, 'vite.config.js')),
+  read(path.join(v17Root, 'src/offline/sw.js')),
+  read(path.join(v17Root, 'src/data/directions/index.json')),
+  read(path.join(v17Root, 'src/parts/00a-authoritative-driver-directions-v17330.js')),
+  read(path.join(v17Root, 'src/parts/22t-generic-source-cleanups-v17330.js')),
+  read(path.join(v17Root, 'src/parts/22x-generic-direction-integrity-v17330.js')),
+  read(path.join(v17Root, 'src/parts/22z-generic-exit-road-truth-v17330.js')),
+  read(path.join(v17Root, 'src/parts/22za-driver-safety-contract-v17330.js')),
+  read(path.join(root, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql'))
+]);
+
+const pkg = JSON.parse(packageRaw);
+const order = JSON.parse(orderRaw);
+const styles = JSON.parse(styleRaw);
+const directionManifest = JSON.parse(directionManifestRaw);
+
+assert.equal(pkg.version, '17.3.30');
+assert.equal(order.version, '17.3.30');
+assert.equal(styles.version, '17.3.30');
+assert.equal(directionManifest.version, '17.3.30');
+assert.match(vite, /RELEASE_VERSION\s*=\s*'17\.3\.30'/);
+assert.match(sw, /brinesearch-v17-3-30-authoritative-driver-directions/);
+
+for (const obsolete of [
+  '00a-live-clear-directions-precedence.js',
+  '22i-lee-written-step-prototype.js',
+  '22t-known-source-cleanups.js',
+  '22x-direction-final-integrity-v17321.js',
+  '22z-direction-exit-road-truth-v17323.js'
+]) {
+  assert.ok(!order.parts.includes(obsolete), `Obsolete direction layer is still assembled: ${obsolete}`);
+}
+for (const required of [
+  '00a-authoritative-driver-directions-v17330.js',
+  '22t-generic-source-cleanups-v17330.js',
+  '22x-generic-direction-integrity-v17330.js',
+  '22z-generic-exit-road-truth-v17330.js',
+  '22za-driver-safety-contract-v17330.js'
+]) {
+  assert.ok(order.parts.includes(required), `V17.3.30 direction layer missing: ${required}`);
+}
+
+const directionLayerFiles = order.parts.filter(name => /direction|written|source-cleanups|exit-road/i.test(name));
+const assembledDirectionSources = await Promise.all(directionLayerFiles.map(name => read(path.join(v17Root, 'src/parts', name))));
+const assembledDirectionText = assembledDirectionSources.join('\n');
+for (const forbidden of ['ascent--lee', 'ascent--albert', 'expand--timmy-minch', 'expand--van-aston', 'TIMMY_MINCH_CLEAR', 'VAN_ASTON_CLEAR']) {
+  assert.ok(!assembledDirectionText.includes(forbidden), `Pad-specific route fact remains assembled: ${forbidden}`);
+}
+
+for (const token of [
+  '/rest/v1/brinesearch_driver_directions_public',
+  'select", "pad_id,legacy_id,directions_clear,source_revision',
+  'directionInvalidateLiveFallbackV17330',
+  'Live authoritative driver directions'
+]) assert.ok(authoritative.includes(token), `Authoritative live direction bridge missing ${token}`);
+
+for (const token of [
+  'Nearest\\s+Hospital', 'McDonald', 'dealership', 'YMCA', 'VFD', 'post\\s+office',
+  'directionDriverSafetyPhraseV17330', 'directionTransientLandmarkV17330'
+]) assert.ok(safety.includes(token), `Driver safety contract missing ${token}`);
+
+for (const source of [genericT, genericX, genericZ]) {
+  for (const forbidden of ['ascent--albert', 'expand--timmy-minch', 'expand--van-aston', 'ascent--lee']) {
+    assert.ok(!source.includes(forbidden), `Generic direction layer contains ${forbidden}`);
+  }
+}
+
+for (const token of [
+  'brinesearch_driver_safe_clear_v17330',
+  'brinesearch_driver_directions_public',
+  "array['pad_id','legacy_id','directions_clear','source_revision']",
+  "when 'ascent--albert'",
+  "when 'expand--timmy-minch'",
+  "when 'expand--van-aston'",
+  'OH-114', 'CR-15/1 / Boggs Hill Rd', 'Brushy Run Rd'
+]) assert.ok(migration.includes(token), `Issue #81 migration missing ${token}`);
+
+// The public contract must never grow hidden/private columns.
+for (const forbidden of [
+  'extra_data', 'written_directions', 'research_note', 'research_notes', 'research_sources',
+  'created_by', 'updated_by', 'structured_route_steps', 'directions_clear_method'
+]) {
+  const viewBlock = migration.match(/create view public\.brinesearch_driver_directions_public[\s\S]*?revoke all/i)?.[0] || '';
+  assert.ok(!viewBlock.includes(forbidden), `Public direction allow-list exposes ${forbidden}`);
+}
+
+// Standalone contract examples: transient landmarks disappear while road/safety facts stay.
+function driverSafe(value) {
+  let text = String(value || '').replace(/\s{2,}/g, ' ').trim();
+  text = text.replace(/\s+Nearest\s+Hospital\b[\s\S]*$/i, '');
+  text = text.replace(/\s*\([^)]*(?:McDonald'?s?|dealership|YMCA|VFD|post\s+office|Dairy\s+Queen|restaurant|church\s+(?:is|parking)|cemetery\s+(?:is|at|on)|school\s+(?:is|on)|hospital|medical\s+center)[^)]*\)/gi, '');
+  return text.replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
+}
+assert.equal(driverSafe('Turn left on CR-25 / Peters Run Rd. Continue 3.05 miles. Nearest Hospital Example'), 'Turn left on CR-25 / Peters Run Rd. Continue 3.05 miles.');
+assert.equal(driverSafe("Turn left (A McDonald's is on the corner) on Kruger Rd."), 'Turn left on Kruger Rd.');
+assert.match(driverSafe('Turn left on Church Road. Curfew: 6:30–8:00 AM.'), /Church Road/);
+
+// Exercise every packaged fallback row without ever echoing route bodies into CI logs.
+const rewrites = {};
+for (const file of directionManifest.files || []) {
+  Object.assign(rewrites, JSON.parse(await read(path.join(v17Root, 'src/data/directions', file))));
+}
+assert.ok(Object.keys(rewrites).length >= 1100, `Expected packaged fallback coverage; found ${Object.keys(rewrites).length}`);
+let hospitalFallbacks = 0;
+for (const record of Object.values(rewrites)) {
+  const raw = String(record?.r || '');
+  if (/Nearest\s+Hospital/i.test(raw)) hospitalFallbacks += 1;
+  assert.ok(!/Nearest\s+Hospital/i.test(driverSafe(raw)), 'Packaged fallback sanitizer left a hospital tail');
+}
+assert.ok(hospitalFallbacks > 0, 'Audit did not exercise any legacy hospital-contaminated fallback records');
+
+assert.equal(pkg.scripts?.['verify:directions-authoritative'], 'node v17/scripts/audit-authoritative-driver-directions-issue81.mjs');
+assert.ok(pkg.scripts?.build?.includes('verify:directions-authoritative'), 'Full build must run #81 authoritative direction audit');
+assert.ok(!assembledDirectionText.includes('console.log('), 'Direction layers should not dump raw direction bodies to CI/browser logs');
+
+console.log(JSON.stringify({
+  issue: 81,
+  version: '17.3.30',
+  packagedRecords: Object.keys(rewrites).length,
+  legacyHospitalFallbacksExercised: hospitalFallbacks,
+  liveContract: ['pad_id','legacy_id','directions_clear','source_revision'],
+  padSpecificFrontendRouteFacts: 0
+}, null, 2));
+console.log('GitHub #81 authoritative driver-direction audit passed.');
