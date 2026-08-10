@@ -1,5 +1,5 @@
 {
-  "version": "17.3.22",
+  "version": "17.3.23",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
@@ -66,6 +66,7 @@
     "22w-direction-unspecified-turn-support.js",
     "22x-direction-final-integrity-v17321.js",
     "22y-direction-global-card-compactor-v17322.js",
+    "22z-direction-exit-road-truth-v17323.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
