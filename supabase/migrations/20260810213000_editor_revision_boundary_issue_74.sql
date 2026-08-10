@@ -1,18 +1,10 @@
--- GitHub #74: prevent editor revision poisoning and stale overwrites.
+-- GitHub #74 stage 1: safe editor pad-update RPC.
 --
--- Before this migration, approved editors had table-wide INSERT/UPDATE grants on
--- public.pads. RLS correctly checked that the caller was an editor, but a crafted
--- authenticated REST request could still mutate columns the UI never exposes
--- (for example created_by, extra_data, structured_route_steps or verification
--- metadata). audit_pad_update() then preserved that crafted row in
--- pad_edit_history. The browser editor also patched by id only, so a stale form
--- could silently overwrite a newer revision.
---
--- The only browser write boundary for an existing pad is now editor_update_pad:
--- explicit field allow-list + payload validation + row lock + updated_at compare.
--- Direct authenticated INSERT/UPDATE on public.pads is removed so callers cannot
--- bypass the RPC with hand-crafted PostgREST requests. editor_add_pad and other
--- reviewed SECURITY DEFINER workflows remain the creation/mutation boundaries.
+-- Approved editors currently have table-wide UPDATE on public.pads. RLS checks
+-- who may edit, but not which columns they may mutate, and the browser PATCH
+-- path has no revision precondition. This RPC is the reviewed replacement write
+-- boundary. Stage 2 removes raw table INSERT/UPDATE only after the RPC-backed
+-- browser has deployed, avoiding an editor outage during rollout.
 
 create or replace function public.editor_update_pad(
   p_pad_id uuid,
@@ -88,10 +80,10 @@ begin
     raise exception 'editor_patch_too_large' using errcode = '22023';
   end if;
 
-  select coalesce(pg_catalog.array_agg(k order by k), '{}'::text[])
+  select coalesce(pg_catalog.array_agg(keys.key order by keys.key), '{}'::text[])
     into v_disallowed
-  from pg_catalog.jsonb_object_keys(p_patch) as k
-  where not (k = any(v_allowed_keys));
+  from pg_catalog.jsonb_object_keys(p_patch) as keys(key)
+  where not (keys.key = any(v_allowed_keys));
 
   if pg_catalog.cardinality(v_disallowed) > 0 then
     raise exception 'invalid_editor_patch_fields:%', pg_catalog.array_to_string(v_disallowed, ',')
@@ -177,8 +169,8 @@ begin
     if exists (
       select 1
       from pg_catalog.jsonb_array_elements(p_patch->'well_entries') as e(value)
-      cross join lateral pg_catalog.jsonb_object_keys(e.value) as k
-      where k not in ('well_name','api','property_number')
+      cross join lateral pg_catalog.jsonb_object_keys(e.value) as keys(key)
+      where keys.key not in ('well_name','api','property_number')
     ) then
       raise exception 'invalid_well_entry_fields' using errcode = '22023';
     end if;
@@ -259,29 +251,16 @@ revoke all on function public.editor_update_pad(uuid,timestamptz,jsonb) from pub
 revoke all on function public.editor_update_pad(uuid,timestamptz,jsonb) from anon;
 grant execute on function public.editor_update_pad(uuid,timestamptz,jsonb) to authenticated;
 
--- Browser creation already uses editor_add_pad(). Remove the raw table write
--- paths so an editor cannot bypass server invariants with a handcrafted request.
-revoke insert, update on table public.pads from anon;
-revoke insert, update on table public.pads from authenticated;
-
-drop policy if exists "Editors can insert pads" on public.pads;
-drop policy if exists "Editors can update pads" on public.pads;
-
--- Migration-time security invariants. Fail instead of leaving a half-hardened
--- database if privileges are unexpectedly different from the reviewed boundary.
+-- Stage-1 invariants: the RPC exists for authenticated editors but not anon.
+-- Existing direct table grants intentionally remain until stage 2 after the
+-- browser using this RPC has deployed and been live-verified.
 do $$
 begin
-  if pg_catalog.has_table_privilege('authenticated', 'public.pads', 'UPDATE') then
-    raise exception 'issue74 invariant failed: authenticated still has direct UPDATE on public.pads';
+  if pg_catalog.has_function_privilege('anon', 'public.editor_update_pad(uuid,timestamp with time zone,jsonb)', 'EXECUTE') then
+    raise exception 'issue74 stage1 invariant failed: anon can execute editor_update_pad';
   end if;
-  if pg_catalog.has_table_privilege('authenticated', 'public.pads', 'INSERT') then
-    raise exception 'issue74 invariant failed: authenticated still has direct INSERT on public.pads';
-  end if;
-  if pg_catalog.has_function_privilege('anon', 'public.editor_update_pad(uuid,timestamptz,jsonb)', 'EXECUTE') then
-    raise exception 'issue74 invariant failed: anon can execute editor_update_pad';
-  end if;
-  if not pg_catalog.has_function_privilege('authenticated', 'public.editor_update_pad(uuid,timestamptz,jsonb)', 'EXECUTE') then
-    raise exception 'issue74 invariant failed: authenticated cannot execute editor_update_pad';
+  if not pg_catalog.has_function_privilege('authenticated', 'public.editor_update_pad(uuid,timestamp with time zone,jsonb)', 'EXECUTE') then
+    raise exception 'issue74 stage1 invariant failed: authenticated cannot execute editor_update_pad';
   end if;
 end;
 $$;
