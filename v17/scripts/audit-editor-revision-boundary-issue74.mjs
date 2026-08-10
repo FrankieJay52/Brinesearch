@@ -8,8 +8,8 @@ const projectRoot = path.resolve(scriptDir, '../..');
 const migrationDir = path.join(projectRoot, 'supabase/migrations');
 const partsDir = path.join(projectRoot, 'v17/src/parts');
 
-const stage1Path = path.join(migrationDir, '20260810213000_editor_revision_boundary_issue_74.sql');
-const stage2Path = path.join(migrationDir, '20260810213100_editor_revision_lockdown_issue_74.sql');
+const stage1Path = path.join(migrationDir, '20260810213933_editor_revision_boundary_issue_74.sql');
+const stage2Path = path.join(migrationDir, '20260810215000_editor_revision_lockdown_issue_74.sql');
 const bridgePath = path.join(partsDir, '11aa-editor-revision-security-issue74.js');
 const orderPath = path.join(partsDir, 'part-order.json');
 const packagePath = path.join(projectRoot, 'package.json');
