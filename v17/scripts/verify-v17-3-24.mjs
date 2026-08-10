@@ -24,7 +24,7 @@ const directions = parts.parts.indexOf('22m-direction-source-priority-and-coales
 if (live < 0 || mapperIndex <= live || directions <= mapperIndex) throw new Error('V17.3.24 Route Mapper load order is incorrect.');
 if (!styles.styles.includes('41-road-manager-route-mapper.css')) throw new Error('V17.3.24 Route Mapper CSS is missing from style order.');
 if (!sw.includes('brinesearch-v17-3-24-road-manager-route-mapper')) throw new Error('V17.3.24 cache marker is missing.');
-for (const token of ['Route Mapper','brinesearch_route_reviews','brinesearch_route_review_segments','fetchRoads','renderRoadForm','Open Google Maps','OpenStreetMap','Save map review']) {
+for (const token of ['Route Mapper','brinesearch_route_reviews','brinesearch_route_review_segments','fetchRoads','renderRoadForm','Open Google Maps','www.openstreetmap.org/export/embed.html','Save map review']) {
   if (!mapper.includes(token)) throw new Error(`V17.3.24 Route Mapper source missing ${token}.`);
 }
 console.log('Verified BrineSearch V17.3.24: Owner-only Route Mapper is a third Road Manager tab, starts from official/saved pad coordinates, opens map context, uses canonical Road Manager records for each route segment, captures measured mileage/turns, and saves only to route-review staging until a later explicit publish action.');
