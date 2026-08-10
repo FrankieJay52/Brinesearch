@@ -10,7 +10,7 @@ const read = file => fs.readFile(file, 'utf8');
 
 const [
   packageRaw, orderRaw, styleRaw, vite, sw, directionManifestRaw, authoritative,
-  genericT, genericX, genericZ, safety, migration
+  genericT, genericX, genericZ, safety, migration, whitespaceFix
 ] = await Promise.all([
   read(path.join(root, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
@@ -23,7 +23,8 @@ const [
   read(path.join(v17Root, 'src/parts/22x-generic-direction-integrity-v17330.js')),
   read(path.join(v17Root, 'src/parts/22z-generic-exit-road-truth-v17330.js')),
   read(path.join(v17Root, 'src/parts/22za-driver-safety-contract-v17330.js')),
-  read(path.join(root, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql'))
+  read(path.join(root, 'supabase/migrations/20260810232000_authoritative_driver_directions_issue_81.sql')),
+  read(path.join(root, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql'))
 ]);
 
 const pkg = JSON.parse(packageRaw);
@@ -91,6 +92,11 @@ for (const token of [
   "when 'expand--van-aston'",
   'OH-114', 'CR-15/1 / Boggs Hill Rd', 'Brushy Run Rd'
 ]) assert.ok(migration.includes(token), `Issue #81 migration missing ${token}`);
+for (const token of [
+  'brinesearch_driver_safe_clear_v17330',
+  "'[ \\t]{2,}'",
+  'public line breaks lost'
+]) assert.ok(whitespaceFix.includes(token), `Issue #81 whitespace follow-up missing ${token}`);
 
 // The public contract must never grow hidden/private columns.
 for (const forbidden of [
@@ -101,18 +107,17 @@ for (const forbidden of [
   assert.ok(!viewBlock.includes(forbidden), `Public direction allow-list exposes ${forbidden}`);
 }
 
-// Standalone contract examples: transient landmarks disappear while road/safety facts stay.
 function driverSafe(value) {
-  let text = String(value || '').replace(/\s{2,}/g, ' ').trim();
+  let text = String(value || '').replace(/[ \t]{2,}/g, ' ').trim();
   text = text.replace(/\s+Nearest\s+Hospital\b[\s\S]*$/i, '');
   text = text.replace(/\s*\([^)]*(?:McDonald'?s?|dealership|YMCA|VFD|post\s+office|Dairy\s+Queen|restaurant|church\s+(?:is|parking)|cemetery\s+(?:is|at|on)|school\s+(?:is|on)|hospital|medical\s+center)[^)]*\)/gi, '');
-  return text.replace(/\s{2,}/g, ' ').replace(/\s+([,.;])/g, '$1').trim();
+  return text.replace(/[ \t]{2,}/g, ' ').replace(/[ \t]+([,.;])/g, '$1').trim();
 }
 assert.equal(driverSafe('Turn left on CR-25 / Peters Run Rd. Continue 3.05 miles. Nearest Hospital Example'), 'Turn left on CR-25 / Peters Run Rd. Continue 3.05 miles.');
 assert.equal(driverSafe("Turn left (A McDonald's is on the corner) on Kruger Rd."), 'Turn left on Kruger Rd.');
 assert.match(driverSafe('Turn left on Church Road. Curfew: 6:30–8:00 AM.'), /Church Road/);
+assert.match(driverSafe('Road sequence reference:\nOH-800 → OH-145\n\nStep-by-step directions:\n1. Turn right on OH-145.'), /\n\nStep-by-step directions:\n/);
 
-// Exercise every packaged fallback row without ever echoing route bodies into CI logs.
 const rewrites = {};
 for (const file of directionManifest.files || []) {
   Object.assign(rewrites, JSON.parse(await read(path.join(v17Root, 'src/data/directions', file))));
@@ -136,6 +141,7 @@ console.log(JSON.stringify({
   packagedRecords: Object.keys(rewrites).length,
   legacyHospitalFallbacksExercised: hospitalFallbacks,
   liveContract: ['pad_id','legacy_id','directions_clear','source_revision'],
+  productionMigrationChain: ['authoritative_driver_directions_issue_81','authoritative_driver_directions_issue_81_whitespace_fix'],
   padSpecificFrontendRouteFacts: 0
 }, null, 2));
 console.log('GitHub #81 authoritative driver-direction audit passed.');
