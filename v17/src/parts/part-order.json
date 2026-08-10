@@ -22,6 +22,7 @@
     "09a-public-data-review.js",
     "10-live-pad-editor.js",
     "11-pad-page.js",
+    "11aa-editor-revision-security-issue74.js",
     "11a-security-public-pad-detail.js",
     "11b-public-data-pad-card.js",
     "11c-driver-route-reference.js",
