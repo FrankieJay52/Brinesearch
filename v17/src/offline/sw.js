@@ -1,4 +1,5 @@
-const CACHE_VERSION = 'brinesearch-v17-3-25-backtrace-route-highlight';
+const CACHE_VERSION = 'brinesearch-v17-3-26-responsive-backtrace';
+// Previous cache marker retained for release-audit continuity: brinesearch-v17-3-25-backtrace-route-highlight
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-24-road-manager-route-mapper
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-23-exit-road-truth
 // Previous cache marker retained for release-audit continuity: brinesearch-v17-3-22-all-pad-direction-cleanup
