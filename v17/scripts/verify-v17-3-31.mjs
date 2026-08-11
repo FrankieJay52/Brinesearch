@@ -49,7 +49,7 @@ for (const token of ['routeIssue69PadGeneration','routeIssue69TopologyGeneration
 for (const token of ['repeated road occurrence identity','stale delayed response','reverse ordering']) {
   if (!exactAudit.includes(token)) throw new Error(`V17.3.31 hard-case audit missing ${token}.`);
 }
-for (const token of ["p.proconfig @> array['search_path=\"\"']::text[]", "end||(v_step->>'road_name');", 'brinesearch_publish_structured_route', 'brinesearch_route_step_clip', 'private_hold', 'driver safety information:']) {
+for (const token of ["p.proconfig @> array['search_path=\"\"']::text[]", "end||(v_step->>'road_name');", 'brinesearch_publish_structured_route', 'brinesearch_route_step_clip', 'private_hold', 'Driver safety information:']) {
   if (!baseMigration.includes(token)) throw new Error(`V17.3.31 canonical migration missing/failing source fix: ${token}.`);
 }
 for (const token of ['brinesearch_driver_safe_clear_v17330(p.directions_clear)','route_review_segments_owner_update_legacy_issue69','publisher lock-order invariant failed']) {
