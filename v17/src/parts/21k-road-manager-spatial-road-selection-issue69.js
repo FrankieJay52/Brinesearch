@@ -54,12 +54,36 @@
     }
 
     async function routeIssue69AllRoads() {
-      let roads = Array.isArray(roadManagerRows) && roadManagerRows.length ? roadManagerRows : [];
-      if (!roads.length) {
-        try { roads = await fetchRoads("", 500); }
-        catch { roads = []; }
+      const cached = Array.isArray(roadManagerRows) ? roadManagerRows : [];
+      try {
+        const fresh = await fetchRoads("", 500);
+        const merged = new Map(cached.map(road => [road?.id, road]).filter(([id]) => id));
+        (fresh || []).forEach(road => { if (road?.id) merged.set(road.id, road); });
+        const roads = Array.from(merged.values());
+        if (roads.length) roadManagerRows = roads;
+        return roads;
+      } catch {
+        return cached;
       }
-      return roads;
+    }
+
+    function routeIssue69LocalRoadCandidates(point, roads) {
+      const threshold = Math.max(0.015, Math.min(0.11, routeStepMilesPerPixelV17328(point.lat) * 34));
+      return (roads || [])
+        .filter(road => road?.id && road?.centerline_geojson && !road?.candidate_only)
+        .map(road => {
+          const lines = routeBacktraceGeoLinesV17325(road.centerline_geojson);
+          let distance = Infinity;
+          for (const line of lines) {
+            const hit = routeBacktraceClosestVertexV17325([point.lng, point.lat], line);
+            if (Number.isFinite(hit?.distance)) distance = Math.min(distance, hit.distance);
+          }
+          return { road, distance };
+        })
+        .filter(match => Number.isFinite(match.distance) && match.distance <= threshold)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 12)
+        .map(match => ({ ...routeStepSyntheticCandidateV17328(match.road), _distance: match.distance }));
     }
 
     async function routeIssue69AttachTappedGeometry(road, candidate, identity, roads) {
@@ -190,7 +214,8 @@
     // V17.3.28 deduped nearby OSM ways by display name. That can erase a
     // separate same-name physical road. Keep individual OSM way identities.
     routeInteractiveLookupRoadsV17327 = async function routeInteractiveLookupRoadsSpatialIssue69(point) {
-      const local = await routeStepLocalRoadCandidatesV17328(point);
+      const completeRoadInventory = await routeIssue69AllRoads();
+      const local = routeIssue69LocalRoadCandidates(point, completeRoadInventory);
       if (local.length) return local;
       const query = `[out:json][timeout:4];way(around:45,${point.lat},${point.lng})["highway"];out tags geom;`;
       const controller = new AbortController();
