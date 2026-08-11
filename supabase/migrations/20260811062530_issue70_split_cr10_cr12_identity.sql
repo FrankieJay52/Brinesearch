@@ -3,6 +3,8 @@
 -- authoritative directions distinguish CR-12 from Smithfield-Adena Rd / CR-10,
 -- and the ODOT catalog contains a separate complete CJEFCR00012**C centerline.
 -- Split the identities by exact numbered route. No generated IDs are hard-coded.
+-- Route-prep readiness is recalculated by the subsequent Owner reconciliation RPC;
+-- do not call the Owner-gated recalculator from the migration/deploy role.
 
 do $issue70_cr12$
 declare
@@ -109,7 +111,5 @@ begin
       updated_at=now(),
       notes=pg_catalog.btrim(coalesce(r.notes,'')||' #70 removed CR-12 aliases that belonged to separate Jefferson CR-12 identity.')
   where r.id=v_cr10;
-
-  perform public.road_manager_recalculate_route_readiness();
 end;
 $issue70_cr12$;
