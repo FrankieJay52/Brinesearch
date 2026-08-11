@@ -54,22 +54,22 @@ begin
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_refresh_oh_road_matches_issue70()'::pg_catalog.regprocedure
   ) into v_def;
-  if pg_catalog.position('c.county_code=b.county_code' in v_def)=0
-     or pg_catalog.position('multiple_exact_odot_matches' in v_def)=0
-     or pg_catalog.position('fuzzy_matching' in v_def)=0 then
+  if pg_catalog.strpos(v_def,'c.county_code=b.county_code')=0
+     or pg_catalog.strpos(v_def,'multiple_exact_odot_matches')=0
+     or pg_catalog.strpos(v_def,'fuzzy_matching')=0 then
     raise exception 'Issue #70 exact county-scoped fail-closed matcher invariant failed';
   end if;
-  if pg_catalog.position('similarity(' in pg_catalog.lower(v_def))>0
-     or pg_catalog.position('levenshtein(' in pg_catalog.lower(v_def))>0 then
+  if pg_catalog.strpos(pg_catalog.lower(v_def),'similarity(')>0
+     or pg_catalog.strpos(pg_catalog.lower(v_def),'levenshtein(')>0 then
     raise exception 'Issue #70 matcher contains fuzzy road identity logic';
   end if;
 
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_load_oh_road_geometry_issue70(integer)'::pg_catalog.regprocedure
   ) into v_def;
-  if pg_catalog.position('tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0/query' in v_def)=0
-     or pg_catalog.position('OpenStreetMap' in v_def)>0
-     or pg_catalog.position('overpass' in pg_catalog.lower(v_def))>0 then
+  if pg_catalog.strpos(v_def,'tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0/query')=0
+     or pg_catalog.strpos(v_def,'OpenStreetMap')>0
+     or pg_catalog.strpos(pg_catalog.lower(v_def),'overpass')>0 then
     raise exception 'Issue #70 official geometry-loader source invariant failed';
   end if;
 
