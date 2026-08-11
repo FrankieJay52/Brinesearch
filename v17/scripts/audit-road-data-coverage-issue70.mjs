@@ -7,8 +7,8 @@ const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const root = path.resolve(v17Root, '..');
 const migrationPath = path.join(root, 'supabase/migrations/20260811042124_issue70_all_operator_oh_exact_road_coverage.sql');
-const contextPath = path.join(root, 'supabase/migrations/20260811044500_issue70_oh_ambiguous_context_resolution.sql');
-const neighborInvariantPath = path.join(root, 'supabase/migrations/20260811045500_issue70_context_neighbor_evidence_invariant.sql');
+const contextPath = path.join(root, 'supabase/migrations/20260811044841_issue70_oh_ambiguous_context_resolution.sql');
+const neighborInvariantPath = path.join(root, 'supabase/migrations/20260811044903_issue70_context_neighbor_evidence_invariant.sql');
 const [migration, contextMigration, neighborInvariantMigration, pkgText, issue69Runtime] = await Promise.all([
   fs.readFile(migrationPath, 'utf8'),
   fs.readFile(contextPath, 'utf8'),
