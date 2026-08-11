@@ -1,14 +1,19 @@
 -- GitHub #97 — WVDOT multipart source geometry + durable failed-run hardening.
 --
 -- Production discovery on the first Ohio County WV scope found valid WVDOT
--- Publication LRS features whose ArcGIS geometry contains two individually
+-- Publication LRS features whose ArcGIS geometry contains multiple individually
 -- simple paths (for example a closed loop plus a stem touching at one point).
 -- Combining those original source paths into one MultiLineString makes the
--- collection non-simple even though neither source path is invalid, crossed or
--- overlapping. The authoritative raw-segment layer intentionally keeps its
--- ST_IsSimple safety constraint, so preserve each ArcGIS path as its own source
--- segment row under the same authoritative road identity instead of weakening
--- the constraint or noding/inventing source topology.
+-- collection non-simple even though the source paths themselves are valid.
+-- Preserve each ArcGIS path as its own source segment row under the same road
+-- identity instead of weakening ST_IsSimple or noding/inventing source topology.
+--
+-- WVDOT also legitimately returns some paths whose complete M channel is NULL.
+-- Both segment/name schemas already allow from_measure and to_measure to be both
+-- NULL. Preserve those paths as unmeasured; reject only a half-measured path.
+-- A feature-level name gets a measure range only when every source path is
+-- measured, so mixed measured/unmeasured multipart features never imply a fake
+-- continuous LRS range.
 --
 -- The same production failure exposed that the source-scope orchestrator's
 -- outer EXCEPTION block rolled back begin_ingest before fail_ingest ran. Move
@@ -53,6 +58,7 @@ declare
   v_path record;
   v_path_count integer;
   v_valid_path_count integer;
+  v_measured_path_count integer;
   v_source_path_count integer;
   v_rows integer:=0;
   v_source_rows integer:=0;
@@ -93,7 +99,8 @@ begin
       select
         count(*)::integer,
         count(*) filter(where
-          q.path_from is not null and q.path_to is not null
+          ((q.path_from is null and q.path_to is null)
+            or (q.path_from is not null and q.path_to is not null))
           and not extensions.st_isempty(q.path_geom)
           and extensions.st_dimension(q.path_geom)=1
           and extensions.st_isvalid(q.path_geom)
@@ -103,10 +110,14 @@ begin
             extensions.st_makeenvelope(-180,-90,180,90,4326)
           )
         )::integer,
-        (array_agg(q.path_from order by q.path_number))[1],
-        (array_agg(q.path_to order by q.path_number desc))[1],
+        count(*) filter(where q.path_from is not null and q.path_to is not null)::integer,
+        case when count(*) filter(where q.path_from is not null and q.path_to is not null)=count(*)
+          then (array_agg(q.path_from order by q.path_number))[1] end,
+        case when count(*) filter(where q.path_from is not null and q.path_to is not null)=count(*)
+          then (array_agg(q.path_to order by q.path_number desc))[1] end,
         case when max(q.max_abs_z)>0.01 then pg_catalog.round(avg(q.avg_z))::integer end
-      into v_path_count,v_valid_path_count,v_from_measure,v_to_measure,v_z_level
+      into v_path_count,v_valid_path_count,v_measured_path_count,
+           v_from_measure,v_to_measure,v_z_level
       from (
         select path_number,
           extensions.st_force2d(extensions.st_makeline(
@@ -129,12 +140,12 @@ begin
       continue;
     end;
 
-    -- Every original ArcGIS path must survive independently. Do not silently
-    -- drop a one-point/bad-measure/non-simple path from a required source.
+    -- Every original ArcGIS path must survive independently. An unmeasured path
+    -- is valid only when both endpoint measures are NULL; a half-measured path,
+    -- one-point path, non-simple path, invalid path, or missing path fails closed.
     if coalesce(v_path_count,0)=0
        or v_path_count<>v_source_path_count
-       or v_valid_path_count<>v_path_count
-       or v_from_measure is null or v_to_measure is null then
+       or v_valid_path_count<>v_path_count then
       continue;
     end if;
 
@@ -177,6 +188,8 @@ begin
         'source_geometry_has_m',coalesce((v_body->>'hasM')::boolean,true),
         'source_average_z',v_z_level,
         'source_path_count',v_path_count,
+        'source_measured_path_count',v_measured_path_count,
+        'source_unmeasured_path_count',v_path_count-v_measured_path_count,
         'multipart_paths_preserved',v_path_count>1,
         'measure_direction_preserved',true
       ),pg_catalog.md5(v_props::text||(v_feature->'geometry')::text),
@@ -207,7 +220,10 @@ begin
         v_from_measure,v_to_measure,
         pg_catalog.jsonb_build_object(
           'route_id',v_props->>'CO_ROUTEID','source','WVDOT Publication LRS',
-          'source_path_count',v_path_count,'multipart_paths_preserved',v_path_count>1
+          'source_path_count',v_path_count,
+          'source_measured_path_count',v_measured_path_count,
+          'source_unmeasured_path_count',v_path_count-v_measured_path_count,
+          'multipart_paths_preserved',v_path_count>1
         )
       ) on conflict(identity_id,source_dataset_id,source_record_id,name_type,road_name) do update
         set source_segment_key=excluded.source_segment_key,from_measure=excluded.from_measure,
@@ -255,6 +271,7 @@ begin
           'source_average_z',v_path.path_z,
           'source_path_number',v_path.path_number,
           'source_path_count',v_path_count,
+          'source_path_measured',v_path.path_from is not null and v_path.path_to is not null,
           'multipart_paths_preserved',v_path_count>1,
           'measure_direction_preserved',true
         ),
@@ -430,6 +447,6 @@ grant execute on function public.brinesearch_issue97_refresh_source_scope(text,t
 to service_role;
 
 comment on function public.brinesearch_issue97_ingest_wv_network_page(text,integer,integer) is
-  'Issue #97 WVDOT Publication LRS loader. Preserves every ArcGIS path as an independent simple source segment under one road identity; multipart paths are never combined/noded into invented topology.';
+  'Issue #97 WVDOT Publication LRS loader. Preserves every ArcGIS path as an independent simple source segment under one road identity; fully unmeasured paths remain unmeasured and multipart paths are never combined/noded into invented topology.';
 comment on function public.brinesearch_issue97_refresh_source_scope(text,text,integer) is
   'Issue #97 restartable service-only source orchestrator. Page/finalizer failures roll back partial source writes but preserve an explicit failed ingest-run receipt.';
