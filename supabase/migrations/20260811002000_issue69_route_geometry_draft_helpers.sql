@@ -53,6 +53,13 @@ begin
   if not found or coalesce(v_road.candidate_only,false) then
     raise exception 'Road Manager road is not publishable';
   end if;
+  if coalesce(v_road.geometry_status,'') not in (
+    'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+  ) then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','road_geometry_not_complete','road_id',p_road_id
+    );
+  end if;
   if v_road.centerline_geojson is null then
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_missing','road_id',p_road_id);
   end if;
@@ -62,7 +69,9 @@ begin
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_invalid','road_id',p_road_id);
   end;
   if extensions.st_isempty(v_master)
-     or extensions.geometrytype(v_master) not in ('LINESTRING','MULTILINESTRING') then
+     or extensions.geometrytype(v_master) not in ('LINESTRING','MULTILINESTRING')
+     or not extensions.st_isvalid(v_master)
+     or not extensions.st_coveredby(v_master,extensions.st_makeenvelope(-180,-90,180,90,4326)) then
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_invalid','road_id',p_road_id);
   end if;
   v_snapped:=extensions.st_closestpoint(v_master,v_near);
@@ -110,6 +119,7 @@ declare
   v_near extensions.geometry:=null;
   v_candidates jsonb:='[]'::jsonb;
   v_count integer:=0;
+  v_all_count integer:=0;
   v_limit integer:=greatest(1,least(coalesce(p_limit,8),20));
   v_lng double precision;
   v_lat double precision;
@@ -124,6 +134,16 @@ begin
   if v_left.id is null or v_right.id is null then raise exception 'Road Manager road not found'; end if;
   if coalesce(v_left.candidate_only,false) or coalesce(v_right.candidate_only,false) then
     raise exception 'Candidate-only roads cannot define a published route boundary';
+  end if;
+  if coalesce(v_left.geometry_status,'') not in (
+       'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+     ) or coalesce(v_right.geometry_status,'') not in (
+       'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+     ) then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','road_geometry_not_complete',
+      'left_road_id',p_left_road_id,'right_road_id',p_right_road_id,'candidates','[]'::jsonb
+    );
   end if;
   if v_left.centerline_geojson is null or v_right.centerline_geojson is null then
     return pg_catalog.jsonb_build_object(
@@ -142,7 +162,10 @@ begin
   end;
   if extensions.st_isempty(v_left_geom) or extensions.st_isempty(v_right_geom)
      or extensions.geometrytype(v_left_geom) not in ('LINESTRING','MULTILINESTRING')
-     or extensions.geometrytype(v_right_geom) not in ('LINESTRING','MULTILINESTRING') then
+     or extensions.geometrytype(v_right_geom) not in ('LINESTRING','MULTILINESTRING')
+     or not extensions.st_isvalid(v_left_geom) or not extensions.st_isvalid(v_right_geom)
+     or not extensions.st_coveredby(v_left_geom,extensions.st_makeenvelope(-180,-90,180,90,4326))
+     or not extensions.st_coveredby(v_right_geom,extensions.st_makeenvelope(-180,-90,180,90,4326)) then
     return pg_catalog.jsonb_build_object(
       'resolved',false,'reason','road_geometry_invalid',
       'left_road_id',p_left_road_id,'right_road_id',p_right_road_id,'candidates','[]'::jsonb
@@ -215,27 +238,54 @@ begin
     join right_points r
       on extensions.st_dwithin(l.geom::extensions.geography,r.geom::extensions.geography,1)
     group by extensions.st_x(l.geom),extensions.st_y(l.geom)
+  )
+  select
+    pg_catalog.count(*) filter (where v_near is null or near_m<=50),
+    pg_catalog.count(*)
+  into v_count,v_all_count
+  from grouped;
+
+  with left_points as (
+    select (dp).geom as geom from extensions.st_dumppoints(v_left_geom) dp
+  ), right_points as (
+    select (dp).geom as geom from extensions.st_dumppoints(v_right_geom) dp
+  ), grouped as (
+    select
+      extensions.st_x(l.geom) as lng,
+      extensions.st_y(l.geom) as lat,
+      pg_catalog.min(extensions.st_distance(l.geom::extensions.geography,r.geom::extensions.geography)) as node_gap_m,
+      case when v_near is null then null::double precision
+           else pg_catalog.min(extensions.st_distance(l.geom::extensions.geography,v_near::extensions.geography)) end as near_m
+    from left_points l
+    join right_points r
+      on extensions.st_dwithin(l.geom::extensions.geography,r.geom::extensions.geography,1)
+    group by extensions.st_x(l.geom),extensions.st_y(l.geom)
   ), ranked as (
     select * from grouped
+    where v_near is null or near_m<=50
     order by near_m asc nulls last,node_gap_m asc,lng,lat
     limit v_limit
   )
-  select
-    coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
       'coordinate',pg_catalog.jsonb_build_array(lng,lat),
       'kind','shared_road_manager_node',
       'node_gap_m',pg_catalog.round(node_gap_m::numeric,3),
       'distance_to_tap_m',case when near_m is null then null else pg_catalog.round(near_m::numeric,2) end
-    ) order by near_m asc nulls last,node_gap_m asc),'[]'::jsonb),
-    pg_catalog.count(*)
-  into v_candidates,v_count
+    ) order by near_m asc nulls last,node_gap_m asc),'[]'::jsonb)
+  into v_candidates
   from ranked;
 
   return pg_catalog.jsonb_build_object(
     'resolved',v_count>0,
     'ambiguous',v_count>1,
     'same_road',false,
-    'reason',case when v_count=0 then 'no_shared_road_manager_node' else null end,
+    'reason',case
+      when v_count=0 and v_all_count>0 and v_near is not null then 'no_shared_road_manager_node_near_tap'
+      when v_count=0 then 'no_shared_road_manager_node'
+      else null
+    end,
+    'candidate_count',v_count,
+    'candidates_truncated',v_count>pg_catalog.jsonb_array_length(v_candidates),
     'left_road_id',p_left_road_id,
     'right_road_id',p_right_road_id,
     'left_road_name',v_left.canonical_name,
@@ -280,6 +330,8 @@ declare
   v_start_lat double precision;
   v_end_lng double precision;
   v_end_lat double precision;
+  v_component_count integer:=0;
+  v_clip_geojson jsonb;
 begin
   if auth.uid() is null or not public.is_brinesearch_owner(auth.uid()) then
     raise exception 'Owner access is required to clip route geometry' using errcode='42501';
@@ -310,6 +362,13 @@ begin
   if not found or coalesce(v_road.candidate_only,false) then
     raise exception 'Road Manager road is not publishable';
   end if;
+  if coalesce(v_road.geometry_status,'') not in (
+    'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+  ) then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','road_geometry_not_complete','road_id',p_road_id
+    );
+  end if;
   if v_road.centerline_geojson is null then
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_missing','road_id',p_road_id);
   end if;
@@ -319,13 +378,40 @@ begin
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_invalid','road_id',p_road_id);
   end;
   if extensions.st_isempty(v_master)
-     or extensions.geometrytype(v_master) not in ('LINESTRING','MULTILINESTRING') then
+     or extensions.geometrytype(v_master) not in ('LINESTRING','MULTILINESTRING')
+     or not extensions.st_isvalid(v_master)
+     or not extensions.st_coveredby(v_master,extensions.st_makeenvelope(-180,-90,180,90,4326)) then
     return pg_catalog.jsonb_build_object('resolved',false,'reason','road_geometry_invalid','road_id',p_road_id);
   end if;
 
   -- Choose one continuous Road Manager component that supports BOTH boundaries.
   -- Never bridge disconnected pieces of a road merely because they share one
   -- name/road record.
+  select pg_catalog.count(*) into v_component_count
+  from (
+    select (dumped).geom
+    from (
+      select extensions.st_dump(extensions.st_linemerge(v_master)) as dumped
+    ) q
+  ) d
+  where extensions.geometrytype(d.geom)='LINESTRING'
+    and extensions.st_isvalid(d.geom)
+    and extensions.st_issimple(d.geom)
+    and extensions.st_dwithin(d.geom::extensions.geography,v_start::extensions.geography,1)
+    and extensions.st_dwithin(d.geom::extensions.geography,v_end::extensions.geography,1);
+
+  if v_component_count=0 then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','boundaries_not_on_one_continuous_road_component','road_id',p_road_id
+    );
+  end if;
+  if v_component_count>1 then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','ambiguous_continuous_road_components','road_id',p_road_id,
+      'component_count',v_component_count
+    );
+  end if;
+
   select d.geom into v_line
   from (
     select (dumped).geom
@@ -334,18 +420,10 @@ begin
     ) q
   ) d
   where extensions.geometrytype(d.geom)='LINESTRING'
+    and extensions.st_isvalid(d.geom)
+    and extensions.st_issimple(d.geom)
     and extensions.st_dwithin(d.geom::extensions.geography,v_start::extensions.geography,1)
-    and extensions.st_dwithin(d.geom::extensions.geography,v_end::extensions.geography,1)
-  order by
-    extensions.st_distance(d.geom::extensions.geography,v_start::extensions.geography)
-    + extensions.st_distance(d.geom::extensions.geography,v_end::extensions.geography)
-  limit 1;
-
-  if v_line is null then
-    return pg_catalog.jsonb_build_object(
-      'resolved',false,'reason','boundaries_not_on_one_continuous_road_component','road_id',p_road_id
-    );
-  end if;
+    and extensions.st_dwithin(d.geom::extensions.geography,v_end::extensions.geography,1);
 
   v_start_snap:=extensions.st_closestpoint(v_line,v_start);
   v_end_snap:=extensions.st_closestpoint(v_line,v_end);
@@ -381,6 +459,18 @@ begin
   v_clip:=extensions.st_setpoint(v_clip,0,v_start);
   v_clip:=extensions.st_setpoint(v_clip,extensions.st_npoints(v_clip)-1,v_end);
 
+  -- One 15-digit GeoJSON round trip defines the canonical coordinate precision.
+  -- Boundary arrays, stored geometry and mileage are all derived from this same
+  -- representation so interpolated anchors remain exactly equal after reload.
+  begin
+    v_clip_geojson:=extensions.st_asgeojson(v_clip,15)::jsonb;
+    v_clip:=extensions.st_setsrid(extensions.st_geomfromgeojson(v_clip_geojson::text),4326);
+  exception when others then
+    return pg_catalog.jsonb_build_object(
+      'resolved',false,'reason','clip_precision_canonicalization_failed','road_id',p_road_id
+    );
+  end;
+
   if not extensions.st_isvalid(v_clip)
      or not extensions.st_issimple(v_clip)
      or extensions.st_equals(extensions.st_startpoint(v_clip),extensions.st_endpoint(v_clip))
@@ -403,7 +493,7 @@ begin
     'aliases',pg_catalog.to_jsonb(coalesce(v_road.aliases,'{}'::text[])),
     'start_coordinate',pg_catalog.jsonb_build_array(extensions.st_x(extensions.st_startpoint(v_clip)),extensions.st_y(extensions.st_startpoint(v_clip))),
     'end_coordinate',pg_catalog.jsonb_build_array(extensions.st_x(extensions.st_endpoint(v_clip)),extensions.st_y(extensions.st_endpoint(v_clip))),
-    'clipped_geometry',extensions.st_asgeojson(v_clip,9)::jsonb,
+    'clipped_geometry',v_clip_geojson,
     'miles',v_miles,
     'geometry_status','snapped_intersections',
     'geometry_source','road_manager_clip_issue69',

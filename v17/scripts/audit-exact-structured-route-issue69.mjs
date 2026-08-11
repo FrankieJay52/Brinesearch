@@ -10,12 +10,13 @@ const read = file => fs.readFile(file, 'utf8');
 
 const [
   source, boundaryEditor, spatialRoadSelection, publishLockdown,
-  orderRaw, geometryMigration, draftHelpers
+  legacyInteractive, orderRaw, geometryMigration, draftHelpers
 ] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
   read(path.join(v17Root, 'src/parts/21j-road-manager-route-boundaries-issue69.js')),
   read(path.join(v17Root, 'src/parts/21k-road-manager-spatial-road-selection-issue69.js')),
   read(path.join(v17Root, 'src/parts/21l-road-manager-structured-publish-lockdown-issue69.js')),
+  read(path.join(v17Root, 'src/parts/21e-road-manager-interactive-route-map-v17327.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
   read(path.join(projectRoot, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
@@ -61,6 +62,7 @@ for (const token of [
   'route_step_id', 'road_id', 'start_coordinate', 'end_coordinate',
   'clipped_geometry', 'turn_direction', 'inbound_turn', 'geometry_status'
 ]) assert.ok(source.includes(token), `#69 publish payload missing ${token}`);
+assert.ok(source.includes('needs an explicit reverse-route turn'), '#69 publish must require occurrence-specific reverse turns instead of guessing.');
 
 for (const token of [
   'Set start boundary',
@@ -75,8 +77,10 @@ for (const token of [
   'Same-road occurrence split',
   'shared Road Manager nodes',
   'Route order changed — exact boundaries must be re-established',
-  'routeIssue69ReverseTurn'
+  'Reverse turn'
 ]) assert.ok(boundaryEditor.includes(token), `#69 boundary editor missing ${token}`);
+assert.ok(!boundaryEditor.includes('routeIssue69ReverseTurn'), 'Reverse-route turns must not be guessed by inverting the same occurrence outbound turn.');
+assert.ok(boundaryEditor.includes('candidates.length === 1 && !payload?.ambiguous'), 'Boundary editor can auto-select a truncated ambiguous intersection set.');
 
 assert.ok(boundaryEditor.includes('routeInteractiveUseCandidateInvalidateTopologyIssue69'), 'Road replace/insert is not topology-invalidating.');
 assert.ok(boundaryEditor.includes('routeStepRemoveInvalidateTopologyIssue69'), 'Road removal is not topology-invalidating.');
@@ -89,14 +93,20 @@ for (const token of [
   'Exact source identity wins',
   'Spatial support comes before naming',
   'More than one Road Manager road is spatially valid at this tap',
-  'explicit_owner_tap',
-  'BrineSearch did not fall back to a name-similar road',
+  'routeIssue69CompleteRoadGeometry',
+  'routeIssue69TapLocalCandidatePoint',
+  '_tapPoint',
+  'One tapped OSM way is only partial source geometry',
+  'single way cannot create complete canonical-road coverage',
   'other?.id',
   'routeInteractiveLookupRoadsSpatialIssue69'
 ]) assert.ok(spatialRoadSelection.includes(token), `#69 spatial road selection missing ${token}`);
 assert.ok(!spatialRoadSelection.includes('best?.score'), '#69 map taps must not silently choose a fuzzy best-name Road Manager record.');
 assert.ok(!spatialRoadSelection.includes('routeBacktraceSimilarityV17325'), '#69 spatial road identity guard must not depend on fuzzy name similarity.');
 assert.ok(!spatialRoadSelection.includes('routeInteractiveCandidateNameV17327(other) === routeInteractiveCandidateNameV17327(row)'), '#69 external road candidates must not be deduplicated by name.');
+assert.ok(spatialRoadSelection.includes('routeStepMilesPerPixelV17328(point) * 34'), '#69 local Road Manager tap threshold is not using the full map point.');
+assert.ok(!spatialRoadSelection.includes('routeStepMilesPerPixelV17328(point.lat)'), '#69 local Road Manager tap threshold still passes a latitude number and becomes NaN.');
+assert.ok(!spatialRoadSelection.includes('method: "PATCH"') && !spatialRoadSelection.includes('method: "POST"'), '#69 must not turn one tapped OSM way into canonical Road Manager geometry.');
 
 for (const token of [
   'routeInteractivePublishV17327 = routeIssue69PublishStructured',
@@ -105,6 +115,11 @@ for (const token of [
 ]) assert.ok(publishLockdown.includes(token), `#69 publish lockdown missing ${token}`);
 assert.ok(!publishLockdown.includes('/rest/v1/brinesearch_pad_roads'), '#69 publish lockdown must not retain the legacy direct route-row write path.');
 assert.ok(!publishLockdown.includes('method: "PATCH"'), '#69 publish lockdown must not PATCH pads directly.');
+
+const delegatedPublisher = legacyInteractive.match(/async function routeInteractivePublishV17327\(\) \{[\s\S]*?\n    \}/)?.[0] || '';
+assert.ok(delegatedPublisher.includes('window.routeIssue69PublishStructured'), 'Legacy interactive publisher does not delegate to the exact structured publisher.');
+assert.ok(delegatedPublisher.includes('legacy direct publisher is retired'), 'Legacy interactive publisher does not fail closed when exact publishing is unavailable.');
+assert.ok(!delegatedPublisher.includes('editorRequest('), 'Legacy interactive publisher still has a direct REST write path.');
 
 for (const token of [
   'brinesearch_publish_structured_route',
@@ -127,8 +142,14 @@ for (const token of [
   'same_road_explicit_split',
   'same_road_split_requires_explicit_point',
   'no_shared_road_manager_node',
+  'no_shared_road_manager_node_near_tap',
   'boundaries_not_on_one_continuous_road_component',
+  'ambiguous_continuous_road_components',
   'boundary_outside_publisher_tolerance',
+  'clip_precision_canonicalization_failed',
+  'st_asgeojson(v_clip,15)',
+  'road_geometry_not_complete',
+  'candidates_truncated',
   'clip_outside_road_manager_support',
   'st_dumppoints',
   'st_linelocatepoint',
@@ -158,8 +179,8 @@ console.log(JSON.stringify({
   draftGeometry: 'explicit tap snap + shared Road Manager node candidates + one-component clipping',
   topologyEdits: 'replace/insert/remove/reorder invalidate affected exact geometry',
   roadIdentity: 'exact source ID or spatial support; ambiguous/name-only matches block instead of guessing',
-  reverseRoute: 'reverse-turn field preserved with outbound-turn inverse as default',
+  reverseRoute: 'occurrence-specific inbound turn is explicit; same-row outbound inversion is forbidden',
   unresolvedBehavior: 'no fake exact highlight and publish blocked',
-  remaining: 'browser/agent hard-case review + #81 safety-note preservation review + production rollout/live verification'
+  remaining: 'canonical publisher hardening + browser race/runtime regressions + #81 safety-context preservation + production rollout/live verification'
 }, null, 2));
 console.log('GitHub #69 structured-route foundation audit passed.');

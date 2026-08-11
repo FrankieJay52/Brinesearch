@@ -282,6 +282,9 @@
         if (!segment.roadId) throw new Error(`Step ${index + 1} has no Road Manager road ID`);
         if (!routeIssue69HasExactGeometry(segment)) throw new Error(`Step ${index + 1}: ${segment.roadName} needs exact start/end boundaries and clipped geometry`);
         if (index > 0 && !segment.turn) throw new Error(`Step ${index + 1}: ${segment.roadName} needs a turn instruction`);
+        if (index < routeMapperSegmentsV17324.length - 1 && !segment.inboundTurn) {
+          throw new Error(`Step ${index + 1}: ${segment.roadName} needs an explicit reverse-route turn`);
+        }
         return {
           step_order: index + 1,
           route_step_id: segment.routeStepId,

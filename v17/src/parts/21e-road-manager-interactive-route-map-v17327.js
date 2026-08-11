@@ -578,66 +578,11 @@
     }
 
     async function routeInteractivePublishV17327() {
-      const pad = routeMapperSelectedPadV17324;
-      const button = document.getElementById("routeMapperSaveReview");
-      const status = document.getElementById("routeMapperSaveStatus");
-      if (!pad || !routeMapperPadIdV17324(pad)) throw new Error("This pad does not have a live database ID");
-      await routeInteractiveSeedSegmentsV17327();
-      if (!routeMapperSegmentsV17324.length) throw new Error("Add or map the route roads first");
-      const missingRoad = routeMapperSegmentsV17324.findIndex(segment => !segment.roadId);
-      if (missingRoad >= 0) throw new Error(`Map-match or add Road Manager step ${missingRoad + 1}: ${routeMapperSegmentsV17324[missingRoad].roadName}`);
-      routeMapperSegmentsV17324.forEach((segment, index) => {
-        if (index > 0 && !segment.turn) throw new Error(`Set the turn for step ${index + 1}: ${segment.roadName}`);
-        if (segment.miles !== "" && (!Number.isFinite(Number(segment.miles)) || Number(segment.miles) < 0)) throw new Error(`Mileage for step ${index + 1} is invalid`);
-      });
-      if (button) { button.disabled = true; button.textContent = "Saving route + directions…"; }
-      if (status) status.textContent = "Saving Road Manager review…";
-      const oldSave = routeInteractiveOriginalSaveReviewV17327;
-      await oldSave();
-      if (!routeMapperReviewV17324?.id) throw new Error("Could not save the route review before publishing");
-      const sequence = routeInteractiveMergedSequenceV17327(pad, routeMapperSegmentsV17324).join(" → ");
-      const clearDirections = routeInteractiveBuildClearDirectionsV17327(pad, routeMapperSegmentsV17324);
-      const padId = routeMapperPadIdV17324(pad);
-      const now = new Date().toISOString();
-      if (status) status.textContent = "Updating canonical pad roads…";
-      const previousPadRoads = await editorRequest(`/rest/v1/brinesearch_pad_roads?select=*&pad_id=eq.${encodeURIComponent(padId)}&route_group=eq.primary&route_variant_index=eq.0&order=step_order.asc`, { method: "GET" }).catch(() => []);
-      try {
-        await editorRequest(`/rest/v1/brinesearch_pad_roads?pad_id=eq.${encodeURIComponent(padId)}&route_group=eq.primary&route_variant_index=eq.0`, { method: "DELETE", headers: { Prefer: "return=minimal" } });
-        const bodies = routeInteractivePadRoadBodiesV17327(pad, routeMapperSegmentsV17324, clearDirections);
-        if (bodies.length) await editorRequest("/rest/v1/brinesearch_pad_roads", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(bodies) });
-      } catch (error) {
-        if (Array.isArray(previousPadRoads) && previousPadRoads.length) {
-          const restore = previousPadRoads.map(({ id, created_at, updated_at, created_by, updated_by, ...row }) => row);
-          await editorRequest("/rest/v1/brinesearch_pad_roads", { method: "POST", headers: { Prefer: "return=minimal" }, body: JSON.stringify(restore) }).catch(() => {});
-        }
-        throw error;
+      const exactPublisher = window.routeIssue69PublishStructured;
+      if (typeof exactPublisher !== "function") {
+        throw new Error("Exact structured route publishing is unavailable. Reload before saving; the legacy direct publisher is retired.");
       }
-      if (status) status.textContent = "Updating live Clear Directions…";
-      const updateBody = {
-        structured_road_sequence: sequence,
-        directions_clear: clearDirections,
-        directions_clear_method: "owner_interactive_route_map_v17327",
-        directions_clear_updated_at: now,
-        directions_clear_updated_by: editorSession?.user?.id || null,
-        road_sequence_status: "owner_verified",
-        road_sequence_reviewed_date: now.slice(0, 10),
-        number_of_road_steps: routeMapperSegmentsV17324.length,
-        last_updated_by: editorProfile?.display_name || editorSession?.user?.email || "BrineSearch Owner",
-        last_updated_date: now,
-        updated_by: editorSession?.user?.id || null,
-        updated_at: now
-      };
-      await editorRequest(`/rest/v1/pads?id=eq.${encodeURIComponent(padId)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify(updateBody) });
-      await editorRequest(`/rest/v1/brinesearch_route_reviews?id=eq.${encodeURIComponent(routeMapperReviewV17324.id)}`, { method: "PATCH", headers: { Prefer: "return=minimal" }, body: JSON.stringify({ status: "approved", reviewed_by: editorSession?.user?.id || null, reviewed_at: now, approved_at: now, updated_at: now }) }).catch(() => {});
-      pad.Structured_Road_Sequence = sequence;
-      pad.directionsClear = clearDirections;
-      pad.directions_clear = clearDirections;
-      pad.directions_clear_method = "owner_interactive_route_map_v17327";
-      routeInteractiveUseDraftV17327 = false;
-      routeBacktraceMemoryV17325.clear();
-      if (status) status.textContent = "Route, Road Manager roads, mileage/turns, and live Clear Directions are synchronized.";
-      showToast("Route and driver directions updated");
-      if (button) { button.disabled = false; button.textContent = "Save route & update directions"; }
+      return exactPublisher();
     }
 
     const routeInteractiveOriginalSaveReviewV17327 = routeMapperSaveReviewV17324;

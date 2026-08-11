@@ -5,16 +5,6 @@
 
     let routeIssue69BoundaryMode = null; // "start" | "end"
 
-    function routeIssue69ReverseTurn(turn) {
-      const reverse = {
-        left: "right", right: "left",
-        slight_left: "slight_right", slight_right: "slight_left",
-        merge_left: "merge_right", merge_right: "merge_left",
-        straight: "straight", arrive: "straight"
-      };
-      return reverse[String(turn || "")] || "";
-    }
-
     function routeIssue69ClearClip(segment) {
       if (!segment) return;
       segment.clippedGeometry = null;
@@ -77,7 +67,6 @@
       segment.geometrySource = result.geometry_source || "road_manager_clip_issue69";
       segment.geometrySourceRecordId = result.geometry_source_record_id || segment.geometrySourceRecordId || null;
       segment.geometryVersion = 1;
-      if (!segment.inboundTurn && segment.turn) segment.inboundTurn = routeIssue69ReverseTurn(segment.turn);
       return true;
     }
 
@@ -174,7 +163,7 @@
       });
       const candidates = Array.isArray(payload?.candidates) ? payload.candidates : [];
       if (!payload?.resolved || !candidates.length) throw new Error(String(payload?.reason || "no shared Road Manager intersection").replaceAll("_", " "));
-      if (candidates.length === 1) {
+      if (candidates.length === 1 && !payload?.ambiguous) {
         await routeIssue69ApplyBoundary(index, side, candidates[0].coordinate);
         return;
       }
@@ -298,7 +287,7 @@
       }
       const inbound = controls.querySelector("[data-route-boundary-inbound]");
       if (inbound && segment) {
-        inbound.value = segment.inboundTurn || routeIssue69ReverseTurn(segment.turn);
+        inbound.value = segment.inboundTurn || "";
         inbound.onchange = () => {
           segment.inboundTurn = inbound.value;
           routeMapperDraftSaveV17324();
@@ -308,4 +297,3 @@
 
     window.routeIssue69ClipStep = routeIssue69ClipStep;
     window.routeIssue69ResolveBoundaryTap = routeIssue69ResolveBoundaryTap;
-    window.routeIssue69ReverseTurn = routeIssue69ReverseTurn;

@@ -12,39 +12,37 @@
         : routeBacktraceRoadKeyV17325(String(value || ""));
     }
 
-    function routeIssue69CandidateSamples(candidate) {
+    function routeIssue69CompleteRoadGeometry(road) {
+      return Boolean(road?.centerline_geojson)
+        && ["official_centerline_loaded", "field_confirmed_centerline", "owner_verified_complete"]
+          .includes(String(road?.geometry_status || ""));
+    }
+
+    function routeIssue69TapLocalCandidatePoint(candidate) {
       const line = routeInteractiveCandidateLineV17327(candidate);
-      if (!Array.isArray(line) || !line.length) return [];
-      const indexes = Array.from(new Set([0, Math.floor((line.length - 1) / 2), line.length - 1]));
-      return indexes.map(index => line[index]).filter(point => Array.isArray(point) && point.length >= 2);
+      const tap = candidate?._tapPoint;
+      if (!Array.isArray(line) || !line.length || !tap
+          || !Number.isFinite(Number(tap.lng)) || !Number.isFinite(Number(tap.lat))) return null;
+      return routeBacktraceClosestVertexV17325([Number(tap.lng), Number(tap.lat)], line)?.point || null;
     }
 
     function routeIssue69RoadSpatialDistance(road, candidate) {
-      const samples = routeIssue69CandidateSamples(candidate);
+      const sample = routeIssue69TapLocalCandidatePoint(candidate);
       const lines = routeBacktraceGeoLinesV17325(road?.centerline_geojson);
-      if (!samples.length || !lines.length) return Infinity;
+      if (!sample || !lines.length) return Infinity;
       let distance = Infinity;
-      for (const sample of samples) {
-        for (const line of lines) {
-          const hit = routeBacktraceClosestVertexV17325(sample, line);
-          if (Number.isFinite(hit?.distance)) distance = Math.min(distance, hit.distance);
-        }
+      for (const line of lines) {
+        const hit = routeBacktraceClosestVertexV17325(sample, line);
+        if (Number.isFinite(hit?.distance)) distance = Math.min(distance, hit.distance);
       }
       return distance;
     }
 
-    function routeIssue69RoadScopeCompatible(road, identity, pad) {
-      if (!road) return false;
-      if (identity?.roadType && road.road_type && identity.roadType !== road.road_type) return false;
-      const candidateState = routeMapperStateCodeV17324(identity?.state || pad?.state);
-      const roadState = routeMapperStateCodeV17324(road?.state);
-      if (candidateState && roadState && candidateState !== roadState) return false;
-      if (["county", "township", "local", "access"].includes(identity?.roadType)) {
-        const padCounty = normalize(pad?.county || "").toLowerCase();
-        const roadCounty = normalize(road?.county || "").toLowerCase();
-        if (padCounty && roadCounty && padCounty !== roadCounty) return false;
-      }
-      return !road?.candidate_only;
+    function routeIssue69RoadScopeCompatible(road) {
+      // Exact tap-local geometry is authoritative. Pad jurisdiction text is not:
+      // real approach routes cross county/state lines and production labels can
+      // contain aliases or legacy misspellings.
+      return Boolean(road) && !road?.candidate_only;
     }
 
     function routeIssue69ExactIdentityMatch(road, identity) {
@@ -68,9 +66,9 @@
     }
 
     function routeIssue69LocalRoadCandidates(point, roads) {
-      const threshold = Math.max(0.015, Math.min(0.11, routeStepMilesPerPixelV17328(point.lat) * 34));
+      const threshold = Math.max(0.015, Math.min(0.11, routeStepMilesPerPixelV17328(point) * 34));
       return (roads || [])
-        .filter(road => road?.id && road?.centerline_geojson && !road?.candidate_only)
+        .filter(road => road?.id && routeIssue69CompleteRoadGeometry(road) && !road?.candidate_only)
         .map(road => {
           const lines = routeBacktraceGeoLinesV17325(road.centerline_geojson);
           let distance = Infinity;
@@ -83,62 +81,39 @@
         .filter(match => Number.isFinite(match.distance) && match.distance <= threshold)
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 12)
-        .map(match => ({ ...routeStepSyntheticCandidateV17328(match.road), _distance: match.distance }));
+        .map(match => ({
+          ...routeStepSyntheticCandidateV17328(match.road),
+          _distance: match.distance,
+          _tapPoint: { lng: Number(point.lng), lat: Number(point.lat) }
+        }));
     }
 
-    async function routeIssue69AttachTappedGeometry(road, candidate, identity, roads) {
-      const line = routeInteractiveCandidateLineV17327(candidate);
-      if (!road?.id || !Array.isArray(line) || line.length < 2) return road;
-      const now = new Date().toISOString();
-      const sourceId = candidate?.id ? String(candidate.id) : null;
-      const patch = {
-        centerline_geojson: { type: "LineString", coordinates: line },
-        geometry_status: "map_loaded",
-        geometry_checked_at: now,
-        verification_status: road.verification_status === "verified" ? "verified" : "map_match",
-        source_method: "owner_map_tap_issue69",
-        candidate_basis: {
-          method: "owner_map_tap_issue69",
-          pad_id: routeMapperPadIdV17324(routeMapperSelectedPadV17324) || null,
-          explicit_owner_tap: true,
-          prior_source_record_id: road.source_record_id || null
-        }
-      };
-      if (!road.source_record_id && sourceId) {
-        patch.source_agency = "OpenStreetMap";
-        patch.source_dataset = "OSM way geometry";
-        patch.source_record_id = sourceId;
-        patch.source_url = /^\d+$/.test(sourceId) ? `https://www.openstreetmap.org/way/${sourceId}` : null;
-      }
-      const saved = await editorRequest(`/rest/v1/brinesearch_roads?id=eq.${encodeURIComponent(road.id)}`, {
-        method: "PATCH",
-        headers: { Prefer: "return=representation" },
-        body: JSON.stringify(patch)
-      });
-      const updated = Array.isArray(saved) ? saved[0] : saved;
-      if (!updated?.id) throw new Error("Road Manager did not confirm the tapped road geometry");
-      roadManagerRows = (roads || []).map(row => row.id === updated.id ? updated : row);
-      return updated;
+    async function routeIssue69AttachTappedGeometry(road) {
+      const name = road?.canonical_name || "This Road Manager road";
+      throw new Error(`${name} has no complete Road Manager centerline. One tapped OSM way is only partial source geometry and cannot replace the canonical road. Keep this step unresolved and repair/enrich the road under #70.`);
     }
 
     routeInteractiveEnsureRoadRecordV17327 = async function routeInteractiveEnsureRoadSpatialIssue69(candidate) {
       if (candidate?._roadRecord?.id) return candidate._roadRecord;
       const identity = routeInteractiveCanonicalCandidateV17327(candidate);
-      const pad = routeMapperSelectedPadV17324;
       const roads = await routeIssue69AllRoads();
       const sourceId = candidate?.id ? String(candidate.id) : "";
 
       // Exact source identity wins. This is not a name match.
       if (sourceId) {
-        const sourceMatches = roads.filter(road => String(road?.source_record_id || "") === sourceId && routeIssue69RoadScopeCompatible(road, identity, pad));
-        if (sourceMatches.length === 1) return sourceMatches[0];
+        const sourceMatches = roads.filter(road => String(road?.source_record_id || "") === sourceId && routeIssue69RoadScopeCompatible(road));
+        const completeSourceMatches = sourceMatches.filter(routeIssue69CompleteRoadGeometry);
+        if (completeSourceMatches.length === 1 && sourceMatches.length === 1) return completeSourceMatches[0];
         if (sourceMatches.length > 1) throw new Error("Multiple Road Manager records share this source geometry ID. Resolve the duplicate road records first.");
+        if (sourceMatches.length === 1) {
+          throw new Error("This Road Manager road has only partial or unverified centerline coverage. Keep the #69 step unresolved and complete its geometry under #70.");
+        }
       }
 
       // Spatial support comes before naming. Only Road Manager geometries under
       // the tapped OSM geometry are candidates for silent reuse.
       const spatial = roads
-        .filter(road => routeIssue69RoadScopeCompatible(road, identity, pad) && road?.centerline_geojson)
+        .filter(road => routeIssue69RoadScopeCompatible(road) && routeIssue69CompleteRoadGeometry(road))
         .map(road => ({ road, distance: routeIssue69RoadSpatialDistance(road, candidate) }))
         .filter(match => Number.isFinite(match.distance) && match.distance <= ROUTE_ISSUE69_SPATIAL_MATCH_MI)
         .sort((a, b) => a.distance - b.distance);
@@ -149,66 +124,18 @@
         throw new Error("More than one Road Manager road is spatially valid at this tap. Choose the existing road explicitly in Find road instead of guessing.");
       }
 
-      // A unique exact scoped identity with no centerline may receive the exact
-      // geometry the Owner just tapped. Ambiguous names are never auto-updated.
-      const exactIdentity = roads.filter(road => routeIssue69RoadScopeCompatible(road, identity, pad) && routeIssue69ExactIdentityMatch(road, identity));
+      // A unique exact scoped identity with no centerline is still unresolved.
+      // One OSM way does not prove full canonical-road coverage and must never
+      // overwrite the Road Manager centerline.
+      const exactIdentity = roads.filter(road => routeIssue69RoadScopeCompatible(road) && routeIssue69ExactIdentityMatch(road, identity));
       const withoutGeometry = exactIdentity.filter(road => !road?.centerline_geojson);
       if (withoutGeometry.length === 1 && exactIdentity.length === 1) {
-        return routeIssue69AttachTappedGeometry(withoutGeometry[0], candidate, identity, roads);
+        return routeIssue69AttachTappedGeometry(withoutGeometry[0]);
       }
       if (exactIdentity.length > 0) {
         throw new Error("This road name already exists in Road Manager but the tapped geometry does not uniquely identify that record. Open Find road and choose/repair it explicitly.");
       }
-
-      const name = identity.canonical;
-      const roadType = identity.roadType;
-      const state = ["interstate", "us_route"].includes(roadType) ? null : routeMapperStateCodeV17324(pad?.state);
-      const aliases = Array.from(new Set([candidate?.tags?.name, candidate?.tags?.ref].map(normalize).filter(value => value && value.toLowerCase() !== name.toLowerCase())));
-      const routeNumber = normalize(candidate?.tags?.ref || "").match(/\d{1,4}(?:\/\d+)?/)?.[0] || null;
-      const line = routeInteractiveCandidateLineV17327(candidate);
-      if (!Array.isArray(line) || line.length < 2) throw new Error("Tapped road has no usable geometry");
-      const body = {
-        canonical_name: name,
-        normalized_name: routeIssue69RoadKey(name),
-        road_type: roadType,
-        state,
-        county: ["interstate", "us_route", "state_route"].includes(roadType) ? null : (pad?.county || null),
-        township: ["interstate", "us_route", "state_route"].includes(roadType) ? null : (pad?.township || null),
-        aliases,
-        route_number: routeNumber,
-        verification_status: "map_match",
-        source_agency: "OpenStreetMap",
-        source_dataset: "OSM way geometry",
-        source_method: "owner_map_tap_issue69",
-        source_url: sourceId && /^\d+$/.test(sourceId) ? `https://www.openstreetmap.org/way/${sourceId}` : null,
-        source_record_id: sourceId || null,
-        centerline_geojson: { type: "LineString", coordinates: line },
-        geometry_status: "map_loaded",
-        geometry_checked_at: new Date().toISOString(),
-        candidate_only: false,
-        candidate_basis: { method: "owner_map_tap_issue69", pad_id: routeMapperPadIdV17324(pad) || null, explicit_owner_tap: true },
-        route_directions: [],
-        coverage_states: state ? [state] : []
-      };
-      try {
-        const saved = await editorRequest("/rest/v1/brinesearch_roads", {
-          method: "POST",
-          headers: { Prefer: "return=representation" },
-          body: JSON.stringify(body)
-        });
-        const road = Array.isArray(saved) ? saved[0] : saved;
-        if (!road?.id) throw new Error("Road Manager did not return the selected road");
-        roadManagerRows = [...roads, road];
-        return road;
-      } catch (error) {
-        // Never fall back to fuzzy names after a write conflict. Recheck only the
-        // exact external source ID; otherwise require explicit owner resolution.
-        if (sourceId) {
-          const sourceMatches = await editorRequest(`/rest/v1/brinesearch_roads?select=*&source_record_id=eq.${encodeURIComponent(sourceId)}&limit=2`, { method: "GET" }).catch(() => []);
-          if (Array.isArray(sourceMatches) && sourceMatches.length === 1) return sourceMatches[0];
-        }
-        throw new Error(`${error?.message || "Could not save tapped road"}. BrineSearch did not fall back to a name-similar road.`);
-      }
+      throw new Error("This tapped OSM way is not linked to a publishable Road Manager road. A single way cannot create complete canonical-road coverage. Add/repair the road under #70, then reload it here; this #69 step remains unresolved.");
     };
 
     // V17.3.28 deduped nearby OSM ways by display name. That can erase a
@@ -233,7 +160,11 @@
         }));
         return rows
           .filter(row => Array.isArray(row?.geometry) && row.geometry.length > 1)
-          .map(row => ({ ...row, _distance: routeInteractiveDistanceToCandidateV17327(row, point) }))
+          .map(row => ({
+            ...row,
+            _distance: routeInteractiveDistanceToCandidateV17327(row, point),
+            _tapPoint: { lng: Number(point.lng), lat: Number(point.lat) }
+          }))
           .sort((a, b) => a._distance - b._distance)
           .filter((row, index, all) => index === all.findIndex(other => String(other?.id || "") === String(row?.id || "")))
           .slice(0, 8);

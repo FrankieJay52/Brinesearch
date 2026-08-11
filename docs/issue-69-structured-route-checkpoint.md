@@ -142,3 +142,46 @@ checkpoint, this document, and current production before changing code.
 Production was read-only during this continuation checkpoint. The next slice is
 the #81-safe driver-safety persistence/regeneration contract plus removal of the
 partial OSM overwrite path, followed by independent read-only review lanes.
+
+## 2026-08-11 guardrail review slice after `26bd6e6`
+
+Three independent read-only review lanes found that the V17.3.29 database
+publisher is not yet the final canonical implementation. In particular it trusts
+client clipped geometry, permits direct Owner writes to geometry-version-1 route
+rows, allows a null expected revision, lacks a durable Road Manager centerline
+hash/revision, and is currently unable to update `pads` under the #74 production
+ACL. The next database slice must replace it with a narrowly Owner-gated,
+empty-search-path SECURITY DEFINER boundary that server-clips every occurrence,
+persists a monotonic pad route revision, rejects direct version-1 DML, and
+preserves #73/#74/#81 boundaries.
+
+This guardrail slice completed the following before that publisher rewrite:
+
+- Removed the executable legacy direct route publisher body; V17.3.27 now only
+  delegates to `window.routeIssue69PublishStructured` and fails closed if it is
+  unavailable.
+- Blocked both overwriting a Road Manager centerline and creating a publishable
+  Road Manager road from one tapped OSM way. Such steps remain explicitly
+  unresolved for #70 geometry enrichment.
+- Restricted map candidates and helpers to complete centerline statuses;
+  production's five `owner_map_tap_v17328` partial OSM geometries are not treated
+  as publishable exact route support.
+- Fixed the Road Manager local-tap threshold (`point`, not `point.lat`) and made
+  external spatial reuse compare the tap-local point on the OSM candidate rather
+  than remote samples elsewhere on a long way.
+- Removed jurisdiction-string matching from tap identity because exact spatial
+  support is authoritative and valid routes can cross county/state boundaries.
+- Hardened boundary helpers to reject invalid masters, far-away shared nodes,
+  hidden/truncated ambiguity, and multiple supporting continuous components.
+- Canonicalized clipped geometry through one 15-digit GeoJSON round trip, then
+  derived boundaries and mileage from that same geometry representation.
+- Removed the mathematically incorrect same-occurrence outbound-turn inversion;
+  each reverse/inbound turn is now explicit and required except at the reverse
+  route start.
+
+Focused checks passed: `verify:exact-route-geometry`,
+`verify:interactive-route-map`, and `git diff --check`. Production remained
+read-only. Remaining release blockers include the canonical publisher rewrite,
+private allowlisted safety facts, async pad/topology race guards, strict reload,
+shared remove invalidation, read-only mileage, runtime/browser regressions, SQL
+rollback rehearsal, and the full release/live-verification gates.
