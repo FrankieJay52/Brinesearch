@@ -131,7 +131,8 @@ async function installMocks(context, role, requestLog, tileCounter, mappingStatu
 }
 
 async function openOfficial(page) {
-  await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
+  const nonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  await page.goto(`${preview}/?issue97Browser=${nonce}#/settings/roads`, { waitUntil: "domcontentloaded" });
   await page.locator('[data-road-manager-tab="official"]').waitFor();
   await page.locator('[data-road-manager-tab="official"]').click();
   await page.locator("#roadOfficialSearchIssue97").waitFor();
