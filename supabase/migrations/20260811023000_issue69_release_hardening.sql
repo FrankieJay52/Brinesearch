@@ -160,7 +160,7 @@ begin
      or not coalesce('security_barrier=true'=any(v_options),false) then
     raise exception 'Issue #69 regressed #73/#81 projection security options';
   end if;
-  if pg_catalog.position(
+  if position(
        'private_verification.brinesearch_driver_safe_clear_v17330(p.directions_clear)'
        in v_view
      )=0 then
@@ -197,10 +197,10 @@ begin
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_publish_structured_route(uuid,uuid,jsonb,bigint)'::pg_catalog.regprocedure
   ) into v_publisher;
-  v_pad_lock:=pg_catalog.position('select p.* into v_pad' in lower(v_publisher));
-  v_road_lock:=pg_catalog.position('order by r.id' in lower(v_publisher));
-  v_safety_lock:=pg_catalog.position('order by f.id' in lower(v_publisher));
-  v_review_lock:=pg_catalog.position('from public.brinesearch_route_reviews rr' in lower(v_publisher));
+  v_pad_lock:=position('select p.* into v_pad' in lower(v_publisher));
+  v_road_lock:=position('order by r.id' in lower(v_publisher));
+  v_safety_lock:=position('order by f.id' in lower(v_publisher));
+  v_review_lock:=position('from public.brinesearch_route_reviews rr' in lower(v_publisher));
   if v_pad_lock=0 or v_road_lock=0 or v_safety_lock=0 or v_review_lock=0
      or not (v_pad_lock<v_road_lock and v_road_lock<v_safety_lock and v_safety_lock<v_review_lock) then
     raise exception 'Issue #69 publisher lock-order invariant failed';
