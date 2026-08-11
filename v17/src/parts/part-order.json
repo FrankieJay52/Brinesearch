@@ -64,6 +64,7 @@
     "21h-road-manager-step-tap-lookup-bound-v17328.js",
     "21i-road-manager-structured-route-foundation-issue69.js",
     "21j-road-manager-route-boundaries-issue69.js",
+    "21k-road-manager-spatial-road-selection-issue69.js",
     "22m-direction-source-priority-and-coalescer.js",
     "22n-direction-context-coalescing.js",
     "22o-direction-mileage-badges-double-name.js",
