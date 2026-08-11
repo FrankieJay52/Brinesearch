@@ -124,7 +124,12 @@
           miles: row.miles == null ? "" : String(row.miles),
           turn: row.outbound_turn || "",
           inboundTurn: row.inbound_turn || "",
-          note: row.evidence?.note || ""
+	          note: row.evidence?.note || "",
+	          entryJunctionId: row.entry_junction_id || null,
+	          entryJunctionAnchorId: row.entry_junction_anchor_id || null,
+	          junctionBuildId: row.junction_build_id || null,
+	          junctionDigest: row.junction_digest || null,
+	          entryJunction: row.evidence?.entry_junction || null
         });
       });
       return { review, segments };

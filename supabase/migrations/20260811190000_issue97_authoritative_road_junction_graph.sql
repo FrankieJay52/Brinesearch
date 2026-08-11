@@ -304,13 +304,14 @@ on conflict(dataset_id,state_code,county_code) do update set
   ingest_enabled=true,required_for_graph=true,active=true,
   provenance=excluded.provenance,updated_at=now();
 
--- Supplemental centerlines remain registered but nonblocking until every
--- landed occurrence can be exact-mapped or explicitly held against the same
--- current primary run. They never create authoritative topology.
+-- Supplemental centerlines do not create topology, but issue #97 requires
+-- their exact aliases and provenance. Their controlled runs are therefore a
+-- required release input: every landed occurrence must be exact-mapped or
+-- explicitly held against the same current primary run.
 insert into public.brinesearch_road_source_dataset_counties(
   dataset_id,state_code,county_code,ingest_enabled,required_for_graph,provenance
 )
-select d.id,c.state_code,c.county_code,false,false,
+select d.id,c.state_code,c.county_code,true,true,
   pg_catalog.jsonb_build_object(
     'scope_rule','official statewide LBRS supplemental coverage',
     'topology_authority',false,'geometry_mapping_required',true
@@ -319,13 +320,13 @@ from public.brinesearch_road_source_datasets d
 join public.brinesearch_road_graph_counties c on c.state_code='OH' and c.active
 where d.source_key='oh_ogrip_lbrs_centerlines'
 on conflict(dataset_id,state_code,county_code) do update set
-  ingest_enabled=false,required_for_graph=false,active=true,
+  ingest_enabled=true,required_for_graph=true,active=true,
   provenance=excluded.provenance,updated_at=now();
 
 insert into public.brinesearch_road_source_dataset_counties(
   dataset_id,state_code,county_code,ingest_enabled,required_for_graph,provenance
 )
-select d.id,'PA',scope.county_code,false,false,
+select d.id,'PA',scope.county_code,true,true,
   pg_catalog.jsonb_build_object(
     'scope_rule','official county/NG911 centerline availability',
     'official_county_centerline_available',true,'geometry_mapping_required',true
@@ -337,7 +338,7 @@ from (values
 ) scope(source_key,county_code)
 join public.brinesearch_road_source_datasets d on d.source_key=scope.source_key
 on conflict(dataset_id,state_code,county_code) do update set
-  ingest_enabled=false,required_for_graph=false,active=true,
+  ingest_enabled=true,required_for_graph=true,active=true,
   provenance=excluded.provenance,updated_at=now();
 
 insert into public.brinesearch_road_source_dataset_counties(
@@ -3545,6 +3546,107 @@ $$;
 revoke all on function public.brinesearch_issue97_refresh_exact_mappings()
 from public,anon,authenticated,service_role;
 
+create or replace function public.brinesearch_issue97_set_reviewed_identity_mapping(
+  p_identity_id uuid,
+  p_road_id uuid,
+  p_mapping_status text,
+  p_evidence jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_identity record;
+  v_road record;
+  v_status text:=pg_catalog.lower(pg_catalog.btrim(coalesce(p_mapping_status,'')));
+  v_existing record;
+  v_method text;
+begin
+  if v_status not in ('verified','candidate','rejected') then
+    raise exception 'Reviewed mapping status must be verified, candidate or rejected'
+      using errcode='22023';
+  end if;
+  if p_evidence is null or pg_catalog.jsonb_typeof(p_evidence)<>'object'
+     or nullif(p_evidence->>'reviewed_by','') is null
+     or nullif(p_evidence->>'reviewed_at','') is null
+     or nullif(p_evidence->>'evidence_digest','') is null
+     or p_evidence->>'exact_method' not in (
+       'official_source_id','reviewed_geometry_equivalence','manual_source_conflation'
+     ) then
+    raise exception 'Reviewed mapping requires reviewed_by, reviewed_at, evidence_digest and an allowed exact_method'
+      using errcode='22023';
+  end if;
+  if coalesce(p_evidence->>'uses_name_only','false')::boolean
+     or coalesce(p_evidence->>'uses_fuzzy_name','false')::boolean
+     or coalesce(p_evidence->>'uses_nearest_road','false')::boolean then
+    raise exception 'Name-only, fuzzy and nearest-road mapping evidence is forbidden'
+      using errcode='22023';
+  end if;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+  select * into v_identity from public.brinesearch_authoritative_road_identities
+  where id=p_identity_id and active for share;
+  if not found or not private_verification.brinesearch_issue97_dataset_scope_current(
+    v_identity.dataset_id,v_identity.state_code,v_identity.county_code
+  ) then
+    raise exception 'Authoritative identity is missing or its source scope is not current'
+      using errcode='55000';
+  end if;
+  select * into v_road from public.brinesearch_roads where id=p_road_id for share;
+  if not found then raise exception 'Road Manager road not found' using errcode='P0002'; end if;
+  if v_status='verified' and (
+    v_road.verification_status<>'verified' or coalesce(v_road.candidate_only,false)
+  ) then
+    raise exception 'Only a verified non-candidate Road Manager road may receive a verified mapping'
+      using errcode='55000';
+  end if;
+  select * into v_existing from public.brinesearch_road_identity_mappings
+  where identity_id=p_identity_id and road_id=p_road_id for update;
+  if found and v_existing.mapping_status='rejected' and v_status='verified'
+     and not coalesce((p_evidence->>'override_rejected')::boolean,false) then
+    raise exception 'Overriding a rejected mapping requires override_rejected=true and reviewed evidence'
+      using errcode='55000';
+  end if;
+  if v_status='verified' then
+    update public.brinesearch_road_identity_mappings set
+      mapping_status='retired',updated_at=now(),
+      evidence=evidence||pg_catalog.jsonb_build_object(
+        'retired_by_reviewed_mapping',true,'replacement_road_id',p_road_id
+      )
+    where identity_id=p_identity_id and mapping_status='verified' and road_id<>p_road_id;
+  end if;
+  v_method:=case v_status when 'verified' then 'manual_reviewed_source_evidence'
+    when 'candidate' then 'manual_candidate_held' else 'manual_rejected' end;
+  insert into public.brinesearch_road_identity_mappings(
+    id,identity_id,road_id,mapping_status,mapping_method,evidence,verified_at
+  ) values (
+    private_verification.brinesearch_issue97_uuid(
+      'map:'||p_identity_id::text||':'||p_road_id::text
+    ),p_identity_id,p_road_id,v_status,v_method,
+    p_evidence||pg_catalog.jsonb_build_object(
+      'no_name_only',true,'no_fuzzy_name',true,'no_nearest_road',true,
+      'reviewed_mapping_rpc','issue97'
+    ),case when v_status='verified' then now() end
+  ) on conflict(identity_id,road_id) do update set
+    mapping_status=excluded.mapping_status,mapping_method=excluded.mapping_method,
+    evidence=excluded.evidence,verified_at=excluded.verified_at,updated_at=now();
+  return pg_catalog.jsonb_build_object(
+    'identity_id',p_identity_id,'road_id',p_road_id,'mapping_status',v_status,
+    'mapping_method',v_method,
+    'mapping_fingerprint',private_verification.brinesearch_issue97_mapping_fingerprint(p_identity_id),
+    'active_graphs_require_rebuild',true
+  );
+end
+$$;
+
+revoke all on function public.brinesearch_issue97_set_reviewed_identity_mapping(uuid,uuid,text,jsonb)
+from public,anon,authenticated;
+grant execute on function public.brinesearch_issue97_set_reviewed_identity_mapping(uuid,uuid,text,jsonb)
+to service_role;
+
 -- v2 supersedes the conservative bootstrap definition above. It retains exact
 -- authoritative interior vertices (required by the Noble Street occurrence),
 -- holds structure/level conflicts, projects PennDOT at-grade nodes to nearby
@@ -5690,6 +5792,752 @@ to authenticated;
 comment on function public.brinesearch_authoritative_road_connections_for_canonical(uuid,jsonb,integer) is
   'Issue #97 canonical Road Manager Connections read. Multiple exact source identities map to one canonical road without duplicate physical junction cards.';
 
+-- A durable cutover audit covers every normalized place where BrineSearch
+-- stores or derives a road occurrence. Exact relational/source mappings are
+-- accepted; anything else is explicitly held with a reason. Published #69
+-- roads and different-road boundaries are release-critical and may not remain
+-- held when graph-only enforcement is activated.
+create table private_verification.brinesearch_issue97_saved_road_reconciliation_runs (
+  id uuid primary key default pg_catalog.gen_random_uuid(),
+  source_digest text not null check(source_digest~'^[0-9a-f]{32}$'),
+  inventory_digest text check(inventory_digest~'^[0-9a-f]{32}$'),
+  result_digest text check(result_digest~'^[0-9a-f]{32}$'),
+  status text not null default 'building'
+    check(status in ('building','complete','failed')),
+  occurrence_count integer not null default 0,
+  exact_count integer not null default 0,
+  held_count integer not null default 0,
+  route_critical_held_count integer not null default 0,
+  forbidden_resolution_count integer not null default 0,
+  metrics jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz,
+  constraint brinesearch_issue97_saved_road_run_counts_check check(
+    occurrence_count>=0 and exact_count>=0 and held_count>=0
+    and route_critical_held_count>=0 and forbidden_resolution_count>=0
+    and occurrence_count=exact_count+held_count
+    and route_critical_held_count<=held_count
+    and forbidden_resolution_count<=occurrence_count
+  ),
+  constraint brinesearch_issue97_saved_road_run_metrics_check
+    check(pg_catalog.jsonb_typeof(metrics)='object'),
+  constraint brinesearch_issue97_saved_road_run_status_check check(
+    (status='building' and inventory_digest is null and result_digest is null
+      and occurrence_count=0 and completed_at is null)
+    or (status='complete' and inventory_digest is not null and result_digest is not null
+      and occurrence_count=16109 and completed_at is not null)
+    or (status='failed' and completed_at is not null)
+  ),
+  constraint brinesearch_issue97_saved_road_run_time_check
+    check(completed_at is null or completed_at>=created_at)
+);
+
+-- The 16,109 count is the independently recounted current-production release
+-- inventory size across the complete source-kind projection below. Its digest is
+-- intentionally not manufactured from the reconciliation that it is meant to
+-- validate: doing so would let a missing occurrence bless its own omission.
+-- The independently preserved 16,109-key manifest and its cross-check digest
+-- are seeded below with review evidence. Any intervening production inventory
+-- change fails closed and requires a newly reviewed forward migration.
+create table private_verification.brinesearch_issue97_saved_road_release_baseline (
+  singleton boolean primary key default true check(singleton),
+  expected_occurrence_count integer not null default 16109
+    check(expected_occurrence_count=16109),
+  expected_inventory_digest text
+    check(expected_inventory_digest~'^[0-9a-f]{32}$'),
+  review_details jsonb not null default '{}'::jsonb
+    check(pg_catalog.jsonb_typeof(review_details)='object'),
+  populated_at timestamptz,
+  constraint brinesearch_issue97_saved_road_baseline_review_check check(
+    (expected_inventory_digest is null and populated_at is null
+      and review_details='{}'::jsonb)
+    or (expected_inventory_digest is not null and populated_at is not null
+      and nullif(pg_catalog.btrim(review_details->>'reviewed_by'),'') is not null
+      and nullif(pg_catalog.btrim(review_details->>'reviewed_at'),'') is not null
+      and nullif(pg_catalog.btrim(review_details->>'verification_report_digest'),'') is not null)
+  )
+);
+insert into private_verification.brinesearch_issue97_saved_road_release_baseline(
+  singleton,expected_occurrence_count,expected_inventory_digest,review_details,populated_at
+) values(
+  true,16109,'9b4e608fc8ec32042a06b5fcba1b34d8',
+  pg_catalog.jsonb_build_object(
+    'reviewed_by','issue97_current_production_read_only_manifest',
+    'reviewed_at','2026-08-11T21:32:55.063125Z',
+    'verification_report_digest','ffaf172e5e331a2a8e3e97240c2b12bf',
+    'inventory_digest_algorithm','md5 ordered JSON lines of source_kind + occurrence_key',
+    'duplicate_key_groups',0,
+    'source_kind_counts',pg_catalog.jsonb_build_object(
+      'canonical_road',402,'route_prep_step',4525,'published_pad_road',23,
+      'route_review_segment',4,'direction_step',5468,'measured_segment',74,
+      'structured_route_step_json',0,'published_route_boundary',15,
+      'structured_sequence_container',1068,'written_directions_container',1080,
+      'clear_directions_container',1065,'driver_safety_container',1173,
+      'driver_card_input',1065,'saved_alias_issue70',147
+    )
+  ),
+  '2026-08-11T21:32:55.063125Z'::timestamptz
+);
+
+create table private_verification.brinesearch_issue97_saved_road_reconciliation (
+  run_id uuid not null references private_verification.brinesearch_issue97_saved_road_reconciliation_runs(id)
+    on delete restrict,
+  source_kind text not null,
+  occurrence_key text not null,
+  pad_id uuid references public.pads(id) on delete restrict,
+  raw_road_key text,
+  road_id uuid references public.brinesearch_roads(id) on delete restrict,
+  identity_ids uuid[] not null default '{}'::uuid[],
+  decision text not null check(decision in ('exact','held')),
+  route_critical boolean not null default false,
+  hold_reason text,
+  resolution_method text not null,
+  source_evidence jsonb not null default '{}'::jsonb,
+  occurrence_digest text not null check(occurrence_digest~'^[0-9a-f]{32}$'),
+  reconciled_at timestamptz not null default now(),
+  primary key(run_id,source_kind,occurrence_key),
+  constraint brinesearch_issue97_saved_road_source_kind_check check(source_kind in (
+    'canonical_road','route_prep_step','published_pad_road','route_review_segment',
+    'direction_step','measured_segment','structured_route_step_json',
+    'published_route_boundary','structured_sequence_container',
+    'written_directions_container','clear_directions_container',
+    'driver_safety_container','driver_card_input','saved_alias_issue70'
+  )),
+  constraint brinesearch_issue97_saved_road_key_nonblank_check
+    check(nullif(pg_catalog.btrim(occurrence_key),'') is not null),
+  constraint brinesearch_issue97_saved_road_method_check check(resolution_method in (
+    'verified_authoritative_mapping','explicit_hold',
+    'route_prep_foreign_key_plus_verified_mapping',
+    'published_road_foreign_key_plus_verified_mapping',
+    'review_segment_foreign_key_plus_verified_mapping',
+    'exact_pad_and_step_position_lineage','exact_pad_and_source_step_lineage',
+    'structured_json_foreign_key_plus_verified_mapping',
+    'saved_transition_coordinate_plus_verified_graph_anchor',
+    'complete_normalized_occurrence_coverage',
+    'driver_projection_plus_complete_direction_coverage',
+    'issue70_exact_saved_alias_evidence_plus_verified_mapping'
+  )),
+  constraint brinesearch_issue97_saved_road_evidence_object_check
+    check(pg_catalog.jsonb_typeof(source_evidence)='object'),
+  check((decision='exact' and hold_reason is null) or
+    (decision='held' and nullif(pg_catalog.btrim(hold_reason),'') is not null))
+);
+
+create index brinesearch_issue97_saved_reconcile_decision_idx
+on private_verification.brinesearch_issue97_saved_road_reconciliation(
+  run_id,route_critical,decision,source_kind
+);
+alter table private_verification.brinesearch_issue97_saved_road_reconciliation_runs
+  enable row level security;
+alter table private_verification.brinesearch_issue97_saved_road_reconciliation_runs
+  force row level security;
+alter table private_verification.brinesearch_issue97_saved_road_release_baseline
+  enable row level security;
+alter table private_verification.brinesearch_issue97_saved_road_release_baseline
+  force row level security;
+alter table private_verification.brinesearch_issue97_saved_road_reconciliation
+  enable row level security;
+alter table private_verification.brinesearch_issue97_saved_road_reconciliation
+  force row level security;
+revoke all on private_verification.brinesearch_issue97_saved_road_reconciliation_runs
+from public,anon,authenticated,service_role;
+revoke all on private_verification.brinesearch_issue97_saved_road_release_baseline
+from public,anon,authenticated,service_role;
+revoke all on private_verification.brinesearch_issue97_saved_road_reconciliation
+from public,anon,authenticated,service_role;
+grant select on private_verification.brinesearch_issue97_saved_road_reconciliation_runs
+to service_role;
+grant select on private_verification.brinesearch_issue97_saved_road_release_baseline
+to service_role;
+grant select on private_verification.brinesearch_issue97_saved_road_reconciliation
+to service_role;
+
+comment on table private_verification.brinesearch_issue97_saved_road_release_baseline is
+  'Issue #97 independent 16,109-occurrence current-production release manifest. Its reviewed key digest is immutable and is never derived by the reconciliation refresh.';
+
+-- Both refresh and cutover use this one canonical child projection. The
+-- Inventory digest is independently reproducible from the stable occurrence
+-- key only. It deliberately excludes mutable mapping, timestamp, graph and
+-- decision fields. The result digest covers every semantic child
+-- field. run_id/reconciled_at are intentionally excluded so an unchanged
+-- reconciliation has the same receipt across runs.
+create or replace function private_verification.brinesearch_issue97_saved_road_child_receipt(
+  p_run_id uuid
+)
+returns jsonb
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select pg_catalog.jsonb_build_object(
+    'occurrence_count',count(*)::integer,
+    'exact_count',count(*) filter(where x.decision='exact')::integer,
+    'held_count',count(*) filter(where x.decision='held')::integer,
+    'route_critical_held_count',count(*) filter(
+      where x.route_critical and x.decision='held'
+    )::integer,
+    'forbidden_resolution_count',count(*) filter(where x.resolution_method in (
+      'name_only','fuzzy_name','nearest_road','spatial_nearest'
+    ))::integer,
+    'inventory_digest',pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      pg_catalog.jsonb_build_object(
+        'source_kind',x.source_kind,
+        'occurrence_key',x.occurrence_key
+      )::text,E'\n' order by x.source_kind,x.occurrence_key
+    ),'')),
+    'result_digest',pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      pg_catalog.jsonb_build_object(
+        'source_kind',x.source_kind,
+        'occurrence_key',x.occurrence_key,
+        'pad_id',x.pad_id,
+        'raw_road_key',x.raw_road_key,
+        'road_id',x.road_id,
+        'identity_ids',x.identity_ids,
+        'decision',x.decision,
+        'route_critical',x.route_critical,
+        'hold_reason',x.hold_reason,
+        'resolution_method',x.resolution_method,
+        'source_evidence',x.source_evidence,
+        'occurrence_digest',x.occurrence_digest
+      )::text,E'\n' order by x.source_kind,x.occurrence_key
+    ),''))
+  )
+  from private_verification.brinesearch_issue97_saved_road_reconciliation x
+  where x.run_id=p_run_id
+$$;
+
+revoke all on function private_verification.brinesearch_issue97_saved_road_child_receipt(uuid)
+from public,anon,authenticated,service_role;
+
+comment on function private_verification.brinesearch_issue97_saved_road_child_receipt(uuid) is
+  'Issue #97 canonical child-derived counts plus independent inventory and full semantic result digests.';
+
+create or replace function private_verification.brinesearch_issue97_saved_road_source_digest()
+returns text
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select pg_catalog.md5(coalesce(pg_catalog.string_agg(token,E'\n' order by token),''))
+  from (
+    select 'road|'||r.id||'|'||pg_catalog.concat_ws('|',r.canonical_name,r.state,r.county,
+      r.township,r.road_type,r.route_number,r.source_record_id,r.verification_status,
+      r.candidate_only::text,r.geometry_status,pg_catalog.md5(r.centerline_geojson::text)) token
+    from public.brinesearch_roads r
+    union all
+    select 'mapping|'||m.identity_id||'|'
+      ||private_verification.brinesearch_issue97_mapping_fingerprint(m.identity_id)
+    from public.brinesearch_road_identity_mappings m where m.mapping_status='verified'
+    union all
+    select 'prep|'||s.id||'|'||pg_catalog.concat_ws('|',s.road_id::text,s.step_kind,
+      s.match_status,s.match_method,s.owner_decision,s.owner_notes,s.updated_at::text)
+    from public.brinesearch_route_prep_steps s where s.active
+    union all
+    select 'padroad|'||p.id||'|'||pg_catalog.concat_ws('|',p.pad_id::text,p.road_id::text,
+      p.route_group,p.route_variant_index::text,p.step_order::text,p.route_step_id::text,
+      p.route_revision::text,p.road_geometry_digest,p.updated_at::text)
+    from public.brinesearch_pad_roads p
+    union all
+    select 'review|'||s.id||'|'||pg_catalog.concat_ws('|',s.review_id::text,s.road_id::text,
+      s.outbound_order::text,s.route_step_id::text,s.road_geometry_digest,s.updated_at::text)
+    from public.brinesearch_route_review_segments s
+    union all
+    select 'direction|'||d.pad_id||':'||d.step_order||'|'||pg_catalog.concat_ws('|',
+      d.road_key,d.primary_road,d.local_road_name,d.display_road,d.refreshed_at::text)
+    from public.brinesearch_direction_step_intelligence d
+    union all
+    select 'measured|'||m.id||'|'||pg_catalog.concat_ws('|',m.pad_id::text,m.road_key,
+      m.measurement_scope,m.source_step_order::text,m.usable::text,m.rejection_reason,m.updated_at::text)
+    from public.brinesearch_pad_measured_road_segments m
+    union all
+    select 'padtext|'||p.id||'|'||pg_catalog.md5(pg_catalog.concat_ws('|',
+      p.structured_road_sequence,p.written_directions,p.directions_clear,
+      p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))
+    from public.pads p where nullif(pg_catalog.btrim(coalesce(p.structured_road_sequence,'')),'') is not null
+      or nullif(pg_catalog.btrim(coalesce(p.written_directions,'')),'') is not null
+      or nullif(pg_catalog.btrim(coalesce(p.directions_clear,'')),'') is not null
+      or p.structured_route_steps is not null or p.driver_safety_context is not null
+    union all
+    select 'alias70|'||a.step_id||'|'||pg_catalog.concat_ws('|',a.decision,
+      a.selected_road_id::text,a.selected_nlf_id,a.applied_at::text,a.staged_at::text)
+    from private_verification.brinesearch_saved_alias_reconcile_issue70 a
+  ) source_rows
+$$;
+
+revoke all on function private_verification.brinesearch_issue97_saved_road_source_digest()
+from public,anon,authenticated,service_role;
+
+create or replace function public.brinesearch_issue97_refresh_saved_road_reconciliation()
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_run uuid:=pg_catalog.gen_random_uuid();
+  v_source_digest text;
+  v_end_digest text;
+  v_inventory_digest text;
+  v_result_digest text;
+  v_child_receipt jsonb;
+  v_occurrences integer;
+  v_exact integer;
+  v_held integer;
+  v_critical_held integer;
+  v_forbidden integer;
+begin
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:saved-road-reconciliation')
+  );
+  v_source_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation_runs(
+    id,source_digest,status
+  ) values(v_run,v_source_digest,'building');
+
+  drop table if exists pg_temp.tmp_issue97_current_road_map;
+  create temporary table tmp_issue97_current_road_map on commit drop as
+  select m.road_id,array_agg(distinct m.identity_id order by m.identity_id) as identity_ids,
+    pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'identity_id',m.identity_id,'mapping_method',m.mapping_method,
+      'mapping_evidence',m.evidence
+    ) order by m.identity_id) as mapping_evidence
+  from public.brinesearch_road_identity_mappings m
+  join public.brinesearch_authoritative_road_identities i
+    on i.id=m.identity_id and i.active
+  where m.mapping_status='verified'
+    and private_verification.brinesearch_issue97_dataset_scope_current(
+      i.dataset_id,i.state_code,i.county_code
+    )
+  group by m.road_id;
+  create unique index tmp_issue97_current_road_map_idx
+    on tmp_issue97_current_road_map(road_id);
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'canonical_road',r.id::text,r.canonical_name,r.id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when r.verification_status='verified' and not coalesce(r.candidate_only,false)
+      and m.road_id is not null then 'exact' else 'held' end,false,
+    case
+      when r.verification_status<>'verified' then 'Road Manager road is not verified'
+      when coalesce(r.candidate_only,false) then 'Road Manager road is candidate-only'
+      when m.road_id is null then 'No current exact authoritative identity mapping'
+    end,
+    case when m.road_id is not null then 'verified_authoritative_mapping' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'mapping_evidence',coalesce(m.mapping_evidence,'[]'::jsonb),
+      'verification_status',r.verification_status,'candidate_only',r.candidate_only,
+      'geometry_status',r.geometry_status,'source_record_id',r.source_record_id,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),private_verification.brinesearch_issue97_mapping_fingerprint(
+      coalesce(m.identity_ids[1],'00000000-0000-0000-0000-000000000000'::uuid)
+    )
+  from public.brinesearch_roads r
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=r.id;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'route_prep_step',s.id::text,rp.pad_id,s.raw_text,s.road_id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when s.road_id is not null and m.road_id is not null
+      and r.verification_status='verified' and not coalesce(r.candidate_only,false)
+      then 'exact' else 'held' end,false,
+    case
+      when s.road_id is null then coalesce(nullif(s.owner_notes,''),nullif(s.owner_decision,''),
+        'No exact canonical road assignment')
+      when m.road_id is null then 'Assigned canonical road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Assigned canonical road is not publishable'
+    end,
+    case when s.road_id is not null and m.road_id is not null
+      then 'route_prep_foreign_key_plus_verified_mapping' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'route_prep_id',s.route_prep_id,'step_order',s.step_order,'step_kind',s.step_kind,
+      'match_status',s.match_status,'match_method',s.match_method,
+      'owner_decision',s.owner_decision,'owner_notes',s.owner_notes,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',s.id::text,s.road_id::text,
+      s.match_status,s.match_method,s.updated_at::text))
+  from public.brinesearch_route_prep_steps s
+  join public.brinesearch_route_prep rp on rp.id=s.route_prep_id and rp.active
+  left join public.brinesearch_roads r on r.id=s.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=s.road_id
+  where s.active;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'published_pad_road',p.id::text,p.pad_id,r.canonical_name,p.road_id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when m.road_id is not null and r.verification_status='verified'
+      and not coalesce(r.candidate_only,false)
+      and r.centerline_geojson is not null
+      and r.geometry_status in ('official_centerline_loaded','field_confirmed_centerline','owner_verified_complete')
+      then 'exact' else 'held' end,true,
+    case
+      when m.road_id is null then 'Published road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Published road is not verified/publishable'
+      when r.centerline_geojson is null or r.geometry_status not in (
+        'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+      ) then 'Published road geometry is not route-ready'
+    end,
+    case when m.road_id is not null then 'published_road_foreign_key_plus_verified_mapping'
+      else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'route_step_id',p.route_step_id,'step_order',p.step_order,
+      'route_group',p.route_group,'route_variant_index',p.route_variant_index,
+      'road_geometry_digest',p.road_geometry_digest,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',p.id::text,p.road_id::text,
+      p.route_revision::text,p.road_geometry_digest,p.updated_at::text))
+  from public.brinesearch_pad_roads p
+  join public.brinesearch_roads r on r.id=p.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=p.road_id;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'route_review_segment',s.id::text,s.road_name,s.road_id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when m.road_id is not null and r.verification_status='verified'
+      and not coalesce(r.candidate_only,false)
+      and r.centerline_geojson is not null
+      and r.geometry_status in ('official_centerline_loaded','field_confirmed_centerline','owner_verified_complete')
+      then 'exact' else 'held' end,true,
+    case
+      when m.road_id is null then 'Review segment road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Review segment road is not verified/publishable'
+      when r.centerline_geojson is null or r.geometry_status not in (
+        'official_centerline_loaded','field_confirmed_centerline','owner_verified_complete'
+      ) then 'Review segment road geometry is not route-ready'
+    end,
+    case when m.road_id is not null then 'review_segment_foreign_key_plus_verified_mapping'
+      else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'review_id',s.review_id,'route_step_id',s.route_step_id,
+      'outbound_order',s.outbound_order,'road_geometry_digest',s.road_geometry_digest,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',s.id::text,s.road_id::text,
+      s.road_geometry_digest,s.updated_at::text))
+  from public.brinesearch_route_review_segments s
+  join public.brinesearch_roads r on r.id=s.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=s.road_id;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'direction_step',d.pad_id::text||':'||d.step_order::text,d.pad_id,
+    coalesce(d.display_road,d.road_key),resolved.road_id,coalesce(m.identity_ids,'{}'::uuid[]),
+    case when resolved.road_count=1 and m.road_id is not null
+      and r.verification_status='verified' and not coalesce(r.candidate_only,false)
+      then 'exact' else 'held' end,false,
+    case
+      when resolved.road_count=0 then 'No exact active route-prep occurrence at this saved direction position'
+      when resolved.road_count>1 then 'Multiple canonical roads occupy this saved direction position'
+      when m.road_id is null then 'Direction occurrence canonical road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Direction occurrence canonical road is not publishable'
+    end,
+    case when resolved.road_count=1 and m.road_id is not null
+      then 'exact_pad_and_step_position_lineage' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'step_order',d.step_order,'road_key',d.road_key,'primary_road',d.primary_road,
+      'local_road_name',d.local_road_name,'display_road',d.display_road,
+      'candidate_road_count',resolved.road_count,'evidence',d.evidence,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',d.pad_id::text,d.step_order::text,
+      d.road_key,d.display_road,d.refreshed_at::text))
+  from public.brinesearch_direction_step_intelligence d
+  left join lateral (
+    select count(distinct s.road_id) filter(where s.road_id is not null)::integer as road_count,
+      (array_agg(distinct s.road_id order by s.road_id)
+        filter(where s.road_id is not null))[1] as road_id
+    from public.brinesearch_route_prep rp
+    join public.brinesearch_route_prep_steps s
+      on s.route_prep_id=rp.id and s.active and s.step_order=d.step_order
+    where rp.pad_id=d.pad_id and rp.active
+  ) resolved on true
+  left join public.brinesearch_roads r on r.id=resolved.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=resolved.road_id;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'measured_segment',mseg.id::text,mseg.pad_id,mseg.road_key,
+    resolved.road_id,coalesce(m.identity_ids,'{}'::uuid[]),
+    case when mseg.measurement_scope='historical_pad_total' and not mseg.usable then 'held'
+      when resolved.road_count=1 and m.road_id is not null
+        and r.verification_status='verified' and not coalesce(r.candidate_only,false)
+        then 'exact' else 'held' end,false,
+    case
+      when mseg.measurement_scope='historical_pad_total' and not mseg.usable
+        then coalesce(nullif(mseg.rejection_reason,''),'Historical aggregate is not a road occurrence')
+      when resolved.road_count=0 then 'No exact active route-prep occurrence at this measured step position'
+      when resolved.road_count>1 then 'Multiple canonical roads occupy this measured step position'
+      when m.road_id is null then 'Measured occurrence canonical road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Measured occurrence canonical road is not publishable'
+    end,
+    case when resolved.road_count=1 and m.road_id is not null
+      then 'exact_pad_and_source_step_lineage' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'measurement_scope',mseg.measurement_scope,'source_step_order',mseg.source_step_order,
+      'usable',mseg.usable,'rejection_reason',mseg.rejection_reason,
+      'source_evidence',mseg.source_evidence,'candidate_road_count',resolved.road_count,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',mseg.id::text,mseg.road_key,
+      mseg.measurement_scope,mseg.source_step_order::text,mseg.updated_at::text))
+  from public.brinesearch_pad_measured_road_segments mseg
+  left join lateral (
+    select count(distinct s.road_id) filter(where s.road_id is not null)::integer as road_count,
+      (array_agg(distinct s.road_id order by s.road_id)
+        filter(where s.road_id is not null))[1] as road_id
+    from public.brinesearch_route_prep rp
+    join public.brinesearch_route_prep_steps s
+      on s.route_prep_id=rp.id and s.active and s.step_order=mseg.source_step_order
+    where rp.pad_id=mseg.pad_id and rp.active and mseg.source_step_order is not null
+  ) resolved on true
+  left join public.brinesearch_roads r on r.id=resolved.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=resolved.road_id;
+
+  with json_steps as (
+    select p.id as pad_id,e.ordinality,
+      coalesce(e.value->>'route_step_id',e.ordinality::text) as occurrence_key,
+      e.value,
+      case when coalesce(e.value->>'road_id','')~
+        '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        then (e.value->>'road_id')::uuid end as road_id
+    from public.pads p
+    cross join lateral pg_catalog.jsonb_array_elements(
+      case when pg_catalog.jsonb_typeof(p.structured_route_steps)='array'
+        then p.structured_route_steps else '[]'::jsonb end
+    ) with ordinality e(value,ordinality)
+  )
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'structured_route_step_json',s.pad_id::text||':'||s.occurrence_key,
+    s.pad_id,s.value->>'road_name',s.road_id,coalesce(m.identity_ids,'{}'::uuid[]),
+    case when s.road_id is not null and m.road_id is not null
+      and r.verification_status='verified' and not coalesce(r.candidate_only,false)
+      then 'exact' else 'held' end,true,
+    case
+      when s.road_id is null then 'Structured JSON step lacks a valid canonical road ID'
+      when m.road_id is null then 'Structured JSON road lacks a current exact authoritative mapping'
+      when r.verification_status<>'verified' or coalesce(r.candidate_only,false)
+        then 'Structured JSON road is not publishable'
+    end,
+    case when s.road_id is not null and m.road_id is not null
+      then 'structured_json_foreign_key_plus_verified_mapping' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'ordinality',s.ordinality,'route_step',s.value,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(s.value::text)
+  from json_steps s
+  left join public.brinesearch_roads r on r.id=s.road_id
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=s.road_id;
+
+  with ordered as (
+    select p.*,pg_catalog.lag(p.road_id) over w as previous_road_id,
+      pg_catalog.lag(p.end_point) over w as previous_end_point
+    from public.brinesearch_pad_roads p
+    window w as (partition by p.pad_id,p.route_group,p.route_variant_index order by p.step_order,p.id)
+  ), transitions as (
+    select o.*,coalesce(o.start_point,o.previous_end_point) as transition_point
+    from ordered o
+    where o.previous_road_id is not null and o.previous_road_id<>o.road_id
+  ), boundaries as (
+    select t.*,
+      candidates.candidate_count,candidates.candidate_keys
+    from transitions t
+    left join lateral (
+      select count(distinct a.id)::integer as candidate_count,
+        array_agg(distinct j.stable_junction_key order by j.stable_junction_key) as candidate_keys
+      from public.brinesearch_road_junctions j
+      join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
+        and private_verification.brinesearch_issue97_graph_build_sources_current(b.id)
+      join public.brinesearch_road_junction_anchors a on a.junction_id=j.id
+      where j.verification_status='verified'
+        and exists(select 1 from public.brinesearch_road_junction_memberships lm
+          where lm.junction_id=j.id and lm.road_id=t.previous_road_id)
+        and exists(select 1 from public.brinesearch_road_junction_memberships rm
+          where rm.junction_id=j.id and rm.road_id=t.road_id)
+        and t.transition_point is not null
+        and extensions.st_dwithin(
+          a.geom::extensions.geography,t.transition_point::extensions.geography,1
+        )
+    ) candidates on true
+  )
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'published_route_boundary',b.pad_id::text||':'||b.route_group||':'
+      ||b.route_variant_index::text||':'||b.step_order::text,b.pad_id,
+    b.previous_road_id::text||' -> '||b.road_id::text,b.road_id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when b.candidate_count=1 then 'exact' else 'held' end,true,
+    case when b.candidate_count=0 then 'No active verified authoritative graph anchor matches the saved boundary'
+      when b.candidate_count>1 then 'Multiple authoritative graph anchors match the saved boundary; review is required' end,
+    case when b.candidate_count=1 then 'saved_transition_coordinate_plus_verified_graph_anchor'
+      else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'previous_road_id',b.previous_road_id,'right_road_id',b.road_id,
+      'candidate_count',b.candidate_count,'candidate_keys',coalesce(pg_catalog.to_jsonb(b.candidate_keys),'[]'::jsonb),
+      'transition_coordinate',case when b.transition_point is null then null else
+        pg_catalog.jsonb_build_array(extensions.st_x(b.transition_point),extensions.st_y(b.transition_point)) end,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',b.pad_id::text,b.route_group,
+      b.route_variant_index::text,b.step_order::text,b.previous_road_id::text,b.road_id::text,
+      b.candidate_keys::text))
+  from boundaries b
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=b.road_id;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,decision,route_critical,
+    hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,container.source_kind,p.id::text,p.id,null,
+    case when coverage.covered_count>0 and coverage.held_count=0 then 'exact' else 'held' end,
+    false,case when coverage.covered_count=0 then 'No active normalized road-occurrence coverage exists for this saved container'
+      when coverage.held_count>0 then 'Container includes one or more explicitly held road occurrences' end,
+    case when coverage.covered_count>0 and coverage.held_count=0
+      then 'complete_normalized_occurrence_coverage' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'coverage_source_kind',container.coverage_kind,
+      'covered_occurrence_count',coverage.covered_count,'held_occurrence_count',coverage.held_count,
+      'container_digest',pg_catalog.md5(container.source_text),
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(container.source_text)
+  from public.pads p
+  cross join lateral (values
+    ('structured_sequence_container',p.structured_road_sequence,'route_prep_step'),
+    ('written_directions_container',p.written_directions,'direction_step'),
+    ('clear_directions_container',p.directions_clear,'direction_step'),
+    ('driver_safety_container',p.driver_safety_context::text,'structured_route_step_json')
+  ) container(source_kind,source_text,coverage_kind)
+  left join lateral (
+    select count(*)::integer as covered_count,
+      count(*) filter(where x.decision='held')::integer as held_count
+    from private_verification.brinesearch_issue97_saved_road_reconciliation x
+    where x.run_id=v_run and x.pad_id=p.id and x.source_kind=container.coverage_kind
+  ) coverage on true
+  where nullif(pg_catalog.btrim(coalesce(container.source_text,'')),'') is not null;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,decision,route_critical,
+    hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'driver_card_input',d.pad_id::text,d.pad_id,null,
+    case when coverage.covered_count>0 and coverage.held_count=0 then 'exact' else 'held' end,
+    false,case when coverage.covered_count=0 then 'Driver-card directions have no normalized direction-step coverage'
+      when coverage.held_count>0 then 'Driver-card directions include explicitly held road occurrences' end,
+    case when coverage.covered_count>0 and coverage.held_count=0
+      then 'driver_projection_plus_complete_direction_coverage' else 'explicit_hold' end,
+    pg_catalog.jsonb_build_object(
+      'source_revision',d.source_revision,'covered_occurrence_count',coverage.covered_count,
+      'held_occurrence_count',coverage.held_count,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(coalesce(d.directions_clear,''))
+  from public.brinesearch_driver_directions_public d
+  left join lateral (
+    select count(*)::integer as covered_count,
+      count(*) filter(where x.decision='held')::integer as held_count
+    from private_verification.brinesearch_issue97_saved_road_reconciliation x
+    where x.run_id=v_run and x.pad_id=d.pad_id and x.source_kind='direction_step'
+  ) coverage on true
+  where nullif(pg_catalog.btrim(coalesce(d.directions_clear,'')),'') is not null;
+
+  insert into private_verification.brinesearch_issue97_saved_road_reconciliation(
+    run_id,source_kind,occurrence_key,pad_id,raw_road_key,road_id,identity_ids,
+    decision,route_critical,hold_reason,resolution_method,source_evidence,occurrence_digest
+  )
+  select v_run,'saved_alias_issue70',a.step_id::text,a.pad_id,a.raw_text,a.selected_road_id,
+    coalesce(m.identity_ids,'{}'::uuid[]),
+    case when a.applied_at is not null and a.selected_road_id is not null
+      and m.road_id is not null then 'exact' else 'held' end,false,
+    case when a.applied_at is null then 'Issue #70 saved alias decision remains held/unapplied: '||a.decision
+      when a.selected_road_id is null then 'Issue #70 saved alias has no selected canonical road'
+      when m.road_id is null then 'Issue #70 selected road lacks a current exact authoritative mapping' end,
+    case when a.applied_at is not null and m.road_id is not null
+      then 'issue70_exact_saved_alias_evidence_plus_verified_mapping' else 'explicit_hold' end,
+    a.source_evidence||pg_catalog.jsonb_build_object(
+      'issue70_decision',a.decision,'selected_nlf_id',a.selected_nlf_id,
+      'fuzzy_matching',false,'name_only_resolution',false,'nearest_road_resolution',false
+    ),pg_catalog.md5(pg_catalog.concat_ws('|',a.step_id::text,a.decision,
+      a.selected_road_id::text,a.selected_nlf_id,a.applied_at::text))
+  from private_verification.brinesearch_saved_alias_reconcile_issue70 a
+  left join pg_temp.tmp_issue97_current_road_map m on m.road_id=a.selected_road_id;
+
+  v_end_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
+  if v_end_digest is distinct from v_source_digest then
+    raise exception 'Saved road sources changed during issue #97 reconciliation' using errcode='40001';
+  end if;
+  v_child_receipt:=private_verification.brinesearch_issue97_saved_road_child_receipt(v_run);
+  v_occurrences:=(v_child_receipt->>'occurrence_count')::integer;
+  v_exact:=(v_child_receipt->>'exact_count')::integer;
+  v_held:=(v_child_receipt->>'held_count')::integer;
+  v_critical_held:=(v_child_receipt->>'route_critical_held_count')::integer;
+  v_forbidden:=(v_child_receipt->>'forbidden_resolution_count')::integer;
+  v_inventory_digest:=v_child_receipt->>'inventory_digest';
+  v_result_digest:=v_child_receipt->>'result_digest';
+  if v_occurrences<>16109 then
+    raise exception 'Issue #97 saved-road reconciliation requires exactly 16,109 occurrences; found %',
+      v_occurrences using errcode='55000';
+  end if;
+  update private_verification.brinesearch_issue97_saved_road_reconciliation_runs set
+    status='complete',inventory_digest=v_inventory_digest,result_digest=v_result_digest,
+    occurrence_count=v_occurrences,
+    exact_count=v_exact,held_count=v_held,route_critical_held_count=v_critical_held,
+    forbidden_resolution_count=v_forbidden,completed_at=now(),
+    metrics=pg_catalog.jsonb_build_object(
+      'expected_occurrence_count',16109,
+      'inventory_digest',v_inventory_digest,
+      'source_kind_counts',(select pg_catalog.jsonb_object_agg(source_kind,source_count order by source_kind)
+        from (select source_kind,count(*)::integer as source_count
+          from private_verification.brinesearch_issue97_saved_road_reconciliation
+          where run_id=v_run group by source_kind) counts),
+      'canonical_roads',(select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation
+        where run_id=v_run and source_kind='canonical_road'),
+      'published_road_occurrences',(select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation
+        where run_id=v_run and source_kind in ('published_pad_road','route_review_segment','structured_route_step_json')),
+      'published_boundary_occurrences',(select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation
+        where run_id=v_run and source_kind='published_route_boundary'),
+      'no_fuzzy_name_or_nearest_resolution',v_forbidden=0
+    )
+  where id=v_run;
+  return pg_catalog.jsonb_build_object(
+    'run_id',v_run,'status','complete','source_digest',v_source_digest,
+    'inventory_digest',v_inventory_digest,'result_digest',v_result_digest,
+    'occurrence_count',v_occurrences,
+    'exact_count',v_exact,'held_count',v_held,
+    'route_critical_held_count',v_critical_held,
+    'forbidden_resolution_count',v_forbidden
+  );
+end
+$$;
+
+revoke all on function public.brinesearch_issue97_refresh_saved_road_reconciliation()
+from public,anon,authenticated;
+grant execute on function public.brinesearch_issue97_refresh_saved_road_reconciliation()
+to service_role;
+
 create table public.brinesearch_issue97_release_state (
   singleton boolean primary key default true check(singleton),
   cutover_at timestamptz,
@@ -5715,6 +6563,17 @@ declare
   v_required_scope_count integer;
   v_active_graph_count integer;
   v_missing_dispositions integer;
+  v_scope record;
+  v_reconciliation record;
+  v_baseline record;
+  v_child_receipt jsonb;
+  v_child_occurrences integer;
+  v_child_exact integer;
+  v_child_held integer;
+  v_child_critical_held integer;
+  v_child_forbidden integer;
+  v_child_inventory_digest text;
+  v_child_result_digest text;
 begin
   select * into v_state from public.brinesearch_issue97_release_state
   where singleton for update;
@@ -5730,17 +6589,48 @@ begin
     raise exception 'Cutover requires reviewed_by, reviewed_at and verification_report_digest'
       using errcode='22023';
   end if;
+
+  -- Freeze all graph/source/mapping/reconciliation generations while the
+  -- irreversible switch is checked and written. The release-state row is
+  -- locked first; candidate/publisher wrappers take a shared row lock before
+  -- choosing the legacy path, so no provenance-null publication can commit
+  -- after cutover.
+  for v_scope in
+    select state_code,county_code from public.brinesearch_road_graph_counties
+    where active order by state_code,county_code
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
+      'brinesearch:issue97:graph:'||v_scope.state_code||':'||v_scope.county_code
+    ));
+  end loop;
+  for v_scope in
+    select dataset_id,state_code,county_code
+    from public.brinesearch_road_source_dataset_counties
+    where active and required_for_graph
+    order by dataset_id,state_code,county_code
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
+      'brinesearch:issue97:ingest:'||v_scope.dataset_id::text||':'||v_scope.county_code
+    ));
+  end loop;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:saved-road-reconciliation')
+  );
+
   select count(*)::integer into v_required_scope_count
   from public.brinesearch_road_source_dataset_counties scope
   where scope.active and scope.required_for_graph;
-  if v_required_scope_count<>89 or exists(
+  if v_required_scope_count<>114 or exists(
     select 1 from public.brinesearch_road_source_dataset_counties scope
     where scope.active and scope.required_for_graph
       and not private_verification.brinesearch_issue97_dataset_scope_current(
         scope.dataset_id,scope.state_code,scope.county_code
       )
   ) then
-    raise exception 'All 89 authoritative county/dataset scopes must be current before cutover'
+    raise exception 'All 114 authoritative county/dataset scopes must be current before cutover'
       using errcode='55000';
   end if;
   select count(*)::integer into v_active_graph_count
@@ -5761,19 +6651,86 @@ begin
     raise exception '% supplemental source occurrences lack mapped-or-held disposition',v_missing_dispositions
       using errcode='55000';
   end if;
+
+  -- Count alone cannot prove completeness: an omitted key and an extra key can
+  -- cancel out. The baseline digest comes from the independently recounted
+  -- current-production 16,109-key manifest and is compared to child rows again
+  -- under the cutover locks.
+  select * into v_baseline
+  from private_verification.brinesearch_issue97_saved_road_release_baseline
+  where singleton;
+  if not found or v_baseline.expected_occurrence_count<>16109
+     or v_baseline.expected_inventory_digest is null then
+    raise exception 'Issue #97 independent 16,109-occurrence inventory baseline is not populated'
+      using errcode='55000';
+  end if;
+
+  select * into v_reconciliation
+  from private_verification.brinesearch_issue97_saved_road_reconciliation_runs r
+  where r.status='complete' order by r.completed_at desc,r.id desc limit 1;
+  if v_reconciliation.id is null then
+    raise exception 'A complete issue #97 saved-road reconciliation is required before cutover'
+      using errcode='55000';
+  end if;
+
+  -- Never trust the denormalized run counters or digests at release time.
+  -- Derive every acceptance value again from the immutable child rows and
+  -- compare the full semantic receipt to both the run and external baseline.
+  v_child_receipt:=private_verification.brinesearch_issue97_saved_road_child_receipt(
+    v_reconciliation.id
+  );
+  v_child_occurrences:=(v_child_receipt->>'occurrence_count')::integer;
+  v_child_exact:=(v_child_receipt->>'exact_count')::integer;
+  v_child_held:=(v_child_receipt->>'held_count')::integer;
+  v_child_critical_held:=(v_child_receipt->>'route_critical_held_count')::integer;
+  v_child_forbidden:=(v_child_receipt->>'forbidden_resolution_count')::integer;
+  v_child_inventory_digest:=v_child_receipt->>'inventory_digest';
+  v_child_result_digest:=v_child_receipt->>'result_digest';
+  if v_reconciliation.source_digest is distinct from
+       private_verification.brinesearch_issue97_saved_road_source_digest()
+     or v_child_occurrences<>16109
+     or v_child_occurrences<>v_baseline.expected_occurrence_count
+     or v_child_exact+v_child_held<>v_child_occurrences
+     or v_child_critical_held<>0
+     or v_child_forbidden<>0
+     or v_child_inventory_digest is distinct from v_baseline.expected_inventory_digest
+     or v_reconciliation.occurrence_count<>v_child_occurrences
+     or v_reconciliation.exact_count<>v_child_exact
+     or v_reconciliation.held_count<>v_child_held
+     or v_reconciliation.route_critical_held_count<>v_child_critical_held
+     or v_reconciliation.forbidden_resolution_count<>v_child_forbidden
+     or v_reconciliation.inventory_digest is distinct from v_child_inventory_digest
+     or v_reconciliation.result_digest is distinct from v_child_result_digest then
+    raise exception 'Issue #97 cutover requires the exact reviewed 16,109-occurrence inventory, child-derived counters/digests, zero critical holds and zero fuzzy/name-only/nearest resolution'
+      using errcode='55000';
+  end if;
   update public.brinesearch_issue97_release_state set
     cutover_at=pg_catalog.clock_timestamp(),cutover_by=auth.uid(),
     review_details=p_review_details||pg_catalog.jsonb_build_object(
       'required_scope_count',v_required_scope_count,
       'active_graph_count',v_active_graph_count,
       'supplemental_missing_dispositions',v_missing_dispositions,
+      'saved_road_reconciliation_run_id',v_reconciliation.id,
+      'saved_road_source_digest',v_reconciliation.source_digest,
+      'saved_road_inventory_digest',v_child_inventory_digest,
+      'saved_road_result_digest',v_child_result_digest,
+      'saved_road_occurrence_count',v_child_occurrences,
+      'saved_road_exact_count',v_child_exact,
+      'saved_road_held_count',v_child_held,
+      'route_critical_held_count',v_child_critical_held,
+      'forbidden_resolution_count',v_child_forbidden,
+      'saved_road_baseline_populated_at',v_baseline.populated_at,
+      'saved_road_baseline_review',v_baseline.review_details,
       'irreversible',true
     ),updated_at=now()
   where singleton and cutover_at is null
   returning * into v_state;
   return pg_catalog.jsonb_build_object(
     'activated',true,'already_active',false,'cutover_at',v_state.cutover_at,
-    'required_scope_count',v_required_scope_count,'active_graph_count',v_active_graph_count
+    'required_scope_count',v_required_scope_count,'active_graph_count',v_active_graph_count,
+    'saved_road_reconciliation_run_id',v_reconciliation.id,
+    'saved_road_occurrence_count',v_child_occurrences,
+    'saved_road_held_count',v_child_held
   );
 end
 $$;
@@ -5883,7 +6840,7 @@ revoke all on function private_verification.brinesearch_issue97_identity_route_u
 from public,anon,authenticated,service_role;
 
 -- Keep #69 behavior callable only by the public compatibility wrapper while
--- the 89 blocking source scopes and 39 graph generations are loaded and reviewed.
+-- the 114 source scopes and 39 graph generations are loaded and reviewed.
 -- The irreversible cutover flag removes this runtime path without creating a
 -- deployment window in which ordinary publishing is unavailable.
 alter function public.brinesearch_route_step_boundary_candidates(uuid,uuid,jsonb,integer)
@@ -5899,7 +6856,7 @@ create or replace function public.brinesearch_route_step_boundary_candidates(
 )
 returns jsonb
 language plpgsql
-stable
+volatile
 security definer
 set search_path=''
 as $$
@@ -5918,14 +6875,14 @@ declare
   v_lat double precision;
   v_split extensions.geometry;
   v_distance double precision;
+  v_cutover_at timestamptz;
 begin
   if auth.uid() is null or not public.is_brinesearch_owner(auth.uid()) then
     raise exception 'Owner access is required to resolve route intersections' using errcode='42501';
   end if;
-  if not exists(
-    select 1 from public.brinesearch_issue97_release_state s
-    where s.singleton and s.cutover_at is not null
-  ) then
+  select s.cutover_at into strict v_cutover_at
+  from public.brinesearch_issue97_release_state s where s.singleton for share;
+  if v_cutover_at is null then
     return public.brinesearch_route_step_boundary_candidates_issue69_legacy(
       p_left_road_id,p_right_road_id,p_near_coordinate,p_limit
     );
@@ -6732,14 +7689,14 @@ declare
   v_build_id uuid;
   v_build_scope record;
   v_source_entry jsonb;
+  v_cutover_at timestamptz;
 begin
   if v_actor is null or not public.is_brinesearch_owner(v_actor) then
     raise exception 'Owner access is required to publish structured routes' using errcode='42501';
   end if;
-  if not exists(
-    select 1 from public.brinesearch_issue97_release_state s
-    where s.singleton and s.cutover_at is not null
-  ) then
+  select s.cutover_at into strict v_cutover_at
+  from public.brinesearch_issue97_release_state s where s.singleton for share;
+  if v_cutover_at is null then
     return public.brinesearch_publish_structured_route_issue69_legacy(
       p_pad_id,p_review_id,p_steps,p_expected_revision
     );

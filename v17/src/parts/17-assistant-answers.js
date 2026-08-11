@@ -157,8 +157,16 @@
         const target = targetText ? findRecordsByName(targetText)[0] : current;
         if (!target) return `I couldn’t match that command to a saved pad. Try <strong>api bella</strong>, <strong>route albatross</strong>, or open a pad first.`;
         if (cmd === "navigate") {
-          const map = googleMapsUrl(target);
-          return map ? `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list"><a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open navigation</a></div>` : `<strong>${esc(display(target.padName))}</strong> does not have a navigation location available.`;
+          const googleChunks = googleMapsRouteChunks(target);
+          const links = googleChunks.length
+            ? googleChunks.map((chunk, index) => `<a class="chat-result-link" data-google-route-chunk="${index + 1}" data-google-route-count="${googleChunks.length}" href="${esc(chunk.url)}" target="_blank" rel="noopener">${googleChunks.length === 1 ? "Open authoritative Google Maps route" : `Open Google route ${index + 1} of ${googleChunks.length}`}</a>`).join("")
+            : (() => {
+                const exactPad = googleMapsUrl(target);
+                return exactPad ? `<a class="chat-result-link" href="${esc(exactPad)}" target="_blank" rel="noopener">Open exact pad GPS (route not verified)</a>` : "";
+              })();
+          return links
+            ? `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list">${links}</div>`
+            : `<strong>${esc(display(target.padName))}</strong> does not have a navigation location available.`;
         }
         if (cmd === "share") {
           return `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list"><button class="chat-result-link" data-assistant-share="${esc(target._id)}" type="button">Share this pad</button></div>`;

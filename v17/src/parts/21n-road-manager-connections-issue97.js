@@ -16,6 +16,7 @@
 	    let roadOfficialSearchGenerationIssue97 = 0;
 	    let roadOfficialDetailGenerationIssue97 = 0;
 	    let roadOfficialConnectionGenerationIssue97 = 0;
+	    let roadOfficialRenderGenerationIssue97 = 0;
 
     function roadOfficialRpcObjectIssue97(value) {
       return Array.isArray(value) ? (value[0] || {}) : (value || {});
@@ -307,12 +308,18 @@
 	        .filter(item => item.point);
       const memberships = Array.isArray(connection.memberships) ? connection.memberships : [];
       const shared = connection.junction_type === "shared_segment";
+	      const statusLabel = connection.verification_status !== "verified"
+	        ? "Held — not route-selectable"
+	        : shared ? "Shared section"
+	          : connection.junction_type === "name_change" ? "Name change"
+	            : connection.junction_type === "continuation" ? "Road continuation"
+	              : "Physical junction";
       return `<article class="road-official-connection-issue97" data-junction-id="${esc(connection.junction_id)}">
         <header><span><strong>${esc(connection.display_id || connection.junction_key)}</strong><small>${esc([
           connection.junction_type, connection.membership_role,
           connection.distance_along_road_m == null ? "order unresolved" : `${Number(connection.distance_along_road_m).toFixed(1)} m along road`,
           [connection.municipality, connection.township, connection.county_name].filter(Boolean).join(", ")
-        ].filter(Boolean).join(" • "))}</small></span><b>${shared ? "Shared section" : "Physical junction"}</b></header>
+	        ].filter(Boolean).join(" • "))}</small></span><b>${esc(statusLabel)}</b></header>
 	        <div class="road-official-anchors-issue97">${anchors.length ? anchors.map(({ anchor, point }) => {
 	          const role = shared ? (anchor.anchor_role === "shared_start" ? "Shared start" : "Shared end") : "Exact GPS";
 	          return `<div><span><strong>${esc(role)}</strong><code>${point[1].toFixed(7)}, ${point[0].toFixed(7)}</code></span><span><button type="button" class="btn ghost small" data-road-official-copy="${esc(`${point[1].toFixed(7)}, ${point[0].toFixed(7)}`)}">Copy GPS</button><button type="button" class="btn secondary small" data-road-official-focus="${esc(`${point[0]},${point[1]}`)}">Show on map</button></span></div>`;
@@ -344,9 +351,22 @@
       host.querySelectorAll("[data-road-official-open-connected]").forEach(button => {
         button.onclick = async () => {
           const canonicalId = button.dataset.roadCanonicalOpenConnected;
-          const canonical = canonicalId && (Array.isArray(roadManagerRows) ? roadManagerRows : [])
-            .find(row => row.id === canonicalId);
-          if (canonical) {
+	          if (canonicalId && editorIsOwner()) {
+	            let canonical = (Array.isArray(roadManagerRows) ? roadManagerRows : [])
+	              .find(row => row.id === canonicalId);
+	            if (!canonical) {
+	              try {
+	                const rows = await editorRequest(`/rest/v1/brinesearch_roads?select=*&id=eq.${encodeURIComponent(canonicalId)}&limit=1`, { method: "GET" });
+	                canonical = Array.isArray(rows) ? rows[0] : null;
+	              } catch (error) {
+	                showToast(error?.message || "Could not load the canonical Road Manager road");
+	                return;
+	              }
+	            }
+	            if (!canonical) {
+	              showToast("The verified canonical Road Manager road is unavailable");
+	              return;
+	            }
             await switchRoadManagerTabV173("roads");
             renderRoadForm(canonical);
             document.getElementById("roadManagerEditor")?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -368,6 +388,7 @@
 	        .flatMap(row => Array.isArray(row.anchors) ? row.anchors : [])
 	        .map(anchor => routeIssue69Coordinate(anchor.coordinate)).find(Boolean);
 	      const sourceUrl = roadOfficialSafeSourceUrlIssue97(detail.source?.url);
+	      const detailTruncated = Boolean(detail.name_events_truncated || detail.segment_summary?.source_records_truncated);
       roadOfficialMapIssue97?.resizeObserver?.disconnect();
       roadOfficialMapIssue97 = null;
       host.innerHTML = `<section class="road-manager-card road-official-detail-card-issue97">
@@ -377,6 +398,7 @@
           detail.public_access_status, detail.drivable_status
         ].filter(Boolean).join(" • "))}</p></div><button type="button" class="btn ghost small" data-road-official-close>Close</button></div>
 	        <div class="road-official-provenance-issue97"><div><strong>Aliases / designations</strong><span>${names.length ? names.map(row => `${row.name} (${row.type})`).map(esc).join(" · ") : "No additional source-backed names"}</span></div><div><strong>Canonical mapping</strong><span>${mappings.length ? mappings.map(row => `${row.canonical_name} · ${row.status} · ${row.method}`).map(esc).join(" · ") : "Source-only; not selectable for structured routes"}</span></div><div><strong>Source</strong><span>${esc([detail.source?.agency, detail.source?.dataset, detail.source?.layer, detail.source?.version].filter(Boolean).join(" • "))}</span>${sourceUrl ? `<a href="${esc(sourceUrl)}" target="_blank" rel="noopener noreferrer">Open official source</a>` : ""}</div></div>
+	        ${detailTruncated ? '<p class="admin-empty">This road has more source name or segment provenance records than this bounded detail view can display. Use the paginated connections and exact source link; no hidden record was guessed or promoted.</p>' : ""}
       </section>
       <section class="road-manager-card road-official-connections-card-issue97">
         <div class="road-official-connections-head-issue97"><div><h2>Connections / Intersections</h2><p>One physical junction with every road membership. Names never create a connection.</p></div><b>${esc(`${roadOfficialConnectionRowsIssue97.length} shown`)}</b></div>
@@ -467,6 +489,7 @@
 	    async function renderOfficialRoadsTabIssue97() {
 	      const pane = document.getElementById("roadManagerPane");
 	      if (!pane) return;
+	      const renderGeneration = ++roadOfficialRenderGenerationIssue97;
 	      roadOfficialInvalidateSearchIssue97();
 	      roadOfficialDetailGenerationIssue97 += 1;
 	      roadOfficialConnectionGenerationIssue97 += 1;
@@ -481,31 +504,50 @@
       </section>
       <section class="road-manager-card"><div id="roadOfficialResultsIssue97" class="road-official-results-issue97"></div><div class="route-prep-pagination"><button class="btn ghost small" id="roadOfficialPreviousIssue97">Previous</button><span id="roadOfficialPageIssue97"></span><button class="btn ghost small" id="roadOfficialNextIssue97">Next</button></div></section>
       <div id="roadOfficialDetailIssue97"></div>`;
-      await roadOfficialLoadCountiesIssue97();
+	      try {
+	        await roadOfficialLoadCountiesIssue97();
+	      } catch (error) {
+	        if (renderGeneration !== roadOfficialRenderGenerationIssue97
+	          || !pane.isConnected || document.getElementById("roadManagerPane") !== pane
+	          || roadManagerActiveTabV173 !== "official") return;
+	        const results = pane.querySelector("#roadOfficialResultsIssue97");
+	        if (results) results.innerHTML = `<p class="admin-empty">${esc(error?.message || "Could not load the authoritative source registry.")}</p>`;
+	        return;
+	      }
+	      if (renderGeneration !== roadOfficialRenderGenerationIssue97
+	        || !pane.isConnected || document.getElementById("roadManagerPane") !== pane
+	        || roadManagerActiveTabV173 !== "official") return;
       const registrySummary = document.getElementById("roadOfficialRegistrySummaryIssue97");
       if (registrySummary) registrySummary.textContent = `${Number(roadOfficialRegistryIssue97?.dataset_count || 0)} authoritative datasets · ${roadOfficialCountyRowsIssue97.length} confirmed counties.`;
 	      let timer;
-	      document.getElementById("roadOfficialSearchIssue97").oninput = () => {
+	      const search = pane.querySelector("#roadOfficialSearchIssue97");
+	      const stateSelect = pane.querySelector("#roadOfficialStateIssue97");
+	      const previous = pane.querySelector("#roadOfficialPreviousIssue97");
+	      const next = pane.querySelector("#roadOfficialNextIssue97");
+	      if (!search || !stateSelect || !previous || !next) return;
+	      search.oninput = () => {
 	        roadOfficialInvalidateSearchIssue97();
 	        clearTimeout(timer); timer = setTimeout(() => { roadOfficialResetPagingIssue97(); roadOfficialLoadSearchIssue97(); }, 220);
 	      };
 	      ["roadOfficialCountyIssue97", "roadOfficialClassIssue97", "roadOfficialAccessIssue97", "roadOfficialMappingIssue97"].forEach(id => {
-	        document.getElementById(id).onchange = () => {
+	        const control = pane.querySelector(`#${id}`);
+	        if (!control) return;
+	        control.onchange = () => {
 	          roadOfficialInvalidateSearchIssue97(); roadOfficialResetPagingIssue97(); roadOfficialLoadSearchIssue97();
 	        };
 	      });
-	      document.getElementById("roadOfficialStateIssue97").onchange = () => {
+	      stateSelect.onchange = () => {
 	        roadOfficialInvalidateSearchIssue97();
 	        const state = document.getElementById("roadOfficialStateIssue97")?.value || "";
 	        const county = document.getElementById("roadOfficialCountyIssue97");
 	        if (county?.value && state && !county.value.startsWith(`${state}|`)) county.value = "";
 	        roadOfficialRenderCountyOptionsIssue97(); roadOfficialResetPagingIssue97(); roadOfficialLoadSearchIssue97();
 	      };
-      document.getElementById("roadOfficialPreviousIssue97").onclick = () => {
+	      previous.onclick = () => {
         roadOfficialSearchCursorIssue97 = roadOfficialSearchHistoryIssue97.pop() || null;
         roadOfficialLoadSearchIssue97();
       };
-      document.getElementById("roadOfficialNextIssue97").onclick = () => {
+	      next.onclick = () => {
         if (!roadOfficialSearchNextIssue97) return;
         roadOfficialSearchHistoryIssue97.push(roadOfficialSearchCursorIssue97);
         roadOfficialSearchCursorIssue97 = roadOfficialSearchNextIssue97;
@@ -553,7 +595,7 @@
 	    const renderRoadFormBeforeIssue97 = renderRoadForm;
 	    renderRoadForm = function renderRoadFormConnectionsIssue97(row = emptyRoadForm()) {
 	      renderRoadFormBeforeIssue97(row);
-	      if (!row?.id) return;
+	      if (!row?.id || !editorIsOwner()) return;
 	      const host = document.getElementById("roadManagerEditor");
 	      if (!host || host.querySelector(".road-canonical-connections-issue97")) return;
 	      const section = document.createElement("section");
@@ -690,6 +732,13 @@
       try { localStorage.setItem(ROUTE_ISSUE69_DRAFT_KEY, JSON.stringify(drafts)); } catch {}
     };
 
+    let routeIssue97DraftMutationGeneration = 0;
+    const routeIssue97DraftSaveBeforeBoundaryRace = routeIssue69DraftSave;
+    routeIssue69DraftSave = function routeIssue69DraftSaveBoundaryRaceIssue97(...args) {
+      routeIssue97DraftMutationGeneration += 1;
+      return routeIssue97DraftSaveBeforeBoundaryRace(...args);
+    };
+
     routeIssue69TopologySignature = function routeIssue69TopologySignatureIssue97() {
       return JSON.stringify({
         padId: routeIssue69CurrentPadId(),
@@ -715,6 +764,7 @@
       });
       return validated;
     };
+	    window.routeIssue69ValidateStructuredPayload = routeIssue69ValidateStructuredPayload;
 
     const routeIssue69PublishPayloadBeforeIssue97 = routeIssue69PublishPayload;
     routeIssue69PublishPayload = function routeIssue69PublishPayloadIssue97() {
@@ -776,14 +826,36 @@
       return JSON.parse(JSON.stringify(value));
     }
 
-    function routeIssue97RestoreBoundaryState(snapshot, padId) {
-      if (padId !== routeIssue69CurrentPadId()) return;
+    function routeIssue97BoundaryRollbackSignature() {
+      return JSON.stringify({
+        padId: routeIssue69CurrentPadId(),
+        steps: (routeMapperSegmentsV17324 || []).map(segment => ({
+          routeStepId: segment?.routeStepId || null,
+          roadId: segment?.roadId || null,
+          entryJunctionAnchorId: segment?.entryJunctionAnchorId || null,
+          entryJunctionId: segment?.entryJunctionId || null,
+          junctionBuildId: segment?.junctionBuildId || null,
+          junctionDigest: segment?.junctionDigest || null,
+          turn: segment?.turn || "",
+          inboundTurn: segment?.inboundTurn || "",
+          note: segment?.note || ""
+        }))
+      });
+    }
+
+    function routeIssue97RestoreBoundaryState(snapshot, guard) {
+      if (!guard
+        || guard.padId !== routeIssue69CurrentPadId()
+        || guard.topologyGeneration !== routeIssue69TopologyGeneration
+        || guard.mutationGeneration !== routeIssue97DraftMutationGeneration
+        || guard.signature !== routeIssue97BoundaryRollbackSignature()) return false;
       routeMapperSegmentsV17324 = routeIssue97CloneBoundaryState(snapshot);
       routeIssue69BumpTopology();
       routeIssue69DraftSave();
       routeMapperRenderSegmentsV17324();
       routeInteractiveRenderV17327();
       routeInteractiveRenderEditBarV17327();
+      return true;
     }
 
     routeIssue69ApplyBoundaryGuarded = async function routeIssue69ApplyBoundaryGuardedIssue97(index, side, coordinate, token, candidate = null) {
@@ -824,11 +896,17 @@
       routeIssue69BoundaryMode = null;
       routeIssue69BoundarySheetClose();
       routeIssue69BumpTopology();
+      const rollbackGuard = {
+        padId: snapshotPadId,
+        topologyGeneration: routeIssue69TopologyGeneration,
+        mutationGeneration: routeIssue97DraftMutationGeneration,
+        signature: routeIssue97BoundaryRollbackSignature()
+      };
       try {
         const reclipped = await routeIssue69ReclipAroundGuarded(index);
         if (!reclipped) throw new Error("Boundary edit could not be verified against authoritative road geometry");
       } catch (error) {
-        routeIssue97RestoreBoundaryState(snapshot, snapshotPadId);
+        routeIssue97RestoreBoundaryState(snapshot, rollbackGuard);
         throw error;
       }
       routeInteractiveRenderEditBarV17327();

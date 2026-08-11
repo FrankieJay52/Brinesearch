@@ -38,6 +38,24 @@
       return digest;
     }
 
+    function googleRouteIdentifierIssue97(value, field) {
+      const identifier = String(value ?? "").trim();
+      if (!identifier) throw new Error(`Google route ${field} is missing`);
+      return identifier;
+    }
+
+    function googleRouteRevisionIssue97(value, field) {
+      const text = String(value ?? "").trim();
+      if (!/^[1-9][0-9]*$/.test(text)) {
+        throw new Error(`Google route ${field} must be a positive integer`);
+      }
+      const revision = Number(text);
+      if (!Number.isSafeInteger(revision)) {
+        throw new Error(`Google route ${field} exceeds the safe integer range`);
+      }
+      return revision;
+    }
+
     function validateGoogleRoutePointIssue97(point, index, total) {
       if (!point || typeof point !== "object" || Array.isArray(point)) {
         throw new Error(`Google route point ${index + 1} is invalid`);
@@ -70,8 +88,12 @@
       }
 
       if (kind === "shape") {
+        const sourceSegmentKeys = point.source_segment_keys;
         if (point.source_kind !== "authoritative_clipped_geometry" ||
-            !point.occurrence_id || !point.source_segment_key) {
+            !point.occurrence_id || !Array.isArray(sourceSegmentKeys) ||
+            sourceSegmentKeys.length === 0 ||
+            sourceSegmentKeys.some(key => typeof key !== "string" || !key.trim()) ||
+            new Set(sourceSegmentKeys).size !== sourceSegmentKeys.length) {
           throw new Error("Google route shape point is not tied to clipped authoritative geometry");
         }
         googleRouteHexDigestIssue97(point.source_digest, "shape source digest");
@@ -86,27 +108,76 @@
       if (String(manifest.manifest_version || "") !== "issue97-google-v1") {
         throw new Error("Google route manifest version is unsupported");
       }
-      if (!manifest.pad_id || manifest.route_revision === null || manifest.route_revision === undefined) {
-        throw new Error("Google route manifest is missing its pad or route revision");
-      }
+      const padId = googleRouteIdentifierIssue97(manifest.pad_id, "manifest pad ID");
+      googleRouteRevisionIssue97(manifest.route_revision, "manifest route revision");
       googleRouteHexDigestIssue97(manifest.manifest_digest, "manifest digest");
       const points = Array.isArray(manifest.points) ? manifest.points : [];
-      if (!points.length) throw new Error("Google route manifest has no control points");
+      if (points.length < 2) {
+        throw new Error("Google route manifest requires a source-proven route ingress and pad destination");
+      }
       points.forEach((point, index) => validateGoogleRoutePointIssue97(point, index, points.length));
 
+      const ingress = points[0];
+      if (ingress.kind !== "shape" || ingress.shape_role !== "route_ingress") {
+        throw new Error("Google route must start with a source-proven route ingress");
+      }
+      if (points.slice(1).some(point => point?.shape_role === "route_ingress")) {
+        throw new Error("Google route may contain only one route ingress at the first control point");
+      }
+      const destination = points[points.length - 1];
+      if (googleRouteIdentifierIssue97(destination.pad_id, "destination pad ID") !== padId) {
+        throw new Error("Google route destination pad does not match its manifest");
+      }
+
+      let openSharedJunction = null;
       for (let index = 0; index < points.length; index += 1) {
         const point = points[index];
         if (point.kind === "shared_entry") {
-          const exit = points[index + 1];
-          if (exit?.kind !== "shared_exit" || exit.junction_id !== point.junction_id) {
-            throw new Error("Google route shared segment must preserve adjacent entry and exit anchors");
-          }
+          if (openSharedJunction) throw new Error("Google route shared segment entry is nested");
+          openSharedJunction = point.junction_id;
+          continue;
         }
-        if (point.kind === "shared_exit" && points[index - 1]?.kind !== "shared_entry") {
-          throw new Error("Google route shared exit is missing its ordered entry anchor");
+        if (point.kind === "shared_exit") {
+          if (!openSharedJunction || openSharedJunction !== point.junction_id) {
+            throw new Error("Google route shared exit is missing its ordered entry anchor");
+          }
+          openSharedJunction = null;
+          continue;
+        }
+        if (openSharedJunction && point.kind !== "shape") {
+          throw new Error("Google route shared section may contain only source-derived shaping points");
         }
       }
+      if (openSharedJunction) throw new Error("Google route shared segment is missing its exit anchor");
       return points;
+    }
+
+    function validateGoogleRoutePublicRowIssue97(row) {
+      if (!row || typeof row !== "object" || Array.isArray(row)) {
+        throw new Error("Google route public row is invalid");
+      }
+      const points = validateGoogleRouteManifestIssue97(row.manifest);
+      const rowPadId = googleRouteIdentifierIssue97(row.pad_id, "public row pad ID");
+      const manifestPadId = googleRouteIdentifierIssue97(row.manifest.pad_id, "manifest pad ID");
+      if (rowPadId !== manifestPadId) {
+        throw new Error("Google route public row pad does not match its manifest");
+      }
+      const rowRevision = googleRouteRevisionIssue97(row.route_revision, "public row route revision");
+      const manifestRevision = googleRouteRevisionIssue97(
+        row.manifest.route_revision,
+        "manifest route revision"
+      );
+      if (rowRevision !== manifestRevision) {
+        throw new Error("Google route public row revision does not match its manifest");
+      }
+      const destinationPadId = googleRouteIdentifierIssue97(
+        points[points.length - 1].pad_id,
+        "destination pad ID"
+      );
+      if (destinationPadId !== rowPadId) {
+        throw new Error("Google route public row pad does not match its destination");
+      }
+      return row.manifest;
     }
 
     function googleRouteChunkUrlIssue97(origin, destination, waypoints) {
@@ -166,10 +237,16 @@
       });
     }
 
+    function buildGoogleRoutePublicPlanIssue97(row) {
+      return buildGoogleRoutePlanIssue97(validateGoogleRoutePublicRowIssue97(row));
+    }
+
     globalThis.BrinesearchGoogleRouteIssue97 = Object.freeze({
       maxWaypoints: GOOGLE_ROUTE_MAX_WAYPOINTS_ISSUE97,
       maxUrlLength: GOOGLE_ROUTE_MAX_URL_LENGTH_ISSUE97,
       coordinate: googleRouteCoordinateIssue97,
       validateManifest: validateGoogleRouteManifestIssue97,
-      buildPlan: buildGoogleRoutePlanIssue97
+      validatePublicRow: validateGoogleRoutePublicRowIssue97,
+      buildPlan: buildGoogleRoutePlanIssue97,
+      buildPublicPlan: buildGoogleRoutePublicPlanIssue97
     });

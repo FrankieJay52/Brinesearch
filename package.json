@@ -23,6 +23,7 @@
     "verify:exact-route-geometry": "node v17/scripts/audit-exact-structured-route-issue69.mjs",
     "verify:exact-route-runtime": "node v17/scripts/audit-exact-route-runtime-hardening-issue69.mjs",
     "verify:road-junction-graph": "node v17/scripts/audit-authoritative-road-junction-graph-issue97.mjs",
+    "verify:road-junction-browser": "node v17/scripts/browser-road-junction-issue97.mjs",
     "verify:google-route-plan": "node v17/scripts/verify-google-route-plan-issue97.mjs",
     "verify:road-data-coverage": "node v17/scripts/audit-road-data-coverage-issue70.mjs",
     "verify:road-identity-reconciliation": "node v17/scripts/audit-road-identity-reconciliation-issue70.mjs",

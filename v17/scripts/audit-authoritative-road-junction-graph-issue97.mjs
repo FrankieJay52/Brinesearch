@@ -15,9 +15,11 @@ const routeRuntimePath = "v17/src/parts/21m-road-manager-runtime-hardening-issue
 const googlePlannerPath = "v17/src/parts/00ab-google-route-plan-issue97.js";
 const googleLoaderPath = "v17/src/parts/00ac-authoritative-google-routes-issue97.js";
 const googleTestPath = "v17/scripts/verify-google-route-plan-issue97.mjs";
+const browserTestPath = "v17/scripts/browser-road-junction-issue97.mjs";
 const cssPath = "v17/src/styles/45-road-manager-connections-issue97.css";
 const syntheticPath = "supabase/tests/issue97_road_junction_graph_synthetic.sql";
 const livePath = "supabase/tests/issue97_required_live_cases.sql";
+const schemaSecurityPath = "supabase/tests/issue97_schema_security.sql";
 
 const migration = read(migrationPath);
 const googleMigration = read(googleMigrationPath);
@@ -27,9 +29,11 @@ const routeRuntime = read(routeRuntimePath);
 const googlePlanner = read(googlePlannerPath);
 const googleLoader = read(googleLoaderPath);
 const googleTest = read(googleTestPath);
+const browserTest = read(browserTestPath);
 const css = read(cssPath);
 const synthetic = read(syntheticPath);
 const live = read(livePath);
+const schemaSecurity = read(schemaSecurityPath);
 const partOrder = JSON.parse(read("v17/src/parts/part-order.json"));
 const styleOrder = JSON.parse(read("v17/src/styles/style-order.json"));
 const pkg = JSON.parse(read("package.json"));
@@ -46,6 +50,30 @@ assert.equal(countyRows.length, 39, "Issue #97 must register all 39 confirmed pa
 assert.equal(countyRows.filter(row => row.startsWith("('OH'")).length, 19, "Issue #97 Ohio county count changed");
 assert.equal(countyRows.filter(row => row.startsWith("('WV'")).length, 10, "Issue #97 West Virginia county count changed");
 assert.equal(countyRows.filter(row => row.startsWith("('PA'")).length, 10, "Issue #97 Pennsylvania county count changed");
+const exactCountyManifest = [
+  "('OH','ATH','Athens','39009','ATH'", "('OH','BEL','Belmont','39013','BEL'",
+  "('OH','CAR','Carroll','39019','CAR'", "('OH','COL','Columbiana','39029','COL'",
+  "('OH','COS','Coshocton','39031','COS'", "('OH','GUE','Guernsey','39059','GUE'",
+  "('OH','HAS','Harrison','39067','HAS'", "('OH','HOL','Holmes','39075','HOL'",
+  "('OH','JEF','Jefferson','39081','JEF'", "('OH','LIC','Licking','39089','LIC'",
+  "('OH','MAH','Mahoning','39099','MAH'", "('OH','MOE','Monroe','39111','MOE'",
+  "('OH','MUS','Muskingum','39119','MUS'", "('OH','NOB','Noble','39121','NOB'",
+  "('OH','POR','Portage','39133','POR'", "('OH','STA','Stark','39151','STA'",
+  "('OH','TRU','Trumbull','39155','TRU'", "('OH','TUS','Tuscarawas','39157','TUS'",
+  "('OH','WAS','Washington','39167','WAS'",
+  "('WV','BRO','Brooke','54009','05'", "('WV','DOD','Doddridge','54017','09'",
+  "('WV','HAR','Harrison','54033','17'", "('WV','MAR','Marion','54049','25'",
+  "('WV','MSH','Marshall','54051','26'", "('WV','MON','Monongalia','54061','31'",
+  "('WV','OHI','Ohio','54069','35'", "('WV','RIT','Ritchie','54085','43'",
+  "('WV','TYL','Tyler','54095','48'", "('WV','WET','Wetzel','54103','52'",
+  "('PA','ALL','Allegheny','42003','02'", "('PA','ARM','Armstrong','42005','03'",
+  "('PA','BEA','Beaver','42007','04'", "('PA','BRA','Bradford','42015','08'",
+  "('PA','BUT','Butler','42019','10'", "('PA','FAY','Fayette','42051','26'",
+  "('PA','GRE','Greene','42059','30'", "('PA','IND','Indiana','42063','32'",
+  "('PA','WAS','Washington','42125','62'", "('PA','WES','Westmoreland','42129','64'"
+];
+for (const row of exactCountyManifest) need(countyBlock, row, `exact county registry row ${row}`);
+forbid(countyBlock, "('OH','HAR','Harrison'", "Hardin HAR mislabeled as Ohio Harrison");
 
 for (const token of [
   "brinesearch_authoritative_road_identities",
@@ -65,23 +93,40 @@ const sourceScopeBlock = migration.slice(
   migration.indexOf("create table public.brinesearch_road_source_dataset_counties"),
   migration.indexOf("alter table public.brinesearch_odot_road_catalog")
 );
-assert.match(sourceScopeBlock, /select d\.id,c\.state_code,c\.county_code,false,false,[\s\S]*where d\.source_key='oh_ogrip_lbrs_centerlines'/,
-  "Issue #97 OGRIP must remain non-blocking until exact mapped-or-held reconciliation is proven");
-assert.match(sourceScopeBlock, /select d\.id,'PA',scope\.county_code,false,false,/,
-  "Issue #97 PA supplemental feeds must remain non-blocking until exact mapped-or-held reconciliation is proven");
+assert.match(sourceScopeBlock, /select d\.id,c\.state_code,c\.county_code,true,true,[\s\S]*where d\.source_key='oh_ogrip_lbrs_centerlines'/,
+  "Issue #97 must ingest and reconcile every confirmed-county OGRIP LBRS scope");
+assert.match(sourceScopeBlock, /select d\.id,'PA',scope\.county_code,true,true,/,
+  "Issue #97 must ingest and reconcile all six available PA county/NG911 feeds");
 need(sourceScopeBlock, "check(not required_for_graph or ingest_enabled)",
   "required source scopes must also be ingest-enabled");
-need(migration, "v_required_scope_count<>89",
-  "cutover must require the same 89 blocking source scopes as the live contract");
-need(migration, "All 89 authoritative county/dataset scopes must be current before cutover",
-  "cutover error must describe the 89-scope blocking contract");
-forbid(migration, "v_required_scope_count<>114",
-  "stale 114-scope cutover contract");
+need(migration, "v_required_scope_count<>114",
+  "cutover must require 89 core/name/node and 25 official supplemental scopes");
+need(migration, "All 114 authoritative county/dataset scopes must be current before cutover",
+  "cutover error must describe the complete 114-scope contract");
+need(migration, "v_occurrences<>16109",
+  "saved-road reconciliation must use the independently recounted 16,109-occurrence manifest");
+need(migration, "expected_occurrence_count<>16109",
+  "cutover must require the reviewed 16,109-key inventory baseline");
+need(migration, "9b4e608fc8ec32042a06b5fcba1b34d8",
+  "independently reviewed current-production occurrence-key digest");
+need(migration, "ffaf172e5e331a2a8e3e97240c2b12bf",
+  "independent delimited-key digest cross-check");
+need(migration, "'source_kind_counts'",
+  "saved-road reconciliation source-kind metrics");
+forbid(migration, "v_occurrences<>5167", "obsolete partial saved-road inventory count");
+forbid(migration, "v_required_scope_count<>89", "stale registry-only 89-scope cutover contract");
 for (const token of [
   "brinesearch_road_source_datasets_https_check",
   "'brinesearch_road_source_dataset_counties'",
   "'brinesearch_authoritative_supplemental_centerlines'",
   "'brinesearch_supplemental_centerline_identity_mappings'",
+  "'brinesearch_supplemental_centerline_dispositions'",
+  "brinesearch_issue97_ingest_supplemental_page",
+  "brinesearch_issue97_refresh_supplemental_aliases",
+  "Every supplemental centerline must receive a mapped-or-held disposition",
+  "brinesearch_issue97_refresh_saved_road_reconciliation",
+  "brinesearch_issue97_activate_cutover",
+  "zero critical holds and zero fuzzy/name-only/nearest resolution",
   "revoke all on public.brinesearch_road_graph_builds from service_role",
   "County filter requires an explicit state",
   "Two-character official-road search requires a county filter"
@@ -116,7 +161,7 @@ for (const token of [
 ]) need(googlePlanner, token, `Google route planner: ${token}`);
 need(googleLoader, "brinesearch_driver_google_routes_public",
   "public Google route manifest loader");
-need(googleLoader, "BrinesearchGoogleRouteIssue97.buildPlan",
+need(googleLoader, "BrinesearchGoogleRouteIssue97.buildPublicPlan",
   "fail-closed public manifest validation");
 for (const token of [
   "springdale-occurrence-one",
@@ -248,13 +293,48 @@ for (const token of [
 ]) need(routeRuntime, token, `atomic boundary reclip: ${token}`);
 for (const token of [
   "routeIssue97CloneBoundaryState(routeMapperSegmentsV17324)",
-  "routeIssue97RestoreBoundaryState(snapshot, snapshotPadId)",
+  "routeIssue97DraftMutationGeneration",
+  "routeIssue97BoundaryRollbackSignature",
+  "guard.padId !== routeIssue69CurrentPadId()",
+  "guard.topologyGeneration !== routeIssue69TopologyGeneration",
+  "guard.mutationGeneration !== routeIssue97DraftMutationGeneration",
+  "guard.signature !== routeIssue97BoundaryRollbackSignature()",
+  "routeMapperSegmentsV17324 = routeIssue97CloneBoundaryState(snapshot)",
+  "routeIssue97RestoreBoundaryState(snapshot, rollbackGuard)",
   "if (!reclipped) throw new Error",
   "current.turn = \"\"",
   "previous.inboundTurn = \"\"",
   "current.inboundTurn = \"\"",
   "next.turn = \"\""
 ]) need(ui, token, `atomic boundary edit: ${token}`);
+
+const boundaryRollbackSignatureBlock = ui.slice(
+  ui.indexOf("function routeIssue97BoundaryRollbackSignature()"),
+  ui.indexOf("routeIssue69ApplyBoundaryGuarded = async function routeIssue69ApplyBoundaryGuardedIssue97")
+);
+for (const token of [
+  "routeStepId: segment?.routeStepId || null",
+  "roadId: segment?.roadId || null",
+  "entryJunctionAnchorId: segment?.entryJunctionAnchorId || null",
+  "turn: segment?.turn || \"\"",
+  "inboundTurn: segment?.inboundTurn || \"\""
+]) need(boundaryRollbackSignatureBlock, token, `boundary rollback edit signature: ${token}`);
+
+const boundaryRollbackAllowed = (guard, state) => guard.padId === state.padId
+  && guard.topologyGeneration === state.topologyGeneration
+  && guard.mutationGeneration === state.mutationGeneration
+  && guard.signature === state.signature;
+const boundaryRollbackGuard = {
+  padId: "pad-1", topologyGeneration: 7, mutationGeneration: 11, signature: "route-a"
+};
+assert.equal(boundaryRollbackAllowed(boundaryRollbackGuard, { ...boundaryRollbackGuard }), true,
+  "An ordinary failed boundary clip must remain rollback-eligible");
+assert.equal(boundaryRollbackAllowed(boundaryRollbackGuard, { ...boundaryRollbackGuard, topologyGeneration: 8 }), false,
+  "A newer reorder or replacement must make the old boundary snapshot ineligible");
+assert.equal(boundaryRollbackAllowed(boundaryRollbackGuard, { ...boundaryRollbackGuard, mutationGeneration: 12 }), false,
+  "A newer saved turn edit must make the old boundary snapshot ineligible");
+assert.equal(boundaryRollbackAllowed(boundaryRollbackGuard, { ...boundaryRollbackGuard, signature: "route-b" }), false,
+  "A newer in-memory route edit must make the old boundary snapshot ineligible");
 for (const token of [
   "Route QA &amp; Exceptions",
   "Route QA",
@@ -269,6 +349,20 @@ for (const token of [
   "data-road-canonical-more",
   "candidate only · not route-usable"
 ]) need(ui, token);
+for (const token of [
+  "roadOfficialRenderGenerationIssue97",
+  "Held — not route-selectable",
+  "name_events_truncated",
+  "segment_summary?.source_records_truncated",
+  "brinesearch_roads?select=*&id=eq.",
+  "window.routeIssue69ValidateStructuredPayload = routeIssue69ValidateStructuredPayload"
+]) need(ui, token, `Road Manager race/read-only contract: ${token}`);
+for (const token of [
+  "entryJunctionId: row.entry_junction_id",
+  "entryJunctionAnchorId: row.entry_junction_anchor_id",
+  "junctionBuildId: row.junction_build_id",
+  "junctionDigest: row.junction_digest"
+]) need(routeRuntime, token, `legacy review graph provenance: ${token}`);
 forbid(ui, "fetchRoads =", "replacement of canonical fetchRoads");
 forbid(ui, "roadManagerRows.push", "source identity leakage into canonical rows");
 forbid(ui, "findCanonicalRoadV173", "name-based source adoption");
@@ -302,18 +396,41 @@ for (const token of [
 for (const token of [
   "WV:WVDOT:ROUTE_ID:3500895000000",
   "OH:ODOT:NLF:MBELMR00093**C",
-  "OH:ODOT:NLF:TNOBTR00003**C",
+  "OH:ODOT:NLF:TNOBTR00003**C:COMP:2025_000000000428134",
+  "OH:ODOT:NLF:CBELCR00034**C:COMP:2025_000000000003599",
+  "OH:ODOT:NLF:TJEFTR00184**C:COMP:2025_000000000402167",
   "OH:ODOT:NLF:CJEFCR00026**C",
   "PA:PENNDOT:LOCAL:62:2049:110961:EJM9",
   "PA:PENNDOT:STATE:62:NLF:9888",
   "PA:PENNDOT:AT_GRADE",
+  "PA:PENNDOT:AT_GRADE:OCCURRENCE:146521:SCOPE:PA:WAS",
+  "RCL22649@co.washington.pa.us",
+  "RCL39851@co.washington.pa.us",
+  "2025_000000000067340",
   "1267.0/5280.0",
   "Possom/Possum exact two-member continuation",
-  "private-jurisdiction identity was projected as non-private",
-  "begin transaction read only"
+  "private-jurisdiction identity was projected as non-private"
 ]) need(live, token);
 
+for (const token of [
+  "begin transaction read only",
+  "FORCE RLS is missing",
+  "SECURITY DEFINER function lacks fixed empty search_path",
+  "authenticated bounded RPC grant is missing",
+  "service-only function ACL failed",
+  "expected 114 required source scopes"
+]) need(schemaSecurity, token, `post-migration schema security: ${token}`);
+
 assert.equal(pkg.scripts["verify:road-junction-graph"], "node v17/scripts/audit-authoritative-road-junction-graph-issue97.mjs", "Issue #97 package verifier is not wired");
+assert.equal(pkg.scripts["verify:road-junction-browser"], "node v17/scripts/browser-road-junction-issue97.mjs",
+  "Issue #97 authenticated browser verifier is not wired");
+for (const token of [
+  "Issue #97 authenticated Road Manager browser audit passed",
+  "Held — not route-selectable",
+  "PA|WAS",
+  "read-only editor reached canonical Road Manager edit UI",
+  "tile.openstreetmap.org"
+]) need(browserTest, token, `authenticated browser regression: ${token}`);
 need(pkg.scripts.build, "npm run verify:road-junction-graph");
 
 execFileSync(process.execPath, ["--check", path.join(root, uiPath)], { stdio: "pipe" });

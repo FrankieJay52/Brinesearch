@@ -264,8 +264,15 @@
       if (action === "api") return sendAssistantQuestion("What is the API on this pad?");
       if (action === "property") return sendAssistantQuestion("What is the property number on this pad?");
       if (action === "navigate") {
-        const url = googleMapsUrl(p);
-        if (url) window.open(url, "_blank", "noopener"); else showToast("No navigation location available");
+        const navigation = googleMapsQuickNavigationIssue97(p);
+        if (!navigation) {
+          showToast("No navigation location available");
+        } else if (navigation.kind === "route_plan") {
+          window.location.hash = navigation.href;
+          showToast("Open each Google route part in order");
+        } else {
+          window.open(navigation.href, "_blank", "noopener");
+        }
         return;
       }
       if (action === "share") {

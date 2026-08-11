@@ -24,51 +24,69 @@ exception
 end
 $issue97_incomplete_receipts$;
 
-insert into public.brinesearch_road_source_ingest_runs(
-  dataset_id,state_code,county_code,status,started_at,completed_at,
-  page_count,source_row_count,ingested_row_count,details
+
+-- Replace only the remote snapshot probe inside this rollback-only fixture.
+-- The run lifecycle, page receipts, finalizer and graph activation are the
+-- production functions under test.
+create or replace function public.brinesearch_issue97_source_snapshot(
+  p_source_key text,p_county_code text
 )
-select d.id,'WV',fixture.county_code,'complete',now()-interval '2 minutes',now()-interval '1 minute',
-  1,case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
-  case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
-  jsonb_build_object(
-    'synthetic_fixture','receipt_bound',
-    'coverage_complete',true,
-    'run_bound',true,
-    'coverage_receipts_verified',true,
-    'expected_source_rows',case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
-    'page_set_digest',md5('0:'||md5('issue97-synthetic:'||d.source_key||':'||fixture.county_code)),
-    'source_snapshot',jsonb_build_object(
-      'query_url','https://fixture.invalid/issue97/'||d.source_key||'/'||fixture.county_code,
-      'source_version','synthetic-v1',
-      'count_checked_at',now()
-    )
-  )
+returns jsonb
+language sql
+security definer
+set search_path=''
+as $$
+  select pg_catalog.jsonb_build_object(
+    'source_key',p_source_key,'dataset_id',d.id,'state_code','WV',
+    'county_code',p_county_code,'source_county_code',p_county_code,
+    'query_url','https://fixture.invalid/issue97/'||p_source_key||'/'||p_county_code,
+    'source_version','synthetic-v1','object_id_field','OBJECTID',
+    'expected_source_rows',case when d.topology_role='primary_network'
+      then case p_county_code when 'DOD' then 19 when 'HAR' then 1 else 0 end else 0 end,
+    'object_id_set_digest',pg_catalog.md5('ids:'||p_source_key||':'||p_county_code),
+    'source_revision_token',pg_catalog.md5('revision:'||p_source_key||':'||p_county_code),
+    'count_checked_at',pg_catalog.clock_timestamp()
+  ) from public.brinesearch_road_source_datasets d where d.source_key=p_source_key
+$$;
+
+create temporary table issue97_ingest_runs(
+  run_id uuid primary key,source_key text,county_code text,source_rows integer
+) on commit drop;
+
+insert into issue97_ingest_runs(run_id,source_key,county_code,source_rows)
+select (started.result->>'run_id')::uuid,d.source_key,fixture.county_code,
+  (snapshot.value->>'expected_source_rows')::integer
 from public.brinesearch_road_source_datasets d
 join public.brinesearch_road_source_dataset_counties scope
   on scope.dataset_id=d.id and scope.state_code='WV'
   and scope.active and scope.required_for_graph
-join (values ('DOD',24),('HAR',1)) fixture(county_code,primary_source_rows)
+join (values ('DOD'),('HAR')) fixture(county_code)
   on fixture.county_code=scope.county_code
+cross join lateral (
+  select public.brinesearch_issue97_source_snapshot(d.source_key,fixture.county_code) as value
+) snapshot
+cross join lateral (
+  select public.brinesearch_issue97_begin_ingest(
+    d.source_key,fixture.county_code,
+    (snapshot.value->>'expected_source_rows')::integer,snapshot.value
+  ) as result
+) started
 where d.state_code='WV' and d.active;
 
 insert into public.brinesearch_road_source_ingest_pages(
   run_id,page_offset,requested_limit,source_row_count,ingested_row_count,
   rejected_row_count,has_more,page_digest,result
 )
-select r.id,0,1000,r.source_row_count,r.ingested_row_count,0,false,
-  md5('issue97-synthetic:'||d.source_key||':'||r.county_code),
+select fixture.run_id,0,1000,fixture.source_rows,fixture.source_rows,0,false,
+	  md5('issue97-synthetic:'||fixture.source_key||':'||fixture.county_code),
   jsonb_build_object(
-    'source',d.source_key,'county_code',r.county_code,'offset',0,'page_size',1000,
-    'source_rows',r.source_row_count,'rows',r.ingested_row_count,
+	    'source',fixture.source_key,'county_code',fixture.county_code,'offset',0,'page_size',1000,
+	    'source_rows',fixture.source_rows,'rows',fixture.source_rows,
     'rejected_rows',0,'has_more',false,
-    'page_digest',md5('issue97-synthetic:'||d.source_key||':'||r.county_code),
+	    'page_digest',md5('issue97-synthetic:'||fixture.source_key||':'||fixture.county_code),
     'synthetic_fixture',true
   )
-from public.brinesearch_road_source_ingest_runs r
-join public.brinesearch_road_source_datasets d on d.id=r.dataset_id
-where r.state_code='WV' and r.county_code in ('DOD','HAR')
-  and r.details->>'synthetic_fixture'='receipt_bound';
+from issue97_ingest_runs fixture;
 
 -- A single NLF can cross an access/jurisdiction boundary. The identity builder
 -- must split the physically connected source records before classification so
@@ -146,7 +164,7 @@ select private_verification.brinesearch_issue97_uuid(s.source_key),d.id,s.source
   'WV',s.county_code,s.county_name,s.township,'TEST',s.route_number,
   s.display_name,s.normalized_name,s.road_class,s.access_status,s.drivable_status,
   'Synthetic fixture',array[s.source_key],jsonb_build_object('synthetic_fixture',true),
-  md5(s.source_key),true,now()
+  md5(s.source_key),true,clock_timestamp()
 from source_rows s
 cross join lateral (
   select id from public.brinesearch_road_source_datasets
@@ -195,7 +213,7 @@ select private_verification.brinesearch_issue97_uuid(s.segment_key),d.id,
   extensions.st_length(extensions.st_geomfromtext(s.wkt,4326)::extensions.geography)/1609.344,
   s.z_level,s.bridge_status,s.access_status,s.drivable_status,
   extensions.st_geomfromtext(s.wkt,4326),jsonb_build_object('synthetic_fixture',true),
-  md5(s.segment_key||s.wkt),true,now()
+  md5(s.segment_key||s.wkt),true,clock_timestamp()
 from segment_rows s
 cross join lateral (
   select id from public.brinesearch_road_source_datasets
@@ -234,8 +252,25 @@ insert into public.brinesearch_road_identity_mappings(
    'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now()),
   (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:RAMP'),
    private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP'),
-   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
-   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now());
+	   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
+	   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now());
+
+do $issue97_finalize_runs$
+declare
+  fixture record;
+  v_result jsonb;
+begin
+  for fixture in select * from issue97_ingest_runs order by county_code,source_key loop
+    v_result:=public.brinesearch_issue97_finalize_ingest(
+      fixture.run_id,jsonb_build_object('synthetic_fixture',true)
+    );
+    if v_result->>'status'<>'complete'
+       or coalesce((v_result->>'run_bound')::boolean,false) is not true then
+      raise exception '#97 receipt-derived finalizer rejected coherent run %: %',fixture.run_id,v_result;
+    end if;
+  end loop;
+end
+$issue97_finalize_runs$;
 
 create temporary table issue97_build_results(result jsonb) on commit drop;
 insert into issue97_build_results
@@ -338,6 +373,14 @@ $issue97_assert$;
 -- Automatic Google Maps manifest: exact clipped occurrences + the current
 -- graph anchor + authoritative shaping + saved pad GPS produce a ready public
 -- receipt without any manually authored URL.
+-- This disposable fixture exercises the post-cutover path directly; the live
+-- cutover function remains fail-closed on the reviewed 16,109-key baseline.
+update public.brinesearch_issue97_release_state
+set cutover_at=now(),review_details=jsonb_build_object(
+  'synthetic_fixture',true,'verification_report_digest',repeat('a',32)
+),updated_at=now()
+where singleton;
+
 insert into public.pads(
   id,legacy_id,company,state,pad_name,record_type,latitude,longitude,county,
   structured_road_sequence,road_sequence_status,structured_route_revision

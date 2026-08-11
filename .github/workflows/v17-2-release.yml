@@ -63,6 +63,11 @@ jobs:
           V17_VISUAL_AUDIT_DIR: visual-audit/smoke
         run: node v17/scripts/browser-smoke.mjs
 
+      - name: Audit authenticated Road Manager junction UI
+        env:
+          V17_PREVIEW_URL: http://127.0.0.1:4173
+        run: npm run verify:road-junction-browser
+
       - name: Capture all core V17.3 screens
         run: node v17/scripts/visual-capture.mjs
 

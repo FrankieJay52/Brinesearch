@@ -10,7 +10,7 @@ const read = file => fs.readFile(file, 'utf8');
 
 const [
   source, boundaryEditor, spatialRoadSelection, publishLockdown,
-  legacyInteractive, orderRaw, geometryMigration, draftHelpers
+  legacyInteractive, orderRaw, geometryMigration, draftHelpers, issue97Migration
 ] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
   read(path.join(v17Root, 'src/parts/21j-road-manager-route-boundaries-issue69.js')),
@@ -19,7 +19,8 @@ const [
   read(path.join(v17Root, 'src/parts/21e-road-manager-interactive-route-map-v17327.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
-  read(path.join(projectRoot, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql'))
+  read(path.join(projectRoot, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql')),
+  read(path.join(projectRoot, 'supabase/migrations/20260811190000_issue97_authoritative_road_junction_graph.sql'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];
@@ -190,6 +191,40 @@ for (const token of [
   'driver_safety_context=v_public_safety'
 ]) assert.ok(canonicalPublisher.toLowerCase().includes(token.toLowerCase()),
   `#69 canonical publisher missing ${token}`);
+
+// #97 deliberately supersedes the historical proximity-based different-road
+// boundary check. Audit the last effective definitions so this #69 verifier
+// cannot pass while production still has a ST_DumpPoints bypass.
+const effectiveFunction = signature => {
+  const start = issue97Migration.lastIndexOf(`create or replace function ${signature}`);
+  const end = issue97Migration.indexOf('\n$$;', start);
+  assert.ok(start >= 0 && end > start, `Could not isolate effective ${signature}.`);
+  return issue97Migration.slice(start, end + 4).toLowerCase();
+};
+const effectiveCandidates = effectiveFunction(
+  'public.brinesearch_route_step_boundary_candidates('
+);
+for (const token of [
+  'brinesearch_road_junction_anchors',
+  'brinesearch_road_junction_memberships',
+  'brinesearch_issue97_graph_build_sources_current',
+  'junction_graph_unresolved'
+]) assert.ok(effectiveCandidates.includes(token), `#97 effective boundary resolver missing ${token}`);
+assert.ok(!effectiveCandidates.includes('st_dumppoints'),
+  '#97 effective boundary resolver reintroduced raw-geometry vertex matching.');
+
+const effectivePublisher = effectiveFunction(
+  'public.brinesearch_publish_structured_route('
+);
+for (const token of [
+  'entry_junction_anchor_id',
+  'brinesearch_issue97_graph_build_sources_current',
+  'junction_digest',
+  'server-derived from it',
+  'brinesearch_publish_structured_route_issue97_core'
+]) assert.ok(effectivePublisher.includes(token), `#97 effective publisher missing ${token}`);
+assert.ok(!effectivePublisher.includes('st_dumppoints'),
+  '#97 effective publisher reintroduced a raw-geometry continuity bypass.');
 
 const derivationStart = canonicalPublisher.indexOf('-- Server-derive every traveled occurrence');
 const derivationEnd = canonicalPublisher.indexOf('\n  if exists (\n    select 1\n    from private_verification.brinesearch_driver_safety_facts_issue69', derivationStart);

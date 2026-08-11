@@ -28,7 +28,7 @@
       const byKey = new Map();
       for (const row of rows) {
         try {
-          const plan = BrinesearchGoogleRouteIssue97.buildPlan(row?.manifest);
+          const plan = BrinesearchGoogleRouteIssue97.buildPublicPlan(row);
           const receipt = { ...row, plan };
           if (row.legacy_id) byKey.set(String(row.legacy_id), receipt);
           if (row.pad_id) byKey.set(String(row.pad_id), receipt);
