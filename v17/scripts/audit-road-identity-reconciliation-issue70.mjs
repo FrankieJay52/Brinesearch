@@ -9,6 +9,7 @@ const converge = fs.readFileSync(path.join(migrations, '20260811064504_issue70_s
 const passCount = fs.readFileSync(path.join(migrations, '20260811064523_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
 const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_split_cr10_cr12_identity.sql'), 'utf8');
 const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
+const exactAlias = fs.readFileSync(path.join(migrations, '20260811071500_issue70_exact_existing_alias_reuse.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
@@ -52,13 +53,26 @@ for (const fn of [
   assert(lockdown.includes(`revoke all on function public.${fn}() from public,anon,authenticated`), `${fn} must not remain an authenticated SECURITY DEFINER browser RPC`);
 }
 
+assert(exactAlias.includes("having count(distinct road_id)=1"), 'existing-alias reuse must require one distinct Road Manager road');
+assert(exactAlias.includes("verification_status='verified'"), 'existing-alias reuse must require verified Road Manager data');
+assert(exactAlias.includes("geometry_status in ('official_centerline_loaded','measured_from_official_centerline')"), 'existing-alias reuse must require trusted geometry');
+assert(exactAlias.includes("pg_catalog.lower(pg_catalog.btrim(u.raw_text))=rn.exact_name"), 'existing-alias reuse must use literal canonical/stored alias equality');
+assert(exactAlias.includes("regexp_split_to_table(a,'\\s*/\\s*')"), 'stored composite aliases may be split only into explicit components');
+assert(exactAlias.includes("match_method='road_manager_exact_existing_alias_issue70'"), 'existing-alias links must have a dedicated exact provenance method');
+assert(exactAlias.includes("'fuzzy_matching',false") && exactAlias.includes("'nearest_road_fallback',false") && exactAlias.includes("'spatial_fallback',false"), 'existing-alias evidence must record no-guess behavior');
+assert(!exactAlias.includes('brinesearch_publish_structured_route'), 'existing-alias reuse must not publish #69 routes');
+assert(!exactAlias.includes('road_manager_recalculate_route_readiness()'), 'data migration must remain deploy-role safe; readiness is recalculated in controlled Owner verification');
+assert(!exactAlias.includes('ST_DWithin') && !exactAlias.includes('st_dwithin') && !exactAlias.includes('ST_Distance') && !exactAlias.includes('st_distance'), 'existing-alias identity may not use spatial proximity');
+assert(!exactAlias.includes('levenshtein') && !exactAlias.includes('similarity('), 'existing-alias identity may not use fuzzy text matching');
+
 console.log(JSON.stringify({
   issue: 70,
-  source: 'authoritative saved Clear Direction explicit alias pair',
-  routeIdentity: 'exact numbered route + county/state scope + ODOT NLF when required',
-  existingRoadReuse: 'verified trusted geometry only',
+  source: 'authoritative saved Clear Direction explicit alias pairs + exact trusted Road Manager canonical/stored aliases',
+  routeIdentity: 'exact numbered route + geographic scope + official ODOT evidence where creation/upgrade is required',
+  existingRoadReuse: 'one distinct verified trusted-geometry road only',
   createUpgrade: 'CR/TR only, one complete official ODOT NLF',
   repeatedOccurrences: 'bounded exact re-stage convergence',
+  exactExistingAlias: 'literal canonical/alias/composite-component equality only',
   contaminationRepair: 'Jefferson CR-10 and CR-12 split structurally',
   maintenanceSecurity: 'private evidence + maintenance-only SECURITY DEFINER reconciliation functions',
   routePublication: 'none; #69 remains canonical and fail-closed',
