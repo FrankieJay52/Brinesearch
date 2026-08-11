@@ -8,6 +8,10 @@ const root = path.resolve(here, "../..");
 const migrationsDir = path.join(root, "supabase/migrations");
 const sql = fs.readFileSync(path.join(migrationsDir,
   "20260811235000_issue97_refresh_source_scope.sql"), "utf8");
+const baseGraphSql = fs.readFileSync(path.join(migrationsDir,
+  "20260811190000_issue97_authoritative_road_junction_graph.sql"), "utf8");
+const odotPreservationSql = fs.readFileSync(path.join(migrationsDir,
+  "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_source_scope(",
@@ -48,6 +52,23 @@ assert.match(sql, /revoke all on function public\.brinesearch_issue97_refresh_so
 assert.ok(!/grant execute[\s\S]{0,180}to (?:anon|authenticated)/.test(sql),
   "Issue #97 source-scope runner must never be browser callable");
 
+for (const token of [
+  "create or replace function public.brinesearch_issue97_ingest_oh_page(",
+  "not extensions.st_isvalid(v_geom)",
+  "extensions.st_dimension(v_geom)<>1",
+  "extensions.st_coveredby(v_geom,extensions.st_makeenvelope(-180,-90,180,90,4326))",
+  "'rejected_rows',v_source_rows-v_rows",
+  "to service_role"
+]) assert.ok(odotPreservationSql.includes(token), `Issue #97 ODOT preservation migration missing: ${token}`);
+assert.ok(!odotPreservationSql.includes("or not extensions.st_issimple(v_geom)"),
+  "ODOT source ingestion must preserve valid non-simple authoritative LineStrings instead of rejecting the source row");
+assert.match(baseGraphSql,
+  /brinesearch_authoritative_road_segments[\s\S]*st_isvalid\(c\.geom\)[\s\S]*st_issimple\(c\.geom\)[\s\S]*st_dimension\(c\.geom\) = 1/i,
+  "Authoritative ODOT route/topology segment exposure must remain valid + simple + linear");
+assert.match(baseGraphSql,
+  /missing_geometry[\s\S]*not extensions\.st_issimple\(c\.geom\)/i,
+  "Ohio identity refresh must continue to treat non-simple source geometry as topology-ineligible evidence");
+
 const issue97Migrations = fs.readdirSync(migrationsDir)
   .filter(name => /^\d{14}_issue97_.*\.sql$/.test(name))
   .sort();
@@ -67,7 +88,8 @@ for (const required of [
   "20260811241100_issue97_turn_normalization_hardening.sql",
   "20260811241200_issue97_turn_segment_hardening.sql",
   "20260811242000_issue97_transition_google_manifests.sql",
-  "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql"
+  "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql",
+  "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
-console.log("Issue #97 restartable source-scope ingestion + complete unique migration chain regression passed.");
+console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + complete unique migration chain regression passed.");
