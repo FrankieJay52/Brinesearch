@@ -89,7 +89,7 @@ function response(route, value, status = 200, contentType = "application/json") 
   return route.fulfill({ status, contentType, body: contentType === "application/json" ? JSON.stringify(value) : value });
 }
 
-async function installMocks(context, role, requestLog, tileCounter) {
+async function installMocks(context, role, requestLog, tileCounter, mappingStatus = "verified") {
   const permissions = role === "owner" ? ["owner", "administrator", "editor"] : ["editor"];
   const profile = { user_id: `issue97-${role}`, email: `${role}@example.invalid`, display_name: `Issue 97 ${role}`, role, permissions };
   await context.addInitScript(({ profile: savedProfile }) => {
@@ -119,7 +119,10 @@ async function installMocks(context, role, requestLog, tileCounter) {
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_detail")) return response(route, detail);
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_connections")) return response(route, connectionPayload);
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_connections_for_canonical")) return response(route, connectionPayload);
-    if (url.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")) return response(route, { identities: [] });
+    if (url.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")) return response(route, {
+      road_id: canonicalId,
+      identities: [{ identity_id: connectedIdentityId, mapping_status: mappingStatus }]
+    });
     if (url.pathname.endsWith("/brinesearch_roads") && url.searchParams.get("id") === `eq.${canonicalId}`) return response(route, [canonicalRoad]);
     if (url.pathname.endsWith("/brinesearch_roads")) return response(route, []);
     if (url.pathname.includes("/rpc/")) return response(route, {});
@@ -133,6 +136,21 @@ async function openOfficial(page) {
   await page.locator('[data-road-manager-tab="official"]').click();
   await page.locator("#roadOfficialSearchIssue97").waitFor();
   await page.getByText("15 authoritative datasets").waitFor();
+}
+
+async function openThrushAndConnections(page) {
+  await openOfficial(page);
+  await page.locator("#roadOfficialStateIssue97").selectOption("");
+  await page.locator("#roadOfficialCountyIssue97").selectOption("PA|WAS");
+  await page.locator("#roadOfficialCountyIssue97").dispatchEvent("change");
+  await page.locator("#roadOfficialSearchIssue97").fill("T");
+  await page.waitForTimeout(260);
+  await page.getByText("Enter at least two characters").waitFor();
+  await page.locator("#roadOfficialSearchIssue97").fill("Thrush");
+  await page.waitForTimeout(280);
+  await page.getByText("Thrush Avenue", { exact: true }).click();
+  await page.getByText("Shared section", { exact: true }).waitFor();
+  await page.getByText("Held — not route-selectable", { exact: true }).waitFor();
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -155,23 +173,10 @@ try {
       assert.equal(pageErrors.length, 0, `stale registry render threw after tab navigation: ${pageErrors.join("\n")}`);
     }
 
-    await openOfficial(page);
-    await page.locator("#roadOfficialStateIssue97").selectOption("");
-    await page.locator("#roadOfficialCountyIssue97").selectOption("PA|WAS");
-    await page.locator("#roadOfficialCountyIssue97").dispatchEvent("change");
-    await page.waitForTimeout(50);
+    await openThrushAndConnections(page);
     const countyRequest = [...requests].reverse().find(item => item.pathname.endsWith("brinesearch_authoritative_road_search"));
     assert.equal(countyRequest?.body?.p_state_code, "PA", "duplicate WAS county filter lost its state");
     assert.equal(countyRequest?.body?.p_county_code, "WAS", "duplicate WAS county filter lost its county code");
-
-    await page.locator("#roadOfficialSearchIssue97").fill("T");
-    await page.waitForTimeout(260);
-    await page.getByText("Enter at least two characters").waitFor();
-    await page.locator("#roadOfficialSearchIssue97").fill("Thrush");
-    await page.waitForTimeout(280);
-    await page.getByText("Thrush Avenue", { exact: true }).click();
-    await page.getByText("Shared section", { exact: true }).waitFor();
-    await page.getByText("Held — not route-selectable", { exact: true }).waitFor();
     await page.getByText(/more source name or segment provenance records/).waitFor();
     assert.equal(await page.locator("text=0.0000000, 0.0000000").count(), 0, "invalid [0,0] was rendered as exact GPS");
     await page.locator('[data-road-official-copy="40.0841000, -80.7132000"]').waitFor();
@@ -181,21 +186,51 @@ try {
     const connected = page.locator(`[data-road-official-open-connected="${connectedIdentityId}"]`).first();
     await connected.click();
     if (role === "owner") {
-      await page.getByText("Connected Canonical Road", { exact: true }).waitFor();
+      const nameInput = page.locator('#roadManagerEditor input[name="canonical_name"]');
+      await nameInput.waitFor();
+      assert.equal(await nameInput.inputValue(), "Connected Canonical Road", "owner did not open the exact canonical Road Manager editor");
+      assert.equal(await page.locator('#roadManagerEditor input[name="id"]').inputValue(), canonicalId,
+        "owner canonical editor opened a different Road Manager UUID");
+      assert.ok(requests.some(item => item.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")
+        && item.body?.p_road_id === canonicalId),
+        "canonical handoff did not revalidate the current exact authoritative mapping");
       assert.ok(requests.some(item => item.pathname.endsWith("/brinesearch_roads") && item.search.includes(`id=eq.${canonicalId}`)),
         "canonical connected-road cache miss did not fetch the exact Road Manager row");
     } else {
       await page.getByText("Thrush Avenue", { exact: true }).waitFor();
       assert.equal(await page.locator("#roadManagerEditor").count(), 0, "read-only editor reached canonical Road Manager edit UI");
+      assert.equal(requests.some(item => item.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")), false,
+        "read-only editor should not request canonical edit-mapping verification");
     }
     assert.equal(pageErrors.length, 0, `${role} official-roads browser errors:\n${pageErrors.join("\n")}`);
+    await context.close();
+  }
+
+  // Historical graph membership is not enough for editable canonical mode.
+  // A stale/candidate current mapping must stay on the source identity even for Owner.
+  {
+    const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
+    const requests = [];
+    const tiles = { count: 0 };
+    await installMocks(context, "owner", requests, tiles, "candidate");
+    const page = await context.newPage();
+    const pageErrors = [];
+    page.on("pageerror", error => pageErrors.push(error.stack || error.message));
+    await openThrushAndConnections(page);
+    await page.locator(`[data-road-official-open-connected="${connectedIdentityId}"]`).first().click();
+    await page.getByText("E Cardinal Avenue", { exact: true }).waitFor();
+    assert.equal(await page.locator('#roadManagerEditor input[name="canonical_name"]').count(), 0,
+      "stale/candidate canonical mapping incorrectly reached editable Road Manager UI");
+    assert.equal(requests.some(item => item.pathname.endsWith("/brinesearch_roads") && item.search.includes(`id=eq.${canonicalId}`)), false,
+      "stale/candidate canonical mapping incorrectly fetched editable canonical road row");
+    assert.equal(pageErrors.length, 0, `stale-mapping owner browser errors:\n${pageErrors.join("\n")}`);
     await context.close();
   }
 
   const csp = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
   assert.match(csp, /img-src[^\n]*https:\/\/tile\.openstreetmap\.org/,
     "Netlify CSP does not allow the authoritative junction map tile origin");
-  console.log("Issue #97 authenticated Road Manager browser audit passed (owner + read-only editor).");
+  console.log("Issue #97 authenticated Road Manager browser audit passed (verified owner handoff + read-only editor + stale-mapping fail-closed).");
 } finally {
   await browser.close();
 }
