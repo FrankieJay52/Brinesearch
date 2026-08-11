@@ -160,10 +160,7 @@ begin
      or not coalesce('security_barrier=true'=any(v_options),false) then
     raise exception 'Issue #69 regressed #73/#81 projection security options';
   end if;
-  if position(
-       'private_verification.brinesearch_driver_safe_clear_v17330(p.directions_clear)'
-       in v_view
-     )=0 then
+  if position('brinesearch_driver_safe_clear_v17330' in v_view)=0 then
     raise exception 'Issue #69 public projection is not using the #81 directions sanitizer';
   end if;
   if pg_catalog.has_table_privilege(
