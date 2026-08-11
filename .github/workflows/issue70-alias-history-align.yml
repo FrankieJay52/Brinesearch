@@ -1,0 +1,38 @@
+name: Align issue 70 alias migration history
+
+on:
+  push:
+    branches:
+      - data/issue-70-oh-verified-alias-reuse
+    paths:
+      - .github/workflows/issue70-alias-history-align.yml
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: data/issue-70-oh-verified-alias-reuse
+          fetch-depth: 0
+      - name: Align repository versions with production
+        shell: bash
+        run: |
+          set -euo pipefail
+          git mv supabase/migrations/20260811052500_issue70_verified_road_manager_alias_reuse.sql supabase/migrations/20260811052516_issue70_verified_road_manager_alias_reuse.sql
+          git mv supabase/migrations/20260811052510_issue70_verified_alias_release_assertions.sql supabase/migrations/20260811052528_issue70_verified_alias_release_assertions.sql
+          python <<'PY'
+          from pathlib import Path
+          path=Path('v17/scripts/audit-verified-road-alias-reuse-issue70.mjs')
+          text=path.read_text().replace('20260811052500_issue70_verified_road_manager_alias_reuse.sql','20260811052516_issue70_verified_road_manager_alias_reuse.sql')
+          path.write_text(text)
+          PY
+          git diff --check
+          git config user.name 'BrineSearch Release Coordinator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add supabase/migrations v17/scripts/audit-verified-road-alias-reuse-issue70.mjs
+          git commit -m 'Align #70 alias migration history with production'
+          git push origin HEAD:data/issue-70-oh-verified-alias-reuse
