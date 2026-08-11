@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(scriptDir, '../..');
 const migration = (await fs.readFile(
-  path.join(root, 'supabase/migrations/20260811052500_issue70_verified_road_manager_alias_reuse.sql'),
+  path.join(root, 'supabase/migrations/20260811052516_issue70_verified_road_manager_alias_reuse.sql'),
   'utf8'
 )).toLowerCase();
 const pkg = JSON.parse(await fs.readFile(path.join(root, 'package.json'),'utf8'));
