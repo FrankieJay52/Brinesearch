@@ -40,6 +40,21 @@ const detail = {
   name_events_truncated: true,
   segment_summary: { count: 2, source_record_count: 101, source_records_truncated: true }
 };
+const connectedDetail = {
+  identity_id: connectedIdentityId,
+  source_identity_key: "WV:WVDOT:ROUTE_ID:3500272000000",
+  display_name: "E Cardinal Avenue",
+  normalized_name: "e cardinal avenue",
+  state_code: "WV", county_code: "OHI", county_name: "Ohio",
+  road_class: "local", public_access_status: "public", drivable_status: "drivable",
+  identity_kind: "canonical", route_system: "SAMS", route_number: "3500272000000",
+  canonical_mappings: [{ road_id: canonicalId, mapping_status: "verified" }],
+  names: [{ name: "E Cardinal Ave", type: "official" }],
+  source: { agency: "WVDOT", dataset: "SAMS", layer: "118", version: "current", url: "https://gis.transportation.wv.gov/arcgis/rest/services/Roads_And_Highways/Publication_LRS/FeatureServer/118" },
+  name_event_count: 1,
+  name_events_truncated: false,
+  segment_summary: { count: 1, source_record_count: 1, source_records_truncated: false }
+};
 const memberships = [
   {
     identity_id: selectedIdentityId, source_identity_key: result.source_identity_key,
@@ -116,7 +131,9 @@ async function installMocks(context, role, requestLog, tileCounter, mappingStatu
       return response(route, registry);
     }
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_search")) return response(route, { results: [result], has_more: false, next_cursor: null });
-    if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_detail")) return response(route, detail);
+    if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_detail")) {
+      return response(route, body?.p_identity_id === connectedIdentityId ? connectedDetail : detail);
+    }
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_connections")) return response(route, connectionPayload);
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_road_connections_for_canonical")) return response(route, connectionPayload);
     if (url.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")) return response(route, {
@@ -168,13 +185,8 @@ async function openThrushAndConnections(page, requests = [], pageErrors = [], la
 
 const browser = await chromium.launch({ headless: true });
 try {
-  // This audit mocks Supabase and OSM at the BrowserContext network layer.
-  // Service workers are unrelated to this Road Manager contract and can intercept
-  // those requests before Playwright routing, so block them for deterministic mocks.
   const contextOptions = { viewport: { width: 1180, height: 850 }, serviceWorkers: "block" };
 
-  // Stale SPA-render regression gets its own authenticated context. It must not
-  // contaminate the actual Owner Road Manager scenario that follows.
   {
     const context = await browser.newContext(contextOptions);
     const requests = [];
@@ -190,9 +202,6 @@ try {
     await context.close();
   }
 
-  // Normal Owner and Editor flows each start from a single fresh authenticated
-  // app document. This verifies the real product path, not hash-router cleanup
-  // from another scenario.
   for (const role of ["owner", "editor"]) {
     const context = await browser.newContext(contextOptions);
     const requests = [];
@@ -226,7 +235,7 @@ try {
       assert.ok(requests.some(item => item.pathname.endsWith("/brinesearch_roads") && item.search.includes(`id=eq.${canonicalId}`)),
         "canonical connected-road cache miss did not fetch the exact Road Manager row");
     } else {
-      await page.getByRole("heading", { name: "Thrush Avenue", exact: true }).waitFor();
+      await page.getByRole("heading", { name: "E Cardinal Avenue", exact: true }).waitFor();
       assert.equal(await page.locator("#roadManagerEditor").count(), 0, "read-only editor reached canonical Road Manager edit UI");
       assert.equal(requests.some(item => item.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")), false,
         "read-only editor should not request canonical edit-mapping verification");
@@ -235,8 +244,6 @@ try {
     await context.close();
   }
 
-  // Historical graph membership is not enough for editable canonical mode.
-  // A stale/candidate current mapping must stay on the source identity even for Owner.
   {
     const context = await browser.newContext(contextOptions);
     const requests = [];
