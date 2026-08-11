@@ -9,7 +9,7 @@ const converge = fs.readFileSync(path.join(migrations, '20260811064504_issue70_s
 const passCount = fs.readFileSync(path.join(migrations, '20260811064523_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
 const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_split_cr10_cr12_identity.sql'), 'utf8');
 const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
-const exactAlias = fs.readFileSync(path.join(migrations, '20260811071500_issue70_exact_existing_alias_reuse.sql'), 'utf8');
+const exactAlias = fs.readFileSync(path.join(migrations, '20260811071553_issue70_exact_existing_alias_reuse.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
