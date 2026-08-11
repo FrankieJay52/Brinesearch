@@ -155,10 +155,15 @@ async function openThrushAndConnections(page) {
 
 const browser = await chromium.launch({ headless: true });
 try {
+  // This audit mocks Supabase and OSM at the BrowserContext network layer.
+  // Service workers are unrelated to this Road Manager contract and can intercept
+  // those requests before Playwright routing, so block them for deterministic mocks.
+  const contextOptions = { viewport: { width: 1180, height: 850 }, serviceWorkers: "block" };
+
   // Stale SPA-render regression gets its own authenticated context. It must not
   // contaminate the actual Owner Road Manager scenario that follows.
   {
-    const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
+    const context = await browser.newContext(contextOptions);
     const requests = [];
     const tiles = { count: 0 };
     await installMocks(context, "owner", requests, tiles);
@@ -178,7 +183,7 @@ try {
   // app document. This verifies the real product path, not hash-router cleanup
   // from another scenario.
   for (const role of ["owner", "editor"]) {
-    const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
+    const context = await browser.newContext(contextOptions);
     const requests = [];
     const tiles = { count: 0 };
     await installMocks(context, role, requests, tiles);
@@ -222,7 +227,7 @@ try {
   // Historical graph membership is not enough for editable canonical mode.
   // A stale/candidate current mapping must stay on the source identity even for Owner.
   {
-    const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
+    const context = await browser.newContext(contextOptions);
     const requests = [];
     const tiles = { count: 0 };
     await installMocks(context, "owner", requests, tiles, "candidate");
