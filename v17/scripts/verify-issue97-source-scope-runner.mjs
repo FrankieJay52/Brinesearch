@@ -61,7 +61,11 @@ for (const required of [
   "20260811234600_issue97_all_pad_google_route_accounting.sql",
   "20260811234700_issue97_route_corpus_reconciliation.sql",
   "20260811235000_issue97_refresh_source_scope.sql",
-  "20260811240000_issue97_route_transition_receipts.sql"
+  "20260811240000_issue97_route_transition_receipts.sql",
+  "20260811240100_issue97_transition_runtime_hardening.sql",
+  "20260811241000_issue97_occurrence_geometry_receipts.sql",
+  "20260811241100_issue97_turn_normalization_hardening.sql",
+  "20260811242000_issue97_transition_google_manifests.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
-console.log("Issue #97 restartable source-scope ingestion + unique migration chain regression passed.");
+console.log("Issue #97 restartable source-scope ingestion + complete unique migration chain regression passed.");
