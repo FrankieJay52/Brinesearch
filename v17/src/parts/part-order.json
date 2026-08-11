@@ -9,6 +9,8 @@
     "00zz-expand-company-cleanup.js",
     "00zb-startup-resilience.js",
     "00a-authoritative-driver-directions-v17330.js",
+    "00ab-google-route-plan-issue97.js",
+    "00ac-authoritative-google-routes-issue97.js",
     "01-add-pad-wizard.js",
     "01a-public-submission-security.js",
     "02-pad-location-branding.js",

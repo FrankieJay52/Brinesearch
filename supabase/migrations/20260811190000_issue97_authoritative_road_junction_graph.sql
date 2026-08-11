@@ -282,7 +282,9 @@ create table public.brinesearch_road_source_dataset_counties (
   foreign key(dataset_id,state_code)
     references public.brinesearch_road_source_datasets(id,state_code),
   foreign key(state_code,county_code)
-    references public.brinesearch_road_graph_counties(state_code,county_code)
+    references public.brinesearch_road_graph_counties(state_code,county_code),
+  constraint brinesearch_road_source_scope_required_enabled_issue97
+    check(not required_for_graph or ingest_enabled)
 );
 
 insert into public.brinesearch_road_source_dataset_counties(
@@ -302,9 +304,9 @@ on conflict(dataset_id,state_code,county_code) do update set
   ingest_enabled=true,required_for_graph=true,active=true,
   provenance=excluded.provenance,updated_at=now();
 
--- Supplemental feeds remain registry-only until their loaders can prove every
--- landed occurrence is either exact-mapped or explicitly held. They never
--- block or create authoritative topology in this release.
+-- Supplemental centerlines remain registered but nonblocking until every
+-- landed occurrence can be exact-mapped or explicitly held against the same
+-- current primary run. They never create authoritative topology.
 insert into public.brinesearch_road_source_dataset_counties(
   dataset_id,state_code,county_code,ingest_enabled,required_for_graph,provenance
 )
@@ -442,6 +444,7 @@ create table public.brinesearch_road_source_ingest_runs (
   constraint brinesearch_road_source_ingest_runs_state_check check(state_code in ('OH','WV','PA')),
   constraint brinesearch_road_source_ingest_runs_status_check
     check(status in ('loading','complete','failed','superseded')),
+  unique(id,dataset_id,state_code,county_code),
   foreign key(state_code,county_code)
     references public.brinesearch_road_graph_counties(state_code,county_code)
 );
@@ -504,6 +507,11 @@ as $$
       and r.source_row_count=coalesce((r.details->>'expected_source_rows')::integer,-1)
       and (r.details->>'page_set_digest')=receipt.page_set_digest
     from public.brinesearch_road_source_ingest_runs r
+    join public.brinesearch_road_source_datasets d
+      on d.id=r.dataset_id and d.active
+    join public.brinesearch_road_source_dataset_counties scope
+      on scope.dataset_id=r.dataset_id and scope.state_code=r.state_code
+      and scope.county_code=r.county_code and scope.active and scope.ingest_enabled
     cross join lateral (
       select count(*)::integer as page_count,
         coalesce(sum(p.source_row_count),0)::integer as source_row_count,
@@ -609,12 +617,15 @@ create table public.brinesearch_authoritative_supplemental_centerlines (
   attributes jsonb not null default '{}'::jsonb,
   source_digest text not null,
   source_timestamp timestamptz,
-  last_ingest_run_id uuid references public.brinesearch_road_source_ingest_runs(id),
+  last_ingest_run_id uuid,
   active boolean not null default true,
   fetched_at timestamptz not null default now(),
   unique(dataset_id,source_feature_key),
+  unique(id,dataset_id,state_code,county_code),
   foreign key(dataset_id,state_code)
     references public.brinesearch_road_source_datasets(id,state_code),
+  foreign key(last_ingest_run_id,dataset_id,state_code,county_code)
+    references public.brinesearch_road_source_ingest_runs(id,dataset_id,state_code,county_code),
   constraint brinesearch_supplemental_centerlines_state_check check(state_code in ('OH','PA')),
   constraint brinesearch_supplemental_centerlines_geometry_check check(
     extensions.st_dimension(geom)=1 and not extensions.st_isempty(geom)
@@ -626,23 +637,61 @@ create table public.brinesearch_authoritative_supplemental_centerlines (
 );
 
 create table public.brinesearch_supplemental_centerline_identity_mappings (
-  centerline_id uuid not null
-    references public.brinesearch_authoritative_supplemental_centerlines(id) on delete cascade,
+  centerline_id uuid not null,
+  dataset_id uuid not null,
+  state_code text not null,
+  county_code text not null,
   identity_id uuid not null
     references public.brinesearch_authoritative_road_identities(id) on delete cascade,
   mapping_status text not null,
   mapping_method text not null,
   source_segment_keys text[] not null default '{}'::text[],
   evidence jsonb not null default '{}'::jsonb,
-  ingest_run_id uuid references public.brinesearch_road_source_ingest_runs(id),
+  ingest_run_id uuid,
   active boolean not null default true,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   primary key(centerline_id,identity_id),
+  foreign key(centerline_id,dataset_id,state_code,county_code)
+    references public.brinesearch_authoritative_supplemental_centerlines(
+      id,dataset_id,state_code,county_code
+    ) on delete cascade,
+  foreign key(ingest_run_id,dataset_id,state_code,county_code)
+    references public.brinesearch_road_source_ingest_runs(
+      id,dataset_id,state_code,county_code
+    ),
   constraint brinesearch_supplemental_mapping_status_check
     check(mapping_status in ('verified','ambiguous','unmatched','retired')),
   constraint brinesearch_supplemental_mapping_method_check
     check(mapping_method in ('exact_geometry_coverage','official_source_id','held_for_review'))
+);
+
+create table public.brinesearch_supplemental_centerline_dispositions (
+  centerline_id uuid primary key,
+  dataset_id uuid not null,
+  state_code text not null,
+  county_code text not null,
+  ingest_run_id uuid not null,
+  disposition text not null,
+  candidate_count integer not null default 0,
+  verified_mapping_count integer not null default 0,
+  evidence jsonb not null default '{}'::jsonb,
+  active boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  foreign key(centerline_id,dataset_id,state_code,county_code)
+    references public.brinesearch_authoritative_supplemental_centerlines(
+      id,dataset_id,state_code,county_code
+    ) on delete cascade,
+  foreign key(ingest_run_id,dataset_id,state_code,county_code)
+    references public.brinesearch_road_source_ingest_runs(
+      id,dataset_id,state_code,county_code
+    ),
+  constraint brinesearch_supplemental_disposition_issue97_check
+    check(disposition in ('verified','ambiguous','unmatched_held')),
+  constraint brinesearch_supplemental_disposition_counts_issue97_check
+    check(candidate_count>=0 and verified_mapping_count>=0
+      and verified_mapping_count<=candidate_count)
 );
 
 create table public.brinesearch_road_identity_mappings (
@@ -668,6 +717,33 @@ create table public.brinesearch_road_identity_mappings (
 create unique index brinesearch_road_identity_one_verified_mapping_idx
 on public.brinesearch_road_identity_mappings(identity_id)
 where mapping_status='verified';
+
+create or replace function private_verification.brinesearch_issue97_mapping_fingerprint(
+  p_identity_id uuid
+)
+returns text
+language sql
+stable
+security definer
+set search_path=''
+as $$
+  select pg_catalog.md5(pg_catalog.concat_ws('|',
+    p_identity_id::text,coalesce(m.road_id::text,'unmapped'),
+    coalesce(m.mapping_method,''),coalesce(m.evidence::text,''),
+    coalesce(r.canonical_name,''),coalesce(r.state,''),coalesce(r.county,''),
+    coalesce(r.township,''),coalesce(r.road_type,''),coalesce(r.route_number,''),
+    coalesce(r.source_record_id,''),coalesce(r.verification_status,''),
+    coalesce(r.candidate_only::text,''),coalesce(r.geometry_status,''),
+    coalesce(pg_catalog.md5(r.centerline_geojson::text),'')
+  ))
+  from (select 1) seed
+  left join public.brinesearch_road_identity_mappings m
+    on m.identity_id=p_identity_id and m.mapping_status='verified'
+  left join public.brinesearch_roads r on r.id=m.road_id
+$$;
+
+revoke all on function private_verification.brinesearch_issue97_mapping_fingerprint(uuid)
+from public,anon,authenticated,service_role;
 
 create table public.brinesearch_road_graph_builds (
   id uuid primary key default pg_catalog.gen_random_uuid(),
@@ -710,6 +786,24 @@ set search_path=''
 as $$
   select coalesce((
     select private_verification.brinesearch_issue97_ingest_run_verified(r.id)
+      and not exists(
+        select 1
+        from pg_catalog.jsonb_array_elements(coalesce(
+          r.details#>'{supplemental_materialization,target_primary_runs}','[]'::jsonb
+        )) dependency
+        where not exists(
+          select 1
+          from public.brinesearch_road_source_ingest_runs target
+          where target.id=(dependency->>'run_id')::uuid
+            and target.id=(select latest.id
+              from public.brinesearch_road_source_ingest_runs latest
+              where latest.dataset_id=(dependency->>'dataset_id')::uuid
+                and latest.state_code=dependency->>'state_code'
+                and latest.county_code=dependency->>'county_code'
+              order by latest.started_at desc,latest.id desc limit 1)
+            and private_verification.brinesearch_issue97_ingest_run_verified(target.id)
+        )
+      )
     from public.brinesearch_road_source_ingest_runs r
     where r.dataset_id=p_dataset_id and r.state_code=p_state_code and r.county_code=p_county_code
     order by r.started_at desc,r.id desc limit 1
@@ -720,29 +814,96 @@ create or replace function private_verification.brinesearch_issue97_graph_build_
   p_build_id uuid
 )
 returns boolean
-language sql
+language plpgsql
 stable
 set search_path=''
 as $$
-  select coalesce((
-    select pg_catalog.jsonb_array_length(coalesce(b.details->'source_run_vector','[]'::jsonb))>0
-      and not exists(
+declare v_current boolean:=false;
+begin
+  select
+    pg_catalog.jsonb_array_length(coalesce(b.details->'source_run_vector','[]'::jsonb))>0
+    and pg_catalog.jsonb_array_length(coalesce(b.details->'source_run_vector','[]'::jsonb))=(
+      select count(*) from (
+        select distinct entry->>'dataset_id',entry->>'state_code',entry->>'county_code'
+        from pg_catalog.jsonb_array_elements(coalesce(
+          b.details->'source_run_vector','[]'::jsonb
+        )) entry
+      ) unique_entries
+    )
+    and not exists(
+      select 1 from pg_catalog.jsonb_array_elements(
+        coalesce(b.details->'source_run_vector','[]'::jsonb)
+      ) entry
+      where not exists(
         select 1
-        from pg_catalog.jsonb_array_elements(b.details->'source_run_vector') entry
-        where not exists(
-          select 1 from public.brinesearch_road_source_ingest_runs r
-          where r.id=(entry->>'run_id')::uuid
-            and r.id=(select latest.id
-              from public.brinesearch_road_source_ingest_runs latest
-              where latest.dataset_id=(entry->>'dataset_id')::uuid
-                and latest.state_code=entry->>'state_code'
-                and latest.county_code=entry->>'county_code'
-              order by latest.started_at desc,latest.id desc limit 1)
-            and private_verification.brinesearch_issue97_ingest_run_verified(r.id)
-        )
+        from public.brinesearch_road_source_ingest_runs r
+        join public.brinesearch_road_source_datasets d
+          on d.id=r.dataset_id and d.active
+        join public.brinesearch_road_source_dataset_counties scope
+          on scope.dataset_id=r.dataset_id and scope.state_code=r.state_code
+          and scope.county_code=r.county_code and scope.active
+          and scope.ingest_enabled and scope.required_for_graph
+        where r.id=(entry->>'run_id')::uuid
+          and r.dataset_id=(entry->>'dataset_id')::uuid
+          and r.state_code=entry->>'state_code'
+          and r.county_code=entry->>'county_code'
+          and r.id=(select latest.id
+            from public.brinesearch_road_source_ingest_runs latest
+            where latest.dataset_id=r.dataset_id and latest.state_code=r.state_code
+              and latest.county_code=r.county_code
+            order by latest.started_at desc,latest.id desc limit 1)
+          and private_verification.brinesearch_issue97_dataset_scope_current(
+            r.dataset_id,r.state_code,r.county_code
+          )
       )
-    from public.brinesearch_road_graph_builds b where b.id=p_build_id
-  ),false)
+    )
+    and not exists(
+      with touched as (
+        select distinct entry->>'state_code' as state_code,
+          entry->>'county_code' as county_code
+        from pg_catalog.jsonb_array_elements(coalesce(
+          b.details->'source_run_vector','[]'::jsonb
+        )) entry
+      )
+      select 1
+      from touched
+      join public.brinesearch_road_source_dataset_counties scope
+        on scope.state_code=touched.state_code and scope.county_code=touched.county_code
+        and scope.active and scope.ingest_enabled and scope.required_for_graph
+      join public.brinesearch_road_source_datasets d
+        on d.id=scope.dataset_id and d.active
+      where not exists(
+        select 1 from pg_catalog.jsonb_array_elements(coalesce(
+          b.details->'source_run_vector','[]'::jsonb
+        )) entry
+        where (entry->>'dataset_id')::uuid=scope.dataset_id
+          and entry->>'state_code'=scope.state_code
+          and entry->>'county_code'=scope.county_code
+      )
+    )
+    and nullif(b.details->>'mapping_snapshot_digest','') is not null
+    and b.details->>'mapping_snapshot_digest'=(
+      select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+        current_map.identity_id::text||':'
+          ||private_verification.brinesearch_issue97_mapping_fingerprint(current_map.identity_id),','
+          order by current_map.identity_id
+      ),''))
+      from (
+        select identities.identity_id,map.road_id
+        from (
+          select distinct m.identity_id
+          from public.brinesearch_road_junction_memberships m
+          join public.brinesearch_road_junctions j on j.id=m.junction_id
+          where j.build_id=b.id
+        ) identities
+        left join public.brinesearch_road_identity_mappings map
+          on map.identity_id=identities.identity_id and map.mapping_status='verified'
+      ) current_map
+    )
+  into v_current
+  from public.brinesearch_road_graph_builds b where b.id=p_build_id;
+  return coalesce(v_current,false);
+end
 $$;
 
 revoke all on function private_verification.brinesearch_issue97_dataset_scope_current(uuid,text,text)
@@ -939,6 +1100,7 @@ begin
     'brinesearch_authoritative_external_road_segments','brinesearch_authoritative_road_nodes',
     'brinesearch_authoritative_supplemental_centerlines',
     'brinesearch_supplemental_centerline_identity_mappings',
+    'brinesearch_supplemental_centerline_dispositions',
     'brinesearch_road_identity_mappings','brinesearch_road_graph_builds',
     'brinesearch_road_junctions','brinesearch_road_junction_anchors',
     'brinesearch_road_junction_memberships'
@@ -1103,9 +1265,6 @@ begin
       source_active=true;
     v_rows:=v_rows+1;
   end loop;
-  update public.brinesearch_road_source_datasets
-  set fetched_at=now(),updated_at=now()
-  where source_key='oh_odot_tims_road_inventory';
   return pg_catalog.jsonb_build_object(
     'source','oh_odot_tims_road_inventory','county_code',v_county,
     'offset',v_offset,'page_size',v_limit,'source_rows',v_source_rows,
@@ -1271,6 +1430,7 @@ declare
   v_identity_key text;
   v_segment_key text;
   v_label text;
+  v_source_label text;
   v_sign text;
   v_supp text;
   v_access text;
@@ -1340,7 +1500,8 @@ begin
     v_identity_key:='WV:WVDOT:ROUTE_ID:'||(v_props->>'CO_ROUTEID');
     v_identity:=private_verification.brinesearch_issue97_uuid(v_identity_key);
     v_segment_key:='WV:WVDOT:SEGMENT:'||(v_props->>'OBJECTID');
-    v_label:=coalesce(nullif(pg_catalog.btrim(v_props->>'CO_RouteLabel'),''),'WVDOT route '||(v_props->>'CO_ROUTEID'));
+    v_source_label:=nullif(pg_catalog.btrim(v_props->>'CO_RouteLabel'),'');
+    v_label:=coalesce(v_source_label,'WVDOT route '||(v_props->>'CO_ROUTEID'));
     v_sign:=coalesce(v_props->>'CO_SignSystem','');
     v_supp:=coalesce(v_props->>'CO_SuppCode','');
     v_access:=case
@@ -1389,18 +1550,20 @@ begin
         public.brinesearch_authoritative_road_identities.source_record_ids||excluded.source_record_ids
       ) x),attributes=excluded.attributes,source_digest=excluded.source_digest,
       source_timestamp=excluded.source_timestamp,active=true,last_seen_at=now();
-    insert into public.brinesearch_authoritative_road_names(
-      identity_id,source_dataset_id,source_record_id,name_type,road_name,normalized_name,
-      source_segment_key,from_measure,to_measure,provenance
-    ) values (
-      v_identity,v_dataset,v_props->>'OBJECTID','official',v_label,
-      pg_catalog.regexp_replace(pg_catalog.lower(v_label),'[^a-z0-9]+',' ','g'),
-      v_segment_key,v_from_measure,v_to_measure,
-      pg_catalog.jsonb_build_object('route_id',v_props->>'CO_ROUTEID','source','WVDOT Publication LRS')
-    ) on conflict(identity_id,source_dataset_id,source_record_id,name_type,road_name) do update
-      set source_segment_key=excluded.source_segment_key,from_measure=excluded.from_measure,
-          to_measure=excluded.to_measure,provenance=excluded.provenance,
-          active=true,last_seen_at=now(),updated_at=now();
+    if v_source_label is not null then
+      insert into public.brinesearch_authoritative_road_names(
+        identity_id,source_dataset_id,source_record_id,name_type,road_name,normalized_name,
+        source_segment_key,from_measure,to_measure,provenance
+      ) values (
+        v_identity,v_dataset,v_props->>'OBJECTID','official',v_source_label,
+        pg_catalog.regexp_replace(pg_catalog.lower(v_source_label),'[^a-z0-9]+',' ','g'),
+        v_segment_key,v_from_measure,v_to_measure,
+        pg_catalog.jsonb_build_object('route_id',v_props->>'CO_ROUTEID','source','WVDOT Publication LRS')
+      ) on conflict(identity_id,source_dataset_id,source_record_id,name_type,road_name) do update
+        set source_segment_key=excluded.source_segment_key,from_measure=excluded.from_measure,
+            to_measure=excluded.to_measure,provenance=excluded.provenance,
+            active=true,last_seen_at=now(),updated_at=now();
+    end if;
     insert into public.brinesearch_authoritative_external_road_segments(
       id,dataset_id,identity_id,source_segment_key,source_record_id,state_code,
       county_code,county_name,from_measure,to_measure,route_direction,z_level,
@@ -1432,8 +1595,6 @@ begin
       active=true,fetched_at=now();
     v_rows:=v_rows+1;
   end loop;
-  update public.brinesearch_road_source_datasets set fetched_at=now(),updated_at=now()
-  where id=v_dataset;
   return pg_catalog.jsonb_build_object(
     'source','wv_wvdot_publication_lrs','county_code',v_county,
     'source_county_code',v_source_county,'offset',v_offset,'page_size',v_limit,
@@ -1462,6 +1623,7 @@ declare
   v_dataset uuid;
   v_layer integer;
   v_name_type text;
+  v_name_field text;
   v_offset integer:=greatest(0,coalesce(p_offset,0));
   v_limit integer:=greatest(1,least(coalesce(p_page_size,1000),2000));
   v_url text;
@@ -1486,12 +1648,17 @@ begin
     else null end,
     case v_source when 'wv_wvdot_street_name_doh' then 'local'
       when 'wv_wvdot_street_name_sams' then '911' else 'alternate' end,
+    case when v_source='wv_wvdot_alternate_route_name'
+      then 'ALT_ROUTE_NAME' else 'STREET_NAME' end,
     d.id
-  into v_layer,v_name_type,v_dataset
+  into v_layer,v_name_type,v_name_field,v_dataset
   from public.brinesearch_road_source_datasets d where d.source_key=v_source;
   if v_layer is null then raise exception 'Unsupported WVDOT name source'; end if;
   v_url:='https://gis.transportation.wv.gov/arcgis/rest/services/Roads_And_Highways/Publication_LRS/MapServer/'||v_layer||'/query'
-    ||'?where=ROUTE_ID%20LIKE%20%27'||v_source_county||'%25%27'
+    ||'?where='||extensions.urlencode(
+      'ROUTE_ID LIKE '''||v_source_county||'%'' AND '
+        ||v_name_field||' IS NOT NULL AND '||v_name_field||'<>'''''
+    )
     ||'&outFields=*&returnGeometry=false&orderByFields=OBJECTID&resultOffset='||v_offset
     ||'&resultRecordCount='||v_limit||'&f=json';
   v_response:=extensions.http_get(v_url);
@@ -1532,8 +1699,6 @@ begin
       provenance=excluded.provenance,active=true,last_seen_at=now(),updated_at=now();
     v_rows:=v_rows+1;
   end loop;
-  update public.brinesearch_road_source_datasets set fetched_at=now(),updated_at=now()
-  where id=v_dataset;
   return pg_catalog.jsonb_build_object(
     'source',v_source,'county_code',v_county,'offset',v_offset,
     'page_size',v_limit,'source_rows',v_source_rows,'rows',v_rows,
@@ -1624,13 +1789,19 @@ begin
 
     if v_source='pa_penndot_at_grade_intersections' then
       if extensions.geometrytype(v_geom)<>'POINT' then continue; end if;
-      v_segment_key:='PA:PENNDOT:AT_GRADE:'||coalesce(v_props->>'NODE_ID',v_props->>'OBJECTID');
+      -- NODE_ID identifies the physical intersection, not a source row. Layer
+      -- 23 repeats it for every ordered participating route tuple and across
+      -- some county scopes. Land each OBJECTID occurrence so multiway evidence
+      -- is never overwritten by the last page or county.
+      if nullif(v_props->>'OBJECTID','') is null then continue; end if;
+      v_segment_key:='PA:PENNDOT:AT_GRADE:OCCURRENCE:'||(v_props->>'OBJECTID')
+        ||':SCOPE:PA:'||v_county;
       insert into public.brinesearch_authoritative_road_nodes(
         id,dataset_id,source_node_key,source_record_id,state_code,county_code,
         county_name,node_type,geom,attributes,source_digest,active,fetched_at
       ) values (
         private_verification.brinesearch_issue97_uuid(v_segment_key),v_dataset,v_segment_key,
-        coalesce(v_props->>'OBJECTID',v_props->>'NODE_ID'),'PA',v_county,v_county_name,
+        v_props->>'OBJECTID','PA',v_county,v_county_name,
         'at_grade_intersection',v_geom,v_props,
         pg_catalog.md5(v_props::text||extensions.st_asgeojson(v_geom,15)),true,now()
       ) on conflict(source_node_key) do update set
@@ -1653,8 +1824,10 @@ begin
       v_internal_route:=nullif(pg_catalog.btrim(v_props->>'T_RT_NO'),'');
       v_signed:=null;
       v_segment_key:='PA:PENNDOT:STATE:SEGMENT:'||(v_props->>'OBJECTID');
-      v_access:=case when coalesce(v_props->>'SEG_STATUS','A')='A' then 'public' else 'held' end;
-      v_drivable:=case when coalesce(v_props->>'SEG_STATUS','A')='A' then 'drivable' else 'held' end;
+      v_access:=case when nullif(pg_catalog.btrim(v_props->>'SEG_STATUS'),'')='A'
+        then 'public' else 'held' end;
+      v_drivable:=case when nullif(pg_catalog.btrim(v_props->>'SEG_STATUS'),'')='A'
+        then 'drivable' else 'held' end;
     else
       v_internal_id:=coalesce(
         nullif(nullif(v_props->>'LR_ID',''),'0'),
@@ -1831,8 +2004,6 @@ begin
       source_timestamp=excluded.source_timestamp,active=true,fetched_at=now();
     v_rows:=v_rows+1;
   end loop;
-  update public.brinesearch_road_source_datasets set fetched_at=now(),updated_at=now()
-  where id=v_dataset;
   return pg_catalog.jsonb_build_object(
     'source',v_source,'county_code',v_county,'source_county_code',v_source_county,
     'offset',v_offset,'page_size',v_limit,'source_rows',v_source_rows,
@@ -1859,6 +2030,21 @@ as $$
 $$;
 
 revoke all on function private_verification.brinesearch_issue97_join_name_fields(jsonb,text[])
+from public,anon,authenticated,service_role;
+
+create or replace function private_verification.brinesearch_issue97_municipality_key(p_value text)
+returns text
+language sql
+immutable
+set search_path=''
+as $$
+  select nullif(pg_catalog.regexp_replace(
+    pg_catalog.regexp_replace(pg_catalog.upper(pg_catalog.btrim(coalesce(p_value,''))),
+      '[[:space:]]+(BOROUGH|BORO|TOWNSHIP|TWP|CITY|VILLAGE)$','','g'),
+    '[^A-Z0-9]+','','g'),'')
+$$;
+
+revoke all on function private_verification.brinesearch_issue97_municipality_key(text)
 from public,anon,authenticated,service_role;
 
 create or replace function public.brinesearch_issue97_ingest_supplemental_page(
@@ -1980,7 +2166,11 @@ begin
       when 'pa_washington_ng911_centerlines' then
         'NGUID:'||coalesce(nullif(v_props->>'RCL_NGUID',''),v_run.source_version||':'||v_record_id)
     end;
-    v_feature_key:=v_run.source_key||':'||v_stable_id;
+    -- One official source feature can be applicable to two in-footprint county
+    -- runs. Keep an explicit scope occurrence so neither finalizer overwrites
+    -- or retires the other while retaining the exact native feature key.
+    v_feature_key:=v_run.source_key||':'||v_stable_id||':SCOPE:'||
+      v_run.state_code||':'||v_run.county_code;
     v_names:='[]'::jsonb;
     if v_run.source_key='oh_ogrip_lbrs_centerlines' then
       v_name:=private_verification.brinesearch_issue97_join_name_fields(
@@ -2045,11 +2235,16 @@ begin
       v_run.dataset_id,v_feature_key,v_record_id,v_run.state_code,v_run.county_code,
       (select county_name from public.brinesearch_road_graph_counties
         where state_code=v_run.state_code and county_code=v_run.county_code),
-      nullif(coalesce(v_props->>'l_dotmuni',v_props->>'IncMuni_L',v_props->>'LMUNI'),''),
-      nullif(coalesce(v_props->>'r_dotmuni',v_props->>'IncMuni_R',v_props->>'RMUNI'),''),
+      nullif(coalesce(v_props->>'l_dotmuni',v_props->>'IncMuni_L',v_props->>'Inc_Muni_L',
+        v_props->>'LT_MUNICIP',v_props->>'LMUNI'),''),
+      nullif(coalesce(v_props->>'r_dotmuni',v_props->>'IncMuni_R',v_props->>'Inc_Muni_R',
+        v_props->>'RT_MUNICIP',v_props->>'RMUNI'),''),
       nullif(coalesce(v_props->>'l_twp',v_props->>'L_TWP'),''),
       nullif(coalesce(v_props->>'r_twp',v_props->>'R_TWP'),''),
-      v_names,v_geom,v_props,pg_catalog.md5(v_props::text||extensions.st_asgeojson(v_geom,15)),
+      v_names,v_geom,v_props||pg_catalog.jsonb_build_object(
+        'source_native_feature_key',v_run.source_key||':'||v_stable_id,
+        'ingest_scope',v_run.state_code||':'||v_run.county_code
+      ),pg_catalog.md5(v_props::text||extensions.st_asgeojson(v_geom,15)),
       case when coalesce(v_props->>'DateUpdate',v_props->>'DATEMODIFI')~'^[0-9]+$'
         then pg_catalog.to_timestamp(coalesce(v_props->>'DateUpdate',v_props->>'DATEMODIFI')::numeric/1000.0) end,
       p_run_id,true,now()
@@ -2085,6 +2280,11 @@ declare
   v_run record;
   v_mapping_count integer:=0;
   v_name_count integer:=0;
+  v_disposition_count integer:=0;
+  v_unmatched_count integer:=0;
+  v_ambiguous_count integer:=0;
+  v_target_runs jsonb:='[]'::jsonb;
+  v_expected_target_runs integer;
 begin
   select r.*,d.source_key into v_run
   from public.brinesearch_road_source_ingest_runs r
@@ -2102,6 +2302,40 @@ begin
       using errcode='22023';
   end if;
 
+  v_expected_target_runs:=case when v_run.state_code='OH' then 1 else 2 end;
+  with target_sources as (
+    select d.id as dataset_id,d.source_key
+    from public.brinesearch_road_source_datasets d
+    where d.source_key in (
+      case when v_run.state_code='OH' then 'oh_odot_tims_road_inventory'
+        else 'pa_penndot_state_roads' end,
+      case when v_run.state_code='PA' then 'pa_penndot_local_roads' end
+    )
+  ), latest as (
+    select t.*,r.id as run_id,r.details->>'page_set_digest' as page_set_digest,
+      r.completed_at,r.source_row_count,r.ingested_row_count
+    from target_sources t
+    left join lateral (
+      select x.* from public.brinesearch_road_source_ingest_runs x
+      where x.dataset_id=t.dataset_id and x.state_code=v_run.state_code
+        and x.county_code=v_run.county_code
+      order by x.started_at desc,x.id desc limit 1
+    ) r on true
+  )
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+    'dataset_id',dataset_id,'source_key',source_key,'state_code',v_run.state_code,
+    'county_code',v_run.county_code,'run_id',run_id,'page_set_digest',page_set_digest,
+    'completed_at',completed_at,'source_row_count',source_row_count,
+    'ingested_row_count',ingested_row_count
+  ) order by source_key),'[]'::jsonb)
+  into v_target_runs from latest
+  where run_id is not null
+    and private_verification.brinesearch_issue97_ingest_run_verified(run_id);
+  if pg_catalog.jsonb_array_length(v_target_runs)<>v_expected_target_runs then
+    raise exception 'Complete current primary source runs are required before supplemental alias materialization'
+      using errcode='55000';
+  end if;
+
   update public.brinesearch_authoritative_supplemental_centerlines set active=false
   where dataset_id=v_run.dataset_id and state_code=v_run.state_code
     and county_code=v_run.county_code and active
@@ -2113,6 +2347,10 @@ begin
     where c.id=m.centerline_id and c.dataset_id=v_run.dataset_id
       and c.state_code=v_run.state_code and c.county_code=v_run.county_code
   );
+  update public.brinesearch_supplemental_centerline_dispositions d set
+    active=false,updated_at=now()
+  where d.dataset_id=v_run.dataset_id and d.state_code=v_run.state_code
+    and d.county_code=v_run.county_code and d.active;
   update public.brinesearch_authoritative_road_names n set active=false,updated_at=now()
   where n.source_dataset_id=v_run.dataset_id and n.active
     and exists(select 1 from public.brinesearch_authoritative_road_identities i
@@ -2120,7 +2358,8 @@ begin
 
   if v_run.state_code='OH' then
     insert into public.brinesearch_supplemental_centerline_identity_mappings(
-      centerline_id,identity_id,mapping_status,mapping_method,source_segment_keys,
+      centerline_id,dataset_id,state_code,county_code,identity_id,
+      mapping_status,mapping_method,source_segment_keys,
       evidence,ingest_run_id,active
     )
     with candidate_geometry as (
@@ -2146,29 +2385,55 @@ begin
         ) as max_endpoint_distance_m,
         extensions.st_length(extensions.st_intersection(
           extensions.st_transform(source_geom,3857),extensions.st_buffer(target_geom,0.25)
-        ))/nullif(extensions.st_length(extensions.st_transform(source_geom,3857)),0) as source_coverage
+        ))/nullif(extensions.st_length(extensions.st_transform(source_geom,3857)),0) as source_coverage,
+        extensions.st_length(extensions.st_intersection(
+          extensions.st_transform(source_geom,3857),extensions.st_buffer(target_geom,0.25)
+        )) as overlap_length_m,
+        extensions.st_coveredby(
+          extensions.st_transform(source_geom,3857),extensions.st_buffer(target_geom,0.25)
+        ) as source_fully_covered,
+        extensions.st_coveredby(
+          target_geom,extensions.st_buffer(extensions.st_transform(source_geom,3857),0.25)
+        ) as target_fully_covered
       from candidate_geometry
       where extensions.geometrytype(
         extensions.st_linemerge(extensions.st_transform(source_geom,3857)))='LINESTRING'
     )
-    select centerline_id,identity_id,'verified','exact_geometry_coverage',source_segment_keys,
+    select centerline_id,v_run.dataset_id,v_run.state_code,v_run.county_code,
+      identity_id,'verified','exact_geometry_coverage',source_segment_keys,
       pg_catalog.jsonb_build_object('max_endpoint_distance_m',max_endpoint_distance_m,
-        'source_coverage',source_coverage,'buffer_tolerance_m',0.25,'name_used_for_mapping',false,
-        'many_to_many_preserved',true),p_run_id,true
-    from exact_matches where source_coverage>=0.98 and max_endpoint_distance_m<=0.25
+        'source_coverage',source_coverage,'overlap_length_m',overlap_length_m,
+        'source_fully_covered',source_fully_covered,'target_fully_covered',target_fully_covered,
+        'buffer_tolerance_m',0.25,'name_used_for_mapping',false,
+        'many_to_many_preserved',true,'containment_direction_preserved',true),p_run_id,true
+    from exact_matches
+    where overlap_length_m>=0.5 and (source_fully_covered or target_fully_covered)
     on conflict(centerline_id,identity_id) do update set
       mapping_status=excluded.mapping_status,mapping_method=excluded.mapping_method,
       source_segment_keys=excluded.source_segment_keys,evidence=excluded.evidence,
       ingest_run_id=excluded.ingest_run_id,active=true,updated_at=now();
   else
     insert into public.brinesearch_supplemental_centerline_identity_mappings(
-      centerline_id,identity_id,mapping_status,mapping_method,source_segment_keys,
+      centerline_id,dataset_id,state_code,county_code,identity_id,
+      mapping_status,mapping_method,source_segment_keys,
       evidence,ingest_run_id,active
     )
     with candidate_geometry as (
       select c.id as centerline_id,s.identity_id,
         array_agg(distinct s.source_segment_key order by s.source_segment_key) as source_segment_keys,
         (array_agg(c.geom order by c.id))[1] as source_geom,
+        pg_catalog.bool_or(
+          nullif(coalesce(c.attributes->>'NLF_ID',c.attributes->>'nlf_id'),'') is not null
+          and nullif(coalesce(c.attributes->>'NLF_ID',c.attributes->>'nlf_id'),'')
+            =nullif(coalesce(i.attributes->>'NLF_ID',i.attributes->>'nlf_id'),'')
+        ) as official_id_match,
+        pg_catalog.bool_or(
+          private_verification.brinesearch_issue97_municipality_key(c.municipality_left)
+            =private_verification.brinesearch_issue97_municipality_key(i.municipality)
+          or private_verification.brinesearch_issue97_municipality_key(c.municipality_right)
+            =private_verification.brinesearch_issue97_municipality_key(i.municipality)
+        ) as municipality_match,
+        nullif(coalesce(c.municipality_left,c.municipality_right),'') is null as municipality_unavailable,
         extensions.st_unaryunion(
           extensions.st_collect(extensions.st_transform(s.geom,3857))
         ) as target_geom
@@ -2178,38 +2443,51 @@ begin
        and extensions.st_dwithin(c.geom::extensions.geography,s.geom::extensions.geography,1)
       join public.brinesearch_authoritative_road_identities i on i.id=s.identity_id and i.active
       join public.brinesearch_road_source_datasets target_dataset
-        on target_dataset.id=i.dataset_id and target_dataset.source_key='pa_penndot_local_roads'
+        on target_dataset.id=i.dataset_id
+       and target_dataset.source_key in ('pa_penndot_local_roads','pa_penndot_state_roads')
       where c.dataset_id=v_run.dataset_id and c.county_code=v_run.county_code
         and c.active and c.last_ingest_run_id=p_run_id
-        and (
-          nullif(c.municipality_left,'') is not null
-            and pg_catalog.regexp_replace(pg_catalog.upper(c.municipality_left),'[^A-Z0-9]+','','g')
-              =pg_catalog.regexp_replace(pg_catalog.upper(coalesce(i.municipality,'')),'[^A-Z0-9]+','','g')
-          or nullif(c.municipality_right,'') is not null
-            and pg_catalog.regexp_replace(pg_catalog.upper(c.municipality_right),'[^A-Z0-9]+','','g')
-              =pg_catalog.regexp_replace(pg_catalog.upper(coalesce(i.municipality,'')),'[^A-Z0-9]+','','g')
-        )
-      group by c.id,s.identity_id,c.geom
+      group by c.id,s.identity_id,c.geom,c.municipality_left,c.municipality_right
     ), candidate_coverage as (
-      select centerline_id,identity_id,source_segment_keys,
+      select centerline_id,identity_id,source_segment_keys,official_id_match,
+        municipality_match,municipality_unavailable,
         extensions.st_length(extensions.st_intersection(
           extensions.st_transform(source_geom,3857),extensions.st_buffer(target_geom,1)
         ))/nullif(extensions.st_length(extensions.st_transform(source_geom,3857)),0) as source_coverage,
         extensions.st_length(extensions.st_intersection(
           target_geom,extensions.st_buffer(extensions.st_transform(source_geom,3857),1)
-        ))/nullif(extensions.st_length(target_geom),0) as target_coverage
+        ))/nullif(extensions.st_length(target_geom),0) as target_coverage,
+        extensions.st_length(extensions.st_intersection(
+          extensions.st_transform(source_geom,3857),extensions.st_buffer(target_geom,0.25)
+        ))/nullif(extensions.st_length(extensions.st_transform(source_geom,3857)),0)
+          as source_coverage_tight,
+        extensions.st_length(extensions.st_intersection(
+          target_geom,extensions.st_buffer(extensions.st_transform(source_geom,3857),0.25)
+        ))/nullif(extensions.st_length(target_geom),0) as target_coverage_tight
       from candidate_geometry
     ), eligible as (
       select *,count(*) over(partition by centerline_id) as candidate_identity_count
-      from candidate_coverage where source_coverage>=0.95 and target_coverage>=0.90
+      from candidate_coverage where
+        (official_id_match and source_coverage>0)
+        or (municipality_match and source_coverage>=0.95 and target_coverage>=0.90)
+        or (municipality_unavailable and source_coverage_tight>=0.995
+          and target_coverage_tight>=0.995)
     )
-    select centerline_id,identity_id,
+    select centerline_id,v_run.dataset_id,v_run.state_code,v_run.county_code,identity_id,
       case when candidate_identity_count=1 then 'verified' else 'ambiguous' end,
-      case when candidate_identity_count=1 then 'exact_geometry_coverage' else 'held_for_review' end,
+      case when candidate_identity_count=1 and official_id_match then 'official_source_id'
+        when candidate_identity_count=1 then 'exact_geometry_coverage'
+        else 'held_for_review' end,
       source_segment_keys,pg_catalog.jsonb_build_object(
         'source_coverage',source_coverage,'target_coverage',target_coverage,
+        'source_coverage_tight',source_coverage_tight,
+        'target_coverage_tight',target_coverage_tight,
         'buffer_tolerance_m',1,'candidate_identity_count',candidate_identity_count,
-        'municipality_required',true,'name_used_for_mapping',false,
+        'official_source_id_match',official_id_match,
+        'municipality_match',municipality_match,
+        'municipality_unavailable',municipality_unavailable,
+        'municipality_normalization','exact source jurisdiction with administrative suffix removed',
+        'name_used_for_mapping',false,
         'source_endpoint_snapping_forbidden',true
       ),p_run_id,true
     from eligible
@@ -2219,6 +2497,51 @@ begin
       ingest_run_id=excluded.ingest_run_id,active=true,updated_at=now();
   end if;
   get diagnostics v_mapping_count=row_count;
+
+  insert into public.brinesearch_supplemental_centerline_dispositions(
+    centerline_id,dataset_id,state_code,county_code,ingest_run_id,disposition,
+    candidate_count,verified_mapping_count,evidence,active,updated_at
+  )
+  select c.id,c.dataset_id,c.state_code,c.county_code,p_run_id,
+    case when count(m.identity_id) filter(where m.mapping_status='verified')>0 then 'verified'
+      when count(m.identity_id)>0 then 'ambiguous' else 'unmatched_held' end,
+    count(m.identity_id)::integer,
+    count(m.identity_id) filter(where m.mapping_status='verified')::integer,
+    pg_catalog.jsonb_build_object(
+      'source_feature_key',c.source_feature_key,'source_record_id',c.source_record_id,
+      'source_digest',c.source_digest,'source_key',v_run.source_key,
+      'mapping_contract','official source ID or exact geometry coverage; road names excluded',
+      'held_reason',case when count(m.identity_id)=0
+        then 'no exact authoritative identity equivalence' when count(m.identity_id)>1
+        and count(m.identity_id) filter(where m.mapping_status='verified')=0
+        then 'multiple geometry-equivalent identity candidates' end
+    ),true,now()
+  from public.brinesearch_authoritative_supplemental_centerlines c
+  left join public.brinesearch_supplemental_centerline_identity_mappings m
+    on m.centerline_id=c.id and m.active and m.mapping_status in ('verified','ambiguous')
+  where c.dataset_id=v_run.dataset_id and c.state_code=v_run.state_code
+    and c.county_code=v_run.county_code and c.active and c.last_ingest_run_id=p_run_id
+  group by c.id,c.dataset_id,c.state_code,c.county_code,c.source_feature_key,
+    c.source_record_id,c.source_digest
+  on conflict(centerline_id) do update set
+    dataset_id=excluded.dataset_id,state_code=excluded.state_code,county_code=excluded.county_code,
+    ingest_run_id=excluded.ingest_run_id,disposition=excluded.disposition,
+    candidate_count=excluded.candidate_count,
+    verified_mapping_count=excluded.verified_mapping_count,evidence=excluded.evidence,
+    active=true,updated_at=now();
+  get diagnostics v_disposition_count=row_count;
+  select count(*) filter(where disposition='unmatched_held')::integer,
+    count(*) filter(where disposition='ambiguous')::integer
+  into v_unmatched_count,v_ambiguous_count
+  from public.brinesearch_supplemental_centerline_dispositions
+  where dataset_id=v_run.dataset_id and state_code=v_run.state_code
+    and county_code=v_run.county_code and ingest_run_id=p_run_id and active;
+  if v_disposition_count<>(select count(*)
+      from public.brinesearch_authoritative_supplemental_centerlines c
+      where c.dataset_id=v_run.dataset_id and c.state_code=v_run.state_code
+        and c.county_code=v_run.county_code and c.active and c.last_ingest_run_id=p_run_id) then
+    raise exception 'Every supplemental centerline must receive a mapped-or-held disposition';
+  end if;
 
   insert into public.brinesearch_authoritative_road_names(
     identity_id,source_dataset_id,source_record_id,name_type,road_name,normalized_name,
@@ -2288,12 +2611,123 @@ begin
     provenance=excluded.provenance,active=true,last_seen_at=now(),updated_at=now();
   get diagnostics v_name_count=row_count;
   return pg_catalog.jsonb_build_object('run_id',p_run_id,'mappings',v_mapping_count,
-    'name_events_materialized',v_name_count,'name_matching_used',false);
+    'name_events_materialized',v_name_count,'name_matching_used',false,
+    'target_primary_runs',v_target_runs,'centerline_dispositions',v_disposition_count,
+    'unmatched_held',v_unmatched_count,'ambiguous_held',v_ambiguous_count,
+    'every_centerline_disposed',true);
 end
 $$;
 
 revoke all on function public.brinesearch_issue97_refresh_supplemental_aliases(uuid)
 from public,anon,authenticated,service_role;
+
+create or replace function public.brinesearch_issue97_source_snapshot(
+  p_source_key text,
+  p_county_code text
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_source text:=pg_catalog.lower(pg_catalog.btrim(coalesce(p_source_key,'')));
+  v_county text:=pg_catalog.upper(pg_catalog.btrim(coalesce(p_county_code,'')));
+  v_dataset record;
+  v_source_county text;
+  v_where text;
+  v_query_url text;
+  v_ids_response extensions.http_response;
+  v_meta_response extensions.http_response;
+  v_ids_body jsonb;
+  v_meta jsonb;
+  v_ids jsonb;
+  v_count integer;
+  v_id_set_digest text;
+  v_revision_token text;
+begin
+  select d.* into v_dataset
+  from public.brinesearch_road_source_datasets d
+  join public.brinesearch_road_source_dataset_counties scope
+    on scope.dataset_id=d.id and scope.state_code=d.state_code
+   and scope.county_code=v_county and scope.active and scope.ingest_enabled
+  where d.source_key=v_source and d.active;
+  if not found then
+    raise exception 'Unknown or disabled authoritative source scope' using errcode='22023';
+  end if;
+  select c.source_county_code into strict v_source_county
+  from public.brinesearch_road_graph_counties c
+  where c.state_code=v_dataset.state_code and c.county_code=v_county and c.active;
+
+  v_where:=case
+    when v_source='oh_odot_tims_road_inventory'
+      then 'COUNTY_CD='''||v_source_county||''''
+    when v_source='oh_ogrip_lbrs_centerlines'
+      then 'laddcounty='''||v_source_county||''' OR raddcounty='''||v_source_county||''''
+    when v_source='wv_wvdot_publication_lrs'
+      then 'CO_CountyID='''||v_source_county||''''
+    when v_source in ('wv_wvdot_street_name_doh','wv_wvdot_street_name_sams')
+      then 'ROUTE_ID LIKE '''||v_source_county||'%'' AND STREET_NAME IS NOT NULL AND STREET_NAME<>'''''
+    when v_source='wv_wvdot_alternate_route_name'
+      then 'ROUTE_ID LIKE '''||v_source_county||'%'' AND ALT_ROUTE_NAME IS NOT NULL AND ALT_ROUTE_NAME<>'''''
+    when v_source in (
+      'pa_penndot_state_roads','pa_penndot_local_roads',
+      'pa_penndot_at_grade_intersections'
+    ) then 'CTY_CODE='''||v_source_county||''''
+    when v_source in (
+      'pa_allegheny_ng911_centerlines','pa_bradford_ng911_centerlines',
+      'pa_butler_centerlines','pa_fayette_ng911_centerlines',
+      'pa_indiana_ng911_centerlines','pa_washington_ng911_centerlines'
+    ) then '1=1'
+  end;
+  if v_where is null then
+    raise exception 'Source has no controlled snapshot contract' using errcode='22023';
+  end if;
+  v_query_url:=v_dataset.source_url||'/query?where='||extensions.urlencode(v_where)
+    ||'&returnIdsOnly=true&f=json';
+  v_ids_response:=extensions.http_get(v_query_url);
+  if v_ids_response.status<>200 then
+    raise exception 'Source ID-manifest request failed with HTTP %',v_ids_response.status;
+  end if;
+  v_ids_body:=v_ids_response.content::jsonb;
+  if v_ids_body ? 'error' or pg_catalog.jsonb_typeof(v_ids_body->'objectIds')<>'array' then
+    raise exception 'Source did not return a complete ArcGIS object-ID manifest';
+  end if;
+  v_ids:=v_ids_body->'objectIds';
+  v_count:=pg_catalog.jsonb_array_length(v_ids);
+  select pg_catalog.md5(coalesce(pg_catalog.string_agg(value::text,',' order by value::text),''))
+  into v_id_set_digest from pg_catalog.jsonb_array_elements(v_ids);
+
+  v_meta_response:=extensions.http_get(v_dataset.source_url||'?f=json');
+  if v_meta_response.status<>200 then
+    raise exception 'Source metadata request failed with HTTP %',v_meta_response.status;
+  end if;
+  v_meta:=v_meta_response.content::jsonb;
+  if v_meta ? 'error' then raise exception 'Source metadata contained an ArcGIS error'; end if;
+  v_revision_token:=pg_catalog.md5(pg_catalog.concat_ws('|',
+    v_dataset.source_key,v_dataset.source_version,v_dataset.source_url,v_where,
+    coalesce(v_meta->>'serviceItemId',''),coalesce(v_meta->>'name',''),
+    coalesce(v_meta->>'currentVersion',''),coalesce(v_meta->>'objectIdField',''),
+    coalesce(v_meta#>>'{editingInfo,lastEditDate}',''),v_id_set_digest,v_count::text
+  ));
+  return pg_catalog.jsonb_build_object(
+    'source_key',v_dataset.source_key,'dataset_id',v_dataset.id,
+    'state_code',v_dataset.state_code,'county_code',v_county,
+    'source_county_code',v_source_county,'query_url',v_query_url,
+    'source_version',v_dataset.source_version,
+    'object_id_field',coalesce(v_meta->>'objectIdField',v_dataset.provenance->>'oid_field',
+      v_dataset.provenance->>'record_field'),
+    'expected_source_rows',v_count,'object_id_set_digest',v_id_set_digest,
+    'service_last_edit_ms',v_meta#>>'{editingInfo,lastEditDate}',
+    'service_item_id',v_meta->>'serviceItemId','source_revision_token',v_revision_token,
+    'count_checked_at',pg_catalog.clock_timestamp()
+  );
+end
+$$;
+
+revoke all on function public.brinesearch_issue97_source_snapshot(text,text)
+from public,anon,authenticated;
+grant execute on function public.brinesearch_issue97_source_snapshot(text,text) to service_role;
 
 create or replace function public.brinesearch_issue97_begin_ingest(
   p_source_key text,
@@ -2334,9 +2768,9 @@ begin
   where dataset_id=v_dataset.id and state_code=v_dataset.state_code
     and county_code=v_county and status='loading';
   insert into public.brinesearch_road_source_ingest_runs(
-    dataset_id,state_code,county_code,status,details
+    dataset_id,state_code,county_code,status,started_at,details
   ) values (
-    v_dataset.id,v_dataset.state_code,v_county,'loading',
+    v_dataset.id,v_dataset.state_code,v_county,'loading',pg_catalog.clock_timestamp(),
     pg_catalog.jsonb_build_object(
       'source_key',v_source,'topology_role',v_dataset.topology_role,
       'coverage_contract','all deterministic OBJECTID pages must complete before finalization'
@@ -2522,7 +2956,13 @@ begin
     join public.brinesearch_authoritative_supplemental_centerlines c on c.id=m.centerline_id
     where c.dataset_id=v_run.dataset_id and c.active and m.active
     union all
-    select pg_catalog.md5(c.roadway_inventory_id||':'||c.attributes::text)
+    select pg_catalog.md5(d.centerline_id::text||':'||d.disposition||':'||
+      d.candidate_count::text||':'||d.verified_mapping_count::text||':'||d.evidence::text)
+    from public.brinesearch_supplemental_centerline_dispositions d
+    where d.dataset_id=v_run.dataset_id and d.active
+    union all
+    select pg_catalog.md5(c.roadway_inventory_id||':'||c.attributes::text||':'
+      ||coalesce(extensions.st_asewkb(c.geom)::text,'')||':'||c.source_active::text)
     from public.brinesearch_odot_road_catalog c
     where v_source='oh_odot_tims_road_inventory' and c.source_active
     union all
@@ -2531,7 +2971,19 @@ begin
     where n.source_dataset_id=v_run.dataset_id and n.active
   ) x;
   update public.brinesearch_road_source_datasets
-  set fetched_at=now(),content_digest=v_content_digest,updated_at=now()
+  set fetched_at=now(),content_digest=v_content_digest,
+    source_timestamp=case
+      when coalesce(
+        p_details#>>'{end_source_snapshot,service_last_edit_ms}',
+        v_run.details#>>'{source_snapshot,service_last_edit_ms}'
+      )~'^[0-9]+$'
+      then pg_catalog.to_timestamp(coalesce(
+        p_details#>>'{end_source_snapshot,service_last_edit_ms}',
+        v_run.details#>>'{source_snapshot,service_last_edit_ms}'
+      )::numeric/1000.0)
+      else null
+    end,
+    updated_at=now()
   where id=v_run.dataset_id;
   update public.brinesearch_road_source_ingest_runs set
     status='complete',completed_at=now(),page_count=p_page_count,
@@ -2636,6 +3088,7 @@ as $$
 declare
   v_result jsonb;
   v_run_id uuid;
+  v_server_snapshot jsonb;
 begin
   if p_expected_source_rows is null or p_expected_source_rows<0 then
     raise exception 'Expected source row count must be a nonnegative integer' using errcode='22023';
@@ -2646,14 +3099,24 @@ begin
      or nullif(p_source_snapshot->>'count_checked_at','') is null then
     raise exception 'Source snapshot requires query_url, source_version and count_checked_at' using errcode='22023';
   end if;
+  v_server_snapshot:=public.brinesearch_issue97_source_snapshot(p_source_key,p_county_code);
+  if p_expected_source_rows<>(v_server_snapshot->>'expected_source_rows')::integer
+     or p_source_snapshot->>'query_url' is distinct from v_server_snapshot->>'query_url'
+     or p_source_snapshot->>'source_version' is distinct from v_server_snapshot->>'source_version'
+     or nullif(p_source_snapshot->>'source_revision_token','') is distinct from
+        v_server_snapshot->>'source_revision_token' then
+    raise exception 'Caller source snapshot does not match the server-derived ID manifest'
+      using errcode='55000';
+  end if;
   v_result:=public.brinesearch_issue97_begin_ingest(p_source_key,p_county_code);
   v_run_id:=(v_result->>'run_id')::uuid;
   update public.brinesearch_road_source_ingest_runs set details=details||pg_catalog.jsonb_build_object(
     'run_bound',true,'expected_source_rows',p_expected_source_rows,
-    'source_snapshot',p_source_snapshot,'page_contract','contiguous deterministic OBJECTID offsets'
+    'source_snapshot',v_server_snapshot,
+    'page_contract','contiguous deterministic OBJECTID offsets bound to server ID manifest'
   ) where id=v_run_id;
   return v_result||pg_catalog.jsonb_build_object(
-    'expected_source_rows',p_expected_source_rows,'source_snapshot',p_source_snapshot,'run_bound',true
+    'expected_source_rows',p_expected_source_rows,'source_snapshot',v_server_snapshot,'run_bound',true
   );
 end
 $$;
@@ -2813,6 +3276,7 @@ declare
   v_terminal_count integer;
   v_page_digest text;
   v_result jsonb;
+  v_end_snapshot jsonb;
 begin
   select r.dataset_id,r.county_code into v_lock
   from public.brinesearch_road_source_ingest_runs r where r.id=p_run_id;
@@ -2820,7 +3284,7 @@ begin
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtext('brinesearch:issue97:ingest:'||v_lock.dataset_id::text||':'||v_lock.county_code)
   );
-  select r.*,d.topology_role into v_run
+  select r.*,d.topology_role,d.source_key into v_run
   from public.brinesearch_road_source_ingest_runs r
   join public.brinesearch_road_source_datasets d on d.id=r.dataset_id
   where r.id=p_run_id for update of r;
@@ -2852,6 +3316,20 @@ begin
     ),''))
   into v_page_count,v_source_rows,v_ingested_rows,v_rejected_rows,v_terminal_count,v_page_digest
   from public.brinesearch_road_source_ingest_pages where run_id=p_run_id;
+  v_end_snapshot:=public.brinesearch_issue97_source_snapshot(v_run.source_key,v_run.county_code);
+  if (v_end_snapshot->>'expected_source_rows')::integer is distinct from
+       (v_run.details->>'expected_source_rows')::integer
+     or v_end_snapshot->>'source_revision_token' is distinct from
+       v_run.details#>>'{source_snapshot,source_revision_token}' then
+    return public.brinesearch_issue97_fail_ingest(
+      p_run_id,'authoritative source changed during ingest',
+      pg_catalog.jsonb_build_object(
+        'coverage_receipts_verified',false,
+        'begin_source_snapshot',v_run.details->'source_snapshot',
+        'end_source_snapshot',v_end_snapshot
+      )
+    );
+  end if;
   if v_page_count<1 or v_terminal_count<>1
      or exists(select 1 from public.brinesearch_road_source_ingest_pages p
        where p.run_id=p_run_id and not p.has_more
@@ -2877,7 +3355,8 @@ begin
     p_run_id,v_page_count,v_source_rows,v_ingested_rows,
     coalesce(p_details,'{}'::jsonb)||pg_catalog.jsonb_build_object(
       'run_bound',true,'page_set_digest',v_page_digest,
-      'rejected_source_rows',v_rejected_rows,'coverage_receipts_verified',true
+      'rejected_source_rows',v_rejected_rows,'coverage_receipts_verified',true,
+      'end_source_snapshot',v_end_snapshot
     )
   );
   if v_result->>'status'<>'complete' then
@@ -3096,6 +3575,7 @@ declare
   v_held_count integer:=0;
   v_membership_count integer:=0;
   v_graph_digest text;
+  v_mapping_snapshot_digest text;
   v_scope record;
 begin
   select county_name into v_county_name
@@ -3127,7 +3607,9 @@ begin
 
   with latest as (
     select d.source_key,
-      (select case when private_verification.brinesearch_issue97_ingest_run_verified(r.id)
+      (select case when private_verification.brinesearch_issue97_dataset_scope_current(
+          r.dataset_id,r.state_code,r.county_code
+        )
         then 'complete' else 'incomplete' end
        from public.brinesearch_road_source_ingest_runs r
        where r.dataset_id=d.id and r.state_code=v_state and r.county_code=v_county
@@ -3229,7 +3711,9 @@ begin
   into v_incomplete_sources
   from latest
   where run_id is null
-     or not private_verification.brinesearch_issue97_ingest_run_verified(run_id);
+     or not private_verification.brinesearch_issue97_dataset_scope_current(
+       dataset_id,state_code,county_code
+     );
   if v_incomplete_sources is not null then
     raise exception 'Boundary source scopes are not receipt-verified: %',v_incomplete_sources
       using errcode='55000';
@@ -3376,41 +3860,20 @@ begin
   create temporary table tmp_issue97_at_grade on commit drop as
   with scoped as (
     select n.*,
+      case when nullif(n.attributes->>'NODE_ID','') is not null
+        then 'PA:PENNDOT:AT_GRADE:'||(n.attributes->>'NODE_ID')
+        else n.source_node_key end as physical_node_key,
       extensions.st_snaptogrid(n.geom,0.0000001) as snapped_geom
     from public.brinesearch_authoritative_road_nodes n
     where n.active and n.node_type='at_grade_intersection'
       and exists(select 1 from tmp_issue97_target_segments t
         where extensions.st_dwithin(n.geom::extensions.geography,t.geom::extensions.geography,1))
-  )
-  select
-    pg_catalog.round(extensions.st_x(n.snapped_geom)::numeric,7) as lng,
-    pg_catalog.round(extensions.st_y(n.snapped_geom)::numeric,7) as lat,
-    extensions.st_setsrid(extensions.st_makepoint(
-      pg_catalog.round(extensions.st_x(n.snapped_geom)::numeric,7)::double precision,
-      pg_catalog.round(extensions.st_y(n.snapped_geom)::numeric,7)::double precision
-    ),4326) as geom,
-    array_agg(distinct v.identity_id order by v.identity_id) as identity_ids,
-    array_agg(distinct n.source_node_key order by n.source_node_key) as node_keys,
-    min(v.state_code||':'||v.county_code) as owner_scope,
-    pg_catalog.jsonb_agg(distinct pg_catalog.jsonb_build_object(
-      'node_key',n.source_node_key,'segment_key',v.source_segment_key,
-      'source_vertex',pg_catalog.jsonb_build_array(v.raw_lng,v.raw_lat,v.source_z_min,v.source_m_min)
-    )) as coordinate_evidence
-  from scoped n
-  join tmp_issue97_vertices v
-    on extensions.st_dwithin(n.geom::extensions.geography,v.geom::extensions.geography,1)
-  join tmp_issue97_segments seg on seg.id=v.segment_id
-  where (
-    -- Local-road termini may not carry a PennDOT state-route tuple. They are
-    -- accepted only when the source endpoint is effectively coincident with the
-    -- authoritative at-grade node, never merely because it lies within 1 m.
-    (v.is_endpoint and extensions.st_dwithin(
-      n.geom::extensions.geography,v.geom::extensions.geography,0.03
-    ))
-    or (
-      seg.state_code='PA' and (
-        -- Base roadway tuple on layer 23: T_RT_NO + SEG_NO.
-        (
+  ), eligible as (
+    select n.id as node_id,n.physical_node_key,n.source_node_key,n.attributes,n.geom as source_node_geom,
+      n.snapped_geom,seg.identity_id,seg.source_segment_key,seg.state_code,seg.county_code,
+      extensions.st_closestpoint(seg.geom,n.geom) as projected_geom,
+      case
+        when (
           nullif(pg_catalog.ltrim(coalesce(n.attributes->>'T_RT_NO',''),'0'),'') is not null
           and nullif(pg_catalog.ltrim(coalesce(
             seg.attributes->>'T_RT_NO',seg.attributes->>'LR_RT_NO',''
@@ -3418,10 +3881,7 @@ begin
           and (nullif(coalesce(n.attributes->>'SEG_NO',''),'') is null
             or nullif(pg_catalog.ltrim(coalesce(seg.attributes->>'SEG_NO',''),'0'),'')
               =nullif(pg_catalog.ltrim(coalesce(n.attributes->>'SEG_NO',''),'0'),''))
-        )
-        or
-        -- Intersecting roadway tuple on layer 23: ST_RT_IXN + SEG_IXN.
-        (
+        ) or (
           nullif(pg_catalog.ltrim(coalesce(n.attributes->>'ST_RT_IXN',''),'0'),'') is not null
           and nullif(pg_catalog.ltrim(coalesce(
             seg.attributes->>'T_RT_NO',seg.attributes->>'LR_RT_NO',''
@@ -3429,48 +3889,146 @@ begin
           and (nullif(coalesce(n.attributes->>'SEG_IXN',''),'') is null
             or nullif(pg_catalog.ltrim(coalesce(seg.attributes->>'SEG_NO',''),'0'),'')
               =nullif(pg_catalog.ltrim(coalesce(n.attributes->>'SEG_IXN',''),'0'),''))
-        )
+        ) then 'official_route_segment_tuple'
+        when extensions.st_dwithin(
+          n.geom::extensions.geography,extensions.st_boundary(seg.geom)::extensions.geography,0.5
+        ) then 'coincident_authoritative_terminus'
+      end as match_method
+    from scoped n
+    join tmp_issue97_segments seg
+      on seg.state_code='PA'
+     and extensions.st_dwithin(n.geom::extensions.geography,seg.geom::extensions.geography,1)
+    where (
+      (
+        nullif(pg_catalog.ltrim(coalesce(n.attributes->>'T_RT_NO',''),'0'),'') is not null
+        and nullif(pg_catalog.ltrim(coalesce(
+          seg.attributes->>'T_RT_NO',seg.attributes->>'LR_RT_NO',''
+        ),'0'),'')=nullif(pg_catalog.ltrim(coalesce(n.attributes->>'T_RT_NO',''),'0'),'')
+        and (nullif(coalesce(n.attributes->>'SEG_NO',''),'') is null
+          or nullif(pg_catalog.ltrim(coalesce(seg.attributes->>'SEG_NO',''),'0'),'')
+            =nullif(pg_catalog.ltrim(coalesce(n.attributes->>'SEG_NO',''),'0'),''))
+      ) or (
+        nullif(pg_catalog.ltrim(coalesce(n.attributes->>'ST_RT_IXN',''),'0'),'') is not null
+        and nullif(pg_catalog.ltrim(coalesce(
+          seg.attributes->>'T_RT_NO',seg.attributes->>'LR_RT_NO',''
+        ),'0'),'')=nullif(pg_catalog.ltrim(coalesce(n.attributes->>'ST_RT_IXN',''),'0'),'')
+        and (nullif(coalesce(n.attributes->>'SEG_IXN',''),'') is null
+          or nullif(pg_catalog.ltrim(coalesce(seg.attributes->>'SEG_NO',''),'0'),'')
+            =nullif(pg_catalog.ltrim(coalesce(n.attributes->>'SEG_IXN',''),'0'),''))
+      ) or extensions.st_dwithin(
+        n.geom::extensions.geography,extensions.st_boundary(seg.geom)::extensions.geography,0.5
       )
     )
+  ), qualified as (
+    select physical_node_key,
+      pg_catalog.round(extensions.st_x(snapped_geom)::numeric,7) as lng,
+      pg_catalog.round(extensions.st_y(snapped_geom)::numeric,7) as lat
+    from eligible
+    group by physical_node_key,
+      pg_catalog.round(extensions.st_x(snapped_geom)::numeric,7),
+      pg_catalog.round(extensions.st_y(snapped_geom)::numeric,7)
+    having count(distinct identity_id)>=2
+      and pg_catalog.bool_or(match_method='official_route_segment_tuple')
   )
-  group by pg_catalog.round(extensions.st_x(n.snapped_geom)::numeric,7),
-    pg_catalog.round(extensions.st_y(n.snapped_geom)::numeric,7)
-  having count(distinct v.identity_id)>=2;
+  select
+    e.physical_node_key as topology_key,
+    pg_catalog.round(extensions.st_x(e.snapped_geom)::numeric,7) as lng,
+    pg_catalog.round(extensions.st_y(e.snapped_geom)::numeric,7) as lat,
+    extensions.st_setsrid(extensions.st_makepoint(
+      pg_catalog.round(extensions.st_x(e.snapped_geom)::numeric,7)::double precision,
+      pg_catalog.round(extensions.st_y(e.snapped_geom)::numeric,7)::double precision
+    ),4326) as geom,
+    array_agg(distinct e.identity_id order by e.identity_id) as identity_ids,
+    array_agg(distinct e.source_node_key order by e.source_node_key) as node_keys,
+    min(e.state_code||':'||e.county_code) as owner_scope,
+    pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'node_key',e.source_node_key,'segment_key',e.source_segment_key,
+      'match_method',e.match_method,
+      'source_node_coordinate',pg_catalog.jsonb_build_array(
+        extensions.st_x(e.source_node_geom),extensions.st_y(e.source_node_geom)
+      ),
+      'projected_segment_coordinate',pg_catalog.jsonb_build_array(
+        extensions.st_x(e.projected_geom),extensions.st_y(e.projected_geom)
+      ),
+      'projection_distance_m',extensions.st_distance(
+        e.source_node_geom::extensions.geography,e.projected_geom::extensions.geography
+      )
+    ) order by e.source_node_key,e.source_segment_key,e.match_method,e.identity_id) as coordinate_evidence
+  from eligible e join qualified q
+    on q.physical_node_key=e.physical_node_key
+   and q.lng=pg_catalog.round(extensions.st_x(e.snapped_geom)::numeric,7)
+   and q.lat=pg_catalog.round(extensions.st_y(e.snapped_geom)::numeric,7)
+  group by pg_catalog.round(extensions.st_x(e.snapped_geom)::numeric,7),
+    pg_catalog.round(extensions.st_y(e.snapped_geom)::numeric,7),e.physical_node_key;
 
   create temporary table tmp_issue97_point_candidates on commit drop as
   with exact_points as (
-    select v.lng,v.lat,v.geom,
+    select null::text as topology_key,v.lng,v.lat,v.geom,
       array_agg(distinct v.identity_id order by v.identity_id) as identity_ids,
       '{}'::text[] as node_keys,min(v.state_code||':'||v.county_code) as owner_scope,
       false as has_at_grade,'exact_authoritative_source_vertex'::text as source_method,
       count(distinct v.identity_id) filter(where v.source_z_min is not null)::integer as source_z_identity_count,
       max(v.source_z_max)-min(v.source_z_min) as source_z_span,
-      pg_catalog.jsonb_agg(distinct pg_catalog.jsonb_build_object(
+      pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
         'identity_id',v.identity_id,'segment_key',v.source_segment_key,
         'source_vertex',pg_catalog.jsonb_build_array(v.raw_lng,v.raw_lat,v.source_z_min,v.source_m_min)
-      )) as coordinate_evidence
+      ) order by v.identity_id,v.source_segment_key) as coordinate_evidence
     from tmp_issue97_vertices v
     group by v.lng,v.lat,v.geom
     having count(distinct v.identity_id)>=2
   ), official_points as (
-    select a.lng,a.lat,a.geom,a.identity_ids,a.node_keys,a.owner_scope,
+    select a.topology_key,a.lng,a.lat,a.geom,a.identity_ids,a.node_keys,a.owner_scope,
       true as has_at_grade,'penndot_at_grade_node_projection'::text as source_method,
-      0::integer as source_z_identity_count,null::numeric as source_z_span,a.coordinate_evidence
+      0::integer as source_z_identity_count,null::numeric as source_z_span,
+      a.coordinate_evidence||coalesce(absorbed.coordinate_evidence,'[]'::jsonb) as coordinate_evidence
     from tmp_issue97_at_grade a
+    left join lateral (
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+        'source_method','exact_authoritative_source_vertex',
+        'identity_ids',pg_catalog.to_jsonb(x.identity_ids),
+        'coordinate_evidence',x.coordinate_evidence,
+        'disposition',case
+          when a.identity_ids @> x.identity_ids then 'corroborating_provenance'
+          else 'held_extra_identity_evidence_not_in_official_node' end
+      ) order by x.identity_ids::text) as coordinate_evidence
+      from exact_points x
+      where a.lng=x.lng and a.lat=x.lat and a.identity_ids && x.identity_ids
+    ) absorbed on true
   )
-  select 'point:'||p.lng::text||':'||p.lat::text as candidate_key,p.*
+  select 'point:official:'||p.lng::text||':'||p.lat::text||':'
+      ||pg_catalog.md5(p.topology_key||':'||pg_catalog.array_to_string(p.identity_ids,','))
+      as candidate_key,
+    p.topology_key,p.lng,p.lat,p.geom,p.identity_ids,p.node_keys,p.owner_scope,
+    p.has_at_grade,p.source_method,false as official_conflict,
+    p.source_z_identity_count,p.source_z_span,p.coordinate_evidence
   from official_points p where p.owner_scope=v_state||':'||v_county
   union all
-  select 'point:'||p.lng::text||':'||p.lat::text,p.*
+  select 'point:exact:'||p.lng::text||':'||p.lat::text||':'
+      ||pg_catalog.md5(pg_catalog.array_to_string(p.identity_ids,',')),
+    p.topology_key,p.lng,p.lat,p.geom,p.identity_ids,p.node_keys,p.owner_scope,
+    p.has_at_grade,p.source_method,
+    exists(select 1 from official_points a
+      where extensions.st_dwithin(a.geom::extensions.geography,p.geom::extensions.geography,1)
+        and a.identity_ids && p.identity_ids
+        and (
+          a.lng<>p.lng or a.lat<>p.lat
+          or not (a.identity_ids @> p.identity_ids and p.identity_ids @> a.identity_ids)
+        )
+    ) as official_conflict,
+    p.source_z_identity_count,p.source_z_span,p.coordinate_evidence
   from exact_points p where p.owner_scope=v_state||':'||v_county
-    and not exists(select 1 from official_points a
-      where extensions.st_dwithin(a.geom::extensions.geography,p.geom::extensions.geography,1));
+    and not exists(
+      select 1 from official_points a
+      where a.lng=p.lng and a.lat=p.lat and a.identity_ids && p.identity_ids
+        and 1=(select count(*) from official_points b
+          where b.lng=p.lng and b.lat=p.lat and b.identity_ids && p.identity_ids)
+    );
   create unique index tmp_issue97_point_candidates_key_idx
     on tmp_issue97_point_candidates(candidate_key);
 
   create temporary table tmp_issue97_point_raw on commit drop as
-  select p.candidate_key,p.geom as point_geom,p.lng,p.lat,p.has_at_grade,p.source_method,
-    p.node_keys,p.source_z_identity_count,p.source_z_span,p.coordinate_evidence,
+  select p.candidate_key,p.topology_key,p.geom as point_geom,p.lng,p.lat,p.has_at_grade,p.source_method,
+    p.node_keys,p.official_conflict,p.source_z_identity_count,p.source_z_span,p.coordinate_evidence,
     s.id as segment_id,s.identity_id,s.source_segment_key,s.state_code,s.county_code,
     s.township,s.municipality,s.from_measure,s.to_measure,s.bridge_status,s.tunnel_status,s.z_level,
     s.geom as segment_geom,v.source_z_min,v.source_z_max,v.source_m_min,v.source_m_max,
@@ -3503,8 +4061,8 @@ begin
   from tmp_issue97_point_raw r group by r.candidate_key,r.identity_id;
 
   create temporary table tmp_issue97_point_nodes on commit drop as
-  select p.candidate_key,p.lng,p.lat,p.geom,p.has_at_grade,p.source_method,p.node_keys,
-    p.coordinate_evidence,p.source_z_identity_count,p.source_z_span,
+  select p.candidate_key,p.topology_key,p.lng,p.lat,p.geom,p.has_at_grade,p.source_method,p.node_keys,
+    p.coordinate_evidence,p.official_conflict,p.source_z_identity_count,p.source_z_span,
     array_agg(distinct i.identity_id order by i.identity_id) as identity_ids,
     count(distinct i.identity_id)::integer as identity_count,
     count(distinct i.identity_id) filter(where i.is_identity_terminus)::integer as terminus_identity_count,
@@ -3526,6 +4084,7 @@ begin
       else 'intersection'
     end as junction_type,
     case
+      when p.official_conflict then true
       when count(distinct coalesce(r.bridge_status,'none'))>1 then true
       when count(distinct coalesce(r.tunnel_status,'none'))>1 then true
       when count(distinct coalesce(r.z_level,0))>1
@@ -3536,18 +4095,18 @@ begin
     end as grade_conflict,
     (p.has_at_grade
       or count(distinct i.identity_id) filter(where i.endpoint_only)=count(distinct i.identity_id)
-      -- An exact authoritative source vertex with at least one terminating
-      -- identity is a supported T-junction. Explicit level/structure conflicts
-      -- are still held by grade_conflict below; missing grade metadata alone is
-      -- not evidence that the physical source node is an overpass.
-      or count(distinct i.identity_id) filter(where i.is_identity_terminus)>=1
+      or (
+        count(distinct i.identity_id) filter(where i.is_identity_terminus)>=1
+        and count(distinct i.identity_id) filter(where i.has_grade_evidence)
+          =count(distinct i.identity_id)
+      )
     ) as topology_supported
   from tmp_issue97_point_candidates p
   join tmp_issue97_point_identity i on i.candidate_key=p.candidate_key
   join public.brinesearch_authoritative_road_identities ri on ri.id=i.identity_id
   join tmp_issue97_point_raw r on r.candidate_key=p.candidate_key and r.identity_id=i.identity_id
-  group by p.candidate_key,p.lng,p.lat,p.geom,p.has_at_grade,p.source_method,p.node_keys,
-    p.coordinate_evidence,p.source_z_identity_count,p.source_z_span
+  group by p.candidate_key,p.topology_key,p.lng,p.lat,p.geom,p.has_at_grade,p.source_method,p.node_keys,
+    p.coordinate_evidence,p.official_conflict,p.source_z_identity_count,p.source_z_span
   having count(distinct i.identity_id)>=2;
 
   -- Positive-length line intersection detects the same physical shared section
@@ -3674,14 +4233,17 @@ begin
   select
     private_verification.brinesearch_issue97_uuid('build:'||v_build::text||':'||p.candidate_key),
     private_verification.brinesearch_issue97_uuid(
-      'junction:point:'||v_state||':'||p.lng::text||':'||p.lat::text
+      'junction:point:'||v_state||':'||p.lng::text||':'||p.lat::text||':'
+        ||coalesce('node:'||p.topology_key,'identities:'||pg_catalog.md5(p.identity_ids::text))
     ),
-    v_build,'junction:point:'||v_state||':'||p.lng::text||':'||p.lat::text,
+    v_build,'junction:point:'||v_state||':'||p.lng::text||':'||p.lat::text||':'
+      ||coalesce('node:'||p.topology_key,'identities:'||pg_catalog.md5(p.identity_ids::text)),
     v_state||'-'||v_county||'-JCT-'||pg_catalog.upper(pg_catalog.substr(
-      pg_catalog.md5(p.lng::text||':'||p.lat::text),1,8)),
+      pg_catalog.md5(p.candidate_key),1,8)),
     v_state,v_county,v_county_name,p.township,p.municipality,p.junction_type,p.geom,
     p.source_method,pg_catalog.jsonb_build_object(
       'identity_ids',pg_catalog.to_jsonb(p.identity_ids),
+      'authoritative_physical_node_key',p.topology_key,
       'at_grade_node_keys',pg_catalog.to_jsonb(p.node_keys),
       'has_penndot_at_grade_node',p.has_at_grade,
       'bridge_variant_count',p.bridge_variant_count,
@@ -3916,7 +4478,9 @@ begin
   from tmp_issue97_point_values v
   join tmp_issue97_point_nodes p on p.candidate_key=v.candidate_key
   join public.brinesearch_road_junctions j on j.build_id=v_build
-    and j.stable_junction_key='junction:point:'||v_state||':'||p.lng::text||':'||p.lat::text
+    and j.id=private_verification.brinesearch_issue97_uuid(
+      'build:'||v_build::text||':'||p.candidate_key
+    )
   join public.brinesearch_authoritative_road_identities i on i.id=v.identity_id
   left join lateral (
     select m.road_id from public.brinesearch_road_identity_mappings m
@@ -4148,12 +4712,24 @@ begin
     j.stable_junction_key||':'||j.graph_digest,',' order by j.stable_junction_key
   ),'')) into v_graph_digest
   from public.brinesearch_road_junctions j where j.build_id=v_build;
+  select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    snapshot.identity_id::text||':'
+      ||private_verification.brinesearch_issue97_mapping_fingerprint(snapshot.identity_id),','
+      order by snapshot.identity_id
+  ),'')) into v_mapping_snapshot_digest
+  from (
+    select distinct m.identity_id,m.road_id
+    from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build
+  ) snapshot;
   update public.brinesearch_road_graph_builds set
     status='validated',point_junction_count=v_point_count,shared_segment_count=v_shared_count,
     membership_count=v_membership_count,graph_digest=v_graph_digest,
     completed_at=now(),details=details||pg_catalog.jsonb_build_object(
       'held_junction_count',v_held_count,'historical_rows_retained',true,
-      'activation_required',true,'activation_status','awaiting_review'
+      'activation_required',true,'activation_status','awaiting_review',
+      'mapping_snapshot_digest',v_mapping_snapshot_digest
     )
   where id=v_build;
   return pg_catalog.jsonb_build_object(
@@ -4198,16 +4774,39 @@ declare
   v_recomputed_point_count integer;
   v_recomputed_shared_count integer;
   v_recomputed_membership_count integer;
+  v_current_mapping_digest text;
 begin
   select b.* into v_build from public.brinesearch_road_graph_builds b
-  where b.id=p_build_id for update;
+  where b.id=p_build_id;
   if not found then raise exception 'Validated graph build not found' using errcode='P0002'; end if;
-  if v_build.status<>'validated' then
-    raise exception 'Only a validated graph build can be activated' using errcode='55000';
-  end if;
   perform pg_catalog.pg_advisory_xact_lock(
     pg_catalog.hashtext('brinesearch:issue97:graph:'||v_build.state_code||':'||v_build.county_code)
   );
+  select b.* into v_build from public.brinesearch_road_graph_builds b
+  where b.id=p_build_id for update;
+  if v_build.status<>'validated' then
+    raise exception 'Only a validated graph build can be activated' using errcode='55000';
+  end if;
+
+  -- Match rebuild/page lock order: graph scope, every captured ingest scope in
+  -- deterministic order, then the global exact-mapping generation. This makes
+  -- the source-vector check stable for the rest of the activation transaction.
+  for v_source_entry in
+    select value
+    from pg_catalog.jsonb_array_elements(
+      coalesce(v_build.details->'source_run_vector','[]'::jsonb)
+    )
+    order by value->>'dataset_id',value->>'state_code',value->>'county_code'
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
+      'brinesearch:issue97:ingest:'||(v_source_entry->>'dataset_id')||':'||
+        (v_source_entry->>'county_code')
+    ));
+  end loop;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+
   select b.id into v_old_build from public.brinesearch_road_graph_builds b
   where b.state_code=v_build.state_code and b.county_code=v_build.county_code
     and b.status='active' order by b.activated_at desc,b.id limit 1 for update;
@@ -4224,7 +4823,10 @@ begin
       and r.county_code=v_source_entry->>'county_code'
     order by r.started_at desc,r.id desc limit 1;
     if v_latest_run is distinct from (v_source_entry->>'run_id')::uuid
-       or not private_verification.brinesearch_issue97_ingest_run_verified(v_latest_run) then
+       or not private_verification.brinesearch_issue97_dataset_scope_current(
+         (v_source_entry->>'dataset_id')::uuid,
+         v_source_entry->>'state_code',v_source_entry->>'county_code'
+       ) then
       v_stale_sources:=v_stale_sources||pg_catalog.jsonb_build_array(
         v_source_entry||pg_catalog.jsonb_build_object('latest_run_id',v_latest_run)
       );
@@ -4237,6 +4839,33 @@ begin
     return pg_catalog.jsonb_build_object(
       'build_id',p_build_id,'activated',false,'reason','source_vector_is_no_longer_current',
       'stale_source_scopes',v_stale_sources
+    );
+  end if;
+
+  select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    current_map.identity_id::text||':'
+      ||private_verification.brinesearch_issue97_mapping_fingerprint(current_map.identity_id),','
+      order by current_map.identity_id
+  ),'')) into v_current_mapping_digest
+  from (
+    select identities.identity_id,map.road_id
+    from (
+      select distinct m.identity_id
+      from public.brinesearch_road_junction_memberships m
+      join public.brinesearch_road_junctions j on j.id=m.junction_id
+      where j.build_id=p_build_id
+    ) identities
+    left join public.brinesearch_road_identity_mappings map
+      on map.identity_id=identities.identity_id and map.mapping_status='verified'
+  ) current_map;
+  if v_current_mapping_digest is distinct from v_build.details->>'mapping_snapshot_digest' then
+    update public.brinesearch_road_graph_builds set details=details||pg_catalog.jsonb_build_object(
+      'activation_status','blocked_stale_mapping_generation',
+      'current_mapping_digest',v_current_mapping_digest
+    ) where id=p_build_id;
+    return pg_catalog.jsonb_build_object(
+      'build_id',p_build_id,'activated',false,
+      'reason','mapping_generation_is_no_longer_current'
     );
   end if;
 
@@ -4713,7 +5342,11 @@ begin
   if auth.uid() is null or not public.is_brinesearch_editor(auth.uid()) then
     raise exception 'Road Manager editor access is required' using errcode='42501';
   end if;
-  if not exists(select 1 from public.brinesearch_authoritative_road_identities i where i.id=p_identity_id and i.active) then
+  if not exists(select 1 from public.brinesearch_authoritative_road_identities i
+    where i.id=p_identity_id and i.active
+      and private_verification.brinesearch_issue97_dataset_scope_current(
+        i.dataset_id,i.state_code,i.county_code
+      )) then
     raise exception 'Authoritative road identity not found' using errcode='P0002';
   end if;
   if p_cursor is not null then
@@ -4908,7 +5541,10 @@ begin
   from public.brinesearch_road_identity_mappings m
   join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id and i.active
   join public.brinesearch_road_source_datasets d on d.id=i.dataset_id and d.active
-  where m.road_id=p_road_id and m.mapping_status in ('verified','candidate');
+  where m.road_id=p_road_id and m.mapping_status in ('verified','candidate')
+    and private_verification.brinesearch_issue97_dataset_scope_current(
+      i.dataset_id,i.state_code,i.county_code
+    );
   return pg_catalog.jsonb_build_object('road_id',p_road_id,'identities',v_rows);
 end
 $$;
@@ -4961,15 +5597,12 @@ begin
       min(own.distance_along_road_m) as distance_along_road_m,
       min(own.source_measure) as source_measure,
       array_agg(distinct own.identity_id order by own.identity_id) as selected_identity_ids
-    from public.brinesearch_road_identity_mappings map
-    join public.brinesearch_authoritative_road_identities i
-      on i.id=map.identity_id and i.active
-    join public.brinesearch_road_junction_memberships own on own.identity_id=i.id
+    from public.brinesearch_road_junction_memberships own
     join public.brinesearch_road_junctions j on j.id=own.junction_id
       and j.verification_status in ('verified','held')
     join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
       and private_verification.brinesearch_issue97_graph_build_sources_current(b.id)
-    where map.road_id=p_road_id and map.mapping_status='verified'
+    where own.road_id=p_road_id
     group by j.id,b.algorithm_version,b.source_revision_digest,b.activated_at
   ), scoped as (
     select * from grouped
@@ -5010,10 +5643,10 @@ begin
 	      'route_suffix',i.route_suffix,'route_fraction',i.route_fraction,
 	      'route_extension',i.route_extension,
 	      'road_class',i.road_class,'public_access_status',i.public_access_status,
-      'drivable_status',i.drivable_status,'canonical_road_id',mapped.road_id,
-      'identity_kind',case when mapped.mapping_status='verified' then 'canonical'
-        when mapped.mapping_status='candidate' then 'candidate' else 'source_only' end,
-      'mapping_status',coalesce(mapped.mapping_status,'unmapped'),
+	      'drivable_status',i.drivable_status,'canonical_road_id',m.road_id,
+	      'identity_kind',case when m.road_id is not null then 'canonical' else 'source_only' end,
+      'mapping_status_at_build',case when m.road_id is not null then 'verified' else 'unmapped' end,
+      'current_mapping_status',coalesce(mapped.mapping_status,'unmapped'),
 	      'membership_role',m.membership_role,'source_measure',m.source_measure,
 	      'distance_along_road_m',m.distance_along_road_m,
 	      'source_segment_keys',pg_catalog.to_jsonb(m.source_segment_keys),'provenance',m.provenance,
@@ -5057,11 +5690,105 @@ to authenticated;
 comment on function public.brinesearch_authoritative_road_connections_for_canonical(uuid,jsonb,integer) is
   'Issue #97 canonical Road Manager Connections read. Multiple exact source identities map to one canonical road without duplicate physical junction cards.';
 
+create table public.brinesearch_issue97_release_state (
+  singleton boolean primary key default true check(singleton),
+  cutover_at timestamptz,
+  cutover_by uuid,
+  review_details jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+insert into public.brinesearch_issue97_release_state(singleton) values(true);
+alter table public.brinesearch_issue97_release_state enable row level security;
+alter table public.brinesearch_issue97_release_state force row level security;
+revoke all on public.brinesearch_issue97_release_state from public,anon,authenticated,service_role;
+grant select on public.brinesearch_issue97_release_state to service_role;
+
+create or replace function public.brinesearch_issue97_activate_cutover(p_review_details jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_state record;
+  v_required_scope_count integer;
+  v_active_graph_count integer;
+  v_missing_dispositions integer;
+begin
+  select * into v_state from public.brinesearch_issue97_release_state
+  where singleton for update;
+  if v_state.cutover_at is not null then
+    return pg_catalog.jsonb_build_object(
+      'activated',true,'already_active',true,'cutover_at',v_state.cutover_at
+    );
+  end if;
+  if p_review_details is null or pg_catalog.jsonb_typeof(p_review_details)<>'object'
+     or nullif(p_review_details->>'reviewed_by','') is null
+     or nullif(p_review_details->>'reviewed_at','') is null
+     or nullif(p_review_details->>'verification_report_digest','') is null then
+    raise exception 'Cutover requires reviewed_by, reviewed_at and verification_report_digest'
+      using errcode='22023';
+  end if;
+  select count(*)::integer into v_required_scope_count
+  from public.brinesearch_road_source_dataset_counties scope
+  where scope.active and scope.required_for_graph;
+  if v_required_scope_count<>89 or exists(
+    select 1 from public.brinesearch_road_source_dataset_counties scope
+    where scope.active and scope.required_for_graph
+      and not private_verification.brinesearch_issue97_dataset_scope_current(
+        scope.dataset_id,scope.state_code,scope.county_code
+      )
+  ) then
+    raise exception 'All 89 authoritative county/dataset scopes must be current before cutover'
+      using errcode='55000';
+  end if;
+  select count(*)::integer into v_active_graph_count
+  from public.brinesearch_road_graph_builds b
+  where b.status='active'
+    and private_verification.brinesearch_issue97_graph_build_sources_current(b.id);
+  if v_active_graph_count<>39 then
+    raise exception 'All 39 county graphs must be active and current before cutover'
+      using errcode='55000';
+  end if;
+  select count(*)::integer into v_missing_dispositions
+  from public.brinesearch_authoritative_supplemental_centerlines c
+  where c.active and not exists(
+    select 1 from public.brinesearch_supplemental_centerline_dispositions d
+    where d.centerline_id=c.id and d.ingest_run_id=c.last_ingest_run_id and d.active
+  );
+  if v_missing_dispositions<>0 then
+    raise exception '% supplemental source occurrences lack mapped-or-held disposition',v_missing_dispositions
+      using errcode='55000';
+  end if;
+  update public.brinesearch_issue97_release_state set
+    cutover_at=pg_catalog.clock_timestamp(),cutover_by=auth.uid(),
+    review_details=p_review_details||pg_catalog.jsonb_build_object(
+      'required_scope_count',v_required_scope_count,
+      'active_graph_count',v_active_graph_count,
+      'supplemental_missing_dispositions',v_missing_dispositions,
+      'irreversible',true
+    ),updated_at=now()
+  where singleton and cutover_at is null
+  returning * into v_state;
+  return pg_catalog.jsonb_build_object(
+    'activated',true,'already_active',false,'cutover_at',v_state.cutover_at,
+    'required_scope_count',v_required_scope_count,'active_graph_count',v_active_graph_count
+  );
+end
+$$;
+
+revoke all on function public.brinesearch_issue97_activate_cutover(jsonb)
+from public,anon,authenticated;
+grant execute on function public.brinesearch_issue97_activate_cutover(jsonb) to service_role;
+
 -- Canonical #69 routes persist the exact authoritative anchor used to cross
 -- from the previous (different) road. Nullable provenance is expected on the
 -- first occurrence and on explicit same-road splits.
 alter table public.brinesearch_road_junctions
-  add constraint brinesearch_road_junctions_id_build_issue97_unique unique(id,build_id);
+  add constraint brinesearch_road_junctions_id_build_issue97_unique unique(id,build_id),
+  add constraint brinesearch_road_junctions_provenance_issue97_unique
+    unique(id,build_id,graph_digest);
 alter table public.brinesearch_road_junction_anchors
   add constraint brinesearch_road_junction_anchors_id_junction_issue97_unique unique(id,junction_id);
 
@@ -5089,6 +5816,9 @@ alter table public.brinesearch_pad_roads
   add constraint brinesearch_pad_roads_junction_build_pair_issue97_fk
     foreign key(entry_junction_id,junction_build_id)
     references public.brinesearch_road_junctions(id,build_id) on delete restrict,
+  add constraint brinesearch_pad_roads_junction_digest_issue97_fk
+    foreign key(entry_junction_id,junction_build_id,junction_digest)
+    references public.brinesearch_road_junctions(id,build_id,graph_digest) on delete restrict,
   add constraint brinesearch_pad_roads_junction_provenance_issue97 check (
     (entry_junction_anchor_id is null and entry_junction_id is null
       and junction_build_id is null and junction_digest is null)
@@ -5109,6 +5839,9 @@ alter table public.brinesearch_route_review_segments
   add constraint brinesearch_route_segments_junction_build_pair_issue97_fk
     foreign key(entry_junction_id,junction_build_id)
     references public.brinesearch_road_junctions(id,build_id) on delete restrict,
+  add constraint brinesearch_route_segments_junction_digest_issue97_fk
+    foreign key(entry_junction_id,junction_build_id,junction_digest)
+    references public.brinesearch_road_junctions(id,build_id,graph_digest) on delete restrict,
   add constraint brinesearch_route_segments_junction_provenance_issue97 check (
     (entry_junction_anchor_id is null and entry_junction_id is null
       and junction_build_id is null and junction_digest is null)
@@ -5120,9 +5853,15 @@ alter table public.brinesearch_route_review_segments
 create index if not exists brinesearch_pad_roads_entry_anchor_issue97_idx
 on public.brinesearch_pad_roads(entry_junction_anchor_id)
 where entry_junction_anchor_id is not null;
+create index if not exists brinesearch_pad_roads_junction_provenance_issue97_idx
+on public.brinesearch_pad_roads(entry_junction_id,junction_build_id,junction_digest)
+where entry_junction_id is not null;
 create index if not exists brinesearch_route_segments_entry_anchor_issue97_idx
 on public.brinesearch_route_review_segments(entry_junction_anchor_id)
 where entry_junction_anchor_id is not null;
+create index if not exists brinesearch_route_segments_junction_provenance_issue97_idx
+on public.brinesearch_route_review_segments(entry_junction_id,junction_build_id,junction_digest)
+where entry_junction_id is not null;
 
 create or replace function private_verification.brinesearch_issue97_identity_route_usable(
   p_access_status text,
@@ -5141,6 +5880,15 @@ as $$
 $$;
 
 revoke all on function private_verification.brinesearch_issue97_identity_route_usable(text,text,text)
+from public,anon,authenticated,service_role;
+
+-- Keep #69 behavior callable only by the public compatibility wrapper while
+-- the 89 blocking source scopes and 39 graph generations are loaded and reviewed.
+-- The irreversible cutover flag removes this runtime path without creating a
+-- deployment window in which ordinary publishing is unavailable.
+alter function public.brinesearch_route_step_boundary_candidates(uuid,uuid,jsonb,integer)
+  rename to brinesearch_route_step_boundary_candidates_issue69_legacy;
+revoke all on function public.brinesearch_route_step_boundary_candidates_issue69_legacy(uuid,uuid,jsonb,integer)
 from public,anon,authenticated,service_role;
 
 create or replace function public.brinesearch_route_step_boundary_candidates(
@@ -5173,6 +5921,14 @@ declare
 begin
   if auth.uid() is null or not public.is_brinesearch_owner(auth.uid()) then
     raise exception 'Owner access is required to resolve route intersections' using errcode='42501';
+  end if;
+  if not exists(
+    select 1 from public.brinesearch_issue97_release_state s
+    where s.singleton and s.cutover_at is not null
+  ) then
+    return public.brinesearch_route_step_boundary_candidates_issue69_legacy(
+      p_left_road_id,p_right_road_id,p_near_coordinate,p_limit
+    );
   end if;
   select r.* into v_left from public.brinesearch_roads r where r.id=p_left_road_id;
   select r.* into v_right from public.brinesearch_roads r where r.id=p_right_road_id;
@@ -5269,17 +6025,13 @@ begin
     and private_verification.brinesearch_issue97_graph_build_sources_current(b.id)
   where j.verification_status='verified'
     and exists(select 1 from public.brinesearch_road_junction_memberships ml
-      join public.brinesearch_road_identity_mappings mapl
-        on mapl.identity_id=ml.identity_id and mapl.mapping_status='verified'
       join public.brinesearch_authoritative_road_identities il on il.id=ml.identity_id
-      where ml.junction_id=j.id and mapl.road_id=p_left_road_id
+      where ml.junction_id=j.id and ml.road_id=p_left_road_id
         and il.active and private_verification.brinesearch_issue97_identity_route_usable(
           il.public_access_status,il.drivable_status,v_left.road_type))
     and exists(select 1 from public.brinesearch_road_junction_memberships mr
-      join public.brinesearch_road_identity_mappings mapr
-        on mapr.identity_id=mr.identity_id and mapr.mapping_status='verified'
       join public.brinesearch_authoritative_road_identities ir on ir.id=mr.identity_id
-      where mr.junction_id=j.id and mapr.road_id=p_right_road_id
+      where mr.junction_id=j.id and mr.road_id=p_right_road_id
         and ir.active and private_verification.brinesearch_issue97_identity_route_usable(
           ir.public_access_status,ir.drivable_status,v_right.road_type));
 
@@ -5289,13 +6041,9 @@ begin
     and private_verification.brinesearch_issue97_graph_build_sources_current(b.id)
   where j.verification_status='held'
     and exists(select 1 from public.brinesearch_road_junction_memberships m
-      join public.brinesearch_road_identity_mappings x
-        on x.identity_id=m.identity_id and x.mapping_status='verified'
-      where m.junction_id=j.id and x.road_id=p_left_road_id)
+      where m.junction_id=j.id and m.road_id=p_left_road_id)
     and exists(select 1 from public.brinesearch_road_junction_memberships m
-      join public.brinesearch_road_identity_mappings x
-        on x.identity_id=m.identity_id and x.mapping_status='verified'
-      where m.junction_id=j.id and x.road_id=p_right_road_id);
+      where m.junction_id=j.id and m.road_id=p_right_road_id);
 
   with eligible as (
     select distinct
@@ -5312,17 +6060,13 @@ begin
     where extensions.st_dwithin(a.geom::extensions.geography,v_left_geom::extensions.geography,1)
       and extensions.st_dwithin(a.geom::extensions.geography,v_right_geom::extensions.geography,1)
       and exists(select 1 from public.brinesearch_road_junction_memberships ml
-        join public.brinesearch_road_identity_mappings mapl
-          on mapl.identity_id=ml.identity_id and mapl.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities il on il.id=ml.identity_id
-        where ml.junction_id=j.id and mapl.road_id=p_left_road_id
+        where ml.junction_id=j.id and ml.road_id=p_left_road_id
           and il.active and private_verification.brinesearch_issue97_identity_route_usable(
             il.public_access_status,il.drivable_status,v_left.road_type))
       and exists(select 1 from public.brinesearch_road_junction_memberships mr
-        join public.brinesearch_road_identity_mappings mapr
-          on mapr.identity_id=mr.identity_id and mapr.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities ir on ir.id=mr.identity_id
-        where mr.junction_id=j.id and mapr.road_id=p_right_road_id
+        where mr.junction_id=j.id and mr.road_id=p_right_road_id
           and ir.active and private_verification.brinesearch_issue97_identity_route_usable(
             ir.public_access_status,ir.drivable_status,v_right.road_type))
   )
@@ -5343,17 +6087,13 @@ begin
     where extensions.st_dwithin(a.geom::extensions.geography,v_left_geom::extensions.geography,1)
       and extensions.st_dwithin(a.geom::extensions.geography,v_right_geom::extensions.geography,1)
       and exists(select 1 from public.brinesearch_road_junction_memberships ml
-        join public.brinesearch_road_identity_mappings mapl
-          on mapl.identity_id=ml.identity_id and mapl.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities il on il.id=ml.identity_id
-        where ml.junction_id=j.id and mapl.road_id=p_left_road_id
+        where ml.junction_id=j.id and ml.road_id=p_left_road_id
           and il.active and private_verification.brinesearch_issue97_identity_route_usable(
             il.public_access_status,il.drivable_status,v_left.road_type))
       and exists(select 1 from public.brinesearch_road_junction_memberships mr
-        join public.brinesearch_road_identity_mappings mapr
-          on mapr.identity_id=mr.identity_id and mapr.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities ir on ir.id=mr.identity_id
-        where mr.junction_id=j.id and mapr.road_id=p_right_road_id
+        where mr.junction_id=j.id and mr.road_id=p_right_road_id
           and ir.active and private_verification.brinesearch_issue97_identity_route_usable(
             ir.public_access_status,ir.drivable_status,v_right.road_type))
   ), ranked as (
@@ -5460,7 +6200,7 @@ grant execute on function public.brinesearch_get_structured_route_steps(uuid) to
 alter function public.brinesearch_publish_structured_route(uuid,uuid,jsonb,bigint)
   rename to brinesearch_publish_structured_route_issue69_legacy;
 revoke all on function public.brinesearch_publish_structured_route_issue69_legacy(uuid,uuid,jsonb,bigint)
-from public,anon,authenticated;
+from public,anon,authenticated,service_role;
 
 -- The issue #69 publisher is reproduced under a private helper with its
 -- former raw ST_DumpPoints proximity gate removed. The public issue #97
@@ -5955,7 +6695,6 @@ $$;
 
 revoke all on function private_verification.brinesearch_publish_structured_route_issue97_core(uuid,uuid,jsonb,bigint)
 from public,anon,authenticated,service_role;
-drop function public.brinesearch_publish_structured_route_issue69_legacy(uuid,uuid,jsonb,bigint);
 
 create or replace function public.brinesearch_publish_structured_route(
   p_pad_id uuid,
@@ -5985,17 +6724,125 @@ declare
   v_right_road_type text;
   v_coordinate jsonb;
   v_result jsonb;
+  v_published_review_id uuid;
   v_pad_rows_updated integer;
   v_review_rows_updated integer;
+  v_road_ids uuid[]:='{}'::uuid[];
+  v_build_ids uuid[]:='{}'::uuid[];
+  v_build_id uuid;
+  v_build_scope record;
+  v_source_entry jsonb;
 begin
   if v_actor is null or not public.is_brinesearch_owner(v_actor) then
     raise exception 'Owner access is required to publish structured routes' using errcode='42501';
+  end if;
+  if not exists(
+    select 1 from public.brinesearch_issue97_release_state s
+    where s.singleton and s.cutover_at is not null
+  ) then
+    return public.brinesearch_publish_structured_route_issue69_legacy(
+      p_pad_id,p_review_id,p_steps,p_expected_revision
+    );
   end if;
   if v_steps is null or pg_catalog.jsonb_typeof(v_steps)<>'array'
      or pg_catalog.jsonb_array_length(v_steps)=0 then
     raise exception 'Structured route must contain at least one step' using errcode='22023';
   end if;
+  if pg_catalog.jsonb_array_length(v_steps)>250
+     or pg_catalog.pg_column_size(v_steps)>5242880 then
+    raise exception 'Structured route exceeds the publication safety limit' using errcode='22023';
+  end if;
   v_count:=pg_catalog.jsonb_array_length(v_steps);
+
+  -- Preserve #69's lock order before reading any canonical geometry: pad,
+  -- sorted Road Manager rows, then graph generations/source snapshots. The
+  -- core reacquires these locks reentrantly before safety/review locks.
+  v_previous_road_id:=null;
+  for v_index in 1..v_count loop
+    v_step:=v_steps->(v_index-1);
+    if pg_catalog.jsonb_typeof(v_step)<>'object' then
+      raise exception 'Structured step % must be an object',v_index using errcode='22023';
+    end if;
+    begin
+      v_step_id:=nullif(v_step->>'route_step_id','')::uuid;
+      v_road_id:=nullif(v_step->>'road_id','')::uuid;
+      v_anchor_id:=nullif(coalesce(
+        v_step->>'entry_junction_anchor_id',v_step->>'entryJunctionAnchorId',''
+      ),'')::uuid;
+    exception when invalid_text_representation then
+      raise exception 'Step % has an invalid road, occurrence or junction anchor ID',v_index using errcode='22023';
+    end;
+    if v_step_id is null or v_road_id is null then
+      raise exception 'Step % requires an occurrence ID and Road Manager road ID',v_index using errcode='22023';
+    end if;
+    if not v_road_id=any(v_road_ids) then
+      v_road_ids:=pg_catalog.array_append(v_road_ids,v_road_id);
+    end if;
+    if v_index=1 then
+      if v_anchor_id is not null then
+        raise exception 'Step 1 cannot have an entry junction anchor' using errcode='22023';
+      end if;
+    elsif v_previous_road_id=v_road_id then
+      if v_anchor_id is not null then
+        raise exception 'Step % repeats the same road and must use an explicit split, not a graph anchor',v_index using errcode='22023';
+      end if;
+    else
+      if v_anchor_id is null then
+        raise exception 'Step % requires an authoritative entry junction anchor',v_index using errcode='22023';
+      end if;
+      select b.id into strict v_build_id
+      from public.brinesearch_road_junction_anchors a
+      join public.brinesearch_road_junctions j on j.id=a.junction_id
+      join public.brinesearch_road_graph_builds b on b.id=j.build_id
+      where a.id=v_anchor_id;
+      if not v_build_id=any(v_build_ids) then
+        v_build_ids:=pg_catalog.array_append(v_build_ids,v_build_id);
+      end if;
+    end if;
+    v_previous_road_id:=v_road_id;
+  end loop;
+
+  perform p.id from public.pads p where p.id=p_pad_id for update;
+  if not found then raise exception 'Pad not found'; end if;
+  perform r.id from public.brinesearch_roads r
+    where r.id=any(v_road_ids) order by r.id for share;
+  if (select count(*) from public.brinesearch_roads r where r.id=any(v_road_ids))
+     <>pg_catalog.cardinality(v_road_ids) then
+    raise exception 'One or more Road Manager road IDs do not exist' using errcode='22023';
+  end if;
+
+  for v_build_scope in
+    select distinct b.id,b.state_code,b.county_code
+    from public.brinesearch_road_graph_builds b where b.id=any(v_build_ids)
+    order by b.state_code,b.county_code,b.id
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
+      'brinesearch:issue97:graph:'||v_build_scope.state_code||':'||v_build_scope.county_code
+    ));
+  end loop;
+  perform b.id from public.brinesearch_road_graph_builds b
+    where b.id=any(v_build_ids) order by b.id for share;
+  for v_source_entry in
+    select entries.value from (
+      select distinct entry.value
+      from public.brinesearch_road_graph_builds b
+      cross join lateral pg_catalog.jsonb_array_elements(
+        coalesce(b.details->'source_run_vector','[]'::jsonb)
+      ) entry(value)
+      where b.id=any(v_build_ids)
+    ) entries
+    order by entries.value->>'dataset_id',entries.value->>'state_code',entries.value->>'county_code'
+  loop
+    perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
+      'brinesearch:issue97:ingest:'||(v_source_entry->>'dataset_id')||':'||
+        (v_source_entry->>'county_code')
+    ));
+  end loop;
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+
+  v_previous_road_id:=null;
   for v_index in 1..v_count loop
     v_step:=v_steps->(v_index-1);
     begin
@@ -6042,19 +6889,15 @@ begin
     join public.brinesearch_road_junctions j on j.id=a.junction_id and j.verification_status='verified'
     join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
       and private_verification.brinesearch_issue97_graph_build_sources_current(b.id)
-    where a.id=v_anchor_id
+      where a.id=v_anchor_id
       and exists(select 1 from public.brinesearch_road_junction_memberships ml
-        join public.brinesearch_road_identity_mappings mapl
-          on mapl.identity_id=ml.identity_id and mapl.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities il on il.id=ml.identity_id
-        where ml.junction_id=j.id and mapl.road_id=v_previous_road_id
+        where ml.junction_id=j.id and ml.road_id=v_previous_road_id
           and il.active and private_verification.brinesearch_issue97_identity_route_usable(
             il.public_access_status,il.drivable_status,v_left_road_type))
       and exists(select 1 from public.brinesearch_road_junction_memberships mr
-        join public.brinesearch_road_identity_mappings mapr
-          on mapr.identity_id=mr.identity_id and mapr.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities ir on ir.id=mr.identity_id
-        where mr.junction_id=j.id and mapr.road_id=v_road_id
+        where mr.junction_id=j.id and mr.road_id=v_road_id
           and ir.active and private_verification.brinesearch_issue97_identity_route_usable(
             ir.public_access_status,ir.drivable_status,v_right_road_type))
     for share of a,j,b;
@@ -6062,34 +6905,31 @@ begin
       raise exception 'Step % junction anchor is not active and verified for both exact Road Manager roads',v_index using errcode='22023';
     end if;
 
-    -- Lock the exact memberships, mappings and identity state used by this
-    -- publication. Rebuild/activation and mapping review cannot race the gate.
+    -- Lock the exact build-snapshotted memberships and identity state used by
+    -- this publication. The global mapping-generation lock plus build digest
+    -- check above ensures those road IDs still match the current exact mapping.
     perform m.id
     from public.brinesearch_road_junction_memberships m
-    join public.brinesearch_road_identity_mappings map
-      on map.identity_id=m.identity_id and map.mapping_status='verified'
     join public.brinesearch_authoritative_road_identities i
       on i.id=m.identity_id and i.active
     where m.junction_id=v_anchor.junction_id
-      and ((map.road_id=v_previous_road_id
+      and ((m.road_id=v_previous_road_id
           and private_verification.brinesearch_issue97_identity_route_usable(
             i.public_access_status,i.drivable_status,v_left_road_type))
-        or (map.road_id=v_road_id
+        or (m.road_id=v_road_id
           and private_verification.brinesearch_issue97_identity_route_usable(
             i.public_access_status,i.drivable_status,v_right_road_type)))
-    order by m.id,map.id,i.id
-    for share of m,map,i;
-    if (select count(distinct map.road_id)
+    order by m.id,i.id
+    for share of m,i;
+    if (select count(distinct m.road_id)
         from public.brinesearch_road_junction_memberships m
-        join public.brinesearch_road_identity_mappings map
-          on map.identity_id=m.identity_id and map.mapping_status='verified'
         join public.brinesearch_authoritative_road_identities i
           on i.id=m.identity_id and i.active
         where m.junction_id=v_anchor.junction_id
-          and ((map.road_id=v_previous_road_id
+          and ((m.road_id=v_previous_road_id
               and private_verification.brinesearch_issue97_identity_route_usable(
                 i.public_access_status,i.drivable_status,v_left_road_type))
-            or (map.road_id=v_road_id
+            or (m.road_id=v_road_id
               and private_verification.brinesearch_issue97_identity_route_usable(
                 i.public_access_status,i.drivable_status,v_right_road_type))))<>2 then
       raise exception 'Step % authoritative junction membership changed during publication',v_index using errcode='40001';
@@ -6125,6 +6965,7 @@ begin
   v_result:=private_verification.brinesearch_publish_structured_route_issue97_core(
     p_pad_id,p_review_id,v_steps,p_expected_revision
   );
+  v_published_review_id:=(v_result->>'review_id')::uuid;
 
   -- Persist immutable graph provenance after #69 has replaced canonical route
   -- rows. The restrictive FKs make a future graph rebuild fail closed if it
@@ -6175,13 +7016,19 @@ begin
         'graph_algorithm_version',v_anchor.algorithm_version,
         'graph_source_revision_digest',v_anchor.source_revision_digest
       )
-    where rs.review_id=(v_result->>'review_id')::uuid and rs.route_step_id=v_step_id;
+    where rs.review_id=v_published_review_id and rs.route_step_id=v_step_id;
     get diagnostics v_review_rows_updated=row_count;
     if v_review_rows_updated<>1 then
       raise exception 'Step % review route row was not persisted exactly once',v_index using errcode='P0001';
     end if;
   end loop;
-  return public.brinesearch_get_structured_route_steps(p_pad_id);
+  v_result:=public.brinesearch_get_structured_route_steps(p_pad_id);
+  update public.pads set structured_route_steps=v_result->'steps',updated_at=now()
+  where id=p_pad_id;
+  update public.brinesearch_route_reviews set
+    candidate_route=v_result->'steps',updated_at=now()
+  where id=v_published_review_id;
+  return v_result;
 end
 $$;
 

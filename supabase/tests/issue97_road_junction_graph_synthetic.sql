@@ -202,6 +202,41 @@ cross join lateral (
   where source_key='wv_wvdot_publication_lrs'
 ) d;
 
+-- Canonical road mappings must exist before the graph is built because each
+-- generation snapshots the exact identity-to-road mapping it publishes.
+insert into public.brinesearch_roads(
+  id,canonical_name,normalized_name,road_type,state,county,aliases,
+  verification_status,verified_at,route_number,source_agency,source_dataset,
+  source_method,source_url,source_record_id,centerline_geojson,geometry_status,
+  geometry_checked_at,approved_by_default,candidate_only,coverage_states
+) values
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP_MAIN'),
+   'Ramp Main','ramp main','state_route','WV','Doddridge','{}'::text[],
+   'verified',now(),'97007','Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/ramp-main','WV:TEST:SEG:RAMP_MAIN',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.100 39.820,-81.095 39.820,-81.090 39.820)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
+   'Ramp 7A','ramp 7a','ramp','WV','Doddridge','{}'::text[],
+   'verified',now(),'97007A','Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/ramp','WV:TEST:SEG:RAMP',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.095 39.820,-81.092 39.825)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']);
+
+insert into public.brinesearch_road_identity_mappings(
+  id,identity_id,road_id,mapping_status,mapping_method,evidence,verified_at
+) values
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:RAMP_MAIN'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP_MAIN'),
+   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now()),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:RAMP'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
+   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now());
+
 create temporary table issue97_build_results(result jsonb) on commit drop;
 insert into issue97_build_results
 select public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
@@ -299,5 +334,96 @@ begin
   end if;
 end
 $issue97_assert$;
+
+-- Automatic Google Maps manifest: exact clipped occurrences + the current
+-- graph anchor + authoritative shaping + saved pad GPS produce a ready public
+-- receipt without any manually authored URL.
+insert into public.pads(
+  id,legacy_id,company,state,pad_name,record_type,latitude,longitude,county,
+  structured_road_sequence,road_sequence_status,structured_route_revision
+) values (
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:PAD'),
+  'issue97--google-route-fixture','Issue 97','WV','GOOGLE ROUTE FIXTURE','pad',
+  39.825,-81.092,'Doddridge','Ramp Main → Ramp 7A','owner_verified',1
+);
+
+insert into public.brinesearch_pad_roads(
+  id,pad_id,road_id,route_group,step_order,instruction,distance_miles,
+  route_variant_index,turn_direction,distance_source,distance_status,
+  source_details,match_confidence,route_step_id,step_geometry,step_aliases,
+  geometry_source,geometry_source_record_id,geometry_status,geometry_version,
+  inbound_turn,route_revision,road_geometry_digest,road_geometry_checked_at,
+  road_source_method,entry_junction_id,entry_junction_anchor_id,
+  junction_build_id,junction_digest
+)
+select
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:STEP:1'),
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:PAD'),r.id,
+  'primary',1,'Take Ramp Main',
+  extensions.st_length(g.geom::extensions.geography)/1609.344,0,null,
+  'clipped_step_geometry','map_measured',jsonb_build_object('synthetic_fixture',true),1,
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:OCCURRENCE:1'),
+  g.geom,'{}'::text[],'road_manager_clip_issue69',r.source_record_id,
+  'snapped_intersections',1,'right',1,md5(r.centerline_geojson::text),now(),
+  r.source_method,null,null,null,null
+from public.brinesearch_roads r
+cross join lateral (select extensions.st_geomfromtext(
+  'LINESTRING(-81.100 39.820,-81.095 39.820)',4326) as geom) g
+where r.id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP_MAIN')
+union all
+select
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:STEP:2'),
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:PAD'),r.id,
+  'primary',2,'Merge onto Ramp 7A',
+  extensions.st_length(g.geom::extensions.geography)/1609.344,0,'merge_right',
+  'clipped_step_geometry','map_measured',jsonb_build_object('synthetic_fixture',true),1,
+  private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:OCCURRENCE:2'),
+  g.geom,'{}'::text[],'road_manager_clip_issue69',r.source_record_id,
+  'snapped_intersections',1,null,1,md5(r.centerline_geojson::text),now(),
+  r.source_method,j.id,a.id,b.id,j.graph_digest
+from public.brinesearch_roads r
+cross join lateral (select extensions.st_geomfromtext(
+  'LINESTRING(-81.095 39.820,-81.092 39.825)',4326) as geom) g
+join public.brinesearch_road_graph_builds b
+  on b.state_code='WV' and b.county_code='DOD' and b.status='active'
+join public.brinesearch_road_junctions j
+  on j.build_id=b.id and j.junction_type='ramp' and j.verification_status='verified'
+join public.brinesearch_road_junction_anchors a
+  on a.junction_id=j.id and a.anchor_role='point'
+where r.id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP');
+
+do $issue97_google_route$
+declare
+  v_pad uuid:=private_verification.brinesearch_issue97_uuid('WV:TEST:GOOGLE:PAD');
+  v_result jsonb;
+  v_manifest jsonb;
+begin
+  v_result:=private_verification.brinesearch_issue97_refresh_google_route(v_pad);
+  if coalesce((v_result->>'route_ready')::boolean,false) is not true then
+    raise exception '#97 exact route did not generate a ready Google manifest: %',v_result;
+  end if;
+  select manifest into strict v_manifest
+  from public.brinesearch_driver_google_routes_public where pad_id=v_pad;
+  if v_manifest->>'manifest_version'<>'issue97-google-v1'
+     or (v_manifest->'points'->-1)->>'kind'<>'pad_destination'
+     or (v_manifest->'points'->-1)->>'latitude'<>'39.825'
+     or (v_manifest->'points'->-1)->>'longitude'<>'-81.092'
+     or not exists(select 1 from jsonb_array_elements(v_manifest->'points') p
+       where p->>'kind'='junction' and p->>'source_kind'='authoritative_junction_anchor')
+     or not exists(select 1 from jsonb_array_elements(v_manifest->'points') p
+       where p->>'kind'='shape' and p->>'source_kind'='authoritative_clipped_geometry') then
+    raise exception '#97 generated Google manifest lost exact coordinates or provenance: %',v_manifest;
+  end if;
+
+  update public.brinesearch_road_identity_mappings
+  set evidence=evidence||jsonb_build_object('dependency_changed',true),updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP');
+  if exists(select 1 from public.brinesearch_driver_google_routes_public where pad_id=v_pad)
+     or not exists(select 1 from private_verification.brinesearch_google_route_receipts_issue97
+       where pad_id=v_pad and status='stale' and hold_reason='road_identity_mapping_changed') then
+    raise exception '#97 dependency change did not remove/stale the public Google route';
+  end if;
+end
+$issue97_google_route$;
 
 rollback;

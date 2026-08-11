@@ -300,8 +300,8 @@
       return `<section class="road-manager-card route-mapper-pad-card">
         <div class="route-mapper-pad-head"><div><span class="eyebrow">Selected pad</span><h2>${esc(pad.padName || "Unnamed pad")}</h2><p>${esc([pad.company, pad.county, pad.township, pad.state].filter(Boolean).join(" • "))}</p></div><button type="button" class="btn ghost small" id="routeMapperChangePad">Change pad</button></div>
         ${coords ? `<div class="route-mapper-coordinate"><strong>${esc(`${coords.lat.toFixed(6)}, ${coords.lng.toFixed(6)}`)}</strong><span>${esc(coords.source)}</span><button type="button" class="btn ghost small" id="routeMapperCopyCoords">Copy</button></div>` : `<div class="route-mapper-warning">No pad/driver coordinate is available. Add or verify GPS before measuring a route.</div>`}
-        <div class="route-mapper-map-actions">${google ? `<a class="btn primary" href="${esc(google)}" target="_blank" rel="noopener noreferrer">Open Google Maps</a>` : ""}<button type="button" class="btn secondary" id="routeMapperRefreshReview">Reload saved review</button></div>
-        ${osm ? `<div class="route-mapper-map-frame"><iframe title="Road map around ${esc(pad.padName || "pad")}" src="${esc(osm)}" loading="lazy" referrerpolicy="no-referrer"></iframe></div><p class="route-mapper-map-help">Use this road-map preview for public-road context. Use Google satellite to inspect access roads and intersections. Do not save a road name or mileage unless the map/source supports it.</p>` : ""}
+        <div class="route-mapper-map-actions">${google ? `<a class="btn primary" href="${esc(google)}" target="_blank" rel="noopener noreferrer">Open pad GPS for QA</a>` : ""}<button type="button" class="btn secondary" id="routeMapperRefreshReview">Reload saved review</button></div>
+        ${osm ? `<div class="route-mapper-map-frame"><iframe title="Road map around ${esc(pad.padName || "pad")}" src="${esc(osm)}" loading="lazy" referrerpolicy="no-referrer"></iframe></div><p class="route-mapper-map-help">Automatic routes come from verified GPS junctions and source geometry. Use this preview only to review a held route or document an exception; do not save a road name or mileage unless the source supports it.</p>` : ""}
         <details class="route-mapper-source"><summary>Saved route evidence</summary><div><strong>Structured sequence</strong><p>${esc(sequence || "Not listed")}</p><strong>Written directions</strong><p>${esc(sourceDirections || "Not listed")}</p></div></details>
       </section>`;
     }
@@ -407,17 +407,17 @@
       const pad = routeMapperSelectedPadV17324;
       if (!workspace) return;
       if (!pad) {
-        workspace.innerHTML = `<section class="road-manager-card route-mapper-intro"><h2>Choose a pad</h2><p>Search a pad, start from its verified/saved coordinate, open the surrounding map, then build the road sequence from Road Manager records. Nothing is published to drivers from this screen.</p></section>`;
+        workspace.innerHTML = `<section class="road-manager-card route-mapper-intro"><h2>Choose a held or questioned pad</h2><p>Route-ready pads receive automatic GPS-waypoint navigation. Use this screen only to inspect a held route, resolve an exception, or perform QA. Nothing is published to drivers from this screen.</p></section>`;
         return;
       }
       workspace.innerHTML = `${routeMapperPadSummaryHtmlV17324(pad)}
         <section class="road-manager-card route-mapper-builder-card">
-          <div class="route-mapper-builder-head"><div><h2>Route builder</h2><p>Add roads in driving order. Enter only mileage you measured or can support from a source.</p></div><span id="routeMapperTotalMiles">Mileage not complete</span></div>
+          <div class="route-mapper-builder-head"><div><h2>Exception review</h2><p>Inspect the saved occurrence order and record only source-supported corrections for a held or questioned route.</p></div><span id="routeMapperTotalMiles">Mileage not complete</span></div>
           <div id="routeMapperSegments"></div>
           <div class="route-mapper-road-search"><label>Find a Road Manager road<input id="routeMapperRoadSearch" autocomplete="off" placeholder="OH-800, Muskrat Rd, CR-102…"></label><button type="button" class="btn secondary" id="routeMapperAddMissingRoad">Add missing road</button></div>
           <div id="routeMapperRoadResults" class="route-mapper-road-results"></div>
           <div class="route-mapper-save-row"><div><strong>Review-only save</strong><small id="routeMapperSaveStatus">${routeMapperReviewV17324 ? `Existing review: ${esc(routeMapperReviewV17324.status || "saved")}` : "No saved map review yet."}</small></div><button type="button" class="btn primary" id="routeMapperSaveReview">Save map review</button></div>
-          <p class="route-mapper-no-publish">This tool is connected to the master Road Manager and route-review tables. It deliberately does not rewrite the live pad directions; publishing can be a separate Owner action after the route is complete.</p>
+          <p class="route-mapper-no-publish">This is a review and exception tool. Automatic route generation remains the product path for every route-ready pad; this screen never manually publishes a Google route.</p>
         </section><div id="roadManagerEditor"></div>`;
       routeMapperRenderSegmentsV17324();
       routeMapperRoadSearchRowsV17324 = [];
@@ -449,7 +449,7 @@
     async function renderRouteMapperTabV17324() {
       const pane = document.getElementById("roadManagerPane");
       if (!pane) return;
-      pane.innerHTML = `<section class="road-manager-card route-mapper-search-card"><div><h2>Owner Route Mapper</h2><p>Work backward from a verified pad point, inspect the map, and save road/mileage findings into Road Manager review without changing the live driver cards.</p></div><label>Find pad<input id="routeMapperPadSearch" autocomplete="off" placeholder="CATTLE, COLOGIE, operator, county…"></label><div id="routeMapperPadResults" class="route-mapper-pad-results"></div></section><div id="routeMapperWorkspace"></div>`;
+      pane.innerHTML = `<section class="road-manager-card route-mapper-search-card"><div><h2>Route QA &amp; Exceptions</h2><p>Automatic GPS-waypoint routes are the default for route-ready pads. Review only held, ambiguous, or questioned cases here without changing live driver cards.</p></div><label>Find pad<input id="routeMapperPadSearch" autocomplete="off" placeholder="CATTLE, COLOGIE, operator, county…"></label><div id="routeMapperPadResults" class="route-mapper-pad-results"></div></section><div id="routeMapperWorkspace"></div>`;
       document.getElementById("routeMapperPadSearch").oninput = routeMapperRenderPadResultsV17324;
       routeMapperRenderWorkspaceV17324();
       if (!routeMapperSelectedPadV17324) {
@@ -483,7 +483,7 @@
         button.type = "button";
         button.dataset.roadManagerTab = "mapper";
         button.setAttribute("role", "tab");
-        button.textContent = "Route Mapper";
+        button.textContent = "Route QA";
         button.onclick = () => switchRoadManagerTabV173("mapper");
         tabs.appendChild(button);
       }

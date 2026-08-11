@@ -26,7 +26,22 @@
       return normalize(p.address);
     }
 
+    function googleMapsRoutePlan(p) {
+      const plan = p?.googleMapsRoutePlanIssue97;
+      return plan && Array.isArray(plan.chunks) && plan.chunks.length ? plan : null;
+    }
+
+    function googleMapsRouteChunks(p) {
+      return googleMapsRoutePlan(p)?.chunks || [];
+    }
+
+    function hasAuthoritativeGoogleRoute(p) {
+      return googleMapsRouteChunks(p).length > 0;
+    }
+
     function googleMapsUrl(p) {
+      const authoritative = googleMapsRouteChunks(p);
+      if (authoritative.length) return authoritative[0].url;
       const target = mapsTarget(p);
       return target ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(target)}` : "";
     }
@@ -197,7 +212,7 @@
           </a>
           <div class="clean-card-actions">
             <a href="${detailHref}">View details</a>
-            ${map ? `<a class="navigate" href="${esc(map)}" target="_blank" rel="noopener">Navigate</a>` : `<a class="disabled" aria-disabled="true">No GPS</a>`}
+            ${map ? `<a class="navigate" href="${esc(map)}" target="_blank" rel="noopener">${hasAuthoritativeGoogleRoute(p) ? "Open route" : "Open GPS"}</a>` : `<a class="disabled" aria-disabled="true">No GPS</a>`}
           </div>
         </article>`;
     }

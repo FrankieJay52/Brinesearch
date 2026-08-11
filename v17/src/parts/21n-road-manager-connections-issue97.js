@@ -771,6 +771,21 @@
       routeIssue69DraftSave();
     };
 
+    function routeIssue97CloneBoundaryState(value) {
+      if (typeof structuredClone === "function") return structuredClone(value);
+      return JSON.parse(JSON.stringify(value));
+    }
+
+    function routeIssue97RestoreBoundaryState(snapshot, padId) {
+      if (padId !== routeIssue69CurrentPadId()) return;
+      routeMapperSegmentsV17324 = routeIssue97CloneBoundaryState(snapshot);
+      routeIssue69BumpTopology();
+      routeIssue69DraftSave();
+      routeMapperRenderSegmentsV17324();
+      routeInteractiveRenderV17327();
+      routeInteractiveRenderEditBarV17327();
+    }
+
     routeIssue69ApplyBoundaryGuarded = async function routeIssue69ApplyBoundaryGuardedIssue97(index, side, coordinate, token, candidate = null) {
       if (!routeIssue69RequestCurrent(token)) return false;
       const current = routeMapperSegmentsV17324[Number(index)];
@@ -780,6 +795,8 @@
       const next = routeMapperSegmentsV17324[Number(index) + 1];
       const adjacent = side === "start" ? previous : next;
       const anchorTarget = side === "start" ? current : next;
+      const snapshot = routeIssue97CloneBoundaryState(routeMapperSegmentsV17324);
+      const snapshotPadId = routeIssue69CurrentPadId();
       if (adjacent) {
         const differentRoad = adjacent.roadId !== current.roadId;
         if (differentRoad && !candidate?.anchor_id) throw new Error("Authoritative junction anchor missing from boundary choice");
@@ -796,14 +813,24 @@
       if (side === "start") {
         current.startCoordinate = point;
         if (previous) previous.endCoordinate = [...point];
+        current.turn = "";
+        if (previous) previous.inboundTurn = "";
       } else {
         current.endCoordinate = point;
         if (next) next.startCoordinate = [...point];
+        current.inboundTurn = "";
+        if (next) next.turn = "";
       }
       routeIssue69BoundaryMode = null;
       routeIssue69BoundarySheetClose();
       routeIssue69BumpTopology();
-      await routeIssue69ReclipAroundGuarded(index);
+      try {
+        const reclipped = await routeIssue69ReclipAroundGuarded(index);
+        if (!reclipped) throw new Error("Boundary edit could not be verified against authoritative road geometry");
+      } catch (error) {
+        routeIssue97RestoreBoundaryState(snapshot, snapshotPadId);
+        throw error;
+      }
       routeInteractiveRenderEditBarV17327();
       await routeStepSnapToV17328(index, false);
       return true;

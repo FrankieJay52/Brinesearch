@@ -88,13 +88,17 @@
       }
       if (field === "directions") {
         const map = googleMapsUrl(p);
+        const googleChunks = googleMapsRouteChunks(p);
         const clearer = has(p.directionsClear)
           ? p.directionsClear
           : smartRewriteDirections(p.writtenDirections, p.Structured_Road_Sequence);
         const text = has(clearer)
           ? `<strong>Step-by-step directions to ${name}:</strong><br><span style="white-space:pre-wrap">${esc(clearer)}</span>`
           : `<strong>${name}</strong> does not have public step-by-step directions available yet.`;
-        return text + (map ? `<div class="chat-result-list"><a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open in Google Maps</a></div>` : "");
+        const links = googleChunks.length
+          ? googleChunks.map(chunk => `<a class="chat-result-link" href="${esc(chunk.url)}" target="_blank" rel="noopener">${googleChunks.length === 1 ? "Open authoritative Google Maps route" : `Open Google route ${chunk.chunk} of ${googleChunks.length}`}</a>`).join("")
+          : (map ? `<a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open exact pad GPS (route not verified)</a>` : "");
+        return text + (links ? `<div class="chat-result-list">${links}</div>` : "");
       }
 
       const details = [

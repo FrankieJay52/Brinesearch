@@ -232,7 +232,8 @@
         .filter(value => value >= 0 && value < routeMapperSegmentsV17324.length);
       for (const value of indexes) {
         if (generation !== routeIssue69TopologyGeneration) return false;
-        await routeIssue69ClipStepGuarded(value, generation);
+        const clipped = await routeIssue69ClipStepGuarded(value, generation);
+        if (!clipped) return false;
       }
       if (generation !== routeIssue69TopologyGeneration) return false;
       routeMapperDraftSaveV17324();

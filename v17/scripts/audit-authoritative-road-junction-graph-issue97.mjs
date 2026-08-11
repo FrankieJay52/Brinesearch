@@ -8,13 +8,25 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
 const migrationPath = "supabase/migrations/20260811190000_issue97_authoritative_road_junction_graph.sql";
+const googleMigrationPath = "supabase/migrations/20260811233500_issue97_automatic_google_routes.sql";
 const uiPath = "v17/src/parts/21n-road-manager-connections-issue97.js";
+const routeMapperPath = "v17/src/parts/21a-road-manager-route-mapper-v17324.js";
+const routeRuntimePath = "v17/src/parts/21m-road-manager-runtime-hardening-issue69.js";
+const googlePlannerPath = "v17/src/parts/00ab-google-route-plan-issue97.js";
+const googleLoaderPath = "v17/src/parts/00ac-authoritative-google-routes-issue97.js";
+const googleTestPath = "v17/scripts/verify-google-route-plan-issue97.mjs";
 const cssPath = "v17/src/styles/45-road-manager-connections-issue97.css";
 const syntheticPath = "supabase/tests/issue97_road_junction_graph_synthetic.sql";
 const livePath = "supabase/tests/issue97_required_live_cases.sql";
 
 const migration = read(migrationPath);
+const googleMigration = read(googleMigrationPath);
 const ui = read(uiPath);
+const routeMapper = read(routeMapperPath);
+const routeRuntime = read(routeRuntimePath);
+const googlePlanner = read(googlePlannerPath);
+const googleLoader = read(googleLoaderPath);
+const googleTest = read(googleTestPath);
 const css = read(cssPath);
 const synthetic = read(syntheticPath);
 const live = read(livePath);
@@ -57,6 +69,14 @@ assert.match(sourceScopeBlock, /select d\.id,c\.state_code,c\.county_code,false,
   "Issue #97 OGRIP must remain non-blocking until exact mapped-or-held reconciliation is proven");
 assert.match(sourceScopeBlock, /select d\.id,'PA',scope\.county_code,false,false,/,
   "Issue #97 PA supplemental feeds must remain non-blocking until exact mapped-or-held reconciliation is proven");
+need(sourceScopeBlock, "check(not required_for_graph or ingest_enabled)",
+  "required source scopes must also be ingest-enabled");
+need(migration, "v_required_scope_count<>89",
+  "cutover must require the same 89 blocking source scopes as the live contract");
+need(migration, "All 89 authoritative county/dataset scopes must be current before cutover",
+  "cutover error must describe the 89-scope blocking contract");
+forbid(migration, "v_required_scope_count<>114",
+  "stale 114-scope cutover contract");
 for (const token of [
   "brinesearch_road_source_datasets_https_check",
   "'brinesearch_road_source_dataset_counties'",
@@ -66,6 +86,57 @@ for (const token of [
   "County filter requires an explicit state",
   "Two-character official-road search requires a county filter"
 ]) need(migration, token);
+
+for (const token of [
+  "private_verification.brinesearch_google_route_receipts_issue97",
+  "public.brinesearch_driver_google_routes_public",
+  "brinesearch_issue97_refresh_google_route",
+  "authoritative_occurrence_identity_not_unique",
+  "shared_segment_traversal_order_not_unique",
+  "authoritative_clipped_geometry",
+  "saved_pad_gps",
+  "maximum_mobile_waypoints',3",
+  "maximum_url_length',2048",
+  "chunk_continuity','previous_destination_equals_next_origin'",
+  "manual_map_editor_role','review_exception_qa_only'",
+  "brinesearch_issue97_google_route_graph_stale",
+  "brinesearch_issue97_google_route_mapping_stale",
+  "brinesearch_publish_structured_route_issue97_without_google"
+]) need(googleMigration, token, `automatic Google route contract: ${token}`);
+for (const token of [
+  "GOOGLE_ROUTE_MAX_WAYPOINTS_ISSUE97 = 3",
+  "GOOGLE_ROUTE_MAX_URL_LENGTH_ISSUE97 = 2048",
+  '"shared_entry"',
+  '"shared_exit"',
+  '"shape"',
+  '"pad_destination"',
+  "previousDestination",
+  "params.set(\"travelmode\", \"driving\")",
+  "params.set(\"dir_action\", \"navigate\")"
+]) need(googlePlanner, token, `Google route planner: ${token}`);
+need(googleLoader, "brinesearch_driver_google_routes_public",
+  "public Google route manifest loader");
+need(googleLoader, "BrinesearchGoogleRouteIssue97.buildPlan",
+  "fail-closed public manifest validation");
+for (const token of [
+  "springdale-occurrence-one",
+  "springdale-occurrence-two",
+  "shared_entry",
+  "parallel-road-occurrence",
+  "chunking must preserve every manifest point exactly once",
+  "Google route URLs may contain only numeric coordinate controls"
+]) need(googleTest, token, `Google route regression: ${token}`);
+assert.ok(partOrder.parts.includes("00ab-google-route-plan-issue97.js"),
+  "Issue #97 Google route planner is not assembled");
+assert.ok(partOrder.parts.includes("00ac-authoritative-google-routes-issue97.js"),
+  "Issue #97 Google route loader is not assembled");
+assert.equal(pkg.scripts["verify:google-route-plan"],
+  "node v17/scripts/verify-google-route-plan-issue97.mjs",
+  "Issue #97 Google route regression script is not wired");
+need(pkg.scripts.build, "npm run verify:google-route-plan",
+  "Google route regression in the full build");
+need(synthetic, "$issue97_google_route$", "database Google route regression");
+need(synthetic, "road_identity_mapping_changed", "manifest dependency invalidation regression");
 
 for (const token of [
   "brinesearch_issue97_begin_ingest",
@@ -171,6 +242,26 @@ for (const token of [
   "choose an authoritative road junction before publishing",
   "Source-only; not selectable for structured routes"
 ]) need(ui, token);
+for (const token of [
+  "const clipped = await routeIssue69ClipStepGuarded(value, generation)",
+  "if (!clipped) return false"
+]) need(routeRuntime, token, `atomic boundary reclip: ${token}`);
+for (const token of [
+  "routeIssue97CloneBoundaryState(routeMapperSegmentsV17324)",
+  "routeIssue97RestoreBoundaryState(snapshot, snapshotPadId)",
+  "if (!reclipped) throw new Error",
+  "current.turn = \"\"",
+  "previous.inboundTurn = \"\"",
+  "current.inboundTurn = \"\"",
+  "next.turn = \"\""
+]) need(ui, token, `atomic boundary edit: ${token}`);
+for (const token of [
+  "Route QA &amp; Exceptions",
+  "Route QA",
+  "Open pad GPS for QA",
+  "Exception review",
+  "Automatic route generation remains the product path"
+]) need(routeMapper, token, `review/exception-only map editor: ${token}`);
 for (const token of [
   "roadOfficialSafeSourceUrlIssue97",
   "roadOfficialSearchGenerationIssue97",
