@@ -51,9 +51,13 @@ forbid("<->", "nearest-geometry selection");
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
   "Issue #97 route corpus audit script is not wired");
+assert.ok(pkg.scripts.build.includes("npm run verify:route-corpus-reconciliation"),
+  "Issue #97 route corpus audit is not in the full production build");
 need("route_variant_structured_publication_not_generated",
   "alternate route variants must be explicit exceptions until route-keyed publication is complete");
-need("Route Prep is 1-based; canonical published route variants are 0-based.",
-  "route variant index conversion contract");
+need("v_route.route_group='primary' and v_route.variant_index=1",
+  "Route Prep primary variant must be identified explicitly");
+need("pr.route_group='primary' and pr.route_variant_index=0",
+  "published primary structured route must use the existing zero-based variant key");
 
 console.log("Issue #97 automatic route-corpus reconciliation audit passed.");
