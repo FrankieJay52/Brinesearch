@@ -8,6 +8,7 @@ const runtime = fs.readFileSync(path.join(migrations, '20260811062510_issue70_sa
 const converge = fs.readFileSync(path.join(migrations, '20260811062520_issue70_saved_alias_reconciliation_converge.sql'), 'utf8');
 const passCount = fs.readFileSync(path.join(migrations, '20260811062525_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
 const split = fs.readFileSync(path.join(migrations, '20260811062530_issue70_split_cr10_cr12_identity.sql'), 'utf8');
+const lockdown = fs.readFileSync(path.join(migrations, '20260811062540_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
@@ -41,6 +42,15 @@ assert(split.includes("s.raw_text ~* '^\\s*CR[ -]?12"), 'only explicit CR-12 rou
 assert(split.includes('removed CR-12 aliases'), 'CR-10 contamination cleanup must be documented');
 assert(!/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i.test(split), 'CR-10/CR-12 migration must not hard-code generated UUIDs');
 assert(!split.includes('brinesearch_publish_structured_route'), 'identity split must not publish #69 routes');
+assert(!split.includes('road_manager_recalculate_route_readiness()'), 'deploy-role CR-12 migration must leave Owner-only readiness recalculation to the maintenance RPC');
+
+for (const fn of [
+  'brinesearch_stage_saved_alias_reconcile_issue70',
+  'brinesearch_apply_saved_alias_reconcile_issue70',
+  'brinesearch_apply_saved_alias_reconcile_all_issue70'
+]) {
+  assert(lockdown.includes(`revoke all on function public.${fn}() from public,anon,authenticated`), `${fn} must not remain an authenticated SECURITY DEFINER browser RPC`);
+}
 
 console.log(JSON.stringify({
   issue: 70,
@@ -50,6 +60,7 @@ console.log(JSON.stringify({
   createUpgrade: 'CR/TR only, one complete official ODOT NLF',
   repeatedOccurrences: 'bounded exact re-stage convergence',
   contaminationRepair: 'Jefferson CR-10 and CR-12 split structurally',
+  maintenanceSecurity: 'private evidence + maintenance-only SECURITY DEFINER reconciliation functions',
   routePublication: 'none; #69 remains canonical and fail-closed',
   result: 'pass'
 }, null, 2));
