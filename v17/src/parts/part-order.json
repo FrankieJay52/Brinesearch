@@ -1,5 +1,5 @@
 {
-  "version": "17.3.30",
+  "version": "17.3.31",
   "wrapperStart": "(async () => {",
   "wrapperEnd": "});",
   "parts": [
