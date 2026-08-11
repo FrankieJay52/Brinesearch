@@ -408,7 +408,7 @@ begin
       join public.brinesearch_odot_road_catalog c
         on c.nlf_id=pg_catalog.split_part(r.source_record_id,'|',1)
        and (
-         pg_catalog.position('|street:' in r.source_record_id)=0
+         pg_catalog.strpos(r.source_record_id,'|street:')=0
          or c.street_match_key=pg_catalog.split_part(r.source_record_id,'|street:',2)
        )
       where r.source_agency='Ohio Department of Transportation'
@@ -517,13 +517,11 @@ begin
 
   perform public.brinesearch_refresh_oh_road_matches_issue70();
 
-  -- First finish geometry for Road Manager identities that were already tied to
-  -- exact ODOT source records before #70.  Never derive identity from a name here.
   with exact_roads as (
     select
       r.id,
       pg_catalog.split_part(r.source_record_id,'|',1) as nlf_id,
-      case when pg_catalog.position('|street:' in r.source_record_id)>0
+      case when pg_catalog.strpos(r.source_record_id,'|street:')>0
         then pg_catalog.split_part(r.source_record_id,'|street:',2)
       end as street_key
     from public.brinesearch_roads r
@@ -630,23 +628,37 @@ begin
     v_existing_count:=0;
 
     if v_road_type in ('interstate','us_route','state_route') then
-      select count(*),min(r.id)
-      into v_existing_count,v_road_id
+      select count(*) into v_existing_count
       from public.brinesearch_roads r
       where r.road_type=v_road_type
         and r.route_number=v_route_number
         and (v_state is null or r.state=v_state);
+      if v_existing_count=1 then
+        select r.id into v_road_id
+        from public.brinesearch_roads r
+        where r.road_type=v_road_type
+          and r.route_number=v_route_number
+          and (v_state is null or r.state=v_state)
+        order by r.updated_at desc,r.id
+        limit 1;
+      end if;
     else
-      select count(*),min(r.id)
-      into v_existing_count,v_road_id
+      -- Generated road_identity_key is based on source_record_id, so check the
+      -- official identity regardless of source_agency before attempting a legacy
+      -- upgrade. This avoids duplicate identity-key writes.
+      select count(*) into v_existing_count
       from public.brinesearch_roads r
-      where r.source_agency='Ohio Department of Transportation'
-        and r.source_dataset='Road Inventory'
-        and r.source_record_id=v_identity;
+      where r.source_record_id=v_identity;
+      if v_existing_count=1 then
+        select r.id into v_road_id
+        from public.brinesearch_roads r
+        where r.source_record_id=v_identity
+        order by r.updated_at desc,r.id
+        limit 1;
+      end if;
 
       if v_existing_count=0 then
-        select count(*),min(r.id)
-        into v_existing_count,v_road_id
+        select count(*) into v_existing_count
         from public.brinesearch_roads r
         where r.state='OH'
           and pg_catalog.lower(coalesce(r.county,''))=pg_catalog.lower(coalesce(v_county,''))
@@ -659,6 +671,23 @@ begin
             or r.source_method='explicit_in_saved_directions'
             or (r.source_agency='OpenStreetMap' and r.source_method='owner_map_tap_v17328')
           );
+        if v_existing_count=1 then
+          select r.id into v_road_id
+          from public.brinesearch_roads r
+          where r.state='OH'
+            and pg_catalog.lower(coalesce(r.county,''))=pg_catalog.lower(coalesce(v_county,''))
+            and (
+              (rec.step_key<>'' and public.brinesearch_road_name_core(r.canonical_name)=rec.step_key)
+              or (rec.step_key='' and r.road_type=v_road_type and r.route_number=v_route_number)
+            )
+            and (
+              r.source_agency is null
+              or r.source_method='explicit_in_saved_directions'
+              or (r.source_agency='OpenStreetMap' and r.source_method='owner_map_tap_v17328')
+            )
+          order by r.updated_at desc,r.id
+          limit 1;
+        end if;
       end if;
     end if;
 
