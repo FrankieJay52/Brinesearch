@@ -155,32 +155,36 @@ async function openThrushAndConnections(page) {
 
 const browser = await chromium.launch({ headless: true });
 try {
+  // Stale SPA-render regression gets its own authenticated context. It must not
+  // contaminate the actual Owner Road Manager scenario that follows.
+  {
+    const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
+    const requests = [];
+    const tiles = { count: 0 };
+    await installMocks(context, "owner", requests, tiles);
+    const page = await context.newPage();
+    const pageErrors = [];
+    page.on("pageerror", error => pageErrors.push(error.stack || error.message));
+    await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
+    await page.locator('[data-road-manager-tab="official"]').waitFor();
+    await page.locator('[data-road-manager-tab="official"]').click();
+    await page.evaluate(() => { location.hash = "#/settings"; });
+    await page.waitForTimeout(150);
+    assert.equal(pageErrors.length, 0, `stale registry render threw after tab navigation: ${pageErrors.join("\n")}`);
+    await context.close();
+  }
+
+  // Normal Owner and Editor flows each start from a single fresh authenticated
+  // app document. This verifies the real product path, not hash-router cleanup
+  // from another scenario.
   for (const role of ["owner", "editor"]) {
     const context = await browser.newContext({ viewport: { width: 1180, height: 850 } });
     const requests = [];
     const tiles = { count: 0 };
     await installMocks(context, role, requests, tiles);
-    let page = await context.newPage();
+    const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
-
-    if (role === "owner") {
-      await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
-      await page.locator('[data-road-manager-tab="official"]').waitFor();
-      await page.locator('[data-road-manager-tab="official"]').click();
-      await page.evaluate(() => { location.hash = "#/settings"; });
-      await page.waitForTimeout(150);
-      assert.equal(pageErrors.length, 0, `stale registry render threw after tab navigation: ${pageErrors.join("\n")}`);
-
-      // The stale-render regression above intentionally changes the SPA hash.
-      // Exercise the actual Road Manager scenario on a fresh document in the
-      // same authenticated context rather than depending on router cleanup from
-      // the previous scenario.
-      await page.close();
-      page = await context.newPage();
-      pageErrors.length = 0;
-      page.on("pageerror", error => pageErrors.push(error.stack || error.message));
-    }
 
     await openThrushAndConnections(page);
     const countyRequest = [...requests].reverse().find(item => item.pathname.endsWith("brinesearch_authoritative_road_search"));
@@ -239,7 +243,7 @@ try {
   const csp = fs.readFileSync(path.join(root, "netlify.toml"), "utf8");
   assert.match(csp, /img-src[^\n]*https:\/\/tile\.openstreetmap\.org/,
     "Netlify CSP does not allow the authoritative junction map tile origin");
-  console.log("Issue #97 authenticated Road Manager browser audit passed (verified owner handoff + read-only editor + stale-mapping fail-closed).");
+  console.log("Issue #97 authenticated Road Manager browser audit passed (isolated stale render + verified owner handoff + read-only editor + stale-mapping fail-closed).");
 } finally {
   await browser.close();
 }
