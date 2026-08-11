@@ -11,7 +11,7 @@ const read = file => fs.readFile(file, 'utf8');
 const [
   packageRaw, orderRaw, styleRaw, vite, sw, directionManifestRaw, authoritative,
   genericT, genericX, genericZ, safety, migration, whitespaceFix, parserWording,
-  projectionSecurityRestore
+  projectionSecurityRestore, issue69Migration
 ] = await Promise.all([
   read(path.join(root, 'package.json')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
@@ -27,7 +27,8 @@ const [
   read(path.join(root, 'supabase/migrations/20260810233900_authoritative_driver_directions_issue_81.sql')),
   read(path.join(root, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql')),
   read(path.join(root, 'supabase/migrations/20260810234337_authoritative_driver_directions_issue_81_parser_wording.sql')),
-  read(path.join(root, 'supabase/migrations/20260810234927_authoritative_driver_directions_issue_81_projection_security_restore.sql'))
+  read(path.join(root, 'supabase/migrations/20260810234927_authoritative_driver_directions_issue_81_projection_security_restore.sql')),
+  read(path.join(root, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
 ]);
 
 const pkg = JSON.parse(packageRaw);
@@ -35,11 +36,14 @@ const order = JSON.parse(orderRaw);
 const styles = JSON.parse(styleRaw);
 const directionManifest = JSON.parse(directionManifestRaw);
 
-assert.equal(pkg.version, '17.3.30');
-assert.equal(order.version, '17.3.30');
-assert.equal(styles.version, '17.3.30');
+// #81 remains the direction-data contract from V17.3.30 while later releases may
+// advance the application shell for unrelated work such as #69 map geometry.
+assert.equal(pkg.version, '17.3.31');
+assert.equal(order.version, '17.3.31');
+assert.equal(styles.version, '17.3.31');
 assert.equal(directionManifest.version, '17.3.30');
-assert.match(vite, /RELEASE_VERSION\s*=\s*'17\.3\.30'/);
+assert.match(vite, /RELEASE_VERSION\s*=\s*'17\.3\.31'/);
+assert.match(sw, /brinesearch-v17-3-31-exact-structured-route-geometry/);
 assert.match(sw, /brinesearch-v17-3-30-authoritative-driver-directions/);
 
 for (const obsolete of [
@@ -114,6 +118,28 @@ for (const token of [
   "grant select on private_verification.public_pad_projection_source to service_role"
 ]) assert.ok(projectionSecurityRestore.includes(token), `Issue #81 projection-security restore missing ${token}`);
 
+for (const token of [
+  'brinesearch_driver_safety_facts_issue69',
+  "publication_status='verified_public'",
+  "publication_status='private_hold'",
+  'Driver safety information:',
+  'driver_safety_context=v_public_safety',
+  'Issue #69 safety inventory count drift',
+  'Issue #69 access-credential hold count drift',
+  'Issue #69 unresolved safety review hold count drift',
+  "'cb_callout',13",
+  "'curfew',18",
+  "'truck_prohibition',8"
+]) assert.ok(issue69Migration.includes(token), `#69/#81 durable safety contract missing ${token}`);
+const issue69PublicSafety = issue69Migration.match(
+  /create or replace function private_verification\.brinesearch_sanitize_public_safety_context_issue69[\s\S]*?\n\$\$;/
+)?.[0] || '';
+for (const forbidden of [
+  'source_text_digest','source_excerpt_digest','verification_method','verified_at',
+  'evidence','reviewer','source_url','note'
+]) assert.ok(!issue69PublicSafety.includes(`'${forbidden}'`),
+  `#69/#81 public safety snapshot exposes private provenance key ${forbidden}`);
+
 // The public contract must never grow hidden/private columns.
 for (const forbidden of [
   'extra_data', 'written_directions', 'research_note', 'research_notes', 'research_sources',
@@ -176,7 +202,8 @@ assert.ok(!assembledDirectionText.includes('console.log('), 'Direction layers sh
 
 console.log(JSON.stringify({
   issue: 81,
-  version: '17.3.30',
+  applicationVersion: '17.3.31',
+  directionContractVersion: '17.3.30',
   packagedRecords: Object.keys(rewrites).length,
   legacyHospitalFallbacksExercised: hospitalFallbacks,
   liveContract: ['pad_id','legacy_id','directions_clear','source_revision'],

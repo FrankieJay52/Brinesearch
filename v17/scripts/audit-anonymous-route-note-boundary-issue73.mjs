@@ -20,11 +20,16 @@ const fixPath = path.join(
   migrationDir,
   '20260810205910_prevent_anonymous_route_note_exposure_issue_73.sql'
 );
+const issue69Path = path.join(
+  migrationDir,
+  '20260811002000_issue69_route_geometry_draft_helpers.sql'
+);
 
-const [geometryMigration, performanceMigration, fixMigration] = await Promise.all([
+const [geometryMigration, performanceMigration, fixMigration, issue69Migration] = await Promise.all([
   fs.readFile(geometryPath, 'utf8'),
   fs.readFile(performancePath, 'utf8'),
-  fs.readFile(fixPath, 'utf8')
+  fs.readFile(fixPath, 'utf8'),
+  fs.readFile(issue69Path, 'utf8')
 ]);
 
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -112,6 +117,33 @@ assert.ok(
   !routeSanitizer.includes("'note'"),
   'Public structured-route sanitizer must never allow-list a route note.'
 );
+
+const safetySanitizer = issue69Migration.match(
+  /create or replace function private_verification\.brinesearch_sanitize_public_safety_context_issue69[\s\S]*?\n\$\$;/
+)?.[0];
+assert.ok(safetySanitizer, 'Could not isolate the #69 public safety-context sanitizer.');
+for (const publicKey of [
+  'safety_fact_id','category','driver_text','direction_scope','route_step_id','road_id','source_revision'
+]) {
+  assert.ok(safetySanitizer.includes(`'${publicKey}'`),
+    `Public safety-context sanitizer dropped ${publicKey}.`);
+}
+for (const forbiddenKey of [
+  'note','comment','review','conflict','evidence','source_url','source_text_digest',
+  'source_excerpt_digest','verification_method','verified_by','verified_at'
+]) {
+  assert.ok(!safetySanitizer.includes(`'${forbiddenKey}'`),
+    `Public safety-context sanitizer allow-lists private key ${forbiddenKey}.`);
+}
+for (const token of [
+  'force row level security',
+  'revoke all on private_verification.brinesearch_driver_safety_facts_issue69',
+  'pads_public_safety_snapshot_canonical_issue69',
+  'public_pad_detail_safety_snapshot_canonical_issue69',
+  'with (security_invoker=true,security_barrier=true)'
+]) {
+  assert.ok(issue69Migration.includes(token), `#69/#73 safety boundary missing ${token}.`);
+}
 
 const extraSanitizer = fixMigration.match(
   /create or replace function private_verification\.brinesearch_sanitize_public_extra_data_issue73[\s\S]*?\n\$\$;/

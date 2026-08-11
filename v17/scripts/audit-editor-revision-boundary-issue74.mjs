@@ -15,15 +15,17 @@ const bridgePath = path.join(partsDir, '11aa-editor-revision-security-issue74.js
 const orderPath = path.join(partsDir, 'part-order.json');
 const packagePath = path.join(projectRoot, 'package.json');
 const legacyEditorPath = path.join(partsDir, '11-pad-page.js');
+const issue69Path = path.join(migrationDir, '20260811002000_issue69_route_geometry_draft_helpers.sql');
 
-const [stage1, stage1Fix, stage2, bridge, orderRaw, packageRaw, legacyEditor] = await Promise.all([
+const [stage1, stage1Fix, stage2, bridge, orderRaw, packageRaw, legacyEditor, issue69Migration] = await Promise.all([
   fs.readFile(stage1Path, 'utf8'),
   fs.readFile(stage1FixPath, 'utf8'),
   fs.readFile(stage2Path, 'utf8'),
   fs.readFile(bridgePath, 'utf8'),
   fs.readFile(orderPath, 'utf8'),
   fs.readFile(packagePath, 'utf8'),
-  fs.readFile(legacyEditorPath, 'utf8')
+  fs.readFile(legacyEditorPath, 'utf8'),
+  fs.readFile(issue69Path, 'utf8')
 ]);
 const order = JSON.parse(orderRaw);
 const pkg = JSON.parse(packageRaw);
@@ -81,6 +83,29 @@ for (const token of [
 ]) {
   assert.ok(stage2.includes(token), `Issue #74 lockdown missing ${token}.`);
 }
+
+for (const token of [
+  'security definer',
+  "set search_path=''",
+  'public.is_brinesearch_owner(v_actor)',
+  'Expected route revision is required',
+  'structured_route_revision',
+  'brinesearch_guard_structured_pad_route_fields_issue69',
+  'Structured route fields are managed only by brinesearch_publish_structured_route',
+  'and geometry_version=0'
+]) {
+  assert.ok(issue69Migration.includes(token), `#69/#74 structured publisher boundary missing ${token}.`);
+}
+const exactPolicyStart = issue69Migration.indexOf('drop policy if exists pad_roads_editor_insert');
+const exactPolicyEnd = issue69Migration.indexOf(
+  'create or replace function private_verification.brinesearch_guard_exact_route_road_geometry_issue69',
+  exactPolicyStart
+);
+const exactPolicyBlock = issue69Migration.slice(exactPolicyStart, exactPolicyEnd);
+assert.ok(exactPolicyStart >= 0 && exactPolicyEnd > exactPolicyStart,
+  'Could not isolate the #69 exact-row direct-DML policies.');
+assert.ok(!/geometry_version\s*=\s*1/i.test(exactPolicyBlock),
+  '#69 reopened authenticated direct writes to exact version-1 route rows.');
 
 for (const token of [
   'editorRequestRevisionBaseIssue74',
