@@ -61,7 +61,7 @@ for (const token of [
   'routeIssue69ApplyBoundary',
   'routeIssue69ReclipAround',
   'routeIssue69InvalidateWindow',
-  'same-road occurrence split',
+  'Same-road occurrence split',
   'shared Road Manager nodes',
   'Route order changed — exact boundaries must be re-established',
   'routeIssue69ReverseTurn'
