@@ -131,8 +131,11 @@ async function installMocks(context, role, requestLog, tileCounter, mappingStatu
 }
 
 async function openOfficial(page) {
-  const nonce = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  await page.goto(`${preview}/?issue97Browser=${nonce}#/settings/roads`, { waitUntil: "domcontentloaded" });
+  await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
+  // Hash-only navigation can reuse the same document. Reload the normal app URL
+  // so this test exercises a real authenticated startup without changing the
+  // production URL shape with a test-only query string.
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('[data-road-manager-tab="official"]').waitFor();
   await page.locator('[data-road-manager-tab="official"]').click();
   await page.locator("#roadOfficialSearchIssue97").waitFor();
