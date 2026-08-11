@@ -5,6 +5,8 @@
 -- slash-delimited component of a stored alias. The decision is literal
 -- case-insensitive text equality only. No fuzzy/name-core/spatial/nearest-road
 -- inference and no #69 structured-route publication.
+-- Route-prep readiness is recalculated by the controlled Owner verification step
+-- after this deploy-role data migration succeeds.
 
 create temporary table issue70_exact_existing_alias_candidates on commit drop as
 with unmatched as (
@@ -83,8 +85,6 @@ select p.*
 from possible p
 join unique_steps u using(step_id);
 
--- A road may appear through both its canonical name and one alias. Collapse that
--- duplicate evidence before applying.
 create temporary table issue70_exact_existing_alias_apply on commit drop as
 select distinct on (step_id)
   step_id,route_prep_id,pad_id,company,pad_name,raw_text,state_code,pad_county,pad_township,
@@ -93,8 +93,6 @@ select distinct on (step_id)
 from issue70_exact_existing_alias_candidates
 order by step_id,road_id;
 
--- Revalidate every candidate immediately before write. If any Road Manager row
--- lost trusted status or scope, the update below simply does not link it.
 update public.brinesearch_route_prep_steps s
 set road_id=a.road_id,
     step_kind=case a.road_type
@@ -139,8 +137,6 @@ where s.id=a.step_id
   and (r.county is null or pg_catalog.lower(r.county)=pg_catalog.lower(a.pad_county))
   and (r.road_type<>'township' or r.township is null or pg_catalog.lower(r.township)=pg_catalog.lower(a.pad_township));
 
--- Promote exact composite-alias components to standalone aliases on the same road
--- so future exact lookup does not have to rediscover the slash relationship.
 update public.brinesearch_roads r
 set aliases=(
       select pg_catalog.array_agg(value order by pg_catalog.lower(value),value)
@@ -170,5 +166,3 @@ where exists (
     and s.road_id=r.id
     and s.match_method='road_manager_exact_existing_alias_issue70'
 );
-
-select public.road_manager_recalculate_route_readiness();
