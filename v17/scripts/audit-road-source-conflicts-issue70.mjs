@@ -2,8 +2,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(process.cwd());
+const decisionMigration = fs.readFileSync(
+  path.join(root, 'supabase', 'migrations', '20260811092921_issue70_corrected_source_conflict_decision.sql'),
+  'utf8'
+);
 const migration = fs.readFileSync(
-  path.join(root, 'supabase', 'migrations', '20260811083500_issue70_held_source_conflicts.sql'),
+  path.join(root, 'supabase', 'migrations', '20260811093511_issue70_held_source_conflicts.sql'),
   'utf8'
 );
 
@@ -11,6 +15,8 @@ function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 source-conflict audit failed: ${message}`);
 }
 
+assert(decisionMigration.includes("'corrected_source_conflict'::text"), 'resolved source conflicts need a distinct durable decision state');
+assert(decisionMigration.includes('brinesearch_saved_alias_reconcile_issue70_decision_check'), 'decision-state migration must replace the reconciliation check constraint');
 assert(migration.includes('private_verification.brinesearch_source_conflict_corrections_issue70'), 'durable source-conflict evidence table must exist');
 assert(migration.includes('force row level security'), 'source-conflict evidence must FORCE RLS');
 assert(migration.includes('revoke all on private_verification.brinesearch_source_conflict_corrections_issue70 from public,anon,authenticated'), 'browser roles must not read source-conflict evidence');
@@ -56,6 +62,7 @@ assert(migration.includes("f->'properties'->>'jurisdic'<>expected_jur"), 'LBRS j
 assert(migration.includes('twp_count=0'), 'expected township must be required');
 assert(migration.includes('name_count=0'), 'exact official local street name must be required');
 assert(migration.includes("'fuzzy_matching',false") && migration.includes("'name_similarity_decision',false") && migration.includes("'nearest_road_fallback',false"), 'correction evidence must explicitly record no-guess behavior');
+assert(migration.includes("decision='corrected_source_conflict'"), 'resolved saved-alias conflicts must be durably marked corrected');
 
 assert(migration.includes("structured_road_sequence='OH-7 → OH-39 → TR-776 / Steubenville Pike Rd → TR-879 / Hazel Run Rd → Lease Road'"), 'JANIE-TRUST parser-created OR/duplicate route must be structurally cleaned');
 assert(migration.includes("structured_road_sequence='OH-78 → CR-64A / Cochran Hill Rd → CR-64 / Cain Ridge Rd → Lease Road'"), 'HOLLIDAY CR-64A/CR-64 source sequence must be structurally corrected');
