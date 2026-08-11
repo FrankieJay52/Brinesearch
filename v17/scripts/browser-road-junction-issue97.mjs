@@ -132,10 +132,6 @@ async function installMocks(context, role, requestLog, tileCounter, mappingStatu
 
 async function openOfficial(page) {
   await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
-  // Hash-only navigation can reuse the same document. Reload the normal app URL
-  // so this test exercises a real authenticated startup without changing the
-  // production URL shape with a test-only query string.
-  await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator('[data-road-manager-tab="official"]').waitFor();
   await page.locator('[data-road-manager-tab="official"]').click();
   await page.locator("#roadOfficialSearchIssue97").waitFor();
@@ -164,7 +160,7 @@ try {
     const requests = [];
     const tiles = { count: 0 };
     await installMocks(context, role, requests, tiles);
-    const page = await context.newPage();
+    let page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
 
@@ -175,6 +171,15 @@ try {
       await page.evaluate(() => { location.hash = "#/settings"; });
       await page.waitForTimeout(150);
       assert.equal(pageErrors.length, 0, `stale registry render threw after tab navigation: ${pageErrors.join("\n")}`);
+
+      // The stale-render regression above intentionally changes the SPA hash.
+      // Exercise the actual Road Manager scenario on a fresh document in the
+      // same authenticated context rather than depending on router cleanup from
+      // the previous scenario.
+      await page.close();
+      page = await context.newPage();
+      pageErrors.length = 0;
+      page.on("pageerror", error => pageErrors.push(error.stack || error.message));
     }
 
     await openThrushAndConnections(page);
