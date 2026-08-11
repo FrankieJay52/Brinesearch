@@ -36,11 +36,14 @@ const order = JSON.parse(orderRaw);
 const styles = JSON.parse(styleRaw);
 const directionManifest = JSON.parse(directionManifestRaw);
 
-assert.equal(pkg.version, '17.3.30');
-assert.equal(order.version, '17.3.30');
-assert.equal(styles.version, '17.3.30');
+// #81 remains the direction-data contract from V17.3.30 while later releases may
+// advance the application shell for unrelated work such as #69 map geometry.
+assert.equal(pkg.version, '17.3.31');
+assert.equal(order.version, '17.3.31');
+assert.equal(styles.version, '17.3.31');
 assert.equal(directionManifest.version, '17.3.30');
-assert.match(vite, /RELEASE_VERSION\s*=\s*'17\.3\.30'/);
+assert.match(vite, /RELEASE_VERSION\s*=\s*'17\.3\.31'/);
+assert.match(sw, /brinesearch-v17-3-31-exact-structured-route-geometry/);
 assert.match(sw, /brinesearch-v17-3-30-authoritative-driver-directions/);
 
 for (const obsolete of [
@@ -199,7 +202,8 @@ assert.ok(!assembledDirectionText.includes('console.log('), 'Direction layers sh
 
 console.log(JSON.stringify({
   issue: 81,
-  version: '17.3.30',
+  applicationVersion: '17.3.31',
+  directionContractVersion: '17.3.30',
   packagedRecords: Object.keys(rewrites).length,
   legacyHospitalFallbacksExercised: hospitalFallbacks,
   liveContract: ['pad_id','legacy_id','directions_clear','source_revision'],
