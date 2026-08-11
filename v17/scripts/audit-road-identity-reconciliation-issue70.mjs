@@ -11,7 +11,7 @@ const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_spli
 const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
 const exactAlias = fs.readFileSync(path.join(migrations, '20260811071553_issue70_exact_existing_alias_reuse.sql'), 'utf8');
 const exactSuffix = fs.readFileSync(path.join(migrations, '20260811073502_issue70_exact_suffix_routes.sql'), 'utf8');
-const officialLbrs = fs.readFileSync(path.join(migrations, '20260811080500_issue70_official_lbrs_catalog_gaps.sql'), 'utf8');
+const officialLbrs = fs.readFileSync(path.join(migrations, '20260811075535_issue70_official_lbrs_catalog_gaps.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
