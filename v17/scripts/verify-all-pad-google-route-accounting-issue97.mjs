@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811234500_issue97_all_pad_google_route_accounting.sql"), "utf8");
+  "supabase/migrations/20260811234600_issue97_all_pad_google_route_accounting.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_google_routes(",
