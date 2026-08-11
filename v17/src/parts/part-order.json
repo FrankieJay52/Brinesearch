@@ -62,6 +62,7 @@
     "21f-road-manager-interactive-route-canonical-v17327.js",
     "21g-road-manager-step-snap-route-editor-v17328.js",
     "21h-road-manager-step-tap-lookup-bound-v17328.js",
+    "21i-road-manager-structured-route-foundation-issue69.js",
     "22m-direction-source-priority-and-coalescer.js",
     "22n-direction-context-coalescing.js",
     "22o-direction-mileage-badges-double-name.js",
