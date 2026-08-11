@@ -5,8 +5,9 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const sql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811235000_issue97_refresh_source_scope.sql"), "utf8");
+const migrationsDir = path.join(root, "supabase/migrations");
+const sql = fs.readFileSync(path.join(migrationsDir,
+  "20260811235000_issue97_refresh_source_scope.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_source_scope(",
@@ -47,4 +48,19 @@ assert.match(sql, /revoke all on function public\.brinesearch_issue97_refresh_so
 assert.ok(!/grant execute[\s\S]{0,180}to (?:anon|authenticated)/.test(sql),
   "Issue #97 source-scope runner must never be browser callable");
 
-console.log("Issue #97 restartable source-scope ingestion runner regression passed.");
+const issue97Migrations = fs.readdirSync(migrationsDir)
+  .filter(name => /^\d{14}_issue97_.*\.sql$/.test(name))
+  .sort();
+const versions = issue97Migrations.map(name => name.slice(0, 14));
+assert.equal(new Set(versions).size, versions.length,
+  `Issue #97 migration versions must be unique: ${issue97Migrations.join(", ")}`);
+for (const required of [
+  "20260811190000_issue97_authoritative_road_junction_graph.sql",
+  "20260811200000_issue97_confirmed_pad_county_scope.sql",
+  "20260811233500_issue97_automatic_google_routes.sql",
+  "20260811234500_issue97_route_corpus_reconciliation.sql",
+  "20260811234600_issue97_all_pad_google_route_accounting.sql",
+  "20260811235000_issue97_refresh_source_scope.sql"
+]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
+
+console.log("Issue #97 restartable source-scope ingestion + unique migration chain regression passed.");
