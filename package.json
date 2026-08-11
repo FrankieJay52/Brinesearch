@@ -1,7 +1,7 @@
 {
   "name": "brinesearch",
   "private": true,
-  "version": "17.3.30",
+  "version": "17.3.31",
   "type": "module",
   "scripts": {
     "prepare:v17": "node v17/scripts/assemble.mjs",
