@@ -8,10 +8,11 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [source, orderRaw, geometryMigration] = await Promise.all([
+const [source, orderRaw, geometryMigration, draftHelpers] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
-  read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql'))
+  read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
+  read(path.join(projectRoot, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];
@@ -58,6 +59,26 @@ for (const token of [
   'structured_route_steps=v_public_steps'
 ]) assert.ok(geometryMigration.includes(token), `Existing V17.3.29 structured-route database contract missing ${token}`);
 
+for (const token of [
+  'brinesearch_route_step_snap_point',
+  'brinesearch_route_step_boundary_candidates',
+  'brinesearch_route_step_clip',
+  'shared_road_manager_node',
+  'same_road_explicit_split',
+  'same_road_split_requires_explicit_point',
+  'no_shared_road_manager_node',
+  'boundaries_not_on_one_continuous_road_component',
+  'st_dumppoints',
+  'st_linelocatepoint',
+  'st_linesubstring',
+  'st_reverse',
+  "extensions.st_dwithin(l.geom::extensions.geography,r.geom::extensions.geography,1)"
+]) assert.ok(draftHelpers.includes(token), `#69 spatial helper migration missing ${token}`);
+
+assert.ok(!/similarity|normalized_name|canonical_name\s*(?:=|like|ilike)/i.test(
+  draftHelpers.match(/create or replace function public\.brinesearch_route_step_boundary_candidates[\s\S]*?comment on function public\.brinesearch_route_step_boundary_candidates/)?.[0] || ''
+), 'Boundary-candidate helper must not choose intersections using road-name similarity.');
+
 // Repeated roads must remain independent occurrences. Road ID equality is not
 // sufficient to identify a step; occurrence UUIDs remain distinct.
 const occurrenceA = { routeStepId: 'a', roadId: 'same-road', startCoordinate: [0, 0], endCoordinate: [1, 0] };
@@ -72,7 +93,8 @@ console.log(JSON.stringify({
   occurrenceIdentity: 'route_step_id + exact boundaries; never road-name similarity',
   exactHighlight: 'clippedGeometry only',
   publishBoundary: 'brinesearch_publish_structured_route RPC with optimistic route revision',
+  draftGeometry: 'explicit tap snap + shared Road Manager node candidates + one-component clipping',
   unresolvedBehavior: 'no fake exact highlight and publish blocked',
-  remaining: 'boundary/intersection snapping + clipping edit tools + full end-to-end regressions/live rollout'
+  remaining: 'wire boundary/clipping helpers into route editor + topology invalidation + full end-to-end regressions/live rollout'
 }, null, 2));
 console.log('GitHub #69 structured-route foundation audit passed.');
