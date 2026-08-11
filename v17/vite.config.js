@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
-const RELEASE_VERSION = '17.3.30';
+const RELEASE_VERSION = '17.3.31';
 const releaseHtml = {
   name: 'brinesearch-v17-release-html',
   transformIndexHtml(html) {
@@ -18,7 +18,8 @@ const releaseHtml = {
       .replaceAll('?v=17.3.1', `?v=${RELEASE_VERSION}`)
       .replaceAll('?v=17.3.2', `?v=${RELEASE_VERSION}`)
       .replaceAll('?v=17.3.12', `?v=${RELEASE_VERSION}`)
-      .replaceAll('?v=17.3.28', `?v=${RELEASE_VERSION}`);
+      .replaceAll('?v=17.3.28', `?v=${RELEASE_VERSION}`)
+      .replaceAll('?v=17.3.30', `?v=${RELEASE_VERSION}`);
   }
 };
 
