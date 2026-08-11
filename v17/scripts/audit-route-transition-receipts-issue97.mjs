@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811240000_issue97_route_transition_receipts.sql"), "utf8");
+const runtimeHardening = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811240100_issue97_transition_runtime_hardening.sql"), "utf8");
 
 for (const token of [
   "private_verification.brinesearch_route_transition_receipts_issue97",
@@ -67,4 +69,18 @@ assert.match(sql, /create or replace function public\.brinesearch_issue97_transi
 assert.ok(!/grant execute on function public\.brinesearch_issue97_run_all_pad_routing_pipeline\(uuid\)[\s\S]{0,100}to (?:anon|authenticated)/.test(sql),
   "Issue #97 all-route transition pipeline must never be browser callable");
 
-console.log("Issue #97 exact route-transition receipt/no-guess audit passed.");
+for (const token of [
+  "Issue #97 transition runtime hardening target is missing",
+  "null::uuid as anchor_id",
+  "null::extensions.geometry as geom",
+  "into v_candidate",
+  "v_candidate:=null",
+  "typed transition candidate reset did not install cleanly"
+]) {
+  assert.ok(runtimeHardening.includes(token), `Issue #97 transition runtime hardening missing: ${token}`);
+}
+assert.match(runtimeHardening,
+  /pg_get_functiondef[\s\S]*strpos\(v_definition,v_old\)=0[\s\S]*execute pg_catalog\.replace\(v_definition,v_old,v_new\)[\s\S]*strpos\(v_definition,'v_candidate:=null'\)<>0/,
+  "Issue #97 transition runtime fix must be guarded, applied, and verified");
+
+console.log("Issue #97 exact route-transition receipt/no-guess/runtime audit passed.");
