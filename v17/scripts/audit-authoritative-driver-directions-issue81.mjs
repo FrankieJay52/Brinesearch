@@ -28,7 +28,7 @@ const [
   read(path.join(root, 'supabase/migrations/20260810234024_authoritative_driver_directions_issue_81_whitespace_fix.sql')),
   read(path.join(root, 'supabase/migrations/20260810234337_authoritative_driver_directions_issue_81_parser_wording.sql')),
   read(path.join(root, 'supabase/migrations/20260810234927_authoritative_driver_directions_issue_81_projection_security_restore.sql')),
-  read(path.join(root, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
+  read(path.join(root, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql'))
 ]);
 
 const pkg = JSON.parse(packageRaw);

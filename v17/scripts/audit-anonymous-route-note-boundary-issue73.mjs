@@ -22,7 +22,7 @@ const fixPath = path.join(
 );
 const issue69Path = path.join(
   migrationDir,
-  '20260811002000_issue69_route_geometry_draft_helpers.sql'
+  '20260811031420_issue69_route_geometry_draft_helpers.sql'
 );
 
 const [geometryMigration, performanceMigration, fixMigration, issue69Migration] = await Promise.all([

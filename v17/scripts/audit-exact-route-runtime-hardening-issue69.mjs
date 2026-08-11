@@ -15,8 +15,8 @@ const [runtime, foundation, boundaries, spatial, lockdown, orderRaw, baseMigrati
   read(path.join(v17Root, 'src/parts/21k-road-manager-spatial-road-selection-issue69.js')),
   read(path.join(v17Root, 'src/parts/21l-road-manager-structured-publish-lockdown-issue69.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
-  read(path.join(root, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql')),
-  read(path.join(root, 'supabase/migrations/20260811023000_issue69_release_hardening.sql'))
+  read(path.join(root, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql')),
+  read(path.join(root, 'supabase/migrations/20260811031439_issue69_release_hardening.sql'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];
