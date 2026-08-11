@@ -110,7 +110,7 @@ declare
   v_near extensions.geometry:=null;
   v_candidates jsonb:='[]'::jsonb;
   v_count integer:=0;
-  v_limit integer:=pg_catalog.greatest(1,pg_catalog.least(pg_catalog.coalesce(p_limit,8),20));
+  v_limit integer:=greatest(1,least(coalesce(p_limit,8),20));
   v_lng double precision;
   v_lat double precision;
   v_split extensions.geometry;
@@ -122,7 +122,7 @@ begin
   select r.* into v_left from public.brinesearch_roads r where r.id=p_left_road_id;
   select r.* into v_right from public.brinesearch_roads r where r.id=p_right_road_id;
   if v_left.id is null or v_right.id is null then raise exception 'Road Manager road not found'; end if;
-  if pg_catalog.coalesce(v_left.candidate_only,false) or pg_catalog.coalesce(v_right.candidate_only,false) then
+  if coalesce(v_left.candidate_only,false) or coalesce(v_right.candidate_only,false) then
     raise exception 'Candidate-only roads cannot define a published route boundary';
   end if;
   if v_left.centerline_geojson is null or v_right.centerline_geojson is null then
@@ -221,7 +221,7 @@ begin
     limit v_limit
   )
   select
-    pg_catalog.coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+    coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
       'coordinate',pg_catalog.jsonb_build_array(lng,lat),
       'kind','shared_road_manager_node',
       'node_gap_m',pg_catalog.round(node_gap_m::numeric,3),
@@ -307,7 +307,7 @@ begin
   v_end:=extensions.st_setsrid(extensions.st_makepoint(v_end_lng,v_end_lat),4326);
 
   select r.* into v_road from public.brinesearch_roads r where r.id=p_road_id;
-  if not found or pg_catalog.coalesce(v_road.candidate_only,false) then
+  if not found or coalesce(v_road.candidate_only,false) then
     raise exception 'Road Manager road is not publishable';
   end if;
   if v_road.centerline_geojson is null then
@@ -400,7 +400,7 @@ begin
     'resolved',true,
     'road_id',p_road_id,
     'road_name',v_road.canonical_name,
-    'aliases',pg_catalog.to_jsonb(pg_catalog.coalesce(v_road.aliases,'{}'::text[])),
+    'aliases',pg_catalog.to_jsonb(coalesce(v_road.aliases,'{}'::text[])),
     'start_coordinate',pg_catalog.jsonb_build_array(extensions.st_x(extensions.st_startpoint(v_clip)),extensions.st_y(extensions.st_startpoint(v_clip))),
     'end_coordinate',pg_catalog.jsonb_build_array(extensions.st_x(extensions.st_endpoint(v_clip)),extensions.st_y(extensions.st_endpoint(v_clip))),
     'clipped_geometry',extensions.st_asgeojson(v_clip,9)::jsonb,
