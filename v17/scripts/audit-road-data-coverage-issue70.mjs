@@ -138,10 +138,14 @@ assert.ok(apply.includes("set match_status='held',geometry_status='held'"));
 assert.ok(apply.includes('where r.source_record_id=v_identity'));
 assert.ok(!apply.includes('similarity('), '#70 apply must not choose Road Manager identity by similarity.');
 
-// #69 must remain fail-closed. #70 enriches data; it does not turn guessing back on.
+// #69 must remain fail-closed. These are the actual V17.3.31 runtime guards:
+// incomplete canonical reloads throw, failed loads clear edit state, and an
+// unresolved clip does not invent geometry.
 for (const token of [
-  'Exact geometry unresolved',
   'routeIssue69ValidateStructuredPayload',
+  'is not exact geometry version 1',
+  'Exact route load failed closed',
+  'geometry unresolved:',
   'routeIssue69PublishStructuredHardened'
 ]) {
   assert.ok(issue69Runtime.includes(token), `#70 baseline lost #69 fail-closed runtime token ${token}`);
