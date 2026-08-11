@@ -130,16 +130,29 @@ async function installMocks(context, role, requestLog, tileCounter, mappingStatu
   });
 }
 
-async function openOfficial(page) {
+async function openOfficial(page, requests = [], pageErrors = [], label = "scenario") {
   await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
-  await page.locator('[data-road-manager-tab="official"]').waitFor();
-  await page.locator('[data-road-manager-tab="official"]').click();
+  const officialTab = page.locator('[data-road-manager-tab="official"]');
+  try {
+    await officialTab.waitFor({ timeout: 8000 });
+  } catch (error) {
+    const diagnostic = await page.evaluate(() => ({
+      url: location.href,
+      hash: location.hash,
+      title: document.title,
+      body: String(document.body?.innerText || "").slice(0, 5000),
+      session: localStorage.getItem("brinesearch.editorSession.v1")
+    })).catch(e => ({ evaluateError: String(e?.stack || e) }));
+    const requestSummary = requests.slice(-30).map(item => `${item.pathname}${item.search || ""}`);
+    throw new Error(`Issue #97 Road Manager did not render for ${label}. Diagnostic=${JSON.stringify(diagnostic)} pageErrors=${JSON.stringify(pageErrors)} requests=${JSON.stringify(requestSummary)} original=${String(error?.message || error)}`);
+  }
+  await officialTab.click();
   await page.locator("#roadOfficialSearchIssue97").waitFor();
   await page.getByText("15 authoritative datasets").waitFor();
 }
 
-async function openThrushAndConnections(page) {
-  await openOfficial(page);
+async function openThrushAndConnections(page, requests = [], pageErrors = [], label = "scenario") {
+  await openOfficial(page, requests, pageErrors, label);
   await page.locator("#roadOfficialStateIssue97").selectOption("");
   await page.locator("#roadOfficialCountyIssue97").selectOption("PA|WAS");
   await page.locator("#roadOfficialCountyIssue97").dispatchEvent("change");
@@ -170,9 +183,7 @@ try {
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
-    await page.goto(`${preview}/#/settings/roads`, { waitUntil: "domcontentloaded" });
-    await page.locator('[data-road-manager-tab="official"]').waitFor();
-    await page.locator('[data-road-manager-tab="official"]').click();
+    await openOfficial(page, requests, pageErrors, "stale-render owner setup");
     await page.evaluate(() => { location.hash = "#/settings"; });
     await page.waitForTimeout(150);
     assert.equal(pageErrors.length, 0, `stale registry render threw after tab navigation: ${pageErrors.join("\n")}`);
@@ -191,7 +202,7 @@ try {
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
 
-    await openThrushAndConnections(page);
+    await openThrushAndConnections(page, requests, pageErrors, `${role} normal flow`);
     const countyRequest = [...requests].reverse().find(item => item.pathname.endsWith("brinesearch_authoritative_road_search"));
     assert.equal(countyRequest?.body?.p_state_code, "PA", "duplicate WAS county filter lost its state");
     assert.equal(countyRequest?.body?.p_county_code, "WAS", "duplicate WAS county filter lost its county code");
@@ -234,7 +245,7 @@ try {
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
-    await openThrushAndConnections(page);
+    await openThrushAndConnections(page, requests, pageErrors, "owner stale-mapping flow");
     await page.locator(`[data-road-official-open-connected="${connectedIdentityId}"]`).first().click();
     await page.getByText("E Cardinal Avenue", { exact: true }).waitFor();
     assert.equal(await page.locator('#roadManagerEditor input[name="canonical_name"]').count(), 0,
