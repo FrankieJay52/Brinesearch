@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = path.resolve(process.cwd());
 const migration = fs.readFileSync(
-  path.join(root, 'supabase', 'migrations', '20260811083000_issue70_held_source_conflicts.sql'),
+  path.join(root, 'supabase', 'migrations', '20260811083500_issue70_held_source_conflicts.sql'),
   'utf8'
 );
 
@@ -20,6 +20,8 @@ assert(migration.includes("new.road_id:=null"), 'generic refresh must clear stal
 assert(migration.includes("new.distance_miles:=null"), 'generic refresh must clear stale mileage when pending step text changes');
 assert(migration.includes("'unmatched_saved_road_name'"), 'stale identity guard must cover unmatched generic refresh rows');
 assert(migration.includes("'explicit_in_saved_directions'"), 'stale identity guard must clear an old road before a changed explicit highway is rematched');
+assert(migration.includes('disable trigger brinesearch_direction_intelligence_refresh') && migration.includes('enable trigger brinesearch_direction_intelligence_refresh'), 'authoritative pad corrections must batch the expensive direction refresh safely');
+assert(migration.includes('select public.brinesearch_refresh_all_direction_intelligence()'), 'derived direction intelligence must refresh once after the batched pad correction');
 
 for (const nlfid of [
   'THASTR00135**C',
@@ -45,14 +47,14 @@ for (const corrected of [
   assert(migration.includes(corrected), `corrected route identity must be persisted: ${corrected}`);
 }
 
-assert(migration.includes("source_method='official_ohio_lbrs_issue70_source_conflict_correction'") || migration.includes("'official_ohio_lbrs_issue70_source_conflict_correction'"), 'corrected Road Manager rows need explicit official-source provenance');
-assert(migration.includes("match_method='official_lbrs_source_conflict_correction_issue70'") || migration.includes("'official_lbrs_source_conflict_correction_issue70'"), 'corrected Route Prep steps need dedicated exact provenance');
-assert(migration.includes("v_geom_count<>v_feature_count"), 'all official LBRS features must carry geometry');
+assert(migration.includes("'official_ohio_lbrs_issue70_source_conflict_correction'"), 'corrected Road Manager rows need explicit official-source provenance');
+assert(migration.includes("'official_lbrs_source_conflict_correction_issue70'"), 'corrected Route Prep steps need dedicated exact provenance');
+assert(migration.includes("geom_count<>feature_count"), 'all official LBRS features must carry geometry');
 assert(migration.includes("f->'properties'->>'nlfid'<>rec.nlfid"), 'LBRS NLF identity must be revalidated exactly');
 assert(migration.includes("f->'properties'->>'rd_num'<>rec.route_number"), 'LBRS route number must be revalidated exactly');
-assert(migration.includes("f->'properties'->>'jurisdic'<>v_expected_jur"), 'LBRS jurisdiction must be revalidated exactly');
-assert(migration.includes('v_township_count=0'), 'expected township must be required');
-assert(migration.includes('v_name_count=0'), 'exact official local street name must be required');
+assert(migration.includes("f->'properties'->>'jurisdic'<>expected_jur"), 'LBRS jurisdiction must be revalidated exactly');
+assert(migration.includes('twp_count=0'), 'expected township must be required');
+assert(migration.includes('name_count=0'), 'exact official local street name must be required');
 assert(migration.includes("'fuzzy_matching',false") && migration.includes("'name_similarity_decision',false") && migration.includes("'nearest_road_fallback',false"), 'correction evidence must explicitly record no-guess behavior');
 
 assert(migration.includes("structured_road_sequence='OH-7 → OH-39 → TR-776 / Steubenville Pike Rd → TR-879 / Hazel Run Rd → Lease Road'"), 'JANIE-TRUST parser-created OR/duplicate route must be structurally cleaned');
