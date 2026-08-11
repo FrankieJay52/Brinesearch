@@ -161,7 +161,7 @@ async function openThrushAndConnections(page, requests = [], pageErrors = [], la
   await page.getByText("Enter at least two characters").waitFor();
   await page.locator("#roadOfficialSearchIssue97").fill("Thrush");
   await page.waitForTimeout(280);
-  await page.getByText("Thrush Avenue", { exact: true }).click();
+  await page.getByText("Thrush Avenue", { exact: true }).first().click();
   await page.getByText("Shared section", { exact: true }).waitFor();
   await page.getByText("Held — not route-selectable", { exact: true }).waitFor();
 }
@@ -226,7 +226,7 @@ try {
       assert.ok(requests.some(item => item.pathname.endsWith("/brinesearch_roads") && item.search.includes(`id=eq.${canonicalId}`)),
         "canonical connected-road cache miss did not fetch the exact Road Manager row");
     } else {
-      await page.getByText("Thrush Avenue", { exact: true }).waitFor();
+      await page.getByRole("heading", { name: "Thrush Avenue", exact: true }).waitFor();
       assert.equal(await page.locator("#roadManagerEditor").count(), 0, "read-only editor reached canonical Road Manager edit UI");
       assert.equal(requests.some(item => item.pathname.endsWith("/rpc/brinesearch_authoritative_identities_for_road")), false,
         "read-only editor should not request canonical edit-mapping verification");
@@ -247,7 +247,7 @@ try {
     page.on("pageerror", error => pageErrors.push(error.stack || error.message));
     await openThrushAndConnections(page, requests, pageErrors, "owner stale-mapping flow");
     await page.locator(`[data-road-official-open-connected="${connectedIdentityId}"]`).first().click();
-    await page.getByText("E Cardinal Avenue", { exact: true }).waitFor();
+    await page.getByRole("heading", { name: "E Cardinal Avenue", exact: true }).waitFor();
     assert.equal(await page.locator('#roadManagerEditor input[name="canonical_name"]').count(), 0,
       "stale/candidate canonical mapping incorrectly reached editable Road Manager UI");
     assert.equal(requests.some(item => item.pathname.endsWith("/brinesearch_roads") && item.search.includes(`id=eq.${canonicalId}`)), false,
