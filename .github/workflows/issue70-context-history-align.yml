@@ -1,0 +1,44 @@
+name: Align issue 70 context migration history
+
+on:
+  push:
+    branches:
+      - data/issue-70-oh-ambiguous-context
+    paths:
+      - .github/workflows/issue70-context-history-align.yml
+
+permissions:
+  contents: write
+
+jobs:
+  align:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: data/issue-70-oh-ambiguous-context
+          fetch-depth: 0
+      - name: Align repository versions with production
+        shell: bash
+        run: |
+          set -euo pipefail
+          git mv supabase/migrations/20260811044500_issue70_oh_ambiguous_context_resolution.sql supabase/migrations/20260811044841_issue70_oh_ambiguous_context_resolution.sql
+          git mv supabase/migrations/20260811044510_issue70_oh_context_release_assertions.sql supabase/migrations/20260811044852_issue70_oh_context_release_assertions.sql
+          git mv supabase/migrations/20260811045500_issue70_context_neighbor_evidence_invariant.sql supabase/migrations/20260811044903_issue70_context_neighbor_evidence_invariant.sql
+          python <<'PY'
+          from pathlib import Path
+          path = Path('v17/scripts/audit-road-data-coverage-issue70.mjs')
+          text = path.read_text()
+          for old,new in {
+            '20260811044500_issue70_oh_ambiguous_context_resolution.sql':'20260811044841_issue70_oh_ambiguous_context_resolution.sql',
+            '20260811044510_issue70_oh_context_release_assertions.sql':'20260811044852_issue70_oh_context_release_assertions.sql',
+            '20260811045500_issue70_context_neighbor_evidence_invariant.sql':'20260811044903_issue70_context_neighbor_evidence_invariant.sql'
+          }.items(): text=text.replace(old,new)
+          path.write_text(text)
+          PY
+          git diff --check
+          git config user.name 'BrineSearch Release Coordinator'
+          git config user.email 'actions@users.noreply.github.com'
+          git add supabase/migrations v17/scripts/audit-road-data-coverage-issue70.mjs
+          git commit -m 'Align #70 context migration history with production'
+          git push origin HEAD:data/issue-70-oh-ambiguous-context
