@@ -164,6 +164,84 @@ assert.ok(!/similarity|normalized_name|canonical_name\s*(?:=|like|ilike)/i.test(
   draftHelpers.match(/create or replace function public\.brinesearch_route_step_boundary_candidates[\s\S]*?comment on function public\.brinesearch_route_step_boundary_candidates/)?.[0] || ''
 ), 'Boundary-candidate helper must not choose intersections using road-name similarity.');
 
+const canonicalPublisherStart = draftHelpers.lastIndexOf(
+  'create or replace function public.brinesearch_publish_structured_route('
+);
+const canonicalPublisherEnd = draftHelpers.indexOf('\n$$;', canonicalPublisherStart);
+assert.ok(canonicalPublisherStart >= 0 && canonicalPublisherEnd > canonicalPublisherStart,
+  'Could not isolate the hardened #69 canonical publisher.');
+const canonicalPublisher = draftHelpers.slice(canonicalPublisherStart, canonicalPublisherEnd + 4);
+for (const token of [
+  'security definer',
+  "set search_path=''",
+  'Expected route revision is required',
+  'structured_route_revision',
+  'for update',
+  'for share',
+  'brinesearch_route_step_clip',
+  'server-derived mileage',
+  'one exact shared Road Manager node pair',
+  'road_geometry_digest',
+  'road_geometry_checked_at',
+  'road_source_method',
+  'private_hold',
+  'verified_public',
+  'Driver safety information:',
+  'driver_safety_context=v_public_safety'
+]) assert.ok(canonicalPublisher.toLowerCase().includes(token.toLowerCase()),
+  `#69 canonical publisher missing ${token}`);
+
+const derivationStart = canonicalPublisher.indexOf('-- Server-derive every traveled occurrence');
+const derivationEnd = canonicalPublisher.indexOf('\n  if exists (\n    select 1\n    from private_verification.brinesearch_driver_safety_facts_issue69', derivationStart);
+assert.ok(derivationStart >= 0 && derivationEnd > derivationStart,
+  'Could not isolate the server-authoritative geometry derivation phase.');
+const derivationPhase = canonicalPublisher.slice(derivationStart, derivationEnd);
+for (const forbidden of [
+  "v_step->'clipped_geometry'",
+  "v_step->>'miles'",
+  "v_step->'aliases'",
+  "v_step->>'geometry_source'",
+  "v_step->>'geometry_status'"
+]) assert.ok(!derivationPhase.includes(forbidden),
+  `#69 publisher trusts client geometry authority: ${forbidden}`);
+for (const token of [
+  "'clipped_geometry',v_clip_result->'clipped_geometry'",
+  "'miles',v_miles",
+  "'aliases',pg_catalog.to_jsonb(coalesce(v_road.aliases",
+  "'geometry_source','road_manager_clip_issue69'"
+]) assert.ok(derivationPhase.includes(token),
+  `#69 publisher does not derive canonical ${token}`);
+
+const publicSnapshot = canonicalPublisher.match(
+  /select coalesce\(pg_catalog\.jsonb_agg\(pg_catalog\.jsonb_build_object\([\s\S]*?into v_public_steps/
+)?.[0] || '';
+assert.ok(publicSnapshot, 'Could not isolate the canonical public route snapshot.');
+for (const forbidden of ['step_note', 'private_step_note', "'note'"]) {
+  assert.ok(!publicSnapshot.includes(forbidden),
+    `#69 public structured snapshot exposes private route data: ${forbidden}`);
+}
+
+for (const token of [
+  'brinesearch_driver_safety_facts_issue69',
+  'force row level security',
+  'brinesearch_sanitize_public_safety_context_issue69',
+  'pads_public_safety_snapshot_canonical_issue69',
+  'public_pad_detail_safety_snapshot_canonical_issue69',
+  'geometry_version=0',
+  'brinesearch_guard_exact_route_road_geometry_issue69',
+  'brinesearch_guard_structured_pad_route_fields_issue69',
+  'Issue #69 safety inventory count drift',
+  'Issue #69 access-credential hold count drift',
+  'Issue #69 unresolved safety review hold count drift',
+  'aclexplode',
+  'pg_get_userbyid'
+]) assert.ok(draftHelpers.includes(token), `#69 durable database guard missing ${token}`);
+assert.ok(
+  draftHelpers.includes('from public,anon,authenticated;') &&
+  draftHelpers.includes('to authenticated;'),
+  '#69 canonical publisher ACL must revoke broad execution and grant authenticated RPC execution only.'
+);
+
 const occurrenceA = { routeStepId: 'a', roadId: 'same-road', startCoordinate: [0, 0], endCoordinate: [1, 0] };
 const occurrenceB = { routeStepId: 'b', roadId: 'same-road', startCoordinate: [1, 0], endCoordinate: [2, 0] };
 assert.equal(occurrenceA.roadId, occurrenceB.roadId);
@@ -172,7 +250,7 @@ assert.notDeepEqual(occurrenceA.startCoordinate, occurrenceB.startCoordinate);
 
 console.log(JSON.stringify({
   issue: 69,
-  status: 'structured foundation + boundary editor + spatial road identity + publish lockdown checkpoint',
+  status: 'canonical server-clipped publisher + durable safety context + spatial/editor foundation',
   occurrenceIdentity: 'route_step_id + exact boundaries; never road-name similarity',
   exactHighlight: 'clippedGeometry only',
   publishBoundary: 'single runtime entrypoint -> brinesearch_publish_structured_route with optimistic route revision',
@@ -181,6 +259,7 @@ console.log(JSON.stringify({
   roadIdentity: 'exact source ID or spatial support; ambiguous/name-only matches block instead of guessing',
   reverseRoute: 'occurrence-specific inbound turn is explicit; same-row outbound inversion is forbidden',
   unresolvedBehavior: 'no fake exact highlight and publish blocked',
-  remaining: 'canonical publisher hardening + browser race/runtime regressions + #81 safety-context preservation + production rollout/live verification'
+  safetyContext: 'verified allowlisted facts regenerate separately; private/unresolved facts block instead of being deleted',
+  remaining: 'browser race/runtime regressions + rollback hard-case rehearsal + production rollout/live verification'
 }, null, 2));
 console.log('GitHub #69 structured-route foundation audit passed.');

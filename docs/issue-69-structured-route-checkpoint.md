@@ -185,3 +185,48 @@ read-only. Remaining release blockers include the canonical publisher rewrite,
 private allowlisted safety facts, async pad/topology race guards, strict reload,
 shared remove invalidation, read-only mileage, runtime/browser regressions, SQL
 rollback rehearsal, and the full release/live-verification gates.
+
+## 2026-08-11 canonical publisher and safety-contract slice after `6d118e6`
+
+The reviewed draft migration now replaces V17.3.29 publication with one
+Owner-gated, postgres-owned `SECURITY DEFINER` RPC using an empty search path.
+Authenticated clients still cannot update `pads` directly under #74, and their
+direct `brinesearch_pad_roads` policies are restricted to unresolved
+geometry-version-0 rows. Exact version-1 publication is therefore routed through
+`brinesearch_publish_structured_route`.
+
+The publisher requires a non-null durable pad route revision, locks the pad and
+all referenced Road Manager rows deterministically, and server-runs
+`brinesearch_route_step_clip` from each occurrence's road ID and exact
+boundaries. Client geometry, mileage, aliases, source and geometry status are
+preview-only. Canonical rows persist the server clip, geometry-derived mileage,
+Road Manager aliases/source method/check timestamp/centerline digest, exact
+occurrence ID, explicit outbound/reverse turns and per-step route revision.
+Different-road continuity now requires one actual shared Road Manager vertex
+pair; master and clipped geometry must be valid and simple. Dependent exact
+steps also prevent silent Road Manager centerline replacement.
+
+The #81 safety release blocker is handled with a private, forced-RLS,
+category-allowlisted and provenance-aware fact store. Publication projects only
+the explicit safe fields and renders a separate `Driver safety information`
+section; route notes, evidence, source excerpts, digests, review state and
+reviewer data remain private. A drift-checked golden inventory contains 57
+reviewed facts across 51 pads. Forty current public rows containing
+credential-like access codes are private holds, and 29 route-dependent,
+corrupted, dynamic or otherwise unresolved contexts are separate private holds.
+Any active hold blocks publication before mutation, preserving current driver
+information without guessing or declassifying a credential.
+
+Focused static/regression audits passed:
+
+- `verify:exact-route-geometry`
+- `verify:route-note-security` (#73)
+- `verify:editor-revision-security` (#74)
+- `verify:directions-authoritative` (#81)
+- Node syntax checks for all four audit scripts
+- `git diff --check`
+
+Production remained read-only; no #69 DDL has been applied. The exact next step
+is a transaction-wrapped production rollback rehearsal of this reviewed
+migration and publisher hard cases, followed by a checkpoint for any correction
+before the browser race/strict-reload topology slice.
