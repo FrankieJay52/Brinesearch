@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(
-  path.join(root, "supabase/migrations/20260811234500_issue97_route_corpus_reconciliation.sql"),
+  path.join(root, "supabase/migrations/20260811234700_issue97_route_corpus_reconciliation.sql"),
   "utf8"
 );
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
