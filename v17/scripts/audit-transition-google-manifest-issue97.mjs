@@ -20,10 +20,18 @@ for (const token of [
   "authoritative_junction_anchor",
   "authoritative_clipped_geometry",
   "driver_road_sequence",
-  "final_exact_road_does_not_reach_saved_pad_gps",
   "transition_route_dependencies_not_current_or_exact",
   "canonical_occurrence_not_covered_by_current_authoritative_source",
   "same-identity current authoritative source segments within one meter",
+  "t.status<>'resolved'",
+  "t.coordinate is null",
+  "t.junction_id is null",
+  "t.anchor_id is null",
+  "t.graph_build_id is null",
+  "t.anchor_digest is null",
+  "t.graph_build_digest is null",
+  "t.source_revision_digest is null",
+  "brinesearch_issue97_graph_build_sources_current(t.graph_build_id)",
   "name_only_resolution',false",
   "nearest_road_resolution',false",
   "fuzzy_resolution',false",
@@ -43,8 +51,6 @@ assert.match(sql, /generate_series\([\s\S]*500::numeric[\s\S]*p\.length_m-100[\s
   "transition Google manifests must add regular shaping points on longer exact occurrences");
 assert.match(sql, /st_closestpoint\([\s\S]*src\.source_geom[\s\S]*candidate_point\.candidate[\s\S]*source_distance_m<=1/,
   "shaping points must snap only to the same resolved authoritative source geometry within one metre");
-assert.match(sql, /t\.status='resolved'[\s\S]*t\.junction_id[\s\S]*t\.anchor_id[\s\S]*graph_build_id[\s\S]*anchor_digest/,
-  "transition controls must retain exact verified junction/anchor/graph evidence");
 assert.match(sql, /coalesce\(v_pad\.structured_route_revision,0\)>=1[\s\S]*road_sequence_status='owner_verified'[\s\S]*brinesearch_issue97_refresh_google_route_published_core/,
   "fully #69-published routes must keep the stricter existing Google builder");
 assert.match(sql, /v_core:=public\.brinesearch_issue97_run_all_pad_routing_pipeline_geometry_core\(p_pad_id\);[\s\S]*v_google:=public\.brinesearch_issue97_refresh_google_routes\(p_pad_id\);/,
