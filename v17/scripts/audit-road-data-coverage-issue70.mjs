@@ -8,15 +8,18 @@ const v17Root = path.resolve(scriptDir, '..');
 const root = path.resolve(v17Root, '..');
 const migrationPath = path.join(root, 'supabase/migrations/20260811042124_issue70_all_operator_oh_exact_road_coverage.sql');
 const contextPath = path.join(root, 'supabase/migrations/20260811044500_issue70_oh_ambiguous_context_resolution.sql');
-const [migration, contextMigration, pkgText, issue69Runtime] = await Promise.all([
+const neighborInvariantPath = path.join(root, 'supabase/migrations/20260811045500_issue70_context_neighbor_evidence_invariant.sql');
+const [migration, contextMigration, neighborInvariantMigration, pkgText, issue69Runtime] = await Promise.all([
   fs.readFile(migrationPath, 'utf8'),
   fs.readFile(contextPath, 'utf8'),
+  fs.readFile(neighborInvariantPath, 'utf8'),
   fs.readFile(path.join(root, 'package.json'), 'utf8'),
   fs.readFile(path.join(v17Root, 'src/parts/21m-road-manager-runtime-hardening-issue69.js'), 'utf8')
 ]);
 const pkg = JSON.parse(pkgText);
 const lower = migration.toLowerCase();
 const context = contextMigration.toLowerCase();
+const neighborInvariant = neighborInvariantMigration.toLowerCase();
 
 for (const token of [
   'private_verification.brinesearch_oh_road_matches_issue70','brinesearch_refresh_oh_road_matches_issue70',
@@ -54,9 +57,6 @@ assert.ok(loader.includes('tims.dot.state.oh.us/ags/rest/services/roadway_inform
 for (const forbidden of ['openstreetmap.org', 'overpass', 'nominatim']) assert.ok(!loader.includes(forbidden));
 assert.ok(apply.includes("where match_status='unique_exact'"));
 
-// Second #70 slice: ambiguous candidates may be resolved only by strict current
-// topology/pad evidence with every official candidate geometrized. No fuzzy or
-// closest-pad-only shortcut is allowed.
 for (const token of [
   'private_verification.brinesearch_oh_context_resolutions_issue70',
   'brinesearch_load_oh_ambiguous_geometry_issue70',
@@ -88,6 +88,23 @@ for (const functionName of ['brinesearch_load_oh_ambiguous_geometry_issue70(inte
 assert.ok(context.includes('force row level security'));
 assert.ok(context.includes('revoke all on private_verification.brinesearch_oh_context_resolutions_issue70 from public,anon,authenticated;'));
 assert.ok(context.includes('tims.dot.state.oh.us/ags/rest/services/roadway_information/road_inventory/featureserver/0/query'));
+assert.ok(context.includes('extensions.st_collect(c.geom order by c.objectid)'), '#70 candidate geometry/digest aggregation must be deterministic.');
+
+// A neighbor Road Manager ID is evidence only when an exact geometry digest was
+// present. Pad-endpoint cases may have an adjacent step ID with no centerline;
+// that metadata must be normalized away rather than turning into a false stale
+// evidence dependency at apply time.
+for (const token of [
+  'brinesearch_normalize_context_neighbor_evidence_issue70',
+  'if new.prev_geometry_digest is null then',
+  'new.prev_road_id:=null',
+  'if new.next_geometry_digest is null then',
+  'new.next_road_id:=null',
+  'brinesearch_oh_context_issue70_prev_evidence_pair',
+  'brinesearch_oh_context_issue70_next_evidence_pair',
+  'before insert or update of prev_road_id,next_road_id,prev_geometry_digest,next_geometry_digest'
+]) assert.ok(neighborInvariant.includes(token.toLowerCase()), `#70 neighbor-evidence invariant missing ${token}`);
+assert.ok(neighborInvariant.includes('revoke all on function private_verification.brinesearch_normalize_context_neighbor_evidence_issue70()'));
 
 for (const token of ['routeIssue69ValidateStructuredPayload','is not exact geometry version 1','Exact route load failed closed','geometry unresolved:','routeIssue69PublishStructuredHardened']) {
   assert.ok(issue69Runtime.includes(token), `#70 baseline lost #69 fail-closed runtime token ${token}`);
@@ -95,5 +112,5 @@ for (const token of ['routeIssue69ValidateStructuredPayload','is not exact geome
 assert.equal(pkg.scripts?.['verify:road-data-coverage'], 'node v17/scripts/audit-road-data-coverage-issue70.mjs');
 assert.ok(pkg.scripts?.build?.includes('verify:road-data-coverage'));
 
-console.log(JSON.stringify({issue:70,scope:'all-operator Ohio exact + strict ambiguity context Road Manager coverage',autoApply:'unique exact or strict complete-candidate topology/pad separation only',ambiguity:'all unqualified rows stay held',geometry:'official ODOT object IDs only',routePublication:'none; #69 remains canonical/fail-closed'}, null, 2));
+console.log(JSON.stringify({issue:70,scope:'all-operator Ohio exact + strict ambiguity context Road Manager coverage',autoApply:'unique exact or strict complete-candidate topology/pad separation only',ambiguity:'all unqualified rows stay held',geometry:'official ODOT object IDs only',neighborEvidence:'Road Manager ID retained only when paired with geometry digest',routePublication:'none; #69 remains canonical/fail-closed'}, null, 2));
 console.log('GitHub #70 road-data coverage audit passed.');
