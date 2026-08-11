@@ -3,12 +3,12 @@ import path from 'node:path';
 
 const root = path.resolve(process.cwd());
 const migrations = path.join(root, 'supabase', 'migrations');
-const base = fs.readFileSync(path.join(migrations, '20260811062500_issue70_saved_alias_reconciliation.sql'), 'utf8');
-const runtime = fs.readFileSync(path.join(migrations, '20260811062510_issue70_saved_alias_reconciliation_runtime_fix.sql'), 'utf8');
-const converge = fs.readFileSync(path.join(migrations, '20260811062520_issue70_saved_alias_reconciliation_converge.sql'), 'utf8');
-const passCount = fs.readFileSync(path.join(migrations, '20260811062525_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
-const split = fs.readFileSync(path.join(migrations, '20260811062530_issue70_split_cr10_cr12_identity.sql'), 'utf8');
-const lockdown = fs.readFileSync(path.join(migrations, '20260811062540_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
+const base = fs.readFileSync(path.join(migrations, '20260811064436_issue70_saved_alias_reconciliation.sql'), 'utf8');
+const runtime = fs.readFileSync(path.join(migrations, '20260811064449_issue70_saved_alias_reconciliation_runtime_fix.sql'), 'utf8');
+const converge = fs.readFileSync(path.join(migrations, '20260811064504_issue70_saved_alias_reconciliation_converge.sql'), 'utf8');
+const passCount = fs.readFileSync(path.join(migrations, '20260811064523_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
+const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_split_cr10_cr12_identity.sql'), 'utf8');
+const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
