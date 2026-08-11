@@ -10,13 +10,19 @@ const migrationPath = path.join(
   root,
   'supabase/migrations/20260811034500_issue70_all_operator_oh_exact_road_coverage.sql'
 );
-const [migration, pkgText, issue69Runtime] = await Promise.all([
+const runtimeFixPath = path.join(
+  root,
+  'supabase/migrations/20260811034510_issue70_all_operator_oh_exact_road_coverage_runtime_fix.sql'
+);
+const [migration, runtimeFix, pkgText, issue69Runtime] = await Promise.all([
   fs.readFile(migrationPath, 'utf8'),
+  fs.readFile(runtimeFixPath, 'utf8'),
   fs.readFile(path.join(root, 'package.json'), 'utf8'),
   fs.readFile(path.join(v17Root, 'src/parts/21m-road-manager-runtime-hardening-issue69.js'), 'utf8')
 ]);
 const pkg = JSON.parse(pkgText);
 const lower = migration.toLowerCase();
+const fix = runtimeFix.toLowerCase();
 
 for (const token of [
   'private_verification.brinesearch_oh_road_matches_issue70',
@@ -91,11 +97,30 @@ assert.ok(refresh.includes('c.county_code=b.county_code'), '#70 exact matching m
 assert.ok(refresh.includes("then 'ambiguous'"), '#70 multiple exact candidates must remain ambiguous.');
 assert.ok(refresh.includes("then 'conflict'"), '#70 conflicting route/name identities must fail closed.');
 
+// The follow-up is the final executable definition of loader/apply. It exists so
+// the very first #70 production execution never reaches the pre-rehearsal SQL
+// defects found while reviewing the base source.
+for (const token of [
+  'brinesearch_load_oh_road_geometry_issue70',
+  'brinesearch_apply_oh_road_matches_issue70',
+  'pg_catalog.strpos',
+  'where r.source_record_id=v_identity',
+  "match_status='unique_exact'",
+  "geometry_status='complete'",
+  'multiple_existing_road_manager_records_for_exact_identity'
+]) {
+  assert.ok(fix.includes(token), `#70 runtime fix missing ${token}`);
+}
+for (const forbidden of ['pg_catalog.position(', 'min(r.id)']) {
+  assert.ok(!fix.includes(forbidden), `#70 final runtime definition still contains ${forbidden}`);
+}
+
 // Geometry loader may call only the official ODOT Road Inventory endpoint and
 // only for exact staged or pre-existing official identities.
-const applyStart = lower.indexOf('create or replace function public.brinesearch_apply_oh_road_matches_issue70');
-assert.ok(applyStart > loaderStart, 'Could not isolate #70 geometry loader.');
-const loader = lower.slice(loaderStart, applyStart);
+const fixLoaderStart = fix.indexOf('create or replace function public.brinesearch_load_oh_road_geometry_issue70');
+const fixApplyStart = fix.indexOf('create or replace function public.brinesearch_apply_oh_road_matches_issue70');
+assert.ok(fixLoaderStart >= 0 && fixApplyStart > fixLoaderStart, 'Could not isolate final #70 geometry loader.');
+const loader = fix.slice(fixLoaderStart, fixApplyStart);
 assert.ok(loader.includes('tims.dot.state.oh.us/ags/rest/services/roadway_information/road_inventory/featureserver/0/query'));
 assert.ok(loader.includes("m.match_status='unique_exact'"));
 assert.ok(loader.includes("r.source_agency='ohio department of transportation'"));
@@ -105,12 +130,12 @@ for (const forbidden of ['openstreetmap.org', 'overpass', 'nominatim']) {
 
 // Applying an exact match is allowed to replace a legacy partial OSM centerline
 // only after the unique official identity has already been established.
-const diagnosticsStart = lower.indexOf('create or replace function public.brinesearch_oh_road_coverage_issue70');
-const apply = lower.slice(applyStart, diagnosticsStart);
+const apply = fix.slice(fixApplyStart);
 assert.ok(apply.includes("where match_status='unique_exact'"));
 assert.ok(apply.includes("and geometry_status='complete'"));
 assert.ok(apply.includes("r.source_agency='openstreetmap' and r.source_method='owner_map_tap_v17328'"));
 assert.ok(apply.includes("set match_status='held',geometry_status='held'"));
+assert.ok(apply.includes('where r.source_record_id=v_identity'));
 assert.ok(!apply.includes('similarity('), '#70 apply must not choose Road Manager identity by similarity.');
 
 // #69 must remain fail-closed. #70 enriches data; it does not turn guessing back on.
@@ -136,6 +161,7 @@ console.log(JSON.stringify({
   ambiguity: 'held; never guessed',
   geometry: 'official ODOT object IDs only',
   legacyPartialOsm: 'upgrade only after unique exact official identity',
-  routePublication: 'none; #69 remains canonical/fail-closed'
+  routePublication: 'none; #69 remains canonical/fail-closed',
+  runtimeFix: 'final loader/apply avoid POSITION qualification and min(uuid)'
 }, null, 2));
 console.log('GitHub #70 road-data coverage audit passed.');
