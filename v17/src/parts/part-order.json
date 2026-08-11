@@ -68,6 +68,7 @@
     "21k-road-manager-spatial-road-selection-issue69.js",
     "21l-road-manager-structured-publish-lockdown-issue69.js",
     "21m-road-manager-runtime-hardening-issue69.js",
+    "21n-road-manager-connections-issue97.js",
     "22m-direction-source-priority-and-coalescer.js",
     "22n-direction-context-coalescing.js",
     "22o-direction-mileage-badges-double-name.js",

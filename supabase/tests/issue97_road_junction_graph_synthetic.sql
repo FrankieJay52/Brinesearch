@@ -1,0 +1,303 @@
+-- GitHub #97 synthetic topology regression. Disposable database only.
+-- Apply all migrations first, then execute this file with ON_ERROR_STOP=1.
+begin;
+
+-- A legacy/bypassed complete status without bound coverage receipts must not
+-- authorize a graph build or stale-row retirement.
+insert into public.brinesearch_road_source_ingest_runs(
+  dataset_id,state_code,county_code,status,started_at,completed_at,
+  page_count,source_row_count,ingested_row_count,details
+)
+select d.id,'WV','DOD','complete',now()-interval '4 minutes',now()-interval '3 minutes',
+  1,case when d.topology_role='primary_network' then 24 else 0 end,
+  case when d.topology_role='primary_network' then 24 else 0 end,
+  jsonb_build_object('synthetic_fixture',true,'coverage_complete',true)
+from public.brinesearch_road_source_datasets d
+where d.state_code='WV' and d.active;
+
+do $issue97_incomplete_receipts$
+begin
+  perform public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
+  raise exception '#97 graph rebuild accepted an unbound legacy complete status';
+exception
+  when sqlstate '55000' then null;
+end
+$issue97_incomplete_receipts$;
+
+insert into public.brinesearch_road_source_ingest_runs(
+  dataset_id,state_code,county_code,status,started_at,completed_at,
+  page_count,source_row_count,ingested_row_count,details
+)
+select d.id,'WV',fixture.county_code,'complete',now()-interval '2 minutes',now()-interval '1 minute',
+  1,case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
+  case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
+  jsonb_build_object(
+    'synthetic_fixture','receipt_bound',
+    'coverage_complete',true,
+    'run_bound',true,
+    'coverage_receipts_verified',true,
+    'expected_source_rows',case when d.topology_role='primary_network' then fixture.primary_source_rows else 0 end,
+    'page_set_digest',md5('0:'||md5('issue97-synthetic:'||d.source_key||':'||fixture.county_code)),
+    'source_snapshot',jsonb_build_object(
+      'query_url','https://fixture.invalid/issue97/'||d.source_key||'/'||fixture.county_code,
+      'source_version','synthetic-v1',
+      'count_checked_at',now()
+    )
+  )
+from public.brinesearch_road_source_datasets d
+join public.brinesearch_road_source_dataset_counties scope
+  on scope.dataset_id=d.id and scope.state_code='WV'
+  and scope.active and scope.required_for_graph
+join (values ('DOD',24),('HAR',1)) fixture(county_code,primary_source_rows)
+  on fixture.county_code=scope.county_code
+where d.state_code='WV' and d.active;
+
+insert into public.brinesearch_road_source_ingest_pages(
+  run_id,page_offset,requested_limit,source_row_count,ingested_row_count,
+  rejected_row_count,has_more,page_digest,result
+)
+select r.id,0,1000,r.source_row_count,r.ingested_row_count,0,false,
+  md5('issue97-synthetic:'||d.source_key||':'||r.county_code),
+  jsonb_build_object(
+    'source',d.source_key,'county_code',r.county_code,'offset',0,'page_size',1000,
+    'source_rows',r.source_row_count,'rows',r.ingested_row_count,
+    'rejected_rows',0,'has_more',false,
+    'page_digest',md5('issue97-synthetic:'||d.source_key||':'||r.county_code),
+    'synthetic_fixture',true
+  )
+from public.brinesearch_road_source_ingest_runs r
+join public.brinesearch_road_source_datasets d on d.id=r.dataset_id
+where r.state_code='WV' and r.county_code in ('DOD','HAR')
+  and r.details->>'synthetic_fixture'='receipt_bound';
+
+-- A single NLF can cross an access/jurisdiction boundary. The identity builder
+-- must split the physically connected source records before classification so
+-- a private segment can never inherit the adjacent public identity status.
+insert into public.brinesearch_odot_road_catalog(
+  roadway_inventory_id,objectid,nlf_id,county_code,jurisdiction_code,
+  route_type,route_number,official_name,ctl_begin,ctl_end,attributes,geom,
+  geometry_loaded_at,source_active
+) values
+  ('ISSUE97_ODOT_PUBLIC',-970001,'ZBELZZ99999**C','BEL','M','MR','999',
+   'Issue 97 Mixed Access Road',0,0.10,'{}'::jsonb,
+   extensions.st_geomfromtext('LINESTRING(-80.7500 40.0500,-80.7490 40.0500)',4326),now(),true),
+  ('ISSUE97_ODOT_PRIVATE',-970002,'ZBELZZ99999**C','BEL','P','MR','999',
+   'Issue 97 Mixed Access Road',0.10,0.20,'{}'::jsonb,
+   extensions.st_geomfromtext('LINESTRING(-80.7490 40.0500,-80.7480 40.0500)',4326),now(),true);
+
+select public.brinesearch_issue97_refresh_oh_identities('BEL');
+
+do $issue97_odot_private$
+begin
+  if (select count(*) from public.brinesearch_authoritative_road_identities i
+      where i.state_code='OH' and i.active
+        and i.attributes->>'nlf_id'='ZBELZZ99999**C')<>2 then
+    raise exception '#97 mixed-jurisdiction ODOT NLF was not split into two exact identities';
+  end if;
+  if not exists(select 1 from public.brinesearch_authoritative_road_identities i
+      where i.state_code='OH' and i.active
+        and i.attributes->>'nlf_id'='ZBELZZ99999**C'
+        and i.attributes->>'jurisdiction_code'='P'
+        and i.public_access_status='private' and i.drivable_status='drivable') then
+    raise exception '#97 ODOT jurisdiction P identity did not remain private';
+  end if;
+  if not exists(select 1 from public.brinesearch_authoritative_road_segments s
+      where s.source_segment_key='OH:ODOT:SEGMENT:ISSUE97_ODOT_PRIVATE'
+        and s.public_access_status='private' and s.drivable_status='drivable') then
+    raise exception '#97 ODOT jurisdiction P segment did not remain private';
+  end if;
+  if private_verification.brinesearch_issue97_identity_route_usable(
+      'private','drivable','local') then
+    raise exception '#97 canonical publication accepted a private ODOT identity';
+  end if;
+end
+$issue97_odot_private$;
+
+with source_rows(source_key,display_name,normalized_name,road_class,access_status,drivable_status,county_code,county_name,route_number,township) as (
+  values
+    ('WV:TEST:OVER_A','Over A','over a','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:OVER_B','Over B','over b','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:RAMP_MAIN','Ramp Main','ramp main','state_route','public','drivable','DOD','Doddridge','7',null),
+    ('WV:TEST:RAMP','Ramp 7A','ramp 7a','ramp','public','drivable','DOD','Doddridge','7A',null),
+    ('WV:TEST:PAIR_A','Pair A','pair a','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:PAIR_B','Pair B','pair b','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:SAME_NAME_A','Twin Road','twin road','local','public','drivable','DOD','Doddridge',null,'A'),
+    ('WV:TEST:SAME_NAME_B','Twin Road','twin road','local','public','drivable','DOD','Doddridge',null,'B'),
+    ('WV:TEST:MULTI_A','Multi A','multi a','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:MULTI_B','Multi B','multi b','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:MULTI_C','Multi C','multi c','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:SHARED_A','Shared A','shared a','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:SHARED_B','Shared B','shared b','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:PUBLIC','Public Road','public road','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:PRIVATE','Private Road','private road','access','private','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:BOUNDARY_DOD','Boundary Road','boundary road','local','public','drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:BOUNDARY_HAR','Boundary Road','boundary road','local','public','drivable','HAR','Harrison',null,null),
+    ('WV:TEST:TRAIL','Rail Trail','rail trail','trail','held','non_drivable','DOD','Doddridge',null,null),
+    ('WV:TEST:TR_7_A','TR-7','tr 7','township','public','drivable','DOD','Doddridge','7','Alpha'),
+    ('WV:TEST:TR_7_B','TR-7','tr 7','township','public','drivable','DOD','Doddridge','7','Beta')
+)
+insert into public.brinesearch_authoritative_road_identities(
+  id,dataset_id,source_identity_key,state_code,county_code,county_name,township,
+  route_system,route_number,display_name,normalized_name,road_class,
+  public_access_status,drivable_status,maintainer,source_record_ids,
+  attributes,source_digest,active,last_seen_at
+)
+select private_verification.brinesearch_issue97_uuid(s.source_key),d.id,s.source_key,
+  'WV',s.county_code,s.county_name,s.township,'TEST',s.route_number,
+  s.display_name,s.normalized_name,s.road_class,s.access_status,s.drivable_status,
+  'Synthetic fixture',array[s.source_key],jsonb_build_object('synthetic_fixture',true),
+  md5(s.source_key),true,now()
+from source_rows s
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_publication_lrs'
+) d;
+
+insert into public.brinesearch_authoritative_road_names(
+  identity_id,source_dataset_id,source_record_id,name_type,road_name,normalized_name,provenance
+)
+select i.id,i.dataset_id,i.source_identity_key,'official',i.display_name,i.normalized_name,
+  jsonb_build_object('synthetic_fixture',true)
+from public.brinesearch_authoritative_road_identities i
+where i.source_identity_key like 'WV:TEST:%';
+
+with segment_rows(segment_key,identity_key,county_code,county_name,access_status,drivable_status,z_level,bridge_status,wkt) as (
+  values
+    ('WV:TEST:SEG:OVER_A','WV:TEST:OVER_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.800,-81.095 39.800,-81.090 39.800)'),
+    ('WV:TEST:SEG:OVER_B','WV:TEST:OVER_B','DOD','Doddridge','public','drivable',1,'bridge','LINESTRING(-81.095 39.800,-81.095 39.810)'),
+    ('WV:TEST:SEG:RAMP_MAIN','WV:TEST:RAMP_MAIN','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.820,-81.095 39.820,-81.090 39.820)'),
+    ('WV:TEST:SEG:RAMP','WV:TEST:RAMP','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.095 39.820,-81.092 39.825)'),
+    ('WV:TEST:SEG:PAIR_A','WV:TEST:PAIR_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.840,-81.095 39.845,-81.090 39.840,-81.085 39.845)'),
+    ('WV:TEST:SEG:PAIR_B','WV:TEST:PAIR_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.845,-81.095 39.845,-81.090 39.845,-81.085 39.845)'),
+    ('WV:TEST:SEG:SAME_A','WV:TEST:SAME_NAME_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.860,-81.090 39.860)'),
+    ('WV:TEST:SEG:SAME_B','WV:TEST:SAME_NAME_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.865,-81.090 39.865)'),
+    ('WV:TEST:SEG:MULTI_A','WV:TEST:MULTI_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.880,-81.095 39.880,-81.090 39.880)'),
+    ('WV:TEST:SEG:MULTI_B','WV:TEST:MULTI_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.095 39.875,-81.095 39.880)'),
+    ('WV:TEST:SEG:MULTI_C','WV:TEST:MULTI_C','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.885,-81.095 39.880)'),
+    ('WV:TEST:SEG:SHARED_A','WV:TEST:SHARED_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.900,-81.095 39.900,-81.090 39.900)'),
+    ('WV:TEST:SEG:SHARED_B','WV:TEST:SHARED_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.900,-81.090 39.900)'),
+    ('WV:TEST:SEG:PUBLIC','WV:TEST:PUBLIC','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.920,-81.095 39.920,-81.090 39.920)'),
+    ('WV:TEST:SEG:PRIVATE','WV:TEST:PRIVATE','DOD','Doddridge','private','drivable',0,null,'LINESTRING(-81.095 39.920,-81.095 39.925)'),
+    ('WV:TEST:SEG:BOUNDARY_DOD','WV:TEST:BOUNDARY_DOD','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.940,-81.095 39.940)'),
+    ('WV:TEST:SEG:BOUNDARY_HAR','WV:TEST:BOUNDARY_HAR','HAR','Harrison','public','drivable',0,null,'LINESTRING(-81.095 39.940,-81.090 39.940)'),
+    ('WV:TEST:SEG:TRAIL','WV:TEST:TRAIL','DOD','Doddridge','held','non_drivable',0,null,'LINESTRING(-81.095 39.950,-81.095 39.955)'),
+    ('WV:TEST:SEG:TR7A','WV:TEST:TR_7_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.970,-81.090 39.970)'),
+    ('WV:TEST:SEG:TR7B','WV:TEST:TR_7_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.980,-81.090 39.980)')
+)
+insert into public.brinesearch_authoritative_external_road_segments(
+  id,dataset_id,identity_id,source_segment_key,source_record_id,state_code,
+  county_code,county_name,from_measure,to_measure,z_level,bridge_status,
+  public_access_status,drivable_status,geom,attributes,source_digest,active,fetched_at
+)
+select private_verification.brinesearch_issue97_uuid(s.segment_key),d.id,
+  private_verification.brinesearch_issue97_uuid(s.identity_key),s.segment_key,s.segment_key,
+  'WV',s.county_code,s.county_name,0,
+  extensions.st_length(extensions.st_geomfromtext(s.wkt,4326)::extensions.geography)/1609.344,
+  s.z_level,s.bridge_status,s.access_status,s.drivable_status,
+  extensions.st_geomfromtext(s.wkt,4326),jsonb_build_object('synthetic_fixture',true),
+  md5(s.segment_key||s.wkt),true,now()
+from segment_rows s
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_publication_lrs'
+) d;
+
+create temporary table issue97_build_results(result jsonb) on commit drop;
+insert into issue97_build_results
+select public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
+
+do $issue97_assert$
+declare
+  v_build uuid:=(select (result->>'build_id')::uuid from issue97_build_results order by ctid desc limit 1);
+  v_digest text:=(select result->>'graph_digest' from issue97_build_results order by ctid desc limit 1);
+  v_second jsonb;
+  v_second_build uuid;
+  v_activation jsonb;
+begin
+  v_activation:=public.brinesearch_issue97_activate_graph_build(v_build);
+  if not coalesce((v_activation->>'activated')::boolean,false) then
+    raise exception '#97 first validated graph generation did not activate: %',v_activation;
+  end if;
+  if (select count(*) from public.brinesearch_road_junctions where build_id=v_build)<>8 then
+    raise exception '#97 synthetic expected 8 logical physical occurrences';
+  end if;
+  if (select count(*) from public.brinesearch_road_junctions
+      where build_id=v_build and verification_status='held' and source_provenance->>'grade_conflict'='true')<>1 then
+    raise exception '#97 source-endpoint overpass was not held exactly once';
+  end if;
+  if (select count(*) from public.brinesearch_road_junctions
+      where build_id=v_build and junction_type='ramp' and verification_status='verified')<>1 then
+    raise exception '#97 ramp regression failed';
+  end if;
+  if (select count(*) from public.brinesearch_road_junctions j
+      where j.build_id=v_build and exists(select 1 from public.brinesearch_road_junction_memberships a
+        where a.junction_id=j.id and a.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:PAIR_A'))
+      and exists(select 1 from public.brinesearch_road_junction_memberships b
+        where b.junction_id=j.id and b.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:PAIR_B')))<>2 then
+    raise exception '#97 same road pair at two locations was collapsed';
+  end if;
+  if not exists(select 1 from public.brinesearch_road_junctions j
+      where j.build_id=v_build and j.junction_type='multiway'
+        and (select count(*) from public.brinesearch_road_junction_memberships m where m.junction_id=j.id)=3) then
+    raise exception '#97 multiway regression failed';
+  end if;
+  if not exists(select 1 from public.brinesearch_road_junctions j
+      where j.build_id=v_build and j.junction_type='shared_segment'
+        and extensions.st_dimension(j.geom)=1
+        and (select count(*) from public.brinesearch_road_junction_anchors a where a.junction_id=j.id)=2) then
+    raise exception '#97 different-vertexization shared section regression failed';
+  end if;
+  if exists(select 1 from public.brinesearch_road_junctions p
+      where p.build_id=v_build and p.junction_type<>'shared_segment'
+        and extensions.st_dwithin(p.geom::extensions.geography,
+          extensions.st_geomfromtext('LINESTRING(-81.100 39.900,-81.090 39.900)',4326)::extensions.geography,0.05)) then
+    raise exception '#97 shared section emitted duplicate point cards';
+  end if;
+  if not exists(select 1 from public.brinesearch_road_junctions j
+      where j.build_id=v_build and j.junction_type='continuation'
+        and exists(select 1 from public.brinesearch_road_junction_memberships m
+          join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+          where m.junction_id=j.id and i.county_code='HAR')) then
+    raise exception '#97 cross-county continuation regression failed';
+  end if;
+  if not exists(select 1 from public.brinesearch_road_junctions j
+      join public.brinesearch_road_junction_memberships m on m.junction_id=j.id
+      join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+      where j.build_id=v_build and i.public_access_status='private') then
+    raise exception '#97 private/public physical membership was lost';
+  end if;
+  if exists(select 1 from public.brinesearch_road_junction_memberships m
+      where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:TRAIL')) then
+    raise exception '#97 non-drivable trail entered the routable graph';
+  end if;
+  if (select count(*) from public.brinesearch_authoritative_road_identities
+      where source_identity_key in ('WV:TEST:TR_7_A','WV:TEST:TR_7_B'))<>2 then
+    raise exception '#97 same route number in different townships was collapsed';
+  end if;
+  if exists(select 1 from public.brinesearch_road_junctions j
+      where j.build_id=v_build and exists(select 1 from public.brinesearch_road_junction_memberships a
+        where a.junction_id=j.id and a.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:SAME_NAME_A'))
+      and exists(select 1 from public.brinesearch_road_junction_memberships b
+        where b.junction_id=j.id and b.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:SAME_NAME_B'))) then
+    raise exception '#97 unrelated same-name roads acquired a junction';
+  end if;
+
+  v_second:=public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
+  if v_second->>'graph_digest'<>v_digest then
+    raise exception '#97 graph digest is not deterministic';
+  end if;
+  v_second_build:=(v_second->>'build_id')::uuid;
+  v_activation:=public.brinesearch_issue97_activate_graph_build(v_second_build);
+  if not coalesce((v_activation->>'activated')::boolean,false) then
+    raise exception '#97 second validated graph generation did not activate: %',v_activation;
+  end if;
+  if (select count(*) from public.brinesearch_road_graph_builds
+      where state_code='WV' and county_code='DOD' and status='active')<>1
+     or (select count(*) from public.brinesearch_road_graph_builds
+      where state_code='WV' and county_code='DOD' and status='retired')<1 then
+    raise exception '#97 immutable build activation/retirement regression failed';
+  end if;
+end
+$issue97_assert$;
+
+rollback;
