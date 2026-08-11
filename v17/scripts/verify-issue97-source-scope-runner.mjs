@@ -42,7 +42,7 @@ assert.match(sql, /v_expected_pages:=greatest\(1,pg_catalog\.ceil\(v_expected::n
 assert.match(sql, /exit when coalesce\(\(v_page->>'has_more'\)::boolean,false\) is false;[\s\S]*v_offset:=v_offset\+v_limit;/,
   "Issue #97 source-scope runner must advance only after a nonterminal page");
 assert.match(sql, /exception when others then[\s\S]*brinesearch_issue97_fail_ingest\([\s\S]*return pg_catalog\.jsonb_build_object\([\s\S]*'status','failed'/,
-  "Issue #97 source-scope runner must persist a failed receipt instead of leaking partial success");
+  "Issue #97 source-scope runner must explicitly fail instead of leaking partial success");
 assert.match(sql, /revoke all on function public\.brinesearch_issue97_refresh_source_scope\(text,text,integer\)[\s\S]*from public,anon,authenticated;[\s\S]*grant execute[\s\S]*to service_role;/,
   "Issue #97 source-scope runner must remain service-only");
 assert.ok(!/grant execute[\s\S]{0,180}to (?:anon|authenticated)/.test(sql),
@@ -65,7 +65,9 @@ for (const required of [
   "20260811240100_issue97_transition_runtime_hardening.sql",
   "20260811241000_issue97_occurrence_geometry_receipts.sql",
   "20260811241100_issue97_turn_normalization_hardening.sql",
-  "20260811242000_issue97_transition_google_manifests.sql"
+  "20260811241200_issue97_turn_segment_hardening.sql",
+  "20260811242000_issue97_transition_google_manifests.sql",
+  "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
 console.log("Issue #97 restartable source-scope ingestion + complete unique migration chain regression passed.");
