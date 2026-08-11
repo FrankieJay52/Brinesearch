@@ -202,8 +202,8 @@ begin
   if duplicate_groups<>0 or evidence_rows<>24 then
     raise exception '#70 NLF consolidation incomplete: duplicate groups % evidence %',duplicate_groups,evidence_rows;
   end if;
-  if exact_links<>10 then
-    raise exception '#70 exact convergence set changed: expected 10, got %',exact_links;
+  if exact_links<>22 then
+    raise exception '#70 exact convergence set changed: expected 22, got %',exact_links;
   end if;
   if exists(
     select 1 from private_verification.brinesearch_nlf_consolidation_issue70 e
