@@ -19,7 +19,7 @@ const [
   read(path.join(v17Root, 'src/parts/21e-road-manager-interactive-route-map-v17327.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
-  read(path.join(projectRoot, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
+  read(path.join(projectRoot, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];

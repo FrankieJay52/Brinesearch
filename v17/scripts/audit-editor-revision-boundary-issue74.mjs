@@ -15,7 +15,7 @@ const bridgePath = path.join(partsDir, '11aa-editor-revision-security-issue74.js
 const orderPath = path.join(partsDir, 'part-order.json');
 const packagePath = path.join(projectRoot, 'package.json');
 const legacyEditorPath = path.join(partsDir, '11-pad-page.js');
-const issue69Path = path.join(migrationDir, '20260811002000_issue69_route_geometry_draft_helpers.sql');
+const issue69Path = path.join(migrationDir, '20260811031420_issue69_route_geometry_draft_helpers.sql');
 
 const [stage1, stage1Fix, stage2, bridge, orderRaw, packageRaw, legacyEditor, issue69Migration] = await Promise.all([
   fs.readFile(stage1Path, 'utf8'),

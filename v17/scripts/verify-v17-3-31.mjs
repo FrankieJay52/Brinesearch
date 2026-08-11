@@ -14,8 +14,8 @@ const [pkgText, partsText, stylesText, vite, sw, runtime, exactAudit, baseMigrat
   read(path.join(v17Root, 'src/offline/sw.js')),
   read(path.join(v17Root, 'src/parts/21m-road-manager-runtime-hardening-issue69.js')),
   read(path.join(v17Root, 'scripts/audit-exact-route-runtime-hardening-issue69.mjs')),
-  read(path.join(root, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql')),
-  read(path.join(root, 'supabase/migrations/20260811023000_issue69_release_hardening.sql')),
+  read(path.join(root, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql')),
+  read(path.join(root, 'supabase/migrations/20260811031439_issue69_release_hardening.sql')),
   read(path.join(v17Root, 'scripts/audit-authoritative-driver-directions-issue81.mjs'))
 ]);
 const pkg = JSON.parse(pkgText), parts = JSON.parse(partsText), styles = JSON.parse(stylesText);
