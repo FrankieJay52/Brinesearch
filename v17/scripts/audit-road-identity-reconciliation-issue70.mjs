@@ -11,6 +11,7 @@ const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_spli
 const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
 const exactAlias = fs.readFileSync(path.join(migrations, '20260811071553_issue70_exact_existing_alias_reuse.sql'), 'utf8');
 const exactSuffix = fs.readFileSync(path.join(migrations, '20260811073502_issue70_exact_suffix_routes.sql'), 'utf8');
+const officialLbrs = fs.readFileSync(path.join(migrations, '20260811080500_issue70_official_lbrs_catalog_gaps.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
@@ -78,17 +79,40 @@ assert(!exactSuffix.includes('road_manager_recalculate_route_readiness()'), 'suf
 assert(!exactSuffix.includes('ST_DWithin') && !exactSuffix.includes('st_dwithin') && !exactSuffix.includes('ST_Distance') && !exactSuffix.includes('st_distance'), 'suffix identity may not use spatial proximity as the decision');
 assert(!exactSuffix.includes('levenshtein') && !exactSuffix.includes('similarity('), 'suffix identity may not use fuzzy text matching');
 
+assert(officialLbrs.includes('Ohio_Statewide_LBRS_Centerlines/FeatureServer/0'), 'catalog-gap recovery must use the official Ohio Statewide LBRS source');
+assert(officialLbrs.includes('private_verification.brinesearch_lbrs_catalog_gap_issue70'), 'LBRS source proof must be durable and private');
+assert(officialLbrs.includes('force row level security'), 'LBRS source evidence must FORCE RLS');
+assert(officialLbrs.includes("e.decision='held_catalog_gap'"), 'LBRS recovery must only consume durable held-catalog-gap evidence');
+assert(officialLbrs.includes("f->'properties'->>'nlfid'<>rec.nlfid"), 'LBRS feature NLFID must be revalidated exactly');
+assert(officialLbrs.includes("f->'properties'->>'rd_num'<>rec.route_number"), 'LBRS road number must be revalidated exactly');
+assert(officialLbrs.includes("f->'properties'->>'jurisdic'<>v_expected_jur"), 'LBRS county/township jurisdiction must be revalidated exactly');
+assert(officialLbrs.includes('v_geom_count<>v_feature_count'), 'every returned LBRS feature must carry geometry');
+assert(officialLbrs.includes('v_name_count=0'), 'the official NLF must contain an exact saved local street name');
+assert(officialLbrs.includes("v_existing<>0"), 'LBRS catalog-gap create must fail if a Road Manager identity appears before apply');
+assert(officialLbrs.includes("source_method='official_ohio_lbrs_issue70_catalog_gap'") || officialLbrs.includes("'official_ohio_lbrs_issue70_catalog_gap'"), 'Road Manager source method must identify official LBRS provenance');
+assert(officialLbrs.includes("match_method='official_lbrs_exact_catalog_gap_issue70'"), 'LBRS linked route steps must have dedicated exact provenance');
+assert(officialLbrs.includes("'fuzzy_matching',false") && officialLbrs.includes("'nearest_road_fallback',false") && officialLbrs.includes("'spatial_fallback',false"), 'LBRS route-step evidence must explicitly record no-guess behavior');
+for (const nlfid of ['CHASCR00033**C','CHASCR00054**C','CHASCR00001**C','THASTR00336**C','CHASCR00016**C','CHASCR00043**C','CHASCR00051**C','CHASCR00019**C','THASTR00212**C','THASTR00164**C','THASTR00213**C']) {
+  assert(officialLbrs.includes(nlfid), `expected reviewed LBRS NLF ${nlfid} must remain pinned`);
+}
+assert(!officialLbrs.includes('Dutch Ridge Rd') && !officialLbrs.includes('Hazel Run Rd') && !officialLbrs.includes('Fowler Rd') && !officialLbrs.includes('Jamison Rd') && !officialLbrs.includes('Cochran Hill Rd'), 'source-conflict roads must not be auto-applied by the LBRS slice');
+assert(!officialLbrs.includes('brinesearch_publish_structured_route'), 'LBRS catalog-gap recovery must not publish #69 routes');
+assert(!officialLbrs.includes('road_manager_recalculate_route_readiness()'), 'LBRS data migration must remain deploy-role safe');
+assert(!officialLbrs.includes('ST_DWithin') && !officialLbrs.includes('st_dwithin') && !officialLbrs.includes('ST_Distance') && !officialLbrs.includes('st_distance'), 'LBRS identity decision may not use spatial proximity');
+assert(!officialLbrs.includes('levenshtein') && !officialLbrs.includes('similarity('), 'LBRS identity decision may not use fuzzy text matching');
+
 console.log(JSON.stringify({
   issue: 70,
-  source: 'authoritative saved route identities + exact trusted Road Manager aliases + exact official ODOT suffix identities',
-  routeIdentity: 'exact numbered route including suffix + geographic scope + one complete official ODOT NLF',
+  source: 'saved route identity evidence + trusted Road Manager aliases + official ODOT Road Inventory + official Ohio Statewide LBRS',
+  routeIdentity: 'exact numbered route (including suffix where present) + geographic scope + exact official source ID',
   existingRoadReuse: 'one distinct verified trusted-geometry road only',
-  createUpgrade: 'CR/TR only, one complete official ODOT NLF',
+  createUpgrade: 'one complete official ODOT/LBRS identity with exact source evidence',
   repeatedOccurrences: 'bounded exact re-stage convergence',
   exactExistingAlias: 'literal canonical/alias/composite-component equality only',
-  exactSuffixRoute: 'explicit CR/TR number with alphabetic suffix + exact ODOT NLF; same-NLF partial Road Manager geometry may be upgraded to full official centerline',
-  contaminationRepair: 'Jefferson CR-10 and CR-12 split structurally; suffix route aliases corrected to the exact route',
-  maintenanceSecurity: 'private evidence + maintenance-only SECURITY DEFINER reconciliation functions',
+  exactSuffixRoute: 'explicit CR/TR number with alphabetic suffix + exact ODOT NLF',
+  lbrsCatalogGap: 'durable held local-name/number pair + exact official LBRS NLFID/number/jurisdiction/name/complete geometry',
+  contaminationRepair: 'Jefferson CR-10/CR-12 split and suffix identities corrected structurally',
+  maintenanceSecurity: 'private FORCE-RLS source evidence; no new browser maintenance API',
   routePublication: 'none; #69 remains canonical and fail-closed',
   result: 'pass'
 }, null, 2));
