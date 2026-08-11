@@ -60,6 +60,15 @@ for (const token of [
   assert.ok(lower.includes(token.toLowerCase()), `#70 migration missing ${token}`);
 }
 
+// The base migration itself must be independently executable. A follow-up may
+// remain as idempotent history, but it cannot be required to rescue invalid SQL
+// in an earlier migration file.
+for (const forbidden of ['pg_catalog.position(', 'min(r.id)']) {
+  assert.ok(!lower.includes(forbidden), `#70 base migration still contains ${forbidden}`);
+}
+assert.ok(lower.includes('pg_catalog.strpos'), '#70 base migration did not receive the POSITION correction.');
+assert.ok(lower.includes('where r.source_record_id=v_identity'), '#70 base migration did not receive exact identity collision checking.');
+
 for (const functionName of [
   'brinesearch_refresh_oh_road_matches_issue70()',
   'brinesearch_load_oh_road_geometry_issue70(integer)',
@@ -85,7 +94,6 @@ assert.ok(
   '#70 private staging table must retain service-role maintenance access.'
 );
 
-// Exact auto-application must be county-scoped and must not use fuzzy similarity.
 const refreshStart = lower.indexOf('create or replace function public.brinesearch_refresh_oh_road_matches_issue70');
 const loaderStart = lower.indexOf('create or replace function public.brinesearch_load_oh_road_geometry_issue70');
 assert.ok(refreshStart >= 0 && loaderStart > refreshStart, 'Could not isolate #70 refresh function.');
@@ -97,9 +105,6 @@ assert.ok(refresh.includes('c.county_code=b.county_code'), '#70 exact matching m
 assert.ok(refresh.includes("then 'ambiguous'"), '#70 multiple exact candidates must remain ambiguous.');
 assert.ok(refresh.includes("then 'conflict'"), '#70 conflicting route/name identities must fail closed.');
 
-// The follow-up is the final executable definition of loader/apply. It exists so
-// the very first #70 production execution never reaches the pre-rehearsal SQL
-// defects found while reviewing the base source.
 for (const token of [
   'brinesearch_load_oh_road_geometry_issue70',
   'brinesearch_apply_oh_road_matches_issue70',
@@ -115,8 +120,6 @@ for (const forbidden of ['pg_catalog.position(', 'min(r.id)']) {
   assert.ok(!fix.includes(forbidden), `#70 final runtime definition still contains ${forbidden}`);
 }
 
-// Geometry loader may call only the official ODOT Road Inventory endpoint and
-// only for exact staged or pre-existing official identities.
 const fixLoaderStart = fix.indexOf('create or replace function public.brinesearch_load_oh_road_geometry_issue70');
 const fixApplyStart = fix.indexOf('create or replace function public.brinesearch_apply_oh_road_matches_issue70');
 assert.ok(fixLoaderStart >= 0 && fixApplyStart > fixLoaderStart, 'Could not isolate final #70 geometry loader.');
@@ -128,8 +131,6 @@ for (const forbidden of ['openstreetmap.org', 'overpass', 'nominatim']) {
   assert.ok(!loader.includes(forbidden), `#70 loader must not fetch geometry from ${forbidden}`);
 }
 
-// Applying an exact match is allowed to replace a legacy partial OSM centerline
-// only after the unique official identity has already been established.
 const apply = fix.slice(fixApplyStart);
 assert.ok(apply.includes("where match_status='unique_exact'"));
 assert.ok(apply.includes("and geometry_status='complete'"));
@@ -138,9 +139,6 @@ assert.ok(apply.includes("set match_status='held',geometry_status='held'"));
 assert.ok(apply.includes('where r.source_record_id=v_identity'));
 assert.ok(!apply.includes('similarity('), '#70 apply must not choose Road Manager identity by similarity.');
 
-// #69 must remain fail-closed. These are the actual V17.3.31 runtime guards:
-// incomplete canonical reloads throw, failed loads clear edit state, and an
-// unresolved clip does not invent geometry.
 for (const token of [
   'routeIssue69ValidateStructuredPayload',
   'is not exact geometry version 1',
@@ -166,6 +164,7 @@ console.log(JSON.stringify({
   geometry: 'official ODOT object IDs only',
   legacyPartialOsm: 'upgrade only after unique exact official identity',
   routePublication: 'none; #69 remains canonical/fail-closed',
-  runtimeFix: 'final loader/apply avoid POSITION qualification and min(uuid)'
+  baseMigration: 'independently executable after promoted runtime corrections',
+  runtimeFix: 'idempotent corrected loader/apply definitions retained'
 }, null, 2));
 console.log('GitHub #70 road-data coverage audit passed.');
