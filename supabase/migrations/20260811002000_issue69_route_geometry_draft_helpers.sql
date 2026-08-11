@@ -1333,7 +1333,7 @@ begin
       when v_turn='merge_right' then 'Merge right onto '
       when v_turn='arrive' then 'Arrive via '
       else 'Continue on '
-    end||v_step->>'road_name';
+    end||(v_step->>'road_name');
 
     insert into public.brinesearch_pad_roads(
       pad_id,road_id,route_group,step_order,instruction,distance_miles,step_note,
@@ -1832,7 +1832,7 @@ begin
     select 1 from pg_catalog.pg_proc p
     where p.oid='public.brinesearch_publish_structured_route(uuid,uuid,jsonb,bigint)'::pg_catalog.regprocedure
       and p.prosecdef
-      and p.proconfig @> array['search_path=']::text[]
+      and p.proconfig @> array['search_path=""']::text[]
       and pg_catalog.pg_get_userbyid(p.proowner)='postgres'
   ) then
     raise exception 'Issue #69 publisher must be postgres-owned SECURITY DEFINER with an empty search path';
