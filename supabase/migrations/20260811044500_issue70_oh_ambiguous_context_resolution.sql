@@ -215,7 +215,7 @@ begin
       min(c.route_number_normalized) as route_number,
       min(c.official_name) as official_name,
       case when count(*)=count(c.geom)
-        then extensions.st_unaryunion(extensions.st_collect(c.geom))
+        then extensions.st_unaryunion(extensions.st_collect(c.geom order by c.objectid))
       end as geom
     from amb a
     join public.brinesearch_odot_road_catalog c
@@ -430,7 +430,7 @@ begin
     end if;
 
     select
-      extensions.st_unaryunion(extensions.st_collect(c.geom)),
+      extensions.st_unaryunion(extensions.st_collect(c.geom order by c.objectid)),
       count(*)::integer,count(c.geom)::integer
     into v_geom,v_expected,v_loaded
     from public.brinesearch_odot_road_catalog c
