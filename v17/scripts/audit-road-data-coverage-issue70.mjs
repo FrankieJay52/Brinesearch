@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const root = path.resolve(v17Root, '..');
-const migrationPath = path.join(root, 'supabase/migrations/20260811034500_issue70_all_operator_oh_exact_road_coverage.sql');
+const migrationPath = path.join(root, 'supabase/migrations/20260811042124_issue70_all_operator_oh_exact_road_coverage.sql');
 const [migration, pkgText, issue69Runtime] = await Promise.all([
   fs.readFile(migrationPath, 'utf8'),
   fs.readFile(path.join(root, 'package.json'), 'utf8'),
