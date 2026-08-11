@@ -124,12 +124,7 @@
           miles: row.miles == null ? "" : String(row.miles),
           turn: row.outbound_turn || "",
           inboundTurn: row.inbound_turn || "",
-          note: row.evidence?.note || "",
-          routeStepId: Number(row.geometry_version || 0) === 1 ? row.route_step_id : routeIssue69Uuid(),
-          startCoordinate: Number(row.geometry_version || 0) === 1 ? row.start_coordinate : null,
-          endCoordinate: Number(row.geometry_version || 0) === 1 ? row.end_coordinate : null,
-          clippedGeometry: Number(row.geometry_version || 0) === 1 ? row.clipped_geometry : null,
-          geometryVersion: Number(row.geometry_version || 0)
+          note: row.evidence?.note || ""
         });
       });
       return { review, segments };
@@ -424,12 +419,12 @@
 
     function routeIssue69ClearAllTopologyAfterReorder() {
       routeIssue69BumpTopology();
-      routeMapperSegmentsV17324.forEach((segment, index) => {
+      routeMapperSegmentsV17324.forEach(segment => {
         routeIssue69ClearClip(segment);
         segment.startCoordinate = null;
         segment.endCoordinate = null;
-        segment.turn = index === 0 ? "" : "";
-        segment.inboundTurn = index === routeMapperSegmentsV17324.length - 1 ? "" : "";
+        segment.turn = "";
+        segment.inboundTurn = "";
       });
       routeMapperDraftSaveV17324();
       routeMapperRenderSegmentsV17324();
@@ -458,192 +453,194 @@
         else total += Number(segment.miles);
       });
       if (totalHost) totalHost.textContent = complete ? `Geometry mileage: ${total.toFixed(2)} mi` : "Geometry mileage incomplete";
-+      host?.querySelectorAll("[data-route-mapper-up]").forEach(button => {
-+        button.onclick = () => {
-+          const index = Number(button.dataset.routeMapperUp);
-+          if (index <= 0) return;
-+          [routeMapperSegmentsV17324[index - 1], routeMapperSegmentsV17324[index]] = [routeMapperSegmentsV17324[index], routeMapperSegmentsV17324[index - 1]];
-+          routeIssue69ClearAllTopologyAfterReorder();
-+        };
-+      });
-+      host?.querySelectorAll("[data-route-mapper-down]").forEach(button => {
-+        button.onclick = () => {
-+          const index = Number(button.dataset.routeMapperDown);
-+          if (index < 0 || index >= routeMapperSegmentsV17324.length - 1) return;
-+          [routeMapperSegmentsV17324[index + 1], routeMapperSegmentsV17324[index]] = [routeMapperSegmentsV17324[index], routeMapperSegmentsV17324[index + 1]];
-+          routeIssue69ClearAllTopologyAfterReorder();
-+        };
-+      });
-+    };
-+
-+    function routeIssue69TurnPhraseRuntime(turn, road, first = false) {
-+      const labels = { left: "Turn left on", right: "Turn right on", slight_left: "Slight left on", slight_right: "Slight right on", merge_left: "Merge left onto", merge_right: "Merge right onto", straight: "Continue on", arrive: "Arrive via" };
-+      if (first) return `Take ${road}`;
-+      return `${labels[turn] || "Turn not set on"} ${road}`;
-+    }
-+
-+    function routeIssue69ReverseCards() {
-+      return [...routeMapperSegmentsV17324].reverse().map((segment, reverseIndex) => ({
-+        routeStepId: segment.routeStepId,
-+        roadId: segment.roadId,
-+        roadName: segment.roadName,
-+        miles: segment.miles,
-+        instruction: routeIssue69TurnPhraseRuntime(segment.inboundTurn, segment.roadName, reverseIndex === 0),
-+        exact: routeIssue69HasExactGeometry(segment)
-+      }));
-+    }
-+
-+    function routeIssue69DrawDirectionalLine(svg, map, line, className) {
-+      const points = line.map(point => routeInteractiveScreenPointV17327(point[1], point[0], map)).filter(Boolean);
-+      if (points.length < 2) return;
-+      const d = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
-+      const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
-+      halo.setAttribute("d", d); halo.setAttribute("class", "route-interactive-halo"); svg.appendChild(halo);
-+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-+      path.setAttribute("d", d); path.setAttribute("class", className); path.setAttribute("marker-end", "url(#route-issue69-arrow)"); svg.appendChild(path);
-+    }
-+
-+    routeInteractiveRenderOverlayV17327 = function routeInteractiveRenderDirectionalOccurrencesIssue69(map) {
-+      const svg = map?.overlay;
-+      if (!svg || !map?.root) return;
-+      const width = map.root.clientWidth, height = map.root.clientHeight;
-+      svg.setAttribute("viewBox", `0 0 ${Math.max(width, 1)} ${Math.max(height, 1)}`);
-+      svg.innerHTML = `<defs><marker id="route-issue69-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"></path></marker></defs>`;
-+      const rows = routeIssue69ReversePreview ? [...routeMapperSegmentsV17324].map((segment, index) => ({ segment, index })).reverse() : routeMapperSegmentsV17324.map((segment, index) => ({ segment, index }));
-+      rows.forEach(({ segment, index }) => {
-+        const raw = routeIssue69ExactLine(segment);
-+        if (!raw) return;
-+        const line = routeIssue69ReversePreview ? [...raw].reverse() : raw;
-+        routeIssue69DrawDirectionalLine(svg, map, line, index === routeInteractiveSelectedStepV17327 ? "route-step-selected-v17328" : "route-interactive-road verified");
-+      });
-+      const coords = routeMapperPadCoordinateV17324(routeMapperSelectedPadV17324);
-+      if (coords) {
-+        const point = routeInteractiveScreenPointV17327(coords.lat, coords.lng, map);
-+        if (point) {
-+          const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-+          ring.setAttribute("cx", point.x); ring.setAttribute("cy", point.y); ring.setAttribute("r", "10"); ring.setAttribute("class", "route-interactive-pad-ring"); svg.appendChild(ring);
-+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-+          dot.setAttribute("cx", point.x); dot.setAttribute("cy", point.y); dot.setAttribute("r", "5"); dot.setAttribute("class", "route-interactive-pad-dot"); svg.appendChild(dot);
-+        }
-+      }
-+    };
-+
-+    const routeIssue69RenderEditBeforeHardening = routeInteractiveRenderEditBarV17327;
-+    routeInteractiveRenderEditBarV17327 = function routeInteractiveRenderRuntimeHardeningIssue69() {
-+      routeIssue69RenderEditBeforeHardening();
-+      const root = routeInteractiveMapV17327?.root;
-+      const bar = root?.querySelector(".route-map-edit-bar-v17327");
-+      if (!bar || !routeInteractiveEditModeV17327) return;
-+      const geometryMiles = bar.querySelector("[data-route-step-miles]");
-+      if (geometryMiles) {
-+        const segment = routeMapperSegmentsV17324[routeInteractiveSelectedStepV17327];
-+        geometryMiles.value = routeIssue69HasExactGeometry(segment) ? (segment?.miles || "") : "";
-+        geometryMiles.readOnly = true;
-+        geometryMiles.onchange = null;
-+        geometryMiles.title = "Mileage is derived from exact clipped geometry";
-+      }
-+      let preview = bar.querySelector(".route-reverse-preview-issue69");
-+      if (!preview) {
-+        preview = document.createElement("div");
-+        preview.className = "route-reverse-preview-issue69";
-+        bar.appendChild(preview);
-+      }
-+      const reverseCards = routeIssue69ReverseCards();
-+      preview.innerHTML = `<div class="route-step-action-row-v17328"><button type="button" data-route-preview-direction="outbound" class="${routeIssue69ReversePreview ? "" : "active"}">Outbound</button><button type="button" data-route-preview-direction="inbound" class="${routeIssue69ReversePreview ? "active" : ""}">Reverse route</button></div>${routeIssue69ReversePreview ? `<div data-route-reverse-cards>${reverseCards.map((card, index) => `<div><strong>${index + 1}. ${esc(card.instruction)}</strong><small>${card.exact ? `${Number(card.miles || 0).toFixed(3)} mi` : "geometry unresolved"}</small></div>`).join("")}</div>` : ""}`;
-+      preview.querySelectorAll("[data-route-preview-direction]").forEach(button => {
-+        button.onclick = () => {
-+          routeIssue69ReversePreview = button.dataset.routePreviewDirection === "inbound";
-+          routeInteractiveRenderEditBarV17327();
-+          routeInteractiveRenderV17327();
-+        };
-+      });
-+    };
-+
-+    async function routeIssue69PublishStructuredHardened() {
-+      const pad = routeMapperSelectedPadV17324;
-+      const padId = routeMapperPadIdV17324(pad);
-+      const button = document.getElementById("routeMapperSaveReview");
-+      const status = document.getElementById("routeMapperSaveStatus");
-+      if (!pad || !padId) throw new Error("This pad does not have a live database ID");
-+      if (!routeIssue69State.loaded || routeIssue69State.padId !== padId) throw new Error("Reload this pad before publishing exact route geometry");
-+      const publishGeneration = ++routeIssue69PublishGeneration;
-+      const topologyGeneration = routeIssue69TopologyGeneration;
-+      const signature = routeIssue69TopologySignature();
-+      const steps = routeIssue69PublishPayload();
-+      const expectedStepIds = steps.map(step => step.route_step_id);
-+      if (button) { button.disabled = true; button.textContent = "Publishing exact route…"; }
-+      if (status) status.textContent = "Server-clipping exact occurrences and validating topology…";
-+      try {
-+        const response = await editorRequest("/rest/v1/rpc/brinesearch_publish_structured_route", {
-+          method: "POST",
-+          headers: { "Content-Type": "application/json" },
-+          body: JSON.stringify({
-+            p_pad_id: padId,
-+            p_review_id: routeIssue69State.reviewId || routeMapperReviewV17324?.id || null,
-+            p_steps: steps,
-+            p_expected_revision: routeIssue69State.routeRevision
-+          })
-+        });
-+        const published = Array.isArray(response) ? response[0] : response;
-+        const publishedRevision = Number(published?.route_revision);
-+        if (!Number.isSafeInteger(publishedRevision) || publishedRevision <= routeIssue69State.routeRevision) {
-+          throw new Error("Structured publisher did not return a newer durable route revision");
-+        }
-+        if (publishGeneration !== routeIssue69PublishGeneration || routeIssue69CurrentPadId() !== padId
-+          || topologyGeneration !== routeIssue69TopologyGeneration || signature !== routeIssue69TopologySignature()) {
-+          routeIssue69State.loaded = false;
-+          throw new Error("Route was published, but this editor changed while the request was running. Reload the pad before making another route edit.");
-+        }
-+        if (status) status.textContent = "Published. Reloading exact canonical rows before confirming success…";
-+        const reloaded = await routeIssue69FetchStructuredPayload(padId);
-+        if (publishGeneration !== routeIssue69PublishGeneration || routeIssue69CurrentPadId() !== padId
-+          || topologyGeneration !== routeIssue69TopologyGeneration || signature !== routeIssue69TopologySignature()) {
-+          routeIssue69State.loaded = false;
-+          throw new Error("Route published, but the pad/topology changed before reload verification. Reload the pad.");
-+        }
-+        const validated = routeIssue69ValidateStructuredPayload(reloaded, { expectedRevision: publishedRevision, expectedStepIds });
-+        routeMapperSegmentsV17324 = validated.steps;
-+        routeIssue69State = { padId, routeRevision: validated.revision, reviewId: reloaded?.review_id || null, loaded: true };
-+        routeMapperReviewV17324 = reloaded?.review_id ? { id: reloaded.review_id, status: "approved" } : null;
-+        if (reloaded?.structured_sequence) pad.Structured_Road_Sequence = reloaded.structured_sequence;
-+        if (reloaded?.directions_clear) {
-+          pad.directionsClear = reloaded.directions_clear;
-+          pad.directions_clear = reloaded.directions_clear;
-+        }
-+        pad.driverSafetyContext = Array.isArray(reloaded?.driver_safety_context) ? reloaded.driver_safety_context : [];
-+        routeInteractiveUseDraftV17327 = false;
-+        routeIssue69DraftSave();
-+        routeIssue69BumpTopology();
-+        routeMapperRenderSegmentsV17324();
-+        routeInteractiveRenderEditBarV17327();
-+        routeInteractiveRenderV17327();
-+        if (status) status.textContent = `Exact route revision ${validated.revision} published and reloaded from canonical stored geometry.`;
-+        showToast("Exact route published and reload-verified");
-+      } finally {
-+        if (button) { button.disabled = false; button.textContent = "Publish exact route & update directions"; }
-+      }
-+    }
-+
-+    routeMapperSaveReviewV17324 = async function routeMapperSaveRuntimeHardenedIssue69() {
-+      const button = document.getElementById("routeMapperSaveReview");
-+      const status = document.getElementById("routeMapperSaveStatus");
-+      try { await routeIssue69PublishStructuredHardened(); }
-+      catch (error) {
-+        if (status) status.textContent = error?.message || "Could not publish exact structured route.";
-+        showToast(error?.message || "Could not publish exact structured route");
-+        if (button) { button.disabled = false; button.textContent = "Publish exact route & update directions"; }
-+      }
-+    };
-+
-+    routeInteractivePublishV17327 = routeIssue69PublishStructuredHardened;
-+    window.routeIssue69PublishStructured = routeIssue69PublishStructuredHardened;
-+    window.routeInteractivePublishV17327 = routeIssue69PublishStructuredHardened;
-+    window.routeIssue69ReversePreviewCards = routeIssue69ReverseCards;
-+    window.routeIssue69ValidateStructuredPayload = routeIssue69ValidateStructuredPayload;
-+    window.routeIssue69RuntimeState = () => ({
-+      padGeneration: routeIssue69PadGeneration,
-+      topologyGeneration: routeIssue69TopologyGeneration,
-+      publishGeneration: routeIssue69PublishGeneration,
-+      reversePreview: routeIssue69ReversePreview,
-+      topologySignature: routeIssue69TopologySignature()
-+    });
+      host?.querySelectorAll("[data-route-mapper-up]").forEach(button => {
+        button.onclick = () => {
+          const index = Number(button.dataset.routeMapperUp);
+          if (index <= 0) return;
+          [routeMapperSegmentsV17324[index - 1], routeMapperSegmentsV17324[index]] = [routeMapperSegmentsV17324[index], routeMapperSegmentsV17324[index - 1]];
+          routeIssue69ClearAllTopologyAfterReorder();
+        };
+      });
+      host?.querySelectorAll("[data-route-mapper-down]").forEach(button => {
+        button.onclick = () => {
+          const index = Number(button.dataset.routeMapperDown);
+          if (index < 0 || index >= routeMapperSegmentsV17324.length - 1) return;
+          [routeMapperSegmentsV17324[index + 1], routeMapperSegmentsV17324[index]] = [routeMapperSegmentsV17324[index], routeMapperSegmentsV17324[index + 1]];
+          routeIssue69ClearAllTopologyAfterReorder();
+        };
+      });
+    };
+
+    function routeIssue69TurnPhraseRuntime(turn, road, first = false) {
+      const labels = { left: "Turn left on", right: "Turn right on", slight_left: "Slight left on", slight_right: "Slight right on", merge_left: "Merge left onto", merge_right: "Merge right onto", straight: "Continue on", arrive: "Arrive via" };
+      if (first) return `Take ${road}`;
+      return `${labels[turn] || "Turn not set on"} ${road}`;
+    }
+
+    function routeIssue69ReverseCards() {
+      return [...routeMapperSegmentsV17324].reverse().map((segment, reverseIndex) => ({
+        routeStepId: segment.routeStepId,
+        roadId: segment.roadId,
+        roadName: segment.roadName,
+        miles: segment.miles,
+        instruction: routeIssue69TurnPhraseRuntime(segment.inboundTurn, segment.roadName, reverseIndex === 0),
+        exact: routeIssue69HasExactGeometry(segment)
+      }));
+    }
+
+    function routeIssue69DrawDirectionalLine(svg, map, line, className) {
+      const points = line.map(point => routeInteractiveScreenPointV17327(point[1], point[0], map)).filter(Boolean);
+      if (points.length < 2) return;
+      const d = points.map((point, index) => `${index ? "L" : "M"}${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(" ");
+      const halo = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      halo.setAttribute("d", d); halo.setAttribute("class", "route-interactive-halo"); svg.appendChild(halo);
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", d); path.setAttribute("class", className); path.setAttribute("marker-end", "url(#route-issue69-arrow)"); svg.appendChild(path);
+    }
+
+    routeInteractiveRenderOverlayV17327 = function routeInteractiveRenderDirectionalOccurrencesIssue69(map) {
+      const svg = map?.overlay;
+      if (!svg || !map?.root) return;
+      const width = map.root.clientWidth, height = map.root.clientHeight;
+      svg.setAttribute("viewBox", `0 0 ${Math.max(width, 1)} ${Math.max(height, 1)}`);
+      svg.innerHTML = `<defs><marker id="route-issue69-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L8,4 L0,8 z" fill="currentColor"></path></marker></defs>`;
+      const rows = routeIssue69ReversePreview
+        ? [...routeMapperSegmentsV17324].map((segment, index) => ({ segment, index })).reverse()
+        : routeMapperSegmentsV17324.map((segment, index) => ({ segment, index }));
+      rows.forEach(({ segment, index }) => {
+        const raw = routeIssue69ExactLine(segment);
+        if (!raw) return;
+        const line = routeIssue69ReversePreview ? [...raw].reverse() : raw;
+        routeIssue69DrawDirectionalLine(svg, map, line, index === routeInteractiveSelectedStepV17327 ? "route-step-selected-v17328" : "route-interactive-road verified");
+      });
+      const coords = routeMapperPadCoordinateV17324(routeMapperSelectedPadV17324);
+      if (coords) {
+        const point = routeInteractiveScreenPointV17327(coords.lat, coords.lng, map);
+        if (point) {
+          const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          ring.setAttribute("cx", point.x); ring.setAttribute("cy", point.y); ring.setAttribute("r", "10"); ring.setAttribute("class", "route-interactive-pad-ring"); svg.appendChild(ring);
+          const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          dot.setAttribute("cx", point.x); dot.setAttribute("cy", point.y); dot.setAttribute("r", "5"); dot.setAttribute("class", "route-interactive-pad-dot"); svg.appendChild(dot);
+        }
+      }
+    };
+
+    const routeIssue69RenderEditBeforeHardening = routeInteractiveRenderEditBarV17327;
+    routeInteractiveRenderEditBarV17327 = function routeInteractiveRenderRuntimeHardeningIssue69() {
+      routeIssue69RenderEditBeforeHardening();
+      const root = routeInteractiveMapV17327?.root;
+      const bar = root?.querySelector(".route-map-edit-bar-v17327");
+      if (!bar || !routeInteractiveEditModeV17327) return;
+      const geometryMiles = bar.querySelector("[data-route-step-miles]");
+      if (geometryMiles) {
+        const segment = routeMapperSegmentsV17324[routeInteractiveSelectedStepV17327];
+        geometryMiles.value = routeIssue69HasExactGeometry(segment) ? (segment?.miles || "") : "";
+        geometryMiles.readOnly = true;
+        geometryMiles.onchange = null;
+        geometryMiles.title = "Mileage is derived from exact clipped geometry";
+      }
+      let preview = bar.querySelector(".route-reverse-preview-issue69");
+      if (!preview) {
+        preview = document.createElement("div");
+        preview.className = "route-reverse-preview-issue69";
+        bar.appendChild(preview);
+      }
+      const reverseCards = routeIssue69ReverseCards();
+      preview.innerHTML = `<div class="route-step-action-row-v17328"><button type="button" data-route-preview-direction="outbound" class="${routeIssue69ReversePreview ? "" : "active"}">Outbound</button><button type="button" data-route-preview-direction="inbound" class="${routeIssue69ReversePreview ? "active" : ""}">Reverse route</button></div>${routeIssue69ReversePreview ? `<div data-route-reverse-cards>${reverseCards.map((card, index) => `<div><strong>${index + 1}. ${esc(card.instruction)}</strong><small>${card.exact ? `${Number(card.miles || 0).toFixed(3)} mi` : "geometry unresolved"}</small></div>`).join("")}</div>` : ""}`;
+      preview.querySelectorAll("[data-route-preview-direction]").forEach(button => {
+        button.onclick = () => {
+          routeIssue69ReversePreview = button.dataset.routePreviewDirection === "inbound";
+          routeInteractiveRenderEditBarV17327();
+          routeInteractiveRenderV17327();
+        };
+      });
+    };
+
+    async function routeIssue69PublishStructuredHardened() {
+      const pad = routeMapperSelectedPadV17324;
+      const padId = routeMapperPadIdV17324(pad);
+      const button = document.getElementById("routeMapperSaveReview");
+      const status = document.getElementById("routeMapperSaveStatus");
+      if (!pad || !padId) throw new Error("This pad does not have a live database ID");
+      if (!routeIssue69State.loaded || routeIssue69State.padId !== padId) throw new Error("Reload this pad before publishing exact route geometry");
+      const publishGeneration = ++routeIssue69PublishGeneration;
+      const topologyGeneration = routeIssue69TopologyGeneration;
+      const signature = routeIssue69TopologySignature();
+      const steps = routeIssue69PublishPayload();
+      const expectedStepIds = steps.map(step => step.route_step_id);
+      if (button) { button.disabled = true; button.textContent = "Publishing exact route…"; }
+      if (status) status.textContent = "Server-clipping exact occurrences and validating topology…";
+      try {
+        const response = await editorRequest("/rest/v1/rpc/brinesearch_publish_structured_route", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            p_pad_id: padId,
+            p_review_id: routeIssue69State.reviewId || routeMapperReviewV17324?.id || null,
+            p_steps: steps,
+            p_expected_revision: routeIssue69State.routeRevision
+          })
+        });
+        const published = Array.isArray(response) ? response[0] : response;
+        const publishedRevision = Number(published?.route_revision);
+        if (!Number.isSafeInteger(publishedRevision) || publishedRevision <= routeIssue69State.routeRevision) {
+          throw new Error("Structured publisher did not return a newer durable route revision");
+        }
+        if (publishGeneration !== routeIssue69PublishGeneration || routeIssue69CurrentPadId() !== padId
+          || topologyGeneration !== routeIssue69TopologyGeneration || signature !== routeIssue69TopologySignature()) {
+          routeIssue69State.loaded = false;
+          throw new Error("Route was published, but this editor changed while the request was running. Reload the pad before making another route edit.");
+        }
+        if (status) status.textContent = "Published. Reloading exact canonical rows before confirming success…";
+        const reloaded = await routeIssue69FetchStructuredPayload(padId);
+        if (publishGeneration !== routeIssue69PublishGeneration || routeIssue69CurrentPadId() !== padId
+          || topologyGeneration !== routeIssue69TopologyGeneration || signature !== routeIssue69TopologySignature()) {
+          routeIssue69State.loaded = false;
+          throw new Error("Route published, but the pad/topology changed before reload verification. Reload the pad.");
+        }
+        const validated = routeIssue69ValidateStructuredPayload(reloaded, { expectedRevision: publishedRevision, expectedStepIds });
+        routeMapperSegmentsV17324 = validated.steps;
+        routeIssue69State = { padId, routeRevision: validated.revision, reviewId: reloaded?.review_id || null, loaded: true };
+        routeMapperReviewV17324 = reloaded?.review_id ? { id: reloaded.review_id, status: "approved" } : null;
+        if (reloaded?.structured_sequence) pad.Structured_Road_Sequence = reloaded.structured_sequence;
+        if (reloaded?.directions_clear) {
+          pad.directionsClear = reloaded.directions_clear;
+          pad.directions_clear = reloaded.directions_clear;
+        }
+        pad.driverSafetyContext = Array.isArray(reloaded?.driver_safety_context) ? reloaded.driver_safety_context : [];
+        routeInteractiveUseDraftV17327 = false;
+        routeIssue69DraftSave();
+        routeIssue69BumpTopology();
+        routeMapperRenderSegmentsV17324();
+        routeInteractiveRenderEditBarV17327();
+        routeInteractiveRenderV17327();
+        if (status) status.textContent = `Exact route revision ${validated.revision} published and reloaded from canonical stored geometry.`;
+        showToast("Exact route published and reload-verified");
+      } finally {
+        if (button) { button.disabled = false; button.textContent = "Publish exact route & update directions"; }
+      }
+    }
+
+    routeMapperSaveReviewV17324 = async function routeMapperSaveRuntimeHardenedIssue69() {
+      const button = document.getElementById("routeMapperSaveReview");
+      const status = document.getElementById("routeMapperSaveStatus");
+      try { await routeIssue69PublishStructuredHardened(); }
+      catch (error) {
+        if (status) status.textContent = error?.message || "Could not publish exact structured route.";
+        showToast(error?.message || "Could not publish exact structured route");
+        if (button) { button.disabled = false; button.textContent = "Publish exact route & update directions"; }
+      }
+    };
+
+    routeInteractivePublishV17327 = routeIssue69PublishStructuredHardened;
+    window.routeIssue69PublishStructured = routeIssue69PublishStructuredHardened;
+    window.routeInteractivePublishV17327 = routeIssue69PublishStructuredHardened;
+    window.routeIssue69ReversePreviewCards = routeIssue69ReverseCards;
+    window.routeIssue69ValidateStructuredPayload = routeIssue69ValidateStructuredPayload;
+    window.routeIssue69RuntimeState = () => ({
+      padGeneration: routeIssue69PadGeneration,
+      topologyGeneration: routeIssue69TopologyGeneration,
+      publishGeneration: routeIssue69PublishGeneration,
+      reversePreview: routeIssue69ReversePreview,
+      topologySignature: routeIssue69TopologySignature()
+    });
