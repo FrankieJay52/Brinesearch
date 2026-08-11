@@ -113,3 +113,32 @@ Every agent/Work/Codex run must checkpoint before doing another large slice:
 4. Never leave the only copy of meaningful work in an agent worktree/chat.
 5. If a run approaches a long test/deploy phase, checkpoint first, then test from the pushed commit.
 6. Never merge/close #69 until the final live verification gate passes.
+
+## 2026-08-11 continuation review at `db7dd61`
+
+The continuation inspected current `main`, draft PR #84, every #69 issue
+checkpoint, this document, and current production before changing code.
+
+- PR #84 was still at `db7dd61ef8573943c4d9c1a267984109d9951c42`, based on
+  `671bbf254ae6da14a74eb9ddb2768837cf635b79`; no newer #69 head existed.
+- Production still had 0 geometry-version-1 pad-road rows, 0 stored exact step
+  geometries, and 0 non-empty structured route snapshots. Legacy pad-road rows
+  had increased from 19 to 23, so all later rehearsals must use current live
+  state rather than the original checkpoint counts.
+- Road Manager still had 200 roads / 86 centerlines. Missing coverage remains a
+  no-guess blocker, not permission to attach a whole road or invent a segment.
+- 58 current Clear Directions rows matched the explicit driver-safety keyword
+  inventory. The V17.3.29 publisher still replaces all of `directions_clear`, so
+  #69 cannot ship until those facts are stored through a category-allowlisted,
+  provenance-aware contract and regenerated separately from route truth.
+- `routeIssue69AttachTappedGeometry` can replace a geometry-less Road Manager
+  road with one tapped OSM way. A single way cannot prove full canonical-road
+  coverage. #69 must leave that step unresolved and route geometry enrichment to
+  #70 rather than writing partial geometry as a complete Road Manager centerline.
+- The helper clip RPC currently picks the first continuous component when more
+  than one component can support both boundaries. That ambiguity must be
+  rejected explicitly instead of being silently resolved by ordering.
+
+Production was read-only during this continuation checkpoint. The next slice is
+the #81-safe driver-safety persistence/regeneration contract plus removal of the
+partial OSM overwrite path, followed by independent read-only review lanes.
