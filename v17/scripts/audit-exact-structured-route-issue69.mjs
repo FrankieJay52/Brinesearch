@@ -8,17 +8,21 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [source, orderRaw, geometryMigration, draftHelpers] = await Promise.all([
+const [source, boundaryEditor, orderRaw, geometryMigration, draftHelpers] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
+  read(path.join(v17Root, 'src/parts/21j-road-manager-route-boundaries-issue69.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
   read(path.join(projectRoot, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];
-const part = '21i-road-manager-structured-route-foundation-issue69.js';
-assert.ok(order.includes(part), '#69 structured route layer is not assembled.');
-assert.ok(order.indexOf(part) > order.indexOf('21h-road-manager-step-tap-lookup-bound-v17328.js'), '#69 must shadow the legacy V17.3.27/V17.3.28 occurrence/publish path.');
+const foundation = '21i-road-manager-structured-route-foundation-issue69.js';
+const boundaries = '21j-road-manager-route-boundaries-issue69.js';
+assert.ok(order.includes(foundation), '#69 structured route layer is not assembled.');
+assert.ok(order.includes(boundaries), '#69 boundary editor is not assembled.');
+assert.ok(order.indexOf(foundation) > order.indexOf('21h-road-manager-step-tap-lookup-bound-v17328.js'), '#69 must shadow the legacy V17.3.27/V17.3.28 occurrence/publish path.');
+assert.ok(order.indexOf(boundaries) > order.indexOf(foundation), '#69 boundary tools must load after the structured step model.');
 
 for (const token of [
   'brinesearch_get_structured_route_steps',
@@ -46,6 +50,28 @@ for (const token of [
   'route_step_id', 'road_id', 'start_coordinate', 'end_coordinate',
   'clipped_geometry', 'turn_direction', 'inbound_turn', 'geometry_status'
 ]) assert.ok(source.includes(token), `#69 publish payload missing ${token}`);
+
+for (const token of [
+  'Set start boundary',
+  'Set end boundary',
+  'Reverse turn',
+  'brinesearch_route_step_clip',
+  'brinesearch_route_step_snap_point',
+  'brinesearch_route_step_boundary_candidates',
+  'routeIssue69ApplyBoundary',
+  'routeIssue69ReclipAround',
+  'routeIssue69InvalidateWindow',
+  'same-road occurrence split',
+  'shared Road Manager nodes',
+  'Route order changed — exact boundaries must be re-established',
+  'routeIssue69ReverseTurn'
+]) assert.ok(boundaryEditor.includes(token), `#69 boundary editor missing ${token}`);
+
+// Road replacement/insertion/removal and reorder must invalidate geometry rather
+// than carrying an old clipped line into a new topology.
+assert.ok(boundaryEditor.includes('routeInteractiveUseCandidateInvalidateTopologyIssue69'), 'Road replace/insert is not topology-invalidating.');
+assert.ok(boundaryEditor.includes('routeStepRemoveInvalidateTopologyIssue69'), 'Road removal is not topology-invalidating.');
+assert.ok(boundaryEditor.includes('routeMapperRenderTopologyControlsIssue69'), 'Road reorder is not topology-invalidating.');
 
 for (const token of [
   'brinesearch_publish_structured_route',
@@ -89,12 +115,14 @@ assert.notDeepEqual(occurrenceA.startCoordinate, occurrenceB.startCoordinate);
 
 console.log(JSON.stringify({
   issue: 69,
-  status: 'foundation checkpoint',
+  status: 'structured foundation + boundary editor checkpoint',
   occurrenceIdentity: 'route_step_id + exact boundaries; never road-name similarity',
   exactHighlight: 'clippedGeometry only',
   publishBoundary: 'brinesearch_publish_structured_route RPC with optimistic route revision',
   draftGeometry: 'explicit tap snap + shared Road Manager node candidates + one-component clipping',
+  topologyEdits: 'replace/insert/remove/reorder invalidate affected exact geometry',
+  reverseRoute: 'reverse-turn field preserved with outbound-turn inverse as default',
   unresolvedBehavior: 'no fake exact highlight and publish blocked',
-  remaining: 'wire boundary/clipping helpers into route editor + topology invalidation + full end-to-end regressions/live rollout'
+  remaining: 'SQL rehearsal + browser/agent review + hard-case fixtures + production rollout/live verification'
 }, null, 2));
 console.log('GitHub #69 structured-route foundation audit passed.');
