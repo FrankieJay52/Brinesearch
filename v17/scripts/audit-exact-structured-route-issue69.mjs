@@ -8,10 +8,14 @@ const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [source, boundaryEditor, spatialRoadSelection, orderRaw, geometryMigration, draftHelpers] = await Promise.all([
+const [
+  source, boundaryEditor, spatialRoadSelection, publishLockdown,
+  orderRaw, geometryMigration, draftHelpers
+] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
   read(path.join(v17Root, 'src/parts/21j-road-manager-route-boundaries-issue69.js')),
   read(path.join(v17Root, 'src/parts/21k-road-manager-spatial-road-selection-issue69.js')),
+  read(path.join(v17Root, 'src/parts/21l-road-manager-structured-publish-lockdown-issue69.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(projectRoot, 'supabase/migrations/20260810165718_v17329_structured_route_step_geometry.sql')),
   read(path.join(projectRoot, 'supabase/migrations/20260811002000_issue69_route_geometry_draft_helpers.sql'))
@@ -21,12 +25,15 @@ const order = JSON.parse(orderRaw).parts || [];
 const foundation = '21i-road-manager-structured-route-foundation-issue69.js';
 const boundaries = '21j-road-manager-route-boundaries-issue69.js';
 const spatialSelection = '21k-road-manager-spatial-road-selection-issue69.js';
+const lockdown = '21l-road-manager-structured-publish-lockdown-issue69.js';
 assert.ok(order.includes(foundation), '#69 structured route layer is not assembled.');
 assert.ok(order.includes(boundaries), '#69 boundary editor is not assembled.');
 assert.ok(order.includes(spatialSelection), '#69 spatial road-selection guard is not assembled.');
+assert.ok(order.includes(lockdown), '#69 structured publish lockdown is not assembled.');
 assert.ok(order.indexOf(foundation) > order.indexOf('21h-road-manager-step-tap-lookup-bound-v17328.js'), '#69 must shadow the legacy V17.3.27/V17.3.28 occurrence/publish path.');
 assert.ok(order.indexOf(boundaries) > order.indexOf(foundation), '#69 boundary tools must load after the structured step model.');
 assert.ok(order.indexOf(spatialSelection) > order.indexOf(boundaries), '#69 spatial road identity guard must load after legacy map-tap road matching.');
+assert.ok(order.indexOf(lockdown) > order.indexOf(spatialSelection), '#69 publish lockdown must load after all legacy interactive map code.');
 
 for (const token of [
   'brinesearch_get_structured_route_steps',
@@ -71,8 +78,6 @@ for (const token of [
   'routeIssue69ReverseTurn'
 ]) assert.ok(boundaryEditor.includes(token), `#69 boundary editor missing ${token}`);
 
-// Road replacement/insertion/removal and reorder must invalidate geometry rather
-// than carrying an old clipped line into a new topology.
 assert.ok(boundaryEditor.includes('routeInteractiveUseCandidateInvalidateTopologyIssue69'), 'Road replace/insert is not topology-invalidating.');
 assert.ok(boundaryEditor.includes('routeStepRemoveInvalidateTopologyIssue69'), 'Road removal is not topology-invalidating.');
 assert.ok(boundaryEditor.includes('routeMapperRenderTopologyControlsIssue69'), 'Road reorder is not topology-invalidating.');
@@ -92,6 +97,14 @@ for (const token of [
 assert.ok(!spatialRoadSelection.includes('best?.score'), '#69 map taps must not silently choose a fuzzy best-name Road Manager record.');
 assert.ok(!spatialRoadSelection.includes('routeBacktraceSimilarityV17325'), '#69 spatial road identity guard must not depend on fuzzy name similarity.');
 assert.ok(!spatialRoadSelection.includes('routeInteractiveCandidateNameV17327(other) === routeInteractiveCandidateNameV17327(row)'), '#69 external road candidates must not be deduplicated by name.');
+
+for (const token of [
+  'routeInteractivePublishV17327 = routeIssue69PublishStructured',
+  'window.routeInteractivePublishV17327 = routeIssue69PublishStructured',
+  'brinesearch_publish_structured_route'
+]) assert.ok(publishLockdown.includes(token), `#69 publish lockdown missing ${token}`);
+assert.ok(!publishLockdown.includes('/rest/v1/brinesearch_pad_roads'), '#69 publish lockdown must not retain the legacy direct route-row write path.');
+assert.ok(!publishLockdown.includes('method: "PATCH"'), '#69 publish lockdown must not PATCH pads directly.');
 
 for (const token of [
   'brinesearch_publish_structured_route',
@@ -130,8 +143,6 @@ assert.ok(!/similarity|normalized_name|canonical_name\s*(?:=|like|ilike)/i.test(
   draftHelpers.match(/create or replace function public\.brinesearch_route_step_boundary_candidates[\s\S]*?comment on function public\.brinesearch_route_step_boundary_candidates/)?.[0] || ''
 ), 'Boundary-candidate helper must not choose intersections using road-name similarity.');
 
-// Repeated roads must remain independent occurrences. Road ID equality is not
-// sufficient to identify a step; occurrence UUIDs remain distinct.
 const occurrenceA = { routeStepId: 'a', roadId: 'same-road', startCoordinate: [0, 0], endCoordinate: [1, 0] };
 const occurrenceB = { routeStepId: 'b', roadId: 'same-road', startCoordinate: [1, 0], endCoordinate: [2, 0] };
 assert.equal(occurrenceA.roadId, occurrenceB.roadId);
@@ -140,15 +151,15 @@ assert.notDeepEqual(occurrenceA.startCoordinate, occurrenceB.startCoordinate);
 
 console.log(JSON.stringify({
   issue: 69,
-  status: 'structured foundation + boundary editor + spatial road identity checkpoint',
+  status: 'structured foundation + boundary editor + spatial road identity + publish lockdown checkpoint',
   occurrenceIdentity: 'route_step_id + exact boundaries; never road-name similarity',
   exactHighlight: 'clippedGeometry only',
-  publishBoundary: 'brinesearch_publish_structured_route RPC with optimistic route revision',
+  publishBoundary: 'single runtime entrypoint -> brinesearch_publish_structured_route with optimistic route revision',
   draftGeometry: 'explicit tap snap + shared Road Manager node candidates + one-component clipping',
   topologyEdits: 'replace/insert/remove/reorder invalidate affected exact geometry',
   roadIdentity: 'exact source ID or spatial support; ambiguous/name-only matches block instead of guessing',
   reverseRoute: 'reverse-turn field preserved with outbound-turn inverse as default',
   unresolvedBehavior: 'no fake exact highlight and publish blocked',
-  remaining: 'SQL behavior rehearsal + browser/agent review + hard-case fixtures + production rollout/live verification'
+  remaining: 'browser/agent hard-case review + #81 safety-note preservation review + production rollout/live verification'
 }, null, 2));
 console.log('GitHub #69 structured-route foundation audit passed.');
