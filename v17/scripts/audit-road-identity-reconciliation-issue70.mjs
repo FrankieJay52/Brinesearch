@@ -6,6 +6,7 @@ const migrations = path.join(root, 'supabase', 'migrations');
 const base = fs.readFileSync(path.join(migrations, '20260811062500_issue70_saved_alias_reconciliation.sql'), 'utf8');
 const runtime = fs.readFileSync(path.join(migrations, '20260811062510_issue70_saved_alias_reconciliation_runtime_fix.sql'), 'utf8');
 const converge = fs.readFileSync(path.join(migrations, '20260811062520_issue70_saved_alias_reconciliation_converge.sql'), 'utf8');
+const passCount = fs.readFileSync(path.join(migrations, '20260811062525_issue70_saved_alias_reconciliation_pass_count.sql'), 'utf8');
 const split = fs.readFileSync(path.join(migrations, '20260811062530_issue70_split_cr10_cr12_identity.sql'), 'utf8');
 
 function assert(condition, message) {
@@ -32,6 +33,7 @@ assert(!base.includes('levenshtein') && !base.includes('similarity('), 'reconcil
 assert(runtime.includes('(min(rr.id::text))::uuid'), 'UUID aggregate runtime correction must be present');
 assert(converge.includes('for v_pass in 1..5'), 'repeated occurrences must converge through a bounded re-stage loop');
 assert(converge.includes('brinesearch_apply_saved_alias_reconcile_issue70()'), 'convergence must reuse the same exact single-pass contract');
+assert(passCount.includes('v_passes:=v_pass') && passCount.includes("'passes',v_passes"), 'convergence diagnostics must report the actual bounded pass count');
 
 assert(split.includes("'CJEFCR00012**C|route:CR:12'"), 'CR-12 must have a separate exact official identity');
 assert(split.includes("route_number='10'"), 'CR-10 source row must be identified structurally');
