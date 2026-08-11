@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(process.cwd());
-const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20260811100000_issue70_nlf_road_manager_consolidation.sql'), 'utf8');
+const migration = fs.readFileSync(path.join(root, 'supabase', 'migrations', '20260811104449_issue70_nlf_road_manager_consolidation.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 NLF consolidation audit failed: ${message}`);
