@@ -10,6 +10,7 @@ const passCount = fs.readFileSync(path.join(migrations, '20260811064523_issue70_
 const split = fs.readFileSync(path.join(migrations, '20260811065144_issue70_split_cr10_cr12_identity.sql'), 'utf8');
 const lockdown = fs.readFileSync(path.join(migrations, '20260811065448_issue70_saved_alias_reconciliation_rpc_lockdown.sql'), 'utf8');
 const exactAlias = fs.readFileSync(path.join(migrations, '20260811071553_issue70_exact_existing_alias_reuse.sql'), 'utf8');
+const exactSuffix = fs.readFileSync(path.join(migrations, '20260811073000_issue70_exact_suffix_routes.sql'), 'utf8');
 
 function assert(condition, message) {
   if (!condition) throw new Error(`Issue #70 road reconciliation audit failed: ${message}`);
@@ -65,15 +66,28 @@ assert(!exactAlias.includes('road_manager_recalculate_route_readiness()'), 'data
 assert(!exactAlias.includes('ST_DWithin') && !exactAlias.includes('st_dwithin') && !exactAlias.includes('ST_Distance') && !exactAlias.includes('st_distance'), 'existing-alias identity may not use spatial proximity');
 assert(!exactAlias.includes('levenshtein') && !exactAlias.includes('similarity('), 'existing-alias identity may not use fuzzy text matching');
 
+assert(exactSuffix.includes("upper(btrim(s.raw_text)) ~ '^(CR|TR)[ -]?0*[0-9]+[A-Z]"), 'suffix route candidates must require an explicit alphabetic route suffix');
+assert(exactSuffix.includes('nlf_count=1') && exactSuffix.includes('loaded_segments=official_segments'), 'suffix routes must require one fully loaded official ODOT NLF');
+assert(exactSuffix.includes('existing_count<=1'), 'suffix routes must fail closed when multiple Road Manager rows own the identity');
+assert(exactSuffix.includes("split_part(coalesce(rr.source_record_id,''),'|',1)=o.nlf_id"), 'existing suffix-road upgrades must be backed by the same official NLF or exact suffixed route identity');
+assert(exactSuffix.includes("source_method='official_odot_issue70_suffix_route_reconcile'"), 'suffix-road Road Manager provenance must be explicit');
+assert(exactSuffix.includes("match_method='official_odot_exact_suffix_issue70'"), 'suffix route-prep links must have dedicated exact provenance');
+assert(exactSuffix.includes("'fuzzy_matching',false") && exactSuffix.includes("'nearest_road_fallback',false") && exactSuffix.includes("'spatial_fallback',false"), 'suffix route evidence must explicitly record no-guess behavior');
+assert(!exactSuffix.includes('brinesearch_publish_structured_route'), 'suffix reconciliation must not publish #69 routes');
+assert(!exactSuffix.includes('road_manager_recalculate_route_readiness()'), 'suffix data migration must be deploy-role safe');
+assert(!exactSuffix.includes('ST_DWithin') && !exactSuffix.includes('st_dwithin') && !exactSuffix.includes('ST_Distance') && !exactSuffix.includes('st_distance'), 'suffix identity may not use spatial proximity as the decision');
+assert(!exactSuffix.includes('levenshtein') && !exactSuffix.includes('similarity('), 'suffix identity may not use fuzzy text matching');
+
 console.log(JSON.stringify({
   issue: 70,
-  source: 'authoritative saved Clear Direction explicit alias pairs + exact trusted Road Manager canonical/stored aliases',
-  routeIdentity: 'exact numbered route + geographic scope + official ODOT evidence where creation/upgrade is required',
+  source: 'authoritative saved route identities + exact trusted Road Manager aliases + exact official ODOT suffix identities',
+  routeIdentity: 'exact numbered route including suffix + geographic scope + one complete official ODOT NLF',
   existingRoadReuse: 'one distinct verified trusted-geometry road only',
   createUpgrade: 'CR/TR only, one complete official ODOT NLF',
   repeatedOccurrences: 'bounded exact re-stage convergence',
   exactExistingAlias: 'literal canonical/alias/composite-component equality only',
-  contaminationRepair: 'Jefferson CR-10 and CR-12 split structurally',
+  exactSuffixRoute: 'explicit CR/TR number with alphabetic suffix + exact ODOT NLF; same-NLF partial Road Manager geometry may be upgraded to full official centerline',
+  contaminationRepair: 'Jefferson CR-10 and CR-12 split structurally; suffix route aliases corrected to the exact route',
   maintenanceSecurity: 'private evidence + maintenance-only SECURITY DEFINER reconciliation functions',
   routePublication: 'none; #69 remains canonical and fail-closed',
   result: 'pass'
