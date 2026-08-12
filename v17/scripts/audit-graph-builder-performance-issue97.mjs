@@ -11,6 +11,8 @@ const targetGeogSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811252000_issue97_graph_builder_target_geography_index.sql"), "utf8");
 const endpointTJunctionSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812036000_issue97_endpoint_on_interior_t_junctions.sql"), "utf8");
+const syntheticTopologySql = fs.readFileSync(path.join(root,
+  "supabase/tests/issue97_road_junction_graph_synthetic.sql"), "utf8");
 
 for (const token of [
   "brinesearch_odot_catalog_geog_issue97_idx",
@@ -85,4 +87,18 @@ assert.match(endpointTJunctionSql,
   /revoke all on function public\.brinesearch_issue97_rebuild_county_graph\(text,text\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Hardened graph builder must remain service-only");
 
-console.log("Issue #97 graph-builder performance + strong exact endpoint-on-interior T-junction/no-overpass regression passed.");
+// The executable rollback fixture deliberately uses the same geometric pattern as
+// the Cologie recovery but marks the endpoint road as a bridge at another level.
+// The builder must therefore hold the source-endpoint overpass even after the
+// endpoint-on-interior T-junction rule is enabled.
+for (const token of [
+  "('WV:TEST:SEG:OVER_A','WV:TEST:OVER_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.800,-81.095 39.800,-81.090 39.800)')",
+  "('WV:TEST:SEG:OVER_B','WV:TEST:OVER_B','DOD','Doddridge','public','drivable',1,'bridge','LINESTRING(-81.095 39.800,-81.095 39.810)')",
+  "verification_status='held' and source_provenance->>'grade_conflict'='true'",
+  "#97 source-endpoint overpass was not held exactly once"
+]) assert.ok(syntheticTopologySql.includes(token), `Issue #97 executable endpoint-overpass regression missing: ${token}`);
+assert.match(syntheticTopologySql,
+  /OVER_A[\s\S]*LINESTRING\(-81\.100 39\.800,-81\.095 39\.800,-81\.090 39\.800\)[\s\S]*OVER_B[\s\S]*1,'bridge'[\s\S]*LINESTRING\(-81\.095 39\.800,-81\.095 39\.810\)/,
+  "The executable overpass fixture must remain an endpoint-on-interior contact with explicit grade separation");
+
+console.log("Issue #97 graph-builder performance + strong exact endpoint-on-interior T-junction + executable endpoint-overpass regression passed.");
