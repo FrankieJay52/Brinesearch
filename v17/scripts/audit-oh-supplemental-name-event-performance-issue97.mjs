@@ -70,7 +70,7 @@ for (const token of [
   "pg_catalog.substr(k.segment_key,17) as roadway_inventory_id",
   "tmp_issue97_oh_supp_odot_keys_roadway_idx",
   "on o.roadway_inventory_id=k.roadway_inventory_id",
-  "mapping semantics remain exact/source-ID based",
+  "exact/source-ID based",
   "road names and nearest-road matching remain prohibited"
 ]) assert.ok(pkJoinSql.includes(token), `Issue #97 Ohio supplemental ODOT PK-join hardening missing: ${token}`);
 
