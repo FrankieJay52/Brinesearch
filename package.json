@@ -25,7 +25,7 @@
     "verify:confirmed-pad-county-scope": "node v17/scripts/verify-confirmed-pad-county-scope-issue97.mjs",
     "verify:source-scope-runner": "node v17/scripts/verify-issue97-source-scope-runner.mjs && node v17/scripts/audit-oh-supplemental-name-event-performance-issue97.mjs",
     "verify:wvdot-ingest-hardening": "node v17/scripts/audit-wvdot-multipart-ingest-issue97.mjs",
-    "verify:road-junction-graph": "node v17/scripts/audit-authoritative-road-junction-graph-issue97.mjs",
+    "verify:road-junction-graph": "node v17/scripts/audit-authoritative-road-junction-graph-issue97.mjs && node v17/scripts/audit-graph-builder-performance-issue97.mjs",
     "verify:road-junction-browser": "node v17/scripts/browser-road-junction-issue97.mjs",
     "verify:google-route-plan": "node v17/scripts/verify-google-route-plan-issue97.mjs",
     "verify:all-pad-google-route-accounting": "node v17/scripts/verify-all-pad-google-route-accounting-issue97.mjs",
