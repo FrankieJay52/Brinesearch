@@ -84,12 +84,20 @@ assert.match(pkJoinSql,
 
 for (const token of [
   "preserve valid non-simple supplemental authoritative centerlines",
+  "drop constraint brinesearch_supplemental_centerlines_geometry_check",
+  "add constraint brinesearch_supplemental_centerlines_geometry_check check(",
   "not extensions.st_isvalid(v_geom) then continue",
   "and extensions.st_issimple(c.geom)",
+  "source-evidence geometry guard",
   "valid non-simple OGRIP rows remain preserved source evidence with explicit held dispositions"
 ]) assert.ok(supplementalPreservationSql.includes(token), `Issue #97 supplemental non-simple preservation missing: ${token}`);
 assert.ok(!supplementalPreservationSql.includes("not extensions.st_isvalid(v_geom) or not extensions.st_issimple(v_geom) then continue"),
   "Supplemental source ingestion must preserve valid non-simple authoritative 1-D records");
+const constraintAt = supplementalPreservationSql.indexOf("add constraint brinesearch_supplemental_centerlines_geometry_check check(");
+const patchAt = supplementalPreservationSql.indexOf("do $issue97_patch_supplemental_nonsimple$", constraintAt);
+assert.ok(constraintAt >= 0 && patchAt > constraintAt, "Supplemental geometry preservation constraint block is missing");
+assert.ok(!supplementalPreservationSql.slice(constraintAt, patchAt).includes("st_issimple"),
+  "Supplemental source-evidence table constraint must not reject valid non-simple 1-D centerlines");
 assert.match(supplementalPreservationSql,
   /revoke all on function public\.brinesearch_issue97_ingest_supplemental_page\(uuid,integer,integer\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Supplemental source-page ingest must remain service-only");
