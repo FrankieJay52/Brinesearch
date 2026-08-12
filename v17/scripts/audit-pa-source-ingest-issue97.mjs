@@ -11,6 +11,8 @@ const nodeHoldMigration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812041000_issue97_pa_at_grade_source_node_holds.sql"), "utf8");
 const supplementalFastpath = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812042000_issue97_pa_supplemental_external_segment_fastpath.sql"), "utf8");
+const supplementalIdentityAccounting = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812043000_issue97_supplemental_feature_identity_accounting.sql"), "utf8");
 
 for (const token of [
   "create or replace function private_verification.brinesearch_issue97_pa_geometry_hold_reason(",
@@ -119,7 +121,43 @@ assert.match(supplementalFastpath,
   /v_dispatch not like '%return public\.brinesearch_issue97_refresh_supplemental_aliases_issue97_core%'/,
   "The runtime regression must prove Pennsylvania still dispatches through the hardened PA core");
 
-for (const text of [migration, nodeHoldMigration, supplementalFastpath]) {
+for (const token of [
+  "supplemental source-feature identity + full materialization accounting",
+  "create or replace function private_verification.brinesearch_issue97_supplemental_native_feature_key(",
+  "nullif(pg_catalog.btrim(coalesce(p_native_id,'')),'')",
+  "return coalesce(v_native,v_version||':'||v_record)",
+  "v_blank_101<>'2025-Q4:101'",
+  "v_blank_101=v_blank_102",
+  "v_padded<>'NG-ABC-123'",
+  "RCL_NGUID patch expected 4 targets",
+  "Allegheny FEATURE_KE patch expected 1 target",
+  "v_record_id:=pg_catalog.btrim(v_record_id)",
+  "v_materialized_supplemental_features integer:=0",
+  "v_role='supplemental_aliases'",
+  "c.last_ingest_run_id=p_run_id",
+  "supplemental source feature identity/materialization count mismatch",
+  "materialized_supplemental_feature_count",
+  "source_feature_accounting_verified",
+  "v_helper_calls<>5"
+]) {
+  assert.ok(supplementalIdentityAccounting.includes(token),
+    `Issue #97 supplemental source-feature accounting missing: ${token}`);
+}
+
+assert.match(supplementalIdentityAccounting,
+  /v_blank_101:=private_verification\.brinesearch_issue97_supplemental_native_feature_key[\s\S]*'101',' '[\s\S]*v_blank_102:=private_verification\.brinesearch_issue97_supplemental_native_feature_key[\s\S]*'102',E'\\t  '[\s\S]*v_blank_101=v_blank_102/,
+  "Whitespace native IDs must fall back to distinct source-version + OBJECTID feature identities");
+assert.match(supplementalIdentityAccounting,
+  /v_old:='coalesce\(nullif\(v_props->>''RCL_NGUID'',''''\),v_run\.source_version\|\|'':''\|\|v_record_id\)'[\s\S]*if v_count<>4/,
+  "All four RCL_NGUID NG911 loaders must be patched together");
+assert.match(supplementalIdentityAccounting,
+  /if v_role=''supplemental_aliases'' then[\s\S]*count\(\*\)::integer into v_materialized_supplemental_features[\s\S]*last_ingest_run_id=p_run_id[\s\S]*v_materialized_supplemental_features<>coalesce\(p_ingested_row_count,-1\)[\s\S]*status=''failed''/,
+  "Supplemental finalization must fail before alias materialization when distinct current-run stored features do not equal verified ingested features");
+assert.match(supplementalIdentityAccounting,
+  /v_finalizer not like '%materialized_supplemental_feature_count%'[\s\S]*v_finalizer not like '%c\.last_ingest_run_id=p_run_id%'[\s\S]*v_finalizer not like '%source_feature_accounting_verified%'/,
+  "The migration must execute a composed-runtime regression proving the finalizer feature-count gate installed");
+
+for (const text of [migration, nodeHoldMigration, supplementalFastpath, supplementalIdentityAccounting]) {
   assert.ok(!text.includes("st_node("),
     "PA source hardening must not node ambiguous source geometry");
   assert.ok(!text.includes("st_makevalid("),
@@ -128,4 +166,4 @@ for (const text of [migration, nodeHoldMigration, supplementalFastpath]) {
     "PA source hardening must never authorize nearest-road identity or topology proof");
 }
 
-console.log("Issue #97 Pennsylvania road/node holds + exact external-segment supplemental fast-path audit passed.");
+console.log("Issue #97 Pennsylvania road/node holds + exact supplemental mapping + source-feature accounting audit passed.");
