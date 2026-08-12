@@ -22,9 +22,9 @@ security definer
 set search_path=''
 as $issue97_supplemental_native_key$
 declare
-  v_version text:=nullif(pg_catalog.btrim(coalesce(p_source_version,'')),'');
-  v_record text:=nullif(pg_catalog.btrim(coalesce(p_record_id,'')),'');
-  v_native text:=nullif(pg_catalog.btrim(coalesce(p_native_id,'')),'');
+  v_version text:=nullif(pg_catalog.regexp_replace(coalesce(p_source_version,''),'^[[:space:]]+|[[:space:]]+$','','g'),'');
+  v_record text:=nullif(pg_catalog.regexp_replace(coalesce(p_record_id,''),'^[[:space:]]+|[[:space:]]+$','','g'),'');
+  v_native text:=nullif(pg_catalog.regexp_replace(coalesce(p_native_id,''),'^[[:space:]]+|[[:space:]]+$','','g'),'');
 begin
   if v_record is null or v_version is null then
     raise exception 'Supplemental source version and record id are required for stable feature identity'
@@ -198,4 +198,4 @@ end
 $issue97_verify_supplemental_feature_accounting$;
 
 comment on function private_verification.brinesearch_issue97_supplemental_native_feature_key(text,text,text) is
-  'Issue #97 stable supplemental feature identity helper. Trims native IDs, falls back to immutable source-version + ArcGIS record ID when native IDs are blank/whitespace, and prevents source-feature collapse.';
+  'Issue #97 stable supplemental feature identity helper. Trims all leading/trailing whitespace from native IDs, falls back to immutable source-version + ArcGIS record ID when native IDs are blank/whitespace, and prevents source-feature collapse.';
