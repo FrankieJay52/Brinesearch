@@ -19,6 +19,8 @@ const nlfMappingSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811257000_issue97_oh_supplemental_nlf_mapping_performance.sql"), "utf8");
 const verifiedProjectionSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811258000_issue97_oh_supplemental_verified_projection_cache.sql"), "utf8");
+const scopeIndexSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811259000_issue97_supplemental_scope_indexes.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
@@ -51,7 +53,6 @@ const overlapAt = migration.indexOf("create temporary table tmp_issue97_oh_supp_
 const nameExpandAt = migration.indexOf("cross join lateral pg_catalog.jsonb_array_elements(o.name_events) event", overlapAt);
 assert.ok(centerlineCacheAt >= 0 && odotCacheAt > centerlineCacheAt && overlapAt > odotCacheAt && nameExpandAt > overlapAt,
   "Ohio supplemental processing must cache projected centerlines, then projected ODOT segments, then overlap receipts before expanding names");
-
 const overlapBlock = migration.slice(overlapAt, nameExpandAt);
 assert.equal((overlapBlock.match(/extensions\.st_intersection\(/g) || []).length, 1,
   "Original Ohio name-event overlap cache should compute one geometry intersection expression per verified centerline/source-segment receipt");
@@ -68,7 +69,6 @@ for (const token of [
   "exact source_segment_key lookup index",
   "identity matching remains exact and name-independent"
 ]) assert.ok(sourceKeyIndexSql.includes(token), `Issue #97 exact ODOT source-segment key index missing: ${token}`);
-
 assert.ok(migration.includes("on segment_key='OH:ODOT:SEGMENT:'||o.roadway_inventory_id"),
   "The original cached overlap stage must preserve the deterministic source-segment key contract before the later PK-join optimization");
 
@@ -164,10 +164,18 @@ const effectiveVerifiedProjectionSql = verifiedProjectionSql.slice(verifiedNewAt
 assert.ok(!effectiveVerifiedProjectionSql.includes("st_buffer("),
   "Effective source projection cache must not build buffers that endpoint projection no longer uses");
 
+for (const token of [
+  "brinesearch_supp_disposition_scope_run_issue97_idx",
+  "dataset_id,state_code,county_code,ingest_run_id,active,disposition",
+  "brinesearch_supp_mapping_scope_status_issue97_idx",
+  "dataset_id,state_code,county_code,active,mapping_status,centerline_id",
+  "No matching semantics change"
+]) assert.ok(scopeIndexSql.includes(token), `Issue #97 supplemental scope index hardening missing: ${token}`);
+
 for (const sql of [endpointProjectionSql,nlfMappingSql,verifiedProjectionSql]) {
   assert.match(sql,
     /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
     "Every Ohio supplemental performance helper patch must keep the internal function non-callable");
 }
 
-console.log("Issue #97 Ohio OGRIP source preservation + official-NLF exact mapping + verified-only projection + endpoint-derived name intervals regression passed.");
+console.log("Issue #97 Ohio OGRIP source preservation + official-NLF exact mapping + verified-only projection + endpoint-derived name intervals + indexed final accounting regression passed.");
