@@ -13,6 +13,8 @@ const graphRefresh = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043900_issue97_oh_exact_mapping_refresh_for_graphs.sql"), "utf8");
 const us40 = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812044000_issue97_oh_us40_canonical_adoption.sql"), "utf8");
+const countyRefresh = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812044100_issue97_oh_county_scoped_mapping_refresh.sql"), "utf8");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",
@@ -120,6 +122,7 @@ for (const token of [
   "perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh();",
   "else",
   "perform public.brinesearch_issue97_refresh_exact_mappings();",
+  "convergent",
   "$issue97_verify_oh_graph_mapping_refresh$"
 ]) {
   assert.ok(graphRefresh.includes(token), `Issue #97 Ohio graph mapping refresh missing: ${token}`);
@@ -135,7 +138,7 @@ assert.match(graphRefresh,
   "Ohio exact designation candidates must be sourced only from active Ohio identities");
 assert.match(graphRefresh,
   /if v_state=''OH'' then[\s\S]*refresh_oh_identities\(v_county\)[\s\S]*refresh_exact_mappings_oh\(\)[\s\S]*else[\s\S]*refresh_exact_mappings\(\)/,
-  "Only Ohio graph rebuilds may use the Ohio-scoped exact mapping refresh");
+  "The first OH-only migration must preserve the original global non-Ohio branch");
 assert.ok(!graphRefresh.includes("similarity("),
   "Ohio exact mapping refresh must not use fuzzy similarity");
 assert.ok(!graphRefresh.includes("<->"),
@@ -168,4 +171,30 @@ assert.ok(!us40.includes("<->"),
 assert.ok(!us40.includes("public.brinesearch_issue97_refresh_exact_mappings()"),
   "Ohio US-40 adoption must not invoke the global mapping refresher");
 
-console.log("Issue #97 Ohio candidates + canonical adoption + graph refresh + US-40 audit passed.");
+for (const token of [
+  "make Ohio graph mapping refresh county-scoped",
+  "brinesearch_issue97_refresh_exact_mappings_oh(\n  p_county_code text",
+  "i.state_code='OH' and i.county_code=v_county",
+  "refresh_scope','OH:'||v_county",
+  "nlf_base_counts",
+  "perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh(v_county);",
+  "v_definition like '%perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh(v_county);%'",
+  "$issue97_verify_oh_county_mapping_refresh$"
+]) {
+  assert.ok(countyRefresh.includes(token), `Issue #97 Ohio county mapping refresh missing: ${token}`);
+}
+assert.match(countyRefresh,
+  /update public\.brinesearch_road_identity_mappings m set[\s\S]*i\.state_code='OH' and i\.county_code=v_county/,
+  "County-scoped Ohio refresh may retire exact mappings only for the target Ohio county");
+assert.match(countyRefresh,
+  /scope_identities as \([\s\S]*i\.active and i\.state_code='OH' and i\.county_code=v_county/,
+  "County-scoped Ohio candidates must originate only from target-county identities");
+assert.match(countyRefresh,
+  /v_old text:='perform private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\(\);'[\s\S]*v_new text:='perform private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\(v_county\);'/,
+  "Ohio graph builder must switch from broad OH refresh to target-county refresh");
+assert.ok(!countyRefresh.includes("similarity("),
+  "County-scoped Ohio refresh must not use fuzzy similarity");
+assert.ok(!countyRefresh.includes("<->"),
+  "County-scoped Ohio refresh must not use nearest geometry");
+
+console.log("Issue #97 Ohio candidates + canonical adoption + scoped graph refresh + US-40 audit passed.");
