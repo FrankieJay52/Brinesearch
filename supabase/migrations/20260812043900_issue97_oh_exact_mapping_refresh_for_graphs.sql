@@ -22,6 +22,10 @@ declare
   v_verified integer:=0;
   v_held integer:=0;
 begin
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+
   -- Retire only machine-owned exact mappings whose authoritative identity is OH.
   update public.brinesearch_road_identity_mappings m set
     mapping_status='retired',verified_at=null,updated_at=now(),
