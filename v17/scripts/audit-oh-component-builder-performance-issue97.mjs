@@ -8,7 +8,7 @@ const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811253000_issue97_oh_component_builder_performance.sql"), "utf8");
 const retirementSql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811256000_issue97_oh_identity_retirement_assignment_presence.sql"), "utf8");
+  "supabase/migrations/20260811259000_issue97_oh_identity_retirement_assignment_presence.sql"), "utf8");
 
 for (const token of [
   "tmp_issue97_oh_valid_segments",
