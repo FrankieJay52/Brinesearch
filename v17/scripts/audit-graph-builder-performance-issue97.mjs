@@ -67,6 +67,9 @@ for (const token of [
   "p.source_method='exact_authoritative_endpoint_on_interior'",
   "count(distinct i.identity_id) filter(where i.is_identity_terminus)>=1",
   "count(distinct i.identity_id) filter(where i.has_interior_touch)>=1",
+  "e.identity_ids @> p.identity_ids",
+  "p.identity_ids @> e.identity_ids",
+  "Strong endpoint-on-interior proof replaces only the identical weaker raw-vertex identity set",
   "Interior/interior crossings",
   "nearest-road matching never prove a junction"
 ]) assert.ok(endpointTJunctionSql.includes(token), `Issue #97 endpoint-on-interior T-junction hardening missing: ${token}`);
@@ -76,7 +79,10 @@ assert.match(endpointTJunctionSql,
   /join tmp_issue97_segments b[\s\S]*ep\.geom OPERATOR\(extensions\.&&\) b\.geom[\s\S]*st_intersects\(ep\.geom,b\.geom\)[\s\S]*st_touches\(a\.geom,b\.geom\)/,
   "Endpoint-on-interior recovery must require an exact authoritative endpoint contact before topology support");
 assert.match(endpointTJunctionSql,
+  /from exact_points p[\s\S]*not exists\([\s\S]*from endpoint_points e[\s\S]*e\.identity_ids @> p\.identity_ids[\s\S]*p\.identity_ids @> e\.identity_ids[\s\S]*union all[\s\S]*from endpoint_points p/,
+  "An identical weak raw-vertex candidate must yield to the stronger endpoint-on-interior proof, while non-identical broader candidates remain separate");
+assert.match(endpointTJunctionSql,
   /revoke all on function public\.brinesearch_issue97_rebuild_county_graph\(text,text\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Hardened graph builder must remain service-only");
 
-console.log("Issue #97 graph-builder performance + exact endpoint-on-interior T-junction/no-overpass regression passed.");
+console.log("Issue #97 graph-builder performance + strong exact endpoint-on-interior T-junction/no-overpass regression passed.");
