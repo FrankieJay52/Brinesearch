@@ -195,9 +195,9 @@ begin
 ||E'        mapping_fingerprint=excluded.mapping_fingerprint,evidence=excluded.evidence,updated_at=now();\n'
 ||E'    else\n'||v_legacy_body||E'    end if;\n  end if;\n\n';
 
-  v_definition:=pg_catalog.overlay(
-    v_definition placing v_new from v_start for pg_catalog.length(v_old)
-  );
+  v_definition:=pg_catalog.substr(v_definition,1,v_start-1)
+    ||v_new
+    ||pg_catalog.substr(v_definition,v_start+pg_catalog.length(v_old));
   execute v_definition;
 end
 $issue97_patch_oh_indexed_candidate_lookup$;
