@@ -11,6 +11,8 @@ const adoption = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043800_issue97_oh_route_used_canonical_adoption.sql"), "utf8");
 const graphRefresh = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043900_issue97_oh_exact_mapping_refresh_for_graphs.sql"), "utf8");
+const us40 = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812044000_issue97_oh_us40_canonical_adoption.sql"), "utf8");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",
@@ -139,4 +141,31 @@ assert.ok(!graphRefresh.includes("similarity("),
 assert.ok(!graphRefresh.includes("<->"),
   "Ohio exact mapping refresh must not use nearest geometry");
 
-console.log("Issue #97 Ohio structured candidates + canonical adoption + Ohio-only graph mapping refresh audit passed.");
+for (const token of [
+  "Ohio-only exact US-40 canonical adoption",
+  "i.state_code='OH' and i.active",
+  "i.road_class='us_route' and i.route_number='40'",
+  "issue97_oh_exact_route_family",
+  "exact_route_designation",
+  "migration','issue97_oh_us40_canonical_adoption'",
+  "name_matching_used',false",
+  "fuzzy_matching_used',false",
+  "nearest_road_used',false",
+  "$issue97_verify_oh_us40_canonical_adoption$"
+]) {
+  assert.ok(us40.includes(token), `Issue #97 Ohio US-40 adoption missing: ${token}`);
+}
+assert.match(us40,
+  /select count\(\*\)::integer,min\(r\.id::text\)::uuid[\s\S]*road_type='us_route' and r\.route_number='40' and r\.state is null[\s\S]*v_row_count<>1/,
+  "Ohio US-40 adoption must upgrade exactly one existing family row");
+assert.match(us40,
+  /v_mapped<>9/,
+  "Ohio US-40 installation proof must require all nine current Ohio source identities to map");
+assert.ok(!us40.includes("similarity("),
+  "Ohio US-40 adoption must not use fuzzy similarity");
+assert.ok(!us40.includes("<->"),
+  "Ohio US-40 adoption must not use nearest geometry");
+assert.ok(!us40.includes("public.brinesearch_issue97_refresh_exact_mappings()"),
+  "Ohio US-40 adoption must not invoke the global mapping refresher");
+
+console.log("Issue #97 Ohio candidates + canonical adoption + graph refresh + US-40 audit passed.");
