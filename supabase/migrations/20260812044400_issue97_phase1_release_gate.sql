@@ -143,9 +143,10 @@ declare
   v_active_steps integer:=0;
   v_missing_occurrence_receipts integer:=0;
   v_invalid_occurrence_disposition integer:=0;
-  v_bad_resolved_identity integer:=0;
+  v_stale_resolved_identity integer:=0;
+  v_resolved_missing_canonical integer:=0;
   v_route_ready_geometry_mismatch integer:=0;
-  v_legacy_geometry_count_leak integer:=0;
+  v_exact_geometry_count_mismatch integer:=0;
   v_draft_route_ready integer:=0;
   v_held_public_rows integer:=0;
   v_public_rows_not_current integer:=0;
@@ -167,23 +168,38 @@ begin
   left join private_verification.brinesearch_route_occurrence_receipts_issue97 r
     on r.route_prep_step_id=s.id;
 
-  select count(*)::integer into v_bad_resolved_identity
+  -- A resolved identity may still be waiting for canonical adoption, but the
+  -- authoritative identity receipt itself must be current and immutable.
+  select count(*)::integer into v_stale_resolved_identity
   from private_verification.brinesearch_route_occurrence_receipts_issue97 r
   left join public.brinesearch_authoritative_road_identities i
     on i.id=r.identity_id and i.active
-  left join public.brinesearch_road_identity_mappings m
-    on m.identity_id=r.identity_id
-    and m.road_id=r.canonical_road_id
-    and m.mapping_status='verified'
   where r.resolution_status='resolved'
     and (
       r.identity_id is null
-      or r.canonical_road_id is null
       or i.id is null
-      or m.id is null
       or r.source_digest is distinct from i.source_digest
       or r.mapping_fingerprint is distinct from private_verification.brinesearch_issue97_mapping_fingerprint(r.identity_id)
       or not private_verification.brinesearch_issue97_dataset_scope_current(i.dataset_id,i.state_code,i.county_code)
+    );
+
+  -- Canonical adoption is a separate stage. It is still a release blocker when
+  -- an exact resolved occurrence lacks one verified identity-to-road mapping.
+  select count(*)::integer into v_resolved_missing_canonical
+  from private_verification.brinesearch_route_occurrence_receipts_issue97 r
+  where r.resolution_status='resolved'
+    and (
+      r.canonical_road_id is null
+      or not exists(
+        select 1
+        from public.brinesearch_road_identity_mappings m
+        join public.brinesearch_roads road on road.id=m.road_id
+        where m.identity_id=r.identity_id
+          and m.road_id=r.canonical_road_id
+          and m.mapping_status='verified'
+          and road.verification_status='verified'
+          and not coalesce(road.candidate_only,false)
+      )
     );
 
   select count(*)::integer into v_route_ready_geometry_mismatch
@@ -191,22 +207,76 @@ begin
   where rr.route_status='route_ready'
     and rr.exact_geometry_count<>rr.road_occurrence_count;
 
-  select count(*)::integer into v_legacy_geometry_count_leak
+  -- Recompute the exact geometry count using the same occurrence-role and
+  -- transition-digest contract as brinesearch_issue97_refresh_route_receipt.
+  -- This catches any future reintroduction of legacy brinesearch_pad_roads
+  -- counting without falsely accepting geometry whose boundary receipts are stale.
+  select count(*)::integer into v_exact_geometry_count_mismatch
   from private_verification.brinesearch_route_reconciliation_receipts_issue97 rr
-  where rr.exact_geometry_count<>
-    (
-      select count(*)
-      from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 g
-      join private_verification.brinesearch_route_occurrence_receipts_issue97 o
-        on o.route_prep_step_id=g.route_prep_step_id
-        and o.route_prep_id=g.route_prep_id
-        and o.occurrence_index=g.occurrence_index
-      where g.route_prep_id=rr.route_prep_id
-        and g.status='resolved'
-        and o.resolution_status='resolved'
-        and g.identity_id=o.identity_id
-        and g.road_id=o.canonical_road_id
-    );
+  where rr.exact_geometry_count is distinct from
+    case
+      when rr.route_group='primary' and rr.variant_index=1 then (
+        select count(*)
+        from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 g
+        join private_verification.brinesearch_route_occurrence_receipts_issue97 o
+          on o.route_prep_step_id=g.route_prep_step_id
+          and o.route_prep_id=g.route_prep_id
+          and o.occurrence_index=g.occurrence_index
+        where g.route_prep_id=rr.route_prep_id
+          and g.status='resolved'
+          and o.resolution_status='resolved'
+          and g.identity_id=o.identity_id
+          and g.road_id=o.canonical_road_id
+          and g.route_group=rr.route_group
+          and g.variant_index=rr.variant_index
+          and (
+            (
+              g.occurrence_index=1
+              and g.occurrence_role='origin_anchor'
+              and g.step_geometry is null
+              and g.geometry_miles=0
+              and (
+                rr.road_occurrence_count=1
+                or exists(
+                  select 1
+                  from private_verification.brinesearch_route_transition_receipts_issue97 t
+                  where t.route_prep_id=rr.route_prep_id
+                    and t.boundary_index=1
+                    and t.status='resolved'
+                    and t.receipt_digest=g.end_transition_digest
+                )
+              )
+            )
+            or
+            (
+              g.occurrence_index>1
+              and g.occurrence_role='traveled'
+              and g.step_geometry is not null
+              and g.geometry_miles>0
+              and exists(
+                select 1
+                from private_verification.brinesearch_route_transition_receipts_issue97 t
+                where t.route_prep_id=rr.route_prep_id
+                  and t.boundary_index=g.occurrence_index-1
+                  and t.status='resolved'
+                  and t.receipt_digest=g.start_transition_digest
+              )
+              and (
+                g.occurrence_index=rr.road_occurrence_count
+                or exists(
+                  select 1
+                  from private_verification.brinesearch_route_transition_receipts_issue97 t
+                  where t.route_prep_id=rr.route_prep_id
+                    and t.boundary_index=g.occurrence_index
+                    and t.status='resolved'
+                    and t.receipt_digest=g.end_transition_digest
+                )
+              )
+            )
+          )
+      )
+      else 0
+    end;
 
   select count(distinct p.id)::integer into v_draft_route_ready
   from public.pads p
@@ -240,9 +310,10 @@ begin
   v_pass:=
     v_missing_occurrence_receipts=0
     and v_invalid_occurrence_disposition=0
-    and v_bad_resolved_identity=0
+    and v_stale_resolved_identity=0
+    and v_resolved_missing_canonical=0
     and v_route_ready_geometry_mismatch=0
-    and v_legacy_geometry_count_leak=0
+    and v_exact_geometry_count_mismatch=0
     and v_draft_route_ready=0
     and v_held_public_rows=0
     and v_public_rows_not_current=0;
@@ -253,9 +324,10 @@ begin
     'active_route_occurrences',v_active_steps,
     'missing_occurrence_receipts',v_missing_occurrence_receipts,
     'invalid_occurrence_disposition',v_invalid_occurrence_disposition,
-    'bad_resolved_identity',v_bad_resolved_identity,
+    'stale_resolved_identity',v_stale_resolved_identity,
+    'resolved_missing_canonical',v_resolved_missing_canonical,
     'route_ready_geometry_mismatch',v_route_ready_geometry_mismatch,
-    'legacy_geometry_count_leak',v_legacy_geometry_count_leak,
+    'exact_geometry_count_mismatch',v_exact_geometry_count_mismatch,
     'draft_geometry_route_ready',v_draft_route_ready,
     'held_or_stale_public_rows',v_held_public_rows,
     'public_rows_not_current',v_public_rows_not_current
@@ -308,7 +380,7 @@ begin
      or v_refresh not like '%published_route_contains_draft_or_stale_geometry%'
      or v_current not like '%coalesce(pr.geometry_version,0)<1%'
      or v_gate not like '%missing_occurrence_receipts%'
-     or v_gate not like '%legacy_geometry_count_leak%'
+     or v_gate not like '%exact_geometry_count_mismatch%'
   then
     raise exception 'Issue #97 Phase 1 release contracts did not install cleanly';
   end if;
