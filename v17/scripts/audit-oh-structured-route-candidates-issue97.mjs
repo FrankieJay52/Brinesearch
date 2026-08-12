@@ -9,6 +9,8 @@ const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043600_issue97_oh_structured_route_candidate_cleanup.sql"), "utf8");
 const adoption = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043800_issue97_oh_route_used_canonical_adoption.sql"), "utf8");
+const graphRefresh = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812043900_issue97_oh_exact_mapping_refresh_for_graphs.sql"), "utf8");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",
@@ -105,4 +107,31 @@ assert.ok(!adoption.includes("<->"),
 assert.ok(!adoption.includes("mapping_method='name_only'"),
   "Ohio canonical adoption must not create name-only mappings");
 
-console.log("Issue #97 Ohio structured candidates + Ohio-only canonical adoption audit passed.");
+for (const token of [
+  "private_verification.brinesearch_issue97_refresh_exact_mappings_oh()",
+  "i.state_code='OH'",
+  "refresh_scope','OH'",
+  "m.mapping_method in ('exact_source_record_id','exact_route_designation')",
+  "reviewed/manual mappings are never displaced",
+  "perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh();",
+  "else",
+  "perform public.brinesearch_issue97_refresh_exact_mappings();",
+  "$issue97_verify_oh_graph_mapping_refresh$"
+]) {
+  assert.ok(graphRefresh.includes(token), `Issue #97 Ohio graph mapping refresh missing: ${token}`);
+}
+assert.match(graphRefresh,
+  /update public\.brinesearch_road_identity_mappings m set[\s\S]*exists\([\s\S]*i\.id=m\.identity_id and i\.state_code='OH'/,
+  "Ohio exact refresh may retire machine-owned mappings only for Ohio identities");
+assert.match(graphRefresh,
+  /where i\.active and i\.state_code='OH'[\s\S]*road_class in \('interstate','us_route','state_route','county','township'\)/,
+  "Ohio exact designation candidates must be sourced only from active Ohio identities");
+assert.match(graphRefresh,
+  /if v_state=''OH'' then[\s\S]*refresh_oh_identities\(v_county\)[\s\S]*refresh_exact_mappings_oh\(\)[\s\S]*else[\s\S]*refresh_exact_mappings\(\)/,
+  "Only Ohio graph rebuilds may use the Ohio-scoped exact mapping refresh");
+assert.ok(!graphRefresh.includes("similarity("),
+  "Ohio exact mapping refresh must not use fuzzy similarity");
+assert.ok(!graphRefresh.includes("<->"),
+  "Ohio exact mapping refresh must not use nearest geometry");
+
+console.log("Issue #97 Ohio structured candidates + canonical adoption + Ohio-only graph mapping refresh audit passed.");
