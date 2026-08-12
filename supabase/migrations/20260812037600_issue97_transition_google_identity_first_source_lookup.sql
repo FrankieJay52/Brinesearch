@@ -19,7 +19,7 @@ $old$;
       select q.segment_id,q.source_segment_key,q.source_record_id,q.source_digest,q.geom
       from (
         select
-          a.id as segment_id,
+          private_verification.brinesearch_issue97_uuid(a.source_segment_key) as segment_id,
           a.source_segment_key,
           c.roadway_inventory_id as source_record_id,
           pg_catalog.md5(
@@ -77,6 +77,7 @@ begin
   if v_definition not ilike '%brinesearch_authoritative_segment_identity_assignments%'
      or v_definition not ilike '%brinesearch_authoritative_external_road_segments%'
      or v_definition not ilike '%offset 0%'
+     or v_definition not ilike '%brinesearch_issue97_uuid(a.source_segment_key)%'
      or v_definition ilike '%join public.brinesearch_authoritative_road_segments s%'
   then
     raise exception 'Issue #97 transition Google identity-first source lookup did not install cleanly';
