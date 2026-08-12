@@ -17,6 +17,10 @@ const ohioIndexedCandidatesSql = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812043500_issue97_route_occurrence_indexed_exact_candidate_lookup.sql"),
   "utf8"
 );
+const ohioStructuredCandidatesSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260812043600_issue97_oh_structured_route_candidate_cleanup.sql"),
+  "utf8"
+);
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
 const need = (token, message = token) => assert.ok(migration.includes(token), `Issue #97 batch pipeline missing ${message}`);
@@ -81,9 +85,6 @@ assert.match(freshnessCacheSql,
 assert.ok(!/similarity\(|<->|name_only|nearest_road_used_for_mapping'\s*,\s*true/.test(freshnessCacheSql),
   "Freshness performance hardening must not introduce fuzzy/name-only/nearest-road resolution");
 
-// Ohio-specific performance hardening has its own executable migration self-check.
-// The static audit verifies the durable safety contract without trying to parse
-// quote-doubled dynamic PL/pgSQL source.
 for (const token of [
   "brinesearch_authoritative_names_exact_issue97_idx",
   "brinesearch_authoritative_identities_oh_route_number_issue97_idx",
@@ -111,6 +112,31 @@ assert.equal(nearestTrueSentinels.length, 1,
 assert.ok(ohioIndexedCandidatesSql.includes("v_definition like '%nearest_road_used'',true%'"),
   "Ohio candidate migration must reject any composed runtime that authorizes nearest-road resolution");
 
+for (const token of [
+  "structured maneuver prefix removed before exact authoritative equality",
+  "saved typed route family + exact route number",
+  "r.road_type=v_step.step_kind",
+  "i.road_class=v_step.step_kind",
+  "candidate evidence only; graph path still required",
+  "exact_authoritative_name_candidate'',false",
+  "exact_authoritative_designation_candidate'',false",
+  "Generic/untyped Route <number> steps remain held",
+  "$issue97_verify_oh_structured_candidate_cleanup$"
+]) assert.ok(ohioStructuredCandidatesSql.includes(token), `Issue #97 Ohio structured candidate cleanup missing: ${token}`);
+assert.ok(ohioStructuredCandidatesSql.includes("v_step.step_kind in (''local_road'',''county_road'',''township_road'')"),
+  "Maneuver-prefix cleanup must remain scoped to road-name step types");
+assert.ok(ohioStructuredCandidatesSql.includes("v_step.step_kind in (''interstate'',''us_route'',''state_route'')"),
+  "Generic Route-number family evidence must remain limited to typed highways");
+assert.ok(!ohioStructuredCandidatesSql.includes("similarity("),
+  "Ohio structured candidate cleanup must not use fuzzy similarity");
+assert.ok(!ohioStructuredCandidatesSql.includes("<->"),
+  "Ohio structured candidate cleanup must not use nearest geometry");
+assert.ok(!ohioStructuredCandidatesSql.includes("strong_proof'',true"),
+  "Ohio structured cleanup candidates must remain non-authoritative evidence");
+const structuredNearestSentinels = ohioStructuredCandidatesSql.match(/nearest_road_used'',true/g) ?? [];
+assert.equal(structuredNearestSentinels.length, 1,
+  "Ohio structured candidate migration may mention nearest-road=true only in its runtime rejection sentinel");
+
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
   "Issue #97 route corpus audit script is not wired");
@@ -123,4 +149,4 @@ need("v_route.route_group='primary' and v_route.variant_index=1",
 need("pr.route_group='primary' and pr.route_variant_index=0",
   "published primary structured route must use the existing zero-based variant key");
 
-console.log("Issue #97 automatic route-corpus reconciliation + locked source-freshness cache + Ohio indexed candidate audit passed.");
+console.log("Issue #97 route reconciliation + Ohio indexed/structured candidate audits passed.");
