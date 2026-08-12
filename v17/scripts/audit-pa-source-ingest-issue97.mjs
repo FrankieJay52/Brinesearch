@@ -124,7 +124,7 @@ for (const token of [
   "Allegheny FEATURE_KE patch expected 1 target",
   "v_record_id:=pg_catalog.btrim(v_record_id)",
   "v_materialized_supplemental_features integer:=0",
-  "v_role='supplemental_aliases'",
+  "v_role=''supplemental_aliases''",
   "c.last_ingest_run_id=p_run_id",
   "supplemental source feature identity/materialization count mismatch",
   "materialized_supplemental_feature_count",
