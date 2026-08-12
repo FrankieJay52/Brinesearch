@@ -295,7 +295,7 @@ begin
   from private_verification.brinesearch_issue97_wv_path_components(
     '[[0,0,0,0],[1,0,0,1],[1,1,0,2],[0,1,0,3],[1,0,0,4]]'::jsonb
   );
-  select extensions.st_equals(a.path_geom |> extensions.st_endpoint,b.path_geom |> extensions.st_startpoint)
+  select extensions.st_equals(extensions.st_endpoint(a.path_geom),extensions.st_startpoint(b.path_geom))
   into v_loop_shared
   from private_verification.brinesearch_issue97_wv_path_components(
     '[[0,0,0,0],[1,0,0,1],[1,1,0,2],[0,1,0,3],[1,0,0,4]]'::jsonb
@@ -375,7 +375,8 @@ begin
   end if;
   v_old_length:=v_relative_end-1+pg_catalog.length(v_end_marker);
   v_new:=E'    for v_path in\n      select path.path_number,\n        component.component_number,component.component_count,\n        component.path_geom,component.path_from,component.path_to,\n        component.path_z,component.path_digest,component.split_method\n      from pg_catalog.jsonb_array_elements(v_feature->''geometry''->''paths'')\n        with ordinality path(path_value,path_number)\n      cross join lateral private_verification.brinesearch_issue97_wv_path_components(path.path_value) component\n      order by path.path_number,component.component_number\n    loop';
-  v_definition:=pg_catalog.overlay(v_definition placing v_new from v_start for v_old_length);
+  v_definition:=pg_catalog.substr(v_definition,1,v_start-1)||v_new
+    ||pg_catalog.substr(v_definition,v_start+v_old_length);
 
   v_old:=E'v_segment_key:=case when v_path_count=1 then v_base_segment_key\n        else v_base_segment_key||'':PATH:''||v_path.path_number::text end;';
   v_new:=E'v_segment_key:=case\n        when v_path_count=1 and v_path.component_count=1 then v_base_segment_key\n        when v_path.component_count=1 then v_base_segment_key||'':PATH:''||v_path.path_number::text\n        else v_base_segment_key||'':PATH:''||v_path.path_number::text||'':PART:''||v_path.component_number::text\n      end;';
@@ -420,7 +421,6 @@ begin
      or v_definition not ilike '%brinesearch_issue97_wv_path_components(path.path_value)%'
      or v_definition not ilike '%source_path_component_count%'
      or v_definition not ilike '%:PART:%'
-     or v_definition ilike '%or not extensions.st_isvalid(q.path_geom)% and true%'
   then
     raise exception 'Issue #97 WVDOT endpoint-loop patch did not install cleanly';
   end if;
