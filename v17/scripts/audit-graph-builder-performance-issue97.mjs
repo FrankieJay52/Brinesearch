@@ -9,6 +9,8 @@ const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811250000_issue97_graph_builder_internal_segment_performance.sql"), "utf8");
 const targetGeogSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811252000_issue97_graph_builder_target_geography_index.sql"), "utf8");
+const endpointTJunctionSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812036000_issue97_endpoint_on_interior_t_junctions.sql"), "utf8");
 
 for (const token of [
   "brinesearch_odot_catalog_geog_issue97_idx",
@@ -55,4 +57,26 @@ assert.match(targetGeogSql,
   /create index tmp_issue97_target_segments_geom_idx[\s\S]*create index tmp_issue97_target_segments_geog_idx[\s\S]*analyze tmp_issue97_target_segments;/,
   "The builder must add/analyze its temporary geography index immediately after the existing geometry index and before boundary discovery");
 
-console.log("Issue #97 graph-builder private source view + persistent/temporary geography-index regression passed.");
+for (const token of [
+  "exact authoritative endpoint-on-interior T-junction recovery",
+  "exact_authoritative_endpoint_on_interior",
+  "extensions.st_intersects(ep.geom,b.geom)",
+  "extensions.st_touches(a.geom,b.geom)",
+  "not extensions.st_dwithin(",
+  "extensions.st_boundary(b.geom)::extensions.geography",
+  "p.source_method='exact_authoritative_endpoint_on_interior'",
+  "count(distinct i.identity_id) filter(where i.is_identity_terminus)>=1",
+  "count(distinct i.identity_id) filter(where i.has_interior_touch)>=1",
+  "Interior/interior crossings",
+  "nearest-road matching never prove a junction"
+]) assert.ok(endpointTJunctionSql.includes(token), `Issue #97 endpoint-on-interior T-junction hardening missing: ${token}`);
+assert.ok(!/st_crosses\(/i.test(endpointTJunctionSql),
+  "Endpoint T-junction recovery must not convert generic interior/interior crossings into junction proof");
+assert.match(endpointTJunctionSql,
+  /join tmp_issue97_segments b[\s\S]*ep\.geom OPERATOR\(extensions\.&&\) b\.geom[\s\S]*st_intersects\(ep\.geom,b\.geom\)[\s\S]*st_touches\(a\.geom,b\.geom\)/,
+  "Endpoint-on-interior recovery must require an exact authoritative endpoint contact before topology support");
+assert.match(endpointTJunctionSql,
+  /revoke all on function public\.brinesearch_issue97_rebuild_county_graph\(text,text\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "Hardened graph builder must remain service-only");
+
+console.log("Issue #97 graph-builder performance + exact endpoint-on-interior T-junction/no-overpass regression passed.");
