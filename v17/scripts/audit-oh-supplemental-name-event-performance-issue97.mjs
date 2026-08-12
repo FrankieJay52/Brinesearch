@@ -10,7 +10,7 @@ const migration = fs.readFileSync(path.join(root,
 const sourceKeyIndexSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811251000_issue97_odot_source_segment_key_index.sql"), "utf8");
 const pkJoinSql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811253000_issue97_oh_supplemental_odot_pk_join.sql"), "utf8");
+  "supabase/migrations/20260811254000_issue97_oh_supplemental_odot_pk_join.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
