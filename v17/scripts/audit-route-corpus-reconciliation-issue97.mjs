@@ -17,6 +17,10 @@ const ohioIndexedCandidatesSql = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812043500_issue97_route_occurrence_indexed_exact_candidate_lookup.sql"),
   "utf8"
 );
+const wvPaIndexedCandidatesSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260812044600_issue97_wv_pa_exact_name_candidate_performance.sql"),
+  "utf8"
+);
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
 const need = (token, message = token) => assert.ok(migration.includes(token), `Issue #97 batch pipeline missing ${message}`);
@@ -82,8 +86,6 @@ assert.ok(!/similarity\(|<->|name_only|nearest_road_used_for_mapping'\s*,\s*true
   "Freshness performance hardening must not introduce fuzzy/name-only/nearest-road resolution");
 
 // Ohio-specific performance hardening has its own executable migration self-check.
-// The static audit verifies the durable safety contract without trying to parse
-// quote-doubled dynamic PL/pgSQL source.
 for (const token of [
   "brinesearch_authoritative_names_exact_issue97_idx",
   "brinesearch_authoritative_identities_oh_route_number_issue97_idx",
@@ -111,6 +113,33 @@ assert.equal(nearestTrueSentinels.length, 1,
 assert.ok(ohioIndexedCandidatesSql.includes("v_definition like '%nearest_road_used'',true%'"),
   "Ohio candidate migration must reject any composed runtime that authorizes nearest-road resolution");
 
+// WV/PA previously normalized every source row at runtime, making full corpus
+// reconciliation time out. The fix may use indexed materialized exact tokens only
+// after proving any existing token drift is trim-only and restoring exact equality.
+for (const token of [
+  "Issue #97 WV/PA normalized-name drift is not trim-only",
+  "brinesearch_issue97_normalize_route_token(i.display_name)",
+  "brinesearch_issue97_normalize_route_token(n.road_name)",
+  "brinesearch_authoritative_identities_state_exact_name_issue97_idx",
+  "i.normalized_name=v_token",
+  "n.normalized_name=v_token",
+  "v_identity_count<>1",
+  "v_name_count<>1",
+  "exact name equality",
+  "candidate evidence only",
+  "Issue #97 WV/PA indexed exact-name candidate lookup did not install cleanly",
+  "Issue #97 WV/PA performance patch weakened no-guess candidate semantics"
+]) assert.ok(wvPaIndexedCandidatesSql.includes(token), `Issue #97 WV/PA performance contract missing: ${token}`);
+assert.ok(!wvPaIndexedCandidatesSql.includes("similarity("),
+  "WV/PA exact-name performance patch must not use fuzzy similarity");
+assert.ok(!wvPaIndexedCandidatesSql.includes("<->"),
+  "WV/PA exact-name performance patch must not use nearest-geometry selection");
+assert.ok(!wvPaIndexedCandidatesSql.includes("exact_authoritative_name_candidate'',true"),
+  "WV/PA exact-name candidates must remain non-authoritative evidence");
+assert.match(wvPaIndexedCandidatesSql,
+  /revoke all on function private_verification\.brinesearch_issue97_refresh_occurrence_candidate\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "WV/PA performance patch must preserve the internal resolver boundary");
+
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs && node v17/scripts/audit-oh-structured-route-candidates-issue97.mjs",
   "Issue #97 route corpus audit scripts are not wired");
@@ -123,4 +152,4 @@ need("v_route.route_group='primary' and v_route.variant_index=1",
 need("pr.route_group='primary' and pr.route_variant_index=0",
   "published primary structured route must use the existing zero-based variant key");
 
-console.log("Issue #97 automatic route-corpus reconciliation + locked source-freshness cache + Ohio indexed candidate audit passed.");
+console.log("Issue #97 automatic route-corpus reconciliation + indexed OH/WV/PA exact-candidate audits passed.");
