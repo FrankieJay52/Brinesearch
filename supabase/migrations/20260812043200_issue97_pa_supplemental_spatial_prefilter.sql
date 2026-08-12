@@ -71,8 +71,8 @@ begin
     'public.brinesearch_issue97_refresh_supplemental_aliases_issue97_core(uuid)'::pg_catalog.regprocedure
   ) into v_definition;
 
-  if v_definition not like '%s.geom && extensions.st_expand(c.geom, 0.0002)%'
-     or v_definition not like '%st_dwithin((c.geom)::geography, (s.geom)::geography, ''1''::double precision%'
+  if v_definition not like '%s.geom && extensions.st_expand(c.geom,0.0002)%'
+     or v_definition not like '%extensions.st_dwithin(c.geom::extensions.geography,s.geom::extensions.geography,1)%'
      or v_definition like '%nearest_road_used'', true%'
   then
     raise exception 'Issue #97 PA supplemental spatial prefilter contract did not install cleanly';
