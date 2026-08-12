@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811253000_issue97_oh_component_builder_performance.sql"), "utf8");
+const retirementSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811255000_issue97_oh_identity_retirement_assignment_presence.sql"), "utf8");
 
 for (const token of [
   "tmp_issue97_oh_valid_segments",
@@ -47,4 +49,19 @@ assert.match(migration,
   /revoke all on function public\.brinesearch_issue97_refresh_oh_identities\(text\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "The optimized Ohio identity refresh must remain service-only");
 
-console.log("Issue #97 Ohio indexed endpoint-edge component regression passed.");
+for (const token of [
+  "public.brinesearch_authoritative_segment_identity_assignments a",
+  "a.dataset_id=v_run.dataset_id",
+  "a.identity_id=i.id and a.active",
+  "Issue #97 Ohio retirement source-presence block changed unexpectedly",
+  "active exact segment-assignment presence",
+  "No topology/name/nearest-road existence inference"
+]) assert.ok(retirementSql.includes(token), `Issue #97 Ohio assignment-presence retirement hardening missing: ${token}`);
+
+assert.ok(!retirementSql.includes("join public.brinesearch_odot_road_catalog c"),
+  "Effective Ohio retirement source-presence proof must not rejoin the ODOT catalog after assignments were rebuilt from the current source generation");
+assert.match(retirementSql,
+  /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "The optimized source finalizer must remain service-only");
+
+console.log("Issue #97 Ohio indexed endpoint-edge component + exact assignment-presence retirement regression passed.");
