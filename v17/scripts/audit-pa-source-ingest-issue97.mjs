@@ -13,6 +13,8 @@ const supplementalFastpath = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812042000_issue97_pa_supplemental_external_segment_fastpath.sql"), "utf8");
 const supplementalIdentityAccounting = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043000_issue97_supplemental_feature_identity_accounting.sql"), "utf8");
+const supplementalSourceHolds = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812043100_issue97_supplemental_source_geometry_holds.sql"), "utf8");
 
 for (const token of [
   "create or replace function private_verification.brinesearch_issue97_pa_geometry_hold_reason(",
@@ -147,7 +149,47 @@ assert.match(supplementalIdentityAccounting,
   /v_finalizer not like '%materialized_supplemental_feature_count%'[\s\S]*v_finalizer not like '%c\.last_ingest_run_id=p_run_id%'[\s\S]*v_finalizer not like '%source_feature_accounting_verified%'/,
   "The migration must execute a composed-runtime regression proving the finalizer feature-count gate installed");
 
-for (const text of [migration, nodeHoldMigration, supplementalFastpath, supplementalIdentityAccounting]) {
+for (const token of [
+  "create table if not exists private_verification.brinesearch_issue97_supplemental_source_holds",
+  "create or replace function private_verification.brinesearch_issue97_supplemental_source_record_id(",
+  "create or replace function private_verification.brinesearch_issue97_supplemental_source_stable_id(",
+  "create or replace function private_verification.brinesearch_issue97_supplemental_geometry_hold_reason(",
+  "empty_source_geometry",
+  "unsupported_source_geometry",
+  "NGUID:2025_11:9162",
+  "hold_without_centerline_geometry",
+  "source_coordinate_invented'',false",
+  "v_held_rows:=v_held_rows+1",
+  "''held_rows'',v_held_rows",
+  "v_materialized_supplemental_features+v_held_supplemental_source_features",
+  "retired_supplemental_source_holds",
+  "union all select sh.source_digest",
+  "Issue #97 supplemental source-hold contract did not install cleanly"
+]) {
+  assert.ok(supplementalSourceHolds.includes(token),
+    `Issue #97 supplemental source-hold contract missing: ${token}`);
+}
+assert.match(supplementalSourceHolds,
+  /v_empty:=private_verification\.brinesearch_issue97_supplemental_geometry_hold_reason[\s\S]*"coordinates":\[\][\s\S]*v_empty<>'empty_source_geometry'/,
+  "Supplemental source-hold regression must prove an empty LineString is held");
+assert.match(supplementalSourceHolds,
+  /v_bradford_record:=private_verification\.brinesearch_issue97_supplemental_source_record_id[\s\S]*OBJECTID_12',' 9162 '[\s\S]*v_bradford_stable:=private_verification\.brinesearch_issue97_supplemental_source_stable_id[\s\S]*v_bradford_stable<>'NGUID:2025_11:9162'/,
+  "Bradford OBJECTID 9162 must retain an immutable source-version + OBJECTID stable identity when RCL_NGUID is blank");
+assert.match(supplementalSourceHolds,
+  /v_hold_reason:=private_verification\.brinesearch_issue97_supplemental_geometry_hold_reason[\s\S]*if v_hold_reason is not null then[\s\S]*insert into private_verification\.brinesearch_issue97_supplemental_source_holds[\s\S]*v_held_rows:=v_held_rows\+1;[\s\S]*v_rows:=v_rows\+1;[\s\S]*continue;/,
+  "Unusable supplemental source geometry must be preserved as a hold and counted without entering centerline geometry");
+assert.match(supplementalSourceHolds,
+  /select count\(\*\)::integer into v_held_supplemental_source_features[\s\S]*last_ingest_run_id=p_run_id[\s\S]*v_materialized_supplemental_features\+v_held_supplemental_source_features<>coalesce\(p_ingested_row_count,-1\)/,
+  "Supplemental finalization must prove real centerlines plus current source holds equal verified ingested rows");
+assert.match(supplementalSourceHolds,
+  /update private_verification\.brinesearch_issue97_supplemental_source_holds h[\s\S]*last_ingest_run_id is distinct from p_run_id[\s\S]*get diagnostics v_retired_supplemental_source_holds=row_count/,
+  "A later official supplemental generation must retire source holds it no longer presents");
+assert.ok(!supplementalSourceHolds.includes("st_node("),
+  "Supplemental source holds must not node unusable source geometry");
+assert.ok(!supplementalSourceHolds.includes("st_makevalid("),
+  "Supplemental source holds must not rewrite unusable source geometry");
+
+for (const text of [migration, nodeHoldMigration, supplementalFastpath, supplementalIdentityAccounting, supplementalSourceHolds]) {
   assert.ok(!text.includes("st_node("),
     "PA source hardening must not node ambiguous source geometry");
   assert.ok(!text.includes("st_makevalid("),
@@ -156,4 +198,4 @@ for (const text of [migration, nodeHoldMigration, supplementalFastpath, suppleme
     "PA source hardening must never authorize nearest-road identity or topology proof");
 }
 
-console.log("Issue #97 Pennsylvania road/node holds + exact supplemental mapping + source-feature accounting audit passed.");
+console.log("Issue #97 Pennsylvania road/node/supplemental source holds + exact mapping + source-feature accounting audit passed.");
