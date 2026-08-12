@@ -182,8 +182,8 @@ begin
       or i.id is null
       or m.id is null
       or r.source_digest is distinct from i.source_digest
-      or r.mapping_fingerprint is distinct from public.brinesearch_issue97_road_mapping_fingerprint(r.canonical_road_id)
-      or not public.brinesearch_issue97_dataset_scope_current(i.dataset_id,i.state_code,i.county_code)
+      or r.mapping_fingerprint is distinct from private_verification.brinesearch_issue97_mapping_fingerprint(r.identity_id)
+      or not private_verification.brinesearch_issue97_dataset_scope_current(i.dataset_id,i.state_code,i.county_code)
     );
 
   select count(*)::integer into v_route_ready_geometry_mismatch
