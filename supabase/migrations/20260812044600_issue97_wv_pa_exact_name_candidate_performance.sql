@@ -40,8 +40,7 @@ end
 $issue97_wv_pa_normalized_name_safety$;
 
 update public.brinesearch_authoritative_road_identities i
-set normalized_name=private_verification.brinesearch_issue97_normalize_route_token(i.display_name),
-    updated_at=pg_catalog.now()
+set normalized_name=private_verification.brinesearch_issue97_normalize_route_token(i.display_name)
 where i.active and i.state_code in ('WV','PA')
   and i.normalized_name is distinct from
     private_verification.brinesearch_issue97_normalize_route_token(i.display_name);
