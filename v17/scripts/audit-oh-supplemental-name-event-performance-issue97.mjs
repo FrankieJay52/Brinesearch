@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811249000_issue97_oh_supplemental_overlap_projection_cache.sql"), "utf8");
+const sourceKeyIndexSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811251000_issue97_odot_source_segment_key_index.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
@@ -49,4 +51,15 @@ assert.match(migration,
   /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Ohio supplemental implementation helper must remain non-callable outside the trusted dispatcher");
 
-console.log("Issue #97 Ohio OGRIP cached-projection + precomputed-overlap + fractional-LRS regression passed.");
+for (const token of [
+  "create index if not exists brinesearch_odot_catalog_source_segment_key_issue97_idx",
+  "(('OH:ODOT:SEGMENT:'||roadway_inventory_id))",
+  "where source_active",
+  "exact source_segment_key lookup index",
+  "identity matching remains exact and name-independent"
+]) assert.ok(sourceKeyIndexSql.includes(token), `Issue #97 exact ODOT source-segment key index missing: ${token}`);
+
+assert.ok(migration.includes("on segment_key='OH:ODOT:SEGMENT:'||o.roadway_inventory_id"),
+  "The cached overlap stage must keep the exact deterministic source-segment key join that the expression index accelerates");
+
+console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key index + precomputed-overlap + fractional-LRS regression passed.");
