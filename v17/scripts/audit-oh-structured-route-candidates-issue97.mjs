@@ -27,12 +27,8 @@ for (const token of [
 ]) {
   assert.ok(migration.includes(token), `Issue #97 Ohio structured route candidate contract missing: ${token}`);
 }
-
 assert.ok(!migration.includes("alter table private_verification.brinesearch_route_occurrence_candidates_issue97"),
   "Ohio structured candidate cleanup must not widen the existing candidate basis schema");
-
-// Fuzzy/nearest operators may appear exactly once each, only in the migration's
-// composed-runtime rejection guard. They must never appear in candidate SQL.
 const similaritySentinels = migration.match(/similarity\(/g) ?? [];
 assert.equal(similaritySentinels.length, 1,
   "Ohio structured candidate migration may mention similarity() only in its runtime rejection sentinel");
@@ -79,7 +75,7 @@ for (const family of [
   assert.ok(adoption.includes(family), `Issue #97 Ohio family adoption missing ${family}`);
 }
 assert.match(adoption,
-  /select count\(\*\)::integer,min\(r\.id\)[\s\S]*if v_row_count<>1[\s\S]*expected one % % Road Manager family row/,
+  /select count\(\*\)::integer,min\(r\.id::text\)::uuid[\s\S]*if v_row_count<>1[\s\S]*expected one % % Road Manager family row/,
   "Each Ohio highway family adoption must require one existing semantic placeholder");
 assert.match(adoption,
   /i\.state_code='OH' and i\.active[\s\S]*i\.road_class=v_family\.road_class[\s\S]*i\.route_number=v_family\.route_number[\s\S]*i\.public_access_status='public'[\s\S]*i\.drivable_status='drivable'/,
