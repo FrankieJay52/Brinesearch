@@ -22,6 +22,7 @@ declare
       and extensions.st_issimple(c.geom)';
   v_ingest_count integer;
   v_oh_count integer;
+  v_oh_pos integer;
 begin
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_ingest_supplemental_page(uuid,integer,integer)'::pg_catalog.regprocedure
@@ -43,7 +44,10 @@ begin
     raise exception 'Issue #97 Ohio supplemental candidate scope changed unexpectedly: % matches',v_oh_count;
   end if;
   -- Only the first occurrence is the exact geometry-equivalence candidate source.
-  v_oh:=pg_catalog.overlay(v_oh placing v_new_oh from pg_catalog.strpos(v_oh,v_old_oh) for pg_catalog.length(v_old_oh));
+  v_oh_pos:=pg_catalog.strpos(v_oh,v_old_oh);
+  v_oh:=pg_catalog.substr(v_oh,1,v_oh_pos-1)
+    ||v_new_oh
+    ||pg_catalog.substr(v_oh,v_oh_pos+pg_catalog.length(v_old_oh));
   execute v_oh;
 end
 $issue97_patch_supplemental_nonsimple$;
