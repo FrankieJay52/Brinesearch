@@ -28,10 +28,22 @@ for (const token of [
 
 assert.ok(!migration.includes("alter table private_verification.brinesearch_route_occurrence_candidates_issue97"),
   "Ohio structured candidate cleanup must not widen the existing candidate basis schema");
-assert.ok(!migration.includes("similarity("),
-  "Ohio structured candidate cleanup must not use fuzzy similarity");
-assert.ok(!migration.includes("<->"),
-  "Ohio structured candidate cleanup must not use nearest-geometry selection");
+
+// Fuzzy/nearest operators may appear exactly once each, only in the migration's
+// composed-runtime rejection guard. They must never appear in candidate SQL.
+const similaritySentinels = migration.match(/similarity\(/g) ?? [];
+assert.equal(similaritySentinels.length, 1,
+  "Ohio structured candidate migration may mention similarity() only in its runtime rejection sentinel");
+assert.ok(migration.includes("v_definition like '%similarity(%'"),
+  "Ohio structured candidate migration must reject any composed runtime using fuzzy similarity");
+const nearestGeomSentinels = migration.match(/<->/g) ?? [];
+assert.equal(nearestGeomSentinels.length, 1,
+  "Ohio structured candidate migration may mention <-> only in its runtime rejection sentinel");
+assert.ok(migration.includes("v_definition like '%<->%'"),
+  "Ohio structured candidate migration must reject any composed runtime using nearest geometry");
+const nearestRoadSentinels = migration.match(/nearest_road_used'',true/g) ?? [];
+assert.equal(nearestRoadSentinels.length, 1,
+  "Ohio structured candidate migration may mention nearest-road=true only in its runtime rejection sentinel");
 assert.ok(!migration.includes("strong_proof'',true"),
   "Ohio structured candidates must remain non-authoritative evidence");
 
