@@ -192,6 +192,9 @@ begin
   -- Jurisdiction-scoped roads are one exact source identity each. They are never
   -- collapsed with same-name/same-number roads elsewhere. Generated Road Manager
   -- scope/family/identity keys follow from the semantic fields and source record.
+  -- The deterministic target road and mapping are convergent/idempotent: an exact
+  -- rerun refreshes the same rows, while any different verified mapping or semantic
+  -- duplicate remains a hard failure.
   for v_local in
     select * from (values
       ('OH:ODOT:NLF:CMOECR00061**C'::text,'county'::text,'61'::text,
@@ -234,25 +237,6 @@ begin
       raise exception 'Issue #97 Ohio source-specific geometry missing for %',v_local.source_identity_key;
     end if;
 
-    select count(*)::integer into v_conflict_count
-    from public.brinesearch_road_identity_mappings m
-    where m.identity_id=v_identity.id and m.mapping_status='verified';
-    if v_conflict_count<>0 then
-      raise exception 'Issue #97 Ohio source-specific identity % already has a verified canonical mapping',
-        v_local.source_identity_key;
-    end if;
-
-    select count(*)::integer into v_row_count
-    from public.brinesearch_roads r
-    where r.road_type=v_local.road_class and r.state='OH'
-      and lower(coalesce(r.county,''))=lower(v_local.county_name)
-      and coalesce(lower(r.township),'')=coalesce(lower(v_local.township_name),'')
-      and r.route_number=v_local.route_number;
-    if v_row_count<>0 then
-      raise exception 'Issue #97 Ohio source-specific adoption found an existing semantic Road Manager row for %',
-        v_local.source_identity_key;
-    end if;
-
     v_road_id:=private_verification.brinesearch_issue97_uuid(
       'canonical-road:'||v_local.source_identity_key
     );
@@ -261,6 +245,48 @@ begin
       raise exception 'Issue #97 Ohio source-specific identity lacks exact NLF ID: %',v_local.source_identity_key;
     end if;
 
+    select count(*)::integer into v_conflict_count
+    from public.brinesearch_road_identity_mappings m
+    where m.identity_id=v_identity.id and m.mapping_status='verified'
+      and m.road_id<>v_road_id;
+    if v_conflict_count<>0 then
+      raise exception 'Issue #97 Ohio source-specific identity % has a conflicting verified canonical mapping',
+        v_local.source_identity_key;
+    end if;
+
+    if exists(
+      select 1 from public.brinesearch_roads r
+      where r.id=v_road_id
+        and not (
+          r.road_type=v_local.road_class and r.state='OH'
+          and lower(coalesce(r.county,''))=lower(v_local.county_name)
+          and coalesce(lower(r.township),'')=coalesce(lower(v_local.township_name),'')
+          and r.route_number=v_local.route_number
+        )
+    ) then
+      raise exception 'Issue #97 Ohio deterministic canonical road ID collision/contract change for %',
+        v_local.source_identity_key;
+    end if;
+
+    select count(*)::integer into v_row_count
+    from public.brinesearch_roads r
+    where r.road_type=v_local.road_class and r.state='OH'
+      and lower(coalesce(r.county,''))=lower(v_local.county_name)
+      and coalesce(lower(r.township),'')=coalesce(lower(v_local.township_name),'')
+      and r.route_number=v_local.route_number
+      and r.id<>v_road_id;
+    if v_row_count<>0 then
+      raise exception 'Issue #97 Ohio source-specific adoption found % conflicting semantic Road Manager row(s) for %',
+        v_row_count,v_local.source_identity_key;
+    end if;
+
+    select pg_catalog.array_agg(distinct alias_value order by alias_value)
+    into v_aliases
+    from unnest(
+      coalesce((select r.aliases from public.brinesearch_roads r where r.id=v_road_id),'{}'::text[])
+      ||v_local.designation_aliases
+    ) alias_value;
+
     insert into public.brinesearch_roads(
       id,canonical_name,normalized_name,road_type,state,county,township,aliases,
       route_number,verification_status,verified_at,source_agency,source_dataset,
@@ -268,7 +294,7 @@ begin
       geometry_checked_at,approved_by_default,candidate_only,candidate_basis
     ) values (
       v_road_id,v_local.canonical_name,v_local.normalized_name,v_local.road_class,
-      'OH',v_local.county_name,v_local.township_name,v_local.designation_aliases,
+      'OH',v_local.county_name,v_local.township_name,coalesce(v_aliases,'{}'::text[]),
       v_local.route_number,'verified',now(),
       'Ohio Department of Transportation','Road Inventory',
       'issue97_oh_exact_source_identity',
@@ -281,7 +307,30 @@ begin
         'source_digest',v_identity.source_digest,
         'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false
       )
-    );
+    )
+    on conflict(id) do update set
+      canonical_name=excluded.canonical_name,
+      normalized_name=excluded.normalized_name,
+      road_type=excluded.road_type,
+      state=excluded.state,
+      county=excluded.county,
+      township=excluded.township,
+      aliases=excluded.aliases,
+      route_number=excluded.route_number,
+      verification_status='verified',
+      verified_at=excluded.verified_at,
+      source_agency=excluded.source_agency,
+      source_dataset=excluded.source_dataset,
+      source_method=excluded.source_method,
+      source_url=excluded.source_url,
+      source_record_id=excluded.source_record_id,
+      centerline_geojson=excluded.centerline_geojson,
+      geometry_status=excluded.geometry_status,
+      geometry_checked_at=excluded.geometry_checked_at,
+      approved_by_default=false,
+      candidate_only=false,
+      candidate_basis=coalesce(brinesearch_roads.candidate_basis,'{}'::jsonb)||excluded.candidate_basis,
+      updated_at=now();
 
     insert into public.brinesearch_road_identity_mappings(
       id,identity_id,road_id,mapping_status,mapping_method,evidence,
@@ -300,7 +349,10 @@ begin
         'migration','issue97_oh_route_used_canonical_adoption'
       ),
       now(),now(),now()
-    );
+    )
+    on conflict(identity_id,road_id) do update set
+      mapping_status='verified',mapping_method='exact_source_record_id',
+      evidence=excluded.evidence,verified_at=excluded.verified_at,updated_at=now();
   end loop;
 
   if exists(
