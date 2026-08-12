@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812040000_issue97_pa_source_geometry_holds_and_nlf_sentinel.sql"), "utf8");
+const nodeHoldMigration = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812041000_issue97_pa_at_grade_source_node_holds.sql"), "utf8");
 
 for (const token of [
   "create or replace function private_verification.brinesearch_issue97_pa_geometry_hold_reason(",
@@ -46,7 +48,7 @@ assert.match(migration,
 
 assert.match(migration,
   /if v_source='pa_penndot_at_grade_intersections' then[\s\S]*geometrytype\(v_geom\)<>'POINT'[\s\S]*continue;/,
-  "At-grade node evidence must remain point-only and fail closed instead of entering the road-geometry hold lane");
+  "The base PA loader must not route non-point at-grade evidence through road geometry");
 
 assert.match(migration,
   /v_empty:=private_verification\.brinesearch_issue97_pa_geometry_hold_reason[\s\S]*"coordinates":\[\][\s\S]*empty_source_geometry/,
@@ -56,11 +58,42 @@ assert.match(migration,
   /v_bowtie:=private_verification\.brinesearch_issue97_pa_geometry_hold_reason[\s\S]*non_simple_source_geometry_topology_unproven/,
   "The migration must execute a regression proving ambiguous non-simple PennDOT geometry is held rather than noded");
 
-assert.ok(!migration.includes("st_node("),
-  "PA source hardening must not node ambiguous source geometry");
-assert.ok(!migration.includes("st_makevalid("),
-  "PA source hardening must not rewrite authoritative source geometry");
-assert.ok(!migration.includes("nearest" + "_road_used',true"),
-  "PA source hardening must never authorize nearest-road identity or topology proof");
+for (const token of [
+  "create table if not exists private_verification.brinesearch_issue97_source_node_holds",
+  "create or replace function private_verification.brinesearch_issue97_pa_node_hold_reason(",
+  "empty_source_geometry",
+  "hold_without_graph_node",
+  "'source_coordinate_invented',false",
+  "v_held_rows:=v_held_rows+1",
+  "v_rows:=v_rows+1",
+  "brinesearch_issue97_source_node_holds",
+  "h.last_seen_at<v_run.started_at",
+  "union all select nh.source_digest from private_verification.brinesearch_issue97_source_node_holds",
+  "Issue #97 PA at-grade source-node hold contract did not install cleanly"
+]) {
+  assert.ok(nodeHoldMigration.includes(token),
+    `Issue #97 PA at-grade source-node hold hardening missing: ${token}`);
+}
 
-console.log("Issue #97 Pennsylvania source geometry hold + NLF sentinel audit passed.");
+assert.match(nodeHoldMigration,
+  /v_hold_reason:=private_verification\.brinesearch_issue97_pa_node_hold_reason\(v_geometry_json\)[\s\S]*if v_hold_reason is not null then[\s\S]*insert into private_verification\.brinesearch_issue97_source_node_holds[\s\S]*v_held_rows:=v_held_rows\+1;[\s\S]*v_rows:=v_rows\+1;[\s\S]*continue;/,
+  "Unusable PennDOT at-grade point rows must be explicitly held, counted as source coverage, and exit before node insertion");
+
+assert.match(nodeHoldMigration,
+  /"type":"Point","coordinates":\[\][\s\S]*empty_source_geometry/,
+  "The at-grade migration must execute a regression proving empty PennDOT Points become source-node holds");
+
+assert.match(nodeHoldMigration,
+  /if v_role='at_grade_nodes' and v_run\.state_code='PA' then[\s\S]*source_node_holds[\s\S]*last_seen_at<v_run\.started_at/,
+  "Stale at-grade source-node holds must automatically retire when a later source generation no longer presents the held row");
+
+for (const text of [migration, nodeHoldMigration]) {
+  assert.ok(!text.includes("st_node("),
+    "PA source hardening must not node ambiguous source geometry");
+  assert.ok(!text.includes("st_makevalid("),
+    "PA source hardening must not rewrite authoritative source geometry");
+  assert.ok(!text.includes("nearest" + "_road_used',true"),
+    "PA source hardening must never authorize nearest-road identity or topology proof");
+}
+
+console.log("Issue #97 Pennsylvania road + at-grade source-hold audit passed.");
