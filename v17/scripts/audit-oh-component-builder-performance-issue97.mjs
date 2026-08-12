@@ -55,11 +55,19 @@ for (const token of [
   "a.identity_id=i.id and a.active",
   "Issue #97 Ohio retirement source-presence block changed unexpectedly",
   "active exact segment-assignment presence",
-  "No topology/name/nearest-road existence inference"
+  "No topology/name/nearest-road existence inference",
+  "v_definition:=pg_catalog.replace(v_definition,v_old,v_new)"
 ]) assert.ok(retirementSql.includes(token), `Issue #97 Ohio assignment-presence retirement hardening missing: ${token}`);
 
-assert.ok(!retirementSql.includes("join public.brinesearch_odot_road_catalog c"),
+const retirementNewAt = retirementSql.indexOf("v_new text:=");
+const retirementCountAt = retirementSql.indexOf("v_count integer;", retirementNewAt);
+assert.ok(retirementNewAt >= 0 && retirementCountAt > retirementNewAt,
+  "Issue #97 optimized Ohio retirement replacement block is missing");
+const effectiveRetirementSql = retirementSql.slice(retirementNewAt, retirementCountAt);
+assert.ok(!effectiveRetirementSql.includes("join public.brinesearch_odot_road_catalog c"),
   "Effective Ohio retirement source-presence proof must not rejoin the ODOT catalog after assignments were rebuilt from the current source generation");
+assert.ok(effectiveRetirementSql.includes("public.brinesearch_authoritative_segment_identity_assignments a"),
+  "Effective Ohio retirement source-presence proof must use active exact assignment presence");
 assert.match(retirementSql,
   /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "The optimized source finalizer must remain service-only");
