@@ -98,10 +98,6 @@ begin
 
   v_definition:=pg_catalog.replace(v_definition,v_old_join,v_new_join);
   v_definition:=pg_catalog.replace(v_definition,v_old_exact,v_new_exact);
-  v_definition:=pg_catalog.replace(v_definition,
-    '''candidate_source'',''direct indexed ODOT catalog + exact segment assignment''',
-    '''candidate_source'',''official OGRIP NLF when present + exact geometry + exact segment assignment'',''name_used_for_mapping'',false,''nearest_road_used_for_mapping'',false''
-  );
   execute v_definition;
 end
 $issue97_patch_oh_nlf_mapping$;
