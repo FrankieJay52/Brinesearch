@@ -9,6 +9,7 @@ const provenance = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812037300_issue97_verified_run_provenance_hardening.sql"), "utf8");
 const google = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812037400_issue97_transition_google_current_schema.sql"), "utf8");
+const googleRuntime = google.split("-- Static install-time guard")[0];
 
 for (const token of [
   "brinesearch_issue97_current_verified_run_id",
@@ -62,7 +63,7 @@ for (const token of [
   "nearest_road_resolution',false",
   "fuzzy_resolution',false"
 ]) {
-  assert.ok(google.includes(token), `Issue #97 current-schema Google hardening missing: ${token}`);
+  assert.ok(googleRuntime.includes(token), `Issue #97 current-schema Google hardening missing: ${token}`);
 }
 
 for (const forbidden of [
@@ -74,19 +75,19 @@ for (const forbidden of [
   "g.miles",
   "verified_at"
 ]) {
-  assert.ok(!google.includes(forbidden), `Issue #97 Google migration retained obsolete runtime token: ${forbidden}`);
+  assert.ok(!googleRuntime.includes(forbidden), `Issue #97 Google runtime retained obsolete schema token: ${forbidden}`);
 }
 
-assert.match(google,
+assert.match(googleRuntime,
   /junction_type<>'shared_segment' then 'junction'[\s\S]*earlier\.boundary_index<t\.boundary_index[\s\S]*then 'shared_exit'[\s\S]*else 'shared_entry'/,
   "Issue #97 shared-section Google entry/exit must be determined by route order, not raw anchor-role naming");
-assert.match(google,
+assert.match(googleRuntime,
   /md5\(v_base_manifest::text\)[\s\S]*v_base_manifest\|\|pg_catalog\.jsonb_build_object\('manifest_digest',v_manifest_digest\)/,
   "Issue #97 manifest digest must be computed before the digest is embedded");
-assert.match(google,
+assert.match(googleRuntime,
   /coalesce\(pub\.manifest->>'manifest_digest',''\)=v_receipt\.manifest_digest[\s\S]*md5\(\(pub\.manifest-'manifest_digest'\)::text\)=v_receipt\.manifest_digest/,
   "Issue #97 transition manifest currentness must validate the embedded digest against the digest-free payload");
-assert.match(google,
+assert.match(googleRuntime,
   /revoke all on function private_verification\.brinesearch_issue97_refresh_google_route_transition\(uuid\)[\s\S]*from public,anon,authenticated;[\s\S]*grant execute[\s\S]*to service_role;/,
   "Issue #97 Google transition writer must remain service-only");
 
