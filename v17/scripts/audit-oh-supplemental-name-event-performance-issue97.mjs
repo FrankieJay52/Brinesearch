@@ -11,6 +11,8 @@ const sourceKeyIndexSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811251000_issue97_odot_source_segment_key_index.sql"), "utf8");
 const pkJoinSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811254000_issue97_oh_supplemental_odot_pk_join.sql"), "utf8");
+const supplementalPreservationSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811255000_issue97_supplemental_valid_nonsimple_source_preservation.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
@@ -80,4 +82,19 @@ assert.match(pkJoinSql,
   /create temporary table tmp_issue97_oh_supp_odot_keys[\s\S]*analyze tmp_issue97_oh_supp_odot_keys;[\s\S]*create temporary table tmp_issue97_oh_supp_odot_proj[\s\S]*on o\.roadway_inventory_id=k\.roadway_inventory_id/,
   "Ohio OGRIP name materialization must normalize deterministic segment keys before projecting ODOT geometries");
 
-console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key/ODOT-PK joins + precomputed-overlap + fractional-LRS regression passed.");
+for (const token of [
+  "preserve valid non-simple supplemental authoritative centerlines",
+  "not extensions.st_isvalid(v_geom) then continue",
+  "and extensions.st_issimple(c.geom)",
+  "valid non-simple OGRIP rows remain preserved source evidence with explicit held dispositions"
+]) assert.ok(supplementalPreservationSql.includes(token), `Issue #97 supplemental non-simple preservation missing: ${token}`);
+assert.ok(!supplementalPreservationSql.includes("not extensions.st_isvalid(v_geom) or not extensions.st_issimple(v_geom) then continue"),
+  "Supplemental source ingestion must preserve valid non-simple authoritative 1-D records");
+assert.match(supplementalPreservationSql,
+  /revoke all on function public\.brinesearch_issue97_ingest_supplemental_page\(uuid,integer,integer\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "Supplemental source-page ingest must remain service-only");
+assert.match(supplementalPreservationSql,
+  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Ohio supplemental implementation helper must remain non-callable after non-simple preservation hardening");
+
+console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key/ODOT-PK joins + non-simple source preservation + precomputed-overlap + fractional-LRS regression passed.");
