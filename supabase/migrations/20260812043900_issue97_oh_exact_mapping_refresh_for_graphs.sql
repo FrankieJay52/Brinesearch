@@ -10,6 +10,11 @@
 -- implementation: reviewed/manual mappings are never displaced, ambiguous exact
 -- candidates remain held, source-record/designation equality is required, and no
 -- name/fuzzy/nearest geometry selection is used.
+--
+-- The graph-dispatch patch is convergent: if an interrupted/coordinated rollout
+-- already installed the exact OH branch before the migration receipt was written,
+-- this migration verifies that runtime shape and succeeds instead of failing or
+-- rewriting the function a second time.
 
 create or replace function private_verification.brinesearch_issue97_refresh_exact_mappings_oh()
 returns jsonb
@@ -26,7 +31,6 @@ begin
     pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
   );
 
-  -- Retire only machine-owned exact mappings whose authoritative identity is OH.
   update public.brinesearch_road_identity_mappings m set
     mapping_status='retired',verified_at=null,updated_at=now(),
     evidence=m.evidence||pg_catalog.jsonb_build_object(
@@ -193,8 +197,6 @@ $issue97_refresh_exact_mappings_oh$;
 revoke all on function private_verification.brinesearch_issue97_refresh_exact_mappings_oh()
 from public,anon,authenticated,service_role;
 
--- Patch only the mapping-refresh dispatch inside the existing graph builder.
--- All source, topology, activation, and validation logic remains unchanged.
 do $issue97_patch_oh_graph_mapping_refresh$
 declare
   v_definition text;
@@ -205,14 +207,22 @@ begin
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
   ) into v_definition;
-  v_count:=(pg_catalog.length(v_definition)-pg_catalog.length(
-    pg_catalog.replace(v_definition,v_old,'')
-  ))/pg_catalog.length(v_old);
-  if v_count<>1 then
-    raise exception 'Issue #97 Ohio graph mapping refresh patch target changed: %',v_count;
+
+  if v_definition like '%if v_state=''OH'' then%'
+     and v_definition like '%perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh();%'
+     and v_definition like '%else%perform public.brinesearch_issue97_refresh_exact_mappings();%'
+  then
+    null;
+  else
+    v_count:=(pg_catalog.length(v_definition)-pg_catalog.length(
+      pg_catalog.replace(v_definition,v_old,'')
+    ))/pg_catalog.length(v_old);
+    if v_count<>1 then
+      raise exception 'Issue #97 Ohio graph mapping refresh patch target changed: %',v_count;
+    end if;
+    v_definition:=pg_catalog.replace(v_definition,v_old,v_new);
+    execute v_definition;
   end if;
-  v_definition:=pg_catalog.replace(v_definition,v_old,v_new);
-  execute v_definition;
 end
 $issue97_patch_oh_graph_mapping_refresh$;
 
