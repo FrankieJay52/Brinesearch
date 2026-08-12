@@ -113,6 +113,8 @@ for (const token of [
   "refresh_scope','OH'",
   "m.mapping_method in ('exact_source_record_id','exact_route_designation')",
   "reviewed/manual mappings are never displaced",
+  "mapping-refresh",
+  "pg_advisory_xact_lock",
   "perform private_verification.brinesearch_issue97_refresh_exact_mappings_oh();",
   "else",
   "perform public.brinesearch_issue97_refresh_exact_mappings();",
@@ -120,6 +122,9 @@ for (const token of [
 ]) {
   assert.ok(graphRefresh.includes(token), `Issue #97 Ohio graph mapping refresh missing: ${token}`);
 }
+assert.match(graphRefresh,
+  /begin[\s\S]*pg_advisory_xact_lock\([\s\S]*brinesearch:issue97:mapping-refresh/,
+  "Ohio exact refresh must serialize on the permanent issue #97 mapping-refresh advisory lock");
 assert.match(graphRefresh,
   /update public\.brinesearch_road_identity_mappings m set[\s\S]*exists\([\s\S]*i\.id=m\.identity_id and i\.state_code='OH'/,
   "Ohio exact refresh may retire machine-owned mappings only for Ohio identities");
