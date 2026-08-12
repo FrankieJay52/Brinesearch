@@ -7,6 +7,16 @@
 -- it can produce a verified identity mapping; preserved non-simple rows receive an
 -- explicit held disposition instead of being silently rejected or guessed.
 
+alter table public.brinesearch_authoritative_supplemental_centerlines
+  drop constraint brinesearch_supplemental_centerlines_geometry_check;
+alter table public.brinesearch_authoritative_supplemental_centerlines
+  add constraint brinesearch_supplemental_centerlines_geometry_check check(
+    extensions.st_dimension(geom)=1
+    and not extensions.st_isempty(geom)
+    and extensions.st_isvalid(geom)
+    and extensions.st_coveredby(geom,extensions.st_makeenvelope(-180,-90,180,90,4326))
+  );
+
 do $issue97_patch_supplemental_nonsimple$
 declare
   v_ingest text;
@@ -60,6 +70,9 @@ to service_role;
 revoke all on function public.brinesearch_issue97_refresh_supplemental_aliases_oh(uuid)
 from public,anon,authenticated,service_role;
 
+comment on constraint brinesearch_supplemental_centerlines_geometry_check
+  on public.brinesearch_authoritative_supplemental_centerlines is
+  'Issue #97 source-evidence geometry guard: retain every valid one-dimensional authoritative supplemental centerline, including non-simple geometry; downstream exact mapping/topology remains stricter.';
 comment on function public.brinesearch_issue97_ingest_supplemental_page(uuid,integer,integer) is
   'Issue #97 supplemental authoritative source-page ingest. Valid 1-D source centerlines are preserved even when non-simple; mapping/topology layers decide route eligibility separately and fail closed.';
 comment on function public.brinesearch_issue97_refresh_supplemental_aliases_oh(uuid) is
