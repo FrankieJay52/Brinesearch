@@ -140,7 +140,7 @@ begin
      )
      -- Indexed coarse prefilter only. The following geography ST_DWithin is the
      -- authoritative equivalence tolerance and remains the actual acceptance test.
-     and o.geom && extensions.st_expand(c.geom,0.00001)
+     and o.geom OPERATOR(extensions.&&) extensions.st_expand(c.geom,0.00001)
      and extensions.st_dwithin(
        c.geom::extensions.geography,o.geom::extensions.geography,0.25
      )
