@@ -126,7 +126,7 @@ for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_supplemental_aliases_oh(",
   "public.brinesearch_odot_road_catalog o",
   "public.brinesearch_authoritative_segment_identity_assignments a",
-  "o.geom && extensions.st_expand(c.geom,0.00001)",
+  "o.geom OPERATOR(extensions.&&) extensions.st_expand(c.geom,0.00001)",
   "extensions.st_dwithin(",
   "c.geom::extensions.geography,o.geom::extensions.geography,0.25",
   "'name_used_for_mapping',false",
