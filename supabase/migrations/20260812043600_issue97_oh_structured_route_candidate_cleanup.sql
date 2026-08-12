@@ -12,6 +12,10 @@
 -- The existing full-sequence authoritative graph solver must still select one
 -- unique geographic route path. Generic/untyped Route <number> steps remain held.
 -- No fuzzy matching, no nearest-road selection, and no road-number-only resolution.
+--
+-- Keep the existing candidate_basis enum narrow. Structured cleanup evidence is
+-- recorded inside evidence, while the candidate itself remains one of the existing
+-- exact-name or exact-designation candidate categories.
 
 do $issue97_patch_oh_structured_candidate_cleanup$
 declare
@@ -30,8 +34,8 @@ begin
     raise exception 'Issue #97 Ohio structured candidate cleanup expected one OH/WV-PA branch marker, found %',v_count;
   end if;
 
-  if v_definition like '%exact_authoritative_maneuver_stripped_name_candidate%'
-     or v_definition like '%typed_route_family_candidate%' then
+  if v_definition like '%structured maneuver prefix removed before exact authoritative equality%'
+     or v_definition like '%saved typed route family + exact route number%' then
     raise exception 'Issue #97 Ohio structured candidate cleanup is already installed';
   end if;
 
@@ -42,7 +46,7 @@ begin
 ||E'          route_prep_step_id,identity_id,canonical_road_id,candidate_basis,strong_proof,\n'
 ||E'          source_identity_key,source_digest,mapping_fingerprint,evidence\n'
 ||E'        )\n'
-||E'        select distinct p_step_id,i.id,m.road_id,''exact_authoritative_maneuver_stripped_name_candidate'',false,\n'
+||E'        select distinct p_step_id,i.id,m.road_id,''exact_authoritative_name_candidate'',false,\n'
 ||E'          i.source_identity_key,i.source_digest,\n'
 ||E'          private_verification.brinesearch_issue97_mapping_fingerprint(i.id),\n'
 ||E'          pg_catalog.jsonb_build_object(\n'
@@ -102,7 +106,7 @@ begin
 ||E'          route_prep_step_id,identity_id,canonical_road_id,candidate_basis,strong_proof,\n'
 ||E'          source_identity_key,source_digest,mapping_fingerprint,evidence\n'
 ||E'        )\n'
-||E'        select distinct p_step_id,i.id,m.road_id,''typed_route_family_candidate'',false,\n'
+||E'        select distinct p_step_id,i.id,m.road_id,''exact_authoritative_designation_candidate'',false,\n'
 ||E'          i.source_identity_key,i.source_digest,\n'
 ||E'          private_verification.brinesearch_issue97_mapping_fingerprint(i.id),\n'
 ||E'          pg_catalog.jsonb_build_object(\n'
@@ -139,8 +143,8 @@ begin
     'private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)'::pg_catalog.regprocedure
   ) into v_definition;
 
-  if v_definition not like '%exact_authoritative_maneuver_stripped_name_candidate%'
-     or v_definition not like '%typed_route_family_candidate%'
+  if v_definition not like '%structured maneuver prefix removed before exact authoritative equality%'
+     or v_definition not like '%saved typed route family + exact route number%'
      or v_definition not like '%r.road_type=v_step.step_kind%'
      or v_definition not like '%i.road_class=v_step.step_kind%'
      or v_definition not like '%candidate evidence only; graph path still required%'
