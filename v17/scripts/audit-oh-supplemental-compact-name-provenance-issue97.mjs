@@ -11,8 +11,8 @@ const sql = fs.readFileSync(path.join(root,
 for (const token of [
   "compact Ohio supplemental alias provenance",
   "null::jsonb as overlap_geojson",
-  "'target_overlap_geometry_stored',false",
-  "'target_overlap_fraction'",
+  "target_overlap_geometry_stored",
+  "target_overlap_fraction",
   "exact source digest, ODOT segment key, CTL interval, and overlap fractions",
   "Name/nearest-road matching remains prohibited"
 ]) assert.ok(sql.includes(token), `Issue #97 compact Ohio alias provenance missing: ${token}`);
@@ -27,6 +27,9 @@ assert.ok(!effective.includes("st_asgeojson"),
   "Effective Ohio alias name stage must not serialize duplicate overlap GeoJSON");
 assert.ok(!effective.includes("'target_overlap',o.overlap_geojson"),
   "Effective Ohio alias provenance must not duplicate target overlap geometry");
+assert.match(effective,
+  /target_overlap_geometry_stored'{0,2},false/,
+  "Effective compact provenance must explicitly record that overlap geometry is not stored");
 assert.match(sql,
   /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Compact alias-provenance helper must remain non-callable outside the trusted dispatcher");
