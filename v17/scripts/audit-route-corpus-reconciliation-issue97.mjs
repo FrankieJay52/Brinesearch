@@ -105,8 +105,11 @@ assert.ok(!ohioIndexedCandidatesSql.includes("<->"),
   "Ohio candidate performance patch must not use nearest-geometry selection");
 assert.ok(!ohioIndexedCandidatesSql.includes("strong_proof'',true"),
   "Ohio exact name/designation candidates must remain non-authoritative evidence");
-assert.ok(!ohioIndexedCandidatesSql.includes("nearest_road_used'',true"),
-  "Ohio candidate performance patch must not authorize nearest-road resolution");
+const nearestTrueSentinels = ohioIndexedCandidatesSql.match(/nearest_road_used'',true/g) ?? [];
+assert.equal(nearestTrueSentinels.length, 1,
+  "Ohio candidate migration may mention nearest-road=true only in its runtime rejection sentinel");
+assert.ok(ohioIndexedCandidatesSql.includes("v_definition like '%nearest_road_used'',true%'"),
+  "Ohio candidate migration must reject any composed runtime that authorizes nearest-road resolution");
 
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
