@@ -35,8 +35,6 @@ begin
     pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
   );
 
-  -- Family roads: exactly one pre-existing semantic placeholder must exist. The
-  -- row ID is preserved; only exact Ohio source identities are mapped here.
   for v_family in
     select * from (values
       ('us_route'::text,'22'::text,null::text,'US-22'::text,'us-22'::text,
@@ -59,7 +57,7 @@ begin
       designation_aliases,road_scope_key,route_family_key,road_identity_key
     )
   loop
-    select count(*)::integer,min(r.id)
+    select count(*)::integer,min(r.id::text)::uuid
     into v_row_count,v_road_id
     from public.brinesearch_roads r
     where r.road_type=v_family.road_class
@@ -198,8 +196,6 @@ begin
       evidence=excluded.evidence,verified_at=excluded.verified_at,updated_at=now();
   end loop;
 
-  -- Jurisdiction-scoped roads are one exact source identity each. They are never
-  -- collapsed with same-name/same-number roads elsewhere.
   for v_local in
     select * from (values
       ('OH:ODOT:NLF:CMOECR00061**C'::text,'county'::text,'61'::text,
@@ -316,8 +312,6 @@ begin
     );
   end loop;
 
-  -- Installation safety: this migration's own verified mappings are Ohio-only and
-  -- no mapping decision may claim fuzzy/name-only/nearest proof.
   if exists(
     select 1
     from public.brinesearch_road_identity_mappings m
@@ -334,7 +328,6 @@ begin
 end
 $issue97_oh_route_used_canonical_adoption$;
 
--- Static runtime/data contract after installation.
 do $issue97_verify_oh_route_used_canonical_adoption$
 declare
   v_family_rows integer;
