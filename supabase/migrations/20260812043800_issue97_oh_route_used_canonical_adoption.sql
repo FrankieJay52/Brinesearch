@@ -1,0 +1,368 @@
+-- GitHub #97 — Ohio-only canonical Road Manager adoption for route-used exact identities.
+--
+-- Scope is intentionally limited to Ohio. This migration:
+--   * upgrades the existing US-22 and OH-43/OH-145/OH-151/OH-164 legacy family rows
+--     from exact, current ODOT Road Inventory identities;
+--   * creates separate jurisdiction-scoped canonical roads for Monroe CR-61 / Egger
+--     Ridge Rd and Harrison / Monroe Township TR-207 / Derry Rd;
+--   * verifies mappings only from exact Ohio authoritative identity/designation
+--     evidence; and
+--   * never uses road-name similarity, fuzzy matching, or nearest geometry to decide
+--     identity/mapping truth.
+--
+-- Driver-facing occurrence names remain location-valid #97 identity/name receipts.
+-- Family aliases here are designation aliases only; local segment names do not get
+-- bulk-promoted across an entire numbered highway family.
+
+do $issue97_oh_route_used_canonical_adoption$
+declare
+  v_family record;
+  v_local record;
+  v_road_id uuid;
+  v_row_count integer;
+  v_identity_count integer;
+  v_conflict_count integer;
+  v_all_current boolean;
+  v_geom extensions.geometry;
+  v_source_keys text[];
+  v_source_digest text;
+  v_source_record_id text;
+  v_aliases text[];
+  v_identity record;
+  v_dataset record;
+begin
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+
+  -- Family roads: exactly one pre-existing semantic placeholder must exist. The
+  -- row ID is preserved; only exact Ohio source identities are mapped here.
+  for v_family in
+    select * from (values
+      ('us_route'::text,'22'::text,null::text,'US-22'::text,'us-22'::text,
+        array['US-22','Route 22','U.S. 22']::text[],
+        '|us-22||'::text,'us_route|22'::text,'us_route|22'::text),
+      ('state_route','43','OH','OH-43','oh-43',
+        array['OH-43','SR-43','Route 43']::text[],
+        'OH|oh-43||','state_route|OH|43','state_route|OH|43'),
+      ('state_route','145','OH','OH-145','oh-145',
+        array['OH-145','SR-145','Route 145']::text[],
+        'OH|oh-145||','state_route|OH|145','state_route|OH|145'),
+      ('state_route','151','OH','OH-151','oh-151',
+        array['OH-151','SR-151','Route 151']::text[],
+        'OH|oh-151||','state_route|OH|151','state_route|OH|151'),
+      ('state_route','164','OH','OH-164','oh-164',
+        array['OH-164','SR-164','Route 164']::text[],
+        'OH|oh-164||','state_route|OH|164','state_route|OH|164')
+    ) as x(
+      road_class,route_number,road_state,canonical_name,normalized_name,
+      designation_aliases,road_scope_key,route_family_key,road_identity_key
+    )
+  loop
+    select count(*)::integer,min(r.id)
+    into v_row_count,v_road_id
+    from public.brinesearch_roads r
+    where r.road_type=v_family.road_class
+      and r.route_number=v_family.route_number
+      and (
+        (v_family.road_class='us_route' and r.state is null)
+        or (v_family.road_class='state_route' and r.state='OH')
+      );
+    if v_row_count<>1 then
+      raise exception 'Issue #97 Ohio canonical adoption expected one % % Road Manager family row, found %',
+        v_family.road_class,v_family.route_number,v_row_count;
+    end if;
+
+    select count(*)::integer,
+      coalesce(pg_catalog.bool_and(
+        private_verification.brinesearch_issue97_dataset_scope_current(
+          i.dataset_id,i.state_code,i.county_code
+        )
+      ),false),
+      pg_catalog.array_agg(i.source_identity_key order by i.county_code,i.source_identity_key),
+      pg_catalog.md5(pg_catalog.string_agg(
+        i.id::text||':'||coalesce(i.source_digest,''),
+        '|' order by i.county_code,i.source_identity_key,i.id
+      )),
+      min(nullif(i.attributes->>'nlf_id','')),
+      extensions.st_collectionextract(
+        extensions.st_unaryunion(extensions.st_collect(
+          private_verification.brinesearch_issue97_authoritative_identity_geometry(i.id)
+        )),2
+      )
+    into v_identity_count,v_all_current,v_source_keys,v_source_digest,
+      v_source_record_id,v_geom
+    from public.brinesearch_authoritative_road_identities i
+    where i.state_code='OH' and i.active
+      and i.road_class=v_family.road_class
+      and i.route_number=v_family.route_number
+      and i.public_access_status='public'
+      and i.drivable_status='drivable';
+
+    if coalesce(v_identity_count,0)=0 or not coalesce(v_all_current,false)
+       or v_geom is null or extensions.st_isempty(v_geom)
+       or extensions.st_dimension(v_geom)<>1 then
+      raise exception 'Issue #97 Ohio canonical adoption source family is incomplete: % % identities %, current %, geometry %',
+        v_family.road_class,v_family.route_number,v_identity_count,v_all_current,
+        case when v_geom is null then 'null' when extensions.st_isempty(v_geom) then 'empty' else extensions.geometrytype(v_geom) end;
+    end if;
+
+    select count(*)::integer into v_conflict_count
+    from public.brinesearch_authoritative_road_identities i
+    join public.brinesearch_road_identity_mappings m
+      on m.identity_id=i.id and m.mapping_status='verified'
+    where i.state_code='OH' and i.active
+      and i.road_class=v_family.road_class
+      and i.route_number=v_family.route_number
+      and i.public_access_status='public' and i.drivable_status='drivable'
+      and m.road_id<>v_road_id;
+    if v_conflict_count<>0 then
+      raise exception 'Issue #97 Ohio canonical adoption found % conflicting verified mappings for % %',
+        v_conflict_count,v_family.road_class,v_family.route_number;
+    end if;
+
+    select pg_catalog.array_agg(distinct alias_value order by alias_value)
+    into v_aliases
+    from unnest(
+      coalesce((select r.aliases from public.brinesearch_roads r where r.id=v_road_id),'{}'::text[])
+      ||v_family.designation_aliases
+    ) alias_value;
+
+    update public.brinesearch_roads r set
+      canonical_name=v_family.canonical_name,
+      normalized_name=v_family.normalized_name,
+      road_type=v_family.road_class,
+      state=v_family.road_state,
+      county=null,
+      township=null,
+      route_number=v_family.route_number,
+      aliases=coalesce(v_aliases,'{}'::text[]),
+      verification_status='verified',
+      verified_at=now(),
+      source_agency='Ohio Department of Transportation',
+      source_dataset='Road Inventory',
+      source_method='issue97_oh_exact_route_family',
+      source_url='https://tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0',
+      source_record_id=v_source_record_id,
+      centerline_geojson=extensions.st_asgeojson(v_geom,7)::jsonb,
+      geometry_status='official_centerline_loaded',
+      geometry_checked_at=now(),
+      approved_by_default=true,
+      road_scope_key=v_family.road_scope_key,
+      route_family_key=v_family.route_family_key,
+      road_identity_key=v_family.road_identity_key,
+      candidate_only=false,
+      candidate_basis=coalesce(r.candidate_basis,'{}'::jsonb)||pg_catalog.jsonb_build_object(
+        'issue',97,'scope','OH-only','adoption','exact_route_family',
+        'source_identity_count',v_identity_count,
+        'source_identity_keys',to_jsonb(v_source_keys),
+        'source_digest',v_source_digest,
+        'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false
+      ),
+      coverage_states=case when v_family.road_class='us_route'
+        then array['OH']::text[] else r.coverage_states end,
+      updated_at=now()
+    where r.id=v_road_id;
+
+    insert into public.brinesearch_road_identity_mappings(
+      id,identity_id,road_id,mapping_status,mapping_method,evidence,
+      verified_at,created_at,updated_at
+    )
+    select
+      private_verification.brinesearch_issue97_uuid(
+        'identity-mapping:'||i.id::text||':'||v_road_id::text
+      ),
+      i.id,v_road_id,'verified','exact_route_designation',
+      pg_catalog.jsonb_build_object(
+        'issue',97,'scope','OH-only','state_code','OH',
+        'road_class',i.road_class,'route_number',i.route_number,
+        'source_identity_key',i.source_identity_key,'source_digest',i.source_digest,
+        'source_current',private_verification.brinesearch_issue97_dataset_scope_current(
+          i.dataset_id,i.state_code,i.county_code
+        ),
+        'exact_designation',true,
+        'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false,
+        'migration','issue97_oh_route_used_canonical_adoption'
+      ),
+      now(),now(),now()
+    from public.brinesearch_authoritative_road_identities i
+    where i.state_code='OH' and i.active
+      and i.road_class=v_family.road_class
+      and i.route_number=v_family.route_number
+      and i.public_access_status='public' and i.drivable_status='drivable'
+      and private_verification.brinesearch_issue97_dataset_scope_current(
+        i.dataset_id,i.state_code,i.county_code
+      )
+    on conflict(identity_id,road_id) do update set
+      mapping_status='verified',mapping_method='exact_route_designation',
+      evidence=excluded.evidence,verified_at=excluded.verified_at,updated_at=now();
+  end loop;
+
+  -- Jurisdiction-scoped roads are one exact source identity each. They are never
+  -- collapsed with same-name/same-number roads elsewhere.
+  for v_local in
+    select * from (values
+      ('OH:ODOT:NLF:CMOECR00061**C'::text,'county'::text,'61'::text,
+        'CR-61'::text,'cr-61'::text,'Monroe'::text,null::text,
+        array['CR-61','Egger Ridge Rd']::text[],
+        'OH|cr-61|Monroe|'::text,'road|OH|cr-61|Monroe|'::text),
+      ('OH:ODOT:NLF:THASTR00207**C','township','207',
+        'Derry Rd','derry-rd','Harrison','Monroe',
+        array['TR-207','Township Road 207']::text[],
+        'OH|derry-rd|Harrison|Monroe','road|OH|derry-rd|Harrison|Monroe')
+    ) as x(
+      source_identity_key,road_class,route_number,canonical_name,normalized_name,
+      county_name,township_name,designation_aliases,road_scope_key,route_family_key
+    )
+  loop
+    select count(*)::integer into v_row_count
+    from public.brinesearch_authoritative_road_identities i
+    where i.source_identity_key=v_local.source_identity_key and i.state_code='OH' and i.active;
+    if v_row_count<>1 then
+      raise exception 'Issue #97 Ohio source-specific adoption expected one active identity %, found %',
+        v_local.source_identity_key,v_row_count;
+    end if;
+
+    select i.* into v_identity
+    from public.brinesearch_authoritative_road_identities i
+    where i.source_identity_key=v_local.source_identity_key and i.state_code='OH' and i.active;
+    select d.* into v_dataset from public.brinesearch_road_source_datasets d where d.id=v_identity.dataset_id;
+
+    if v_identity.road_class<>v_local.road_class
+       or v_identity.route_number<>v_local.route_number
+       or v_identity.county_name<>v_local.county_name
+       or coalesce(v_identity.township,'')<>coalesce(v_local.township_name,'')
+       or v_identity.public_access_status<>'public'
+       or v_identity.drivable_status<>'drivable'
+       or not private_verification.brinesearch_issue97_dataset_scope_current(
+         v_identity.dataset_id,v_identity.state_code,v_identity.county_code
+       ) then
+      raise exception 'Issue #97 Ohio source-specific identity contract changed for %',v_local.source_identity_key;
+    end if;
+
+    v_geom:=private_verification.brinesearch_issue97_authoritative_identity_geometry(v_identity.id);
+    if v_geom is null or extensions.st_isempty(v_geom) or extensions.st_dimension(v_geom)<>1 then
+      raise exception 'Issue #97 Ohio source-specific geometry missing for %',v_local.source_identity_key;
+    end if;
+
+    select count(*)::integer into v_conflict_count
+    from public.brinesearch_road_identity_mappings m
+    where m.identity_id=v_identity.id and m.mapping_status='verified';
+    if v_conflict_count<>0 then
+      raise exception 'Issue #97 Ohio source-specific identity % already has a verified canonical mapping',
+        v_local.source_identity_key;
+    end if;
+
+    select count(*)::integer into v_row_count
+    from public.brinesearch_roads r
+    where r.road_type=v_local.road_class and r.state='OH'
+      and lower(coalesce(r.county,''))=lower(v_local.county_name)
+      and coalesce(lower(r.township),'')=coalesce(lower(v_local.township_name),'')
+      and r.route_number=v_local.route_number;
+    if v_row_count<>0 then
+      raise exception 'Issue #97 Ohio source-specific adoption found an existing semantic Road Manager row for %',
+        v_local.source_identity_key;
+    end if;
+
+    v_road_id:=private_verification.brinesearch_issue97_uuid(
+      'canonical-road:'||v_local.source_identity_key
+    );
+    v_source_record_id:=nullif(v_identity.attributes->>'nlf_id','');
+    if v_source_record_id is null then
+      raise exception 'Issue #97 Ohio source-specific identity lacks exact NLF ID: %',v_local.source_identity_key;
+    end if;
+
+    insert into public.brinesearch_roads(
+      id,canonical_name,normalized_name,road_type,state,county,township,aliases,
+      route_number,verification_status,verified_at,source_agency,source_dataset,
+      source_method,source_url,source_record_id,centerline_geojson,geometry_status,
+      geometry_checked_at,approved_by_default,road_scope_key,route_family_key,
+      road_identity_key,candidate_only,candidate_basis
+    ) values (
+      v_road_id,v_local.canonical_name,v_local.normalized_name,v_local.road_class,
+      'OH',v_local.county_name,v_local.township_name,v_local.designation_aliases,
+      v_local.route_number,'verified',now(),
+      'Ohio Department of Transportation','Road Inventory',
+      'issue97_oh_exact_source_identity',
+      'https://tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0',
+      v_source_record_id,extensions.st_asgeojson(v_geom,7)::jsonb,
+      'official_centerline_loaded',now(),false,v_local.road_scope_key,
+      v_local.route_family_key,'official|'||v_source_record_id,false,
+      pg_catalog.jsonb_build_object(
+        'issue',97,'scope','OH-only','adoption','exact_source_identity',
+        'source_identity_key',v_identity.source_identity_key,
+        'source_digest',v_identity.source_digest,
+        'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false
+      )
+    );
+
+    insert into public.brinesearch_road_identity_mappings(
+      id,identity_id,road_id,mapping_status,mapping_method,evidence,
+      verified_at,created_at,updated_at
+    ) values (
+      private_verification.brinesearch_issue97_uuid(
+        'identity-mapping:'||v_identity.id::text||':'||v_road_id::text
+      ),
+      v_identity.id,v_road_id,'verified','exact_source_record_id',
+      pg_catalog.jsonb_build_object(
+        'issue',97,'scope','OH-only','state_code','OH',
+        'source_identity_key',v_identity.source_identity_key,
+        'source_record_id',v_source_record_id,'source_digest',v_identity.source_digest,
+        'source_current',true,'exact_source_record_id',true,
+        'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false,
+        'migration','issue97_oh_route_used_canonical_adoption'
+      ),
+      now(),now(),now()
+    );
+  end loop;
+
+  -- Installation safety: this migration's own verified mappings are Ohio-only and
+  -- no mapping decision may claim fuzzy/name-only/nearest proof.
+  if exists(
+    select 1
+    from public.brinesearch_road_identity_mappings m
+    join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+    where m.evidence->>'migration'='issue97_oh_route_used_canonical_adoption'
+      and (i.state_code<>'OH'
+        or m.mapping_method in ('name_only','fuzzy_name','nearest_road')
+        or coalesce((m.evidence->>'name_matching_used')::boolean,false)
+        or coalesce((m.evidence->>'fuzzy_matching_used')::boolean,false)
+        or coalesce((m.evidence->>'nearest_road_used')::boolean,false))
+  ) then
+    raise exception 'Issue #97 Ohio canonical adoption violated the Ohio-only/no-guess mapping contract';
+  end if;
+end
+$issue97_oh_route_used_canonical_adoption$;
+
+-- Static runtime/data contract after installation.
+do $issue97_verify_oh_route_used_canonical_adoption$
+declare
+  v_family_rows integer;
+  v_local_rows integer;
+  v_bad_mappings integer;
+begin
+  select count(*)::integer into v_family_rows
+  from public.brinesearch_roads r
+  where r.verification_status='verified'
+    and r.geometry_status='official_centerline_loaded'
+    and r.source_method='issue97_oh_exact_route_family'
+    and ((r.road_type='us_route' and r.route_number='22')
+      or (r.road_type='state_route' and r.state='OH' and r.route_number in ('43','145','151','164')));
+  select count(*)::integer into v_local_rows
+  from public.brinesearch_roads r
+  where r.verification_status='verified'
+    and r.geometry_status='official_centerline_loaded'
+    and r.source_method='issue97_oh_exact_source_identity'
+    and r.source_record_id in ('CMOECR00061**C','THASTR00207**C');
+  select count(*)::integer into v_bad_mappings
+  from public.brinesearch_road_identity_mappings m
+  join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+  where m.evidence->>'migration'='issue97_oh_route_used_canonical_adoption'
+    and (i.state_code<>'OH' or m.mapping_status<>'verified'
+      or m.mapping_method not in ('exact_route_designation','exact_source_record_id'));
+  if v_family_rows<>5 or v_local_rows<>2 or v_bad_mappings<>0 then
+    raise exception 'Issue #97 Ohio canonical adoption verification failed: family %, local %, bad mappings %',
+      v_family_rows,v_local_rows,v_bad_mappings;
+  end if;
+end
+$issue97_verify_oh_route_used_canonical_adoption$;
