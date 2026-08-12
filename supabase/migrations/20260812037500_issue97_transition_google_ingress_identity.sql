@@ -6,10 +6,16 @@ do $issue97_patch_transition_google_ingress_identity$
 declare
   v_definition text;
   v_old text:=$old$
+      'kind','shape','shape_role','route_ingress',
+      'latitude',extensions.st_y(q.snapped)::numeric,
+      'longitude',extensions.st_x(q.snapped)::numeric,
       'occurrence_id',src.route_prep_step_id,
       'source_kind','authoritative_clipped_geometry',
 $old$;
   v_new text:=$new$
+      'kind','shape','shape_role','route_ingress',
+      'latitude',extensions.st_y(q.snapped)::numeric,
+      'longitude',extensions.st_x(q.snapped)::numeric,
       'occurrence_id',src.route_prep_step_id,
       'identity_id',src.identity_id,
       'road_id',src.canonical_road_id,
@@ -30,7 +36,8 @@ begin
   select pg_catalog.pg_get_functiondef(
     'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)'::pg_catalog.regprocedure
   ) into v_definition;
-  if v_definition not ilike '%''identity_id'',src.identity_id%'
+  if v_definition not ilike '%''shape_role'',''route_ingress''%'
+     or v_definition not ilike '%''identity_id'',src.identity_id%'
      or v_definition not ilike '%''road_id'',src.canonical_road_id%'
   then
     raise exception 'Issue #97 transition Google ingress identity provenance did not install cleanly';
