@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811242000_issue97_transition_google_manifests.sql"), "utf8");
+const cutoverHelperSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812035100_issue97_cutover_active_helper.sql"), "utf8");
 
 for (const token of [
   "brinesearch_issue97_refresh_google_route_published_core",
@@ -41,6 +43,19 @@ for (const token of [
   assert.ok(sql.includes(token), `Issue #97 transition Google manifest contract missing: ${token}`);
 }
 
+for (const token of [
+  "create or replace function public.brinesearch_issue97_cutover_active()",
+  "select s.cutover_at is not null",
+  "from public.brinesearch_issue97_release_state s",
+  "where s.singleton",
+  "it performs no activation"
+]) assert.ok(cutoverHelperSql.includes(token), `Issue #97 cutover-state helper missing: ${token}`);
+assert.ok(!/update\s+public\.brinesearch_issue97_release_state/i.test(cutoverHelperSql),
+  "Cutover-state predicate must never activate or mutate the release state");
+assert.match(cutoverHelperSql,
+  /revoke all on function public\.brinesearch_issue97_cutover_active\(\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Cutover-state predicate must remain internal to trusted Google-route functions");
+
 assert.match(sql, /v_dependency:=private_verification\.brinesearch_issue97_transition_google_dependency\(p_pad_id\);/,
   "transition Google builder/current checker must share one dependency function");
 assert.match(sql, /extensions\.st_dwithin\([\s\S]*g\.end_coordinate::extensions\.geography[\s\S]*st_makepoint\(v_pad\.longitude,v_pad\.latitude\)[\s\S]*\n\s*1\n/,
@@ -68,4 +83,4 @@ for (const forbidden of [
   assert.ok(!sql.includes(forbidden), `Issue #97 transition Google migration enables forbidden heuristic: ${forbidden}`);
 }
 
-console.log("Issue #97 transition-derived Google manifest/no-guess audit passed.");
+console.log("Issue #97 transition-derived Google manifest + cutover-state/no-guess audit passed.");
