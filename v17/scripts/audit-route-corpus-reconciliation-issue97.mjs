@@ -87,21 +87,25 @@ for (const token of [
   "brinesearch_authoritative_identities_oh_route_number_issue97_idx",
   "i.normalized_name=v_token",
   "n.normalized_name=v_token",
-  "pg_catalog.lower(i.route_number)=pg_catalog.regexp_replace(v_token,'^.*[[:space:]]','')",
-  "if v_state='OH' then",
+  "pg_catalog.lower(i.route_number)=pg_catalog.regexp_replace(v_token,''^.*[[:space:]]'','''')",
+  "if v_state=''OH'' then",
   "exact name equality is candidate evidence only",
   "route designation is candidate evidence only",
   "strong_proof",
   "v_legacy_body"
 ]) assert.ok(ohioIndexedCandidatesSql.includes(token), `Issue #97 Ohio indexed candidate lookup missing: ${token}`);
-assert.match(ohioIndexedCandidatesSql,
-  /where i\.state_code='OH' and i\.active and i\.normalized_name=v_token[\s\S]*union[\s\S]*n\.normalized_name=v_token/,
-  "Ohio exact-name candidate discovery must start from stored indexed normalized equality");
-assert.match(ohioIndexedCandidatesSql,
-  /pg_catalog\.lower\(i\.route_number\)=pg_catalog\.regexp_replace\(v_token,'\^\.\*\[\[:space:\]\]','',''\)[\s\S]*and v_token=any\(array\[/,
-  "Ohio designation candidate discovery must prefilter exact route number and still require the original exact designation equality");
-assert.match(ohioIndexedCandidatesSql,
-  /else\n'\|\|v_legacy_body\|\|E'    end if;/,
+assert.ok(ohioIndexedCandidatesSql.includes(
+  "where i.state_code=''OH'' and i.active and i.normalized_name=v_token"
+), "Ohio exact identity-name candidates must start from stored indexed normalized equality");
+assert.ok(ohioIndexedCandidatesSql.includes(
+  "where n.active and n.normalized_name=v_token"
+), "Ohio exact alias-name candidates must start from stored indexed normalized equality");
+assert.ok(ohioIndexedCandidatesSql.includes(
+  "and pg_catalog.lower(i.route_number)=pg_catalog.regexp_replace(v_token,''^.*[[:space:]]'','''')"
+), "Ohio designation candidates must first prefilter the exact route number");
+assert.ok(ohioIndexedCandidatesSql.includes("and v_token=any(array["),
+  "Ohio designation candidate prefilter must still require the original exact designation equality");
+assert.ok(ohioIndexedCandidatesSql.includes("||E'    else\\n'||v_legacy_body||E'    end if;"),
   "WV/PA must retain the legacy runtime-normalization branch");
 assert.ok(!/similarity\(|<->|strong_proof'',true|nearest_road_used'',true/.test(ohioIndexedCandidatesSql),
   "Ohio candidate performance patch must not add fuzzy, nearest, or strong candidate proof");
