@@ -94,7 +94,7 @@ begin
   v_start:=pg_catalog.strpos(v_definition,
     'create temporary table tmp_issue97_oh_supp_overlap on commit drop as');
   v_finish:=pg_catalog.strpos(v_definition,
-    'create index tmp_issue97_oh_supp_overlap_identity_idx',v_start);
+    'create index tmp_issue97_oh_supp_overlap_identity_idx');
   if v_start=0 or v_finish=0 or v_finish<=v_start then
     raise exception 'Issue #97 Ohio supplemental overlap block changed unexpectedly';
   end if;
