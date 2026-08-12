@@ -12,6 +12,7 @@ const hardening = read("v17/src/parts/05a-authoritative-route-fallback-issue97.j
 const partOrder = JSON.parse(read("v17/src/parts/part-order.json"));
 const padPage = read("v17/src/parts/11-pad-page.js");
 const migration = read("supabase/migrations/20260812044400_issue97_phase1_release_gate.sql");
+const sr331 = read("supabase/migrations/20260812044500_issue97_oh_sr331_canonical_adoption.sql");
 
 assert.ok(
   partOrder.parts.includes("05a-authoritative-route-fallback-issue97.js"),
@@ -45,7 +46,8 @@ for (const token of [
   "brinesearch_issue97_phase1_release_gate()",
   "brinesearch_issue97_assert_phase1_release_gate()",
   "missing_occurrence_receipts",
-  "legacy_geometry_count_leak",
+  "resolved_missing_canonical",
+  "exact_geometry_count_mismatch",
   "held_or_stale_public_rows",
   "public_rows_not_current"
 ]) {
@@ -57,8 +59,24 @@ assert.ok(
   "The Phase 1 gate must recompute exact geometry only from the same authoritative identity and canonical road"
 );
 assert.ok(
+  migration.includes("t.receipt_digest=g.start_transition_digest") &&
+    migration.includes("t.receipt_digest=g.end_transition_digest"),
+  "The Phase 1 gate must bind geometry to current transition receipts instead of merely counting geometry rows"
+);
+assert.ok(
   !hardening.includes("googleMapsUrl("),
   "Authoritative route fallback hardening must never call the legacy Google route helper"
 );
+
+for (const token of [
+  "route_number='331'",
+  "exact_route_designation",
+  "name_matching_used',false",
+  "fuzzy_matching_used',false",
+  "nearest_road_used',false",
+  "v_identity_count<>2"
+]) {
+  assert.ok(sr331.includes(token), `Issue #97 SR-331 exact adoption contract missing: ${token}`);
+}
 
 console.log("Issue #97 Phase 1 release contract audit passed.");
