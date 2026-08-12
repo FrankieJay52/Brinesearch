@@ -15,6 +15,10 @@ const supplementalPreservationSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811255000_issue97_supplemental_valid_nonsimple_source_preservation.sql"), "utf8");
 const endpointProjectionSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811256000_issue97_oh_supplemental_overlap_endpoint_projection.sql"), "utf8");
+const nlfMappingSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811257000_issue97_oh_supplemental_nlf_mapping_performance.sql"), "utf8");
+const verifiedProjectionSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811258000_issue97_oh_supplemental_verified_projection_cache.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
@@ -77,7 +81,6 @@ for (const token of [
   "exact/source-ID based",
   "road names and nearest-road matching remain prohibited"
 ]) assert.ok(pkJoinSql.includes(token), `Issue #97 Ohio supplemental ODOT PK-join hardening missing: ${token}`);
-
 assert.ok(!pkJoinSql.includes("on segment_key='OH:ODOT:SEGMENT:'||o.roadway_inventory_id"),
   "The effective projected ODOT cache patch must replace the concatenated catalog join with a direct roadway_inventory_id lookup");
 assert.match(pkJoinSql,
@@ -128,8 +131,43 @@ assert.ok(!effectiveEndpointSql.includes("st_intersection("),
   "Effective Belmont-scale overlap materialization must not perform buffered geometry intersections");
 assert.ok(!effectiveEndpointSql.includes("jsonb_array_elements"),
   "Endpoint interval calculation must finish before name-event expansion");
-assert.match(endpointProjectionSql,
-  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
-  "Endpoint-projected Ohio helper must remain non-callable outside the trusted dispatcher");
 
-console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key/ODOT-PK joins + non-simple source preservation + endpoint-projected target intervals + fractional-LRS regression passed.");
+for (const token of [
+  "OGRIP itself publishes `nlfid`",
+  "c.attributes->>''nlfid''",
+  "o.nlf_id=nullif(pg_catalog.btrim(c.attributes->>''nlfid''),'''')",
+  "published-but-unmatched NLF values fail closed",
+  "exact geometry + exact segment assignments prove equivalence",
+  "Road-name and nearest-road matching remain prohibited"
+]) assert.ok(nlfMappingSql.includes(token), `Issue #97 official-NLF mapping hardening missing: ${token}`);
+const newExactAt = nlfMappingSql.indexOf("v_new_exact text:=");
+const newExactEnd = nlfMappingSql.indexOf("v_join_count integer;", newExactAt);
+assert.ok(newExactAt >= 0 && newExactEnd > newExactAt, "Issue #97 NLF containment replacement is missing");
+const effectiveNlfExactSql = nlfMappingSql.slice(newExactAt, newExactEnd);
+assert.ok(!effectiveNlfExactSql.includes("st_intersection("),
+  "Effective exact identity proof must avoid redundant geometry intersections after containment is proven");
+assert.ok(effectiveNlfExactSql.includes("extensions.st_coveredby"),
+  "Effective exact identity proof must retain fail-closed buffered containment");
+
+for (const token of [
+  "verified-only projection cache hardening",
+  "c.last_ingest_run_id=p_run_id",
+  "public.brinesearch_supplemental_centerline_identity_mappings m",
+  "m.active and m.mapping_status=''verified''",
+  "extensions.st_transform(c.geom,3857) as geom_3857",
+  "only verified exact mappings are projected"
+]) assert.ok(verifiedProjectionSql.includes(token), `Issue #97 verified-only projection cache missing: ${token}`);
+const verifiedNewAt = verifiedProjectionSql.indexOf("v_new text:=");
+const verifiedNewEnd = verifiedProjectionSql.indexOf("v_count integer;", verifiedNewAt);
+assert.ok(verifiedNewAt >= 0 && verifiedNewEnd > verifiedNewAt, "Issue #97 verified projection replacement is missing");
+const effectiveVerifiedProjectionSql = verifiedProjectionSql.slice(verifiedNewAt, verifiedNewEnd);
+assert.ok(!effectiveVerifiedProjectionSql.includes("st_buffer("),
+  "Effective source projection cache must not build buffers that endpoint projection no longer uses");
+
+for (const sql of [endpointProjectionSql,nlfMappingSql,verifiedProjectionSql]) {
+  assert.match(sql,
+    /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+    "Every Ohio supplemental performance helper patch must keep the internal function non-callable");
+}
+
+console.log("Issue #97 Ohio OGRIP source preservation + official-NLF exact mapping + verified-only projection + endpoint-derived name intervals regression passed.");
