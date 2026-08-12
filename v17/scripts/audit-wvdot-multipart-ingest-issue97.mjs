@@ -117,8 +117,14 @@ assert.match(sourceHoldMigration,
   /not extensions\.st_issimple\(v_geom\)[\s\S]*not private_verification\.brinesearch_issue97_wv_endpoint_loop_safe\(v_geom\)/,
   "Only valid non-simple paths not already safely segmentable may enter the hold lane");
 assert.match(sourceHoldMigration,
-  /v_geometry_hold[\s\S]*brinesearch_issue97_source_geometry_holds[\s\S]*for v_path in[\s\S]*brinesearch_issue97_wv_path_components/,
-  "Held source rows must be received before the routable component loop, which naturally emits zero segments for ambiguous geometry");
+  /v_bowtie:=private_verification\.brinesearch_issue97_wv_path_holdable\([\s\S]*\[\[0,0,0,0\],\[1,1,0,1\],\[0,1,0,2\],\[1,0,0,3\]\][\s\S]*coalesce\(v_bowtie,false\) is not true/,
+  "Synthetic interior bow-tie geometry must be recognized by the hold lane while the routable component regression above proves it emits zero components");
+assert.match(sourceHoldMigration,
+  /if v_geometry_hold then[\s\S]*insert into private_verification\.brinesearch_issue97_source_geometry_holds[\s\S]*v_held_rows:=v_held_rows\+1/,
+  "A holdable authoritative source row must create an explicit durable hold receipt instead of being silently rejected");
+assert.match(sourceHoldMigration,
+  /v_loader not ilike '%brinesearch_issue97_wv_path_holdable%'[\s\S]*v_loader not ilike '%brinesearch_issue97_source_geometry_holds%'[\s\S]*v_loader not ilike '%hold_without_graph_segment%'/,
+  "The migration's executable post-install contract must verify the composed runtime loader contains the hold classifier and no-graph-segment receipt path");
 assert.match(sourceHoldMigration,
   /not exists\([\s\S]*brinesearch_issue97_source_geometry_holds h[\s\S]*h\.identity_id=i\.id[\s\S]*h\.active/,
   "Held-only identities must not be retired while a current source hold exists");
