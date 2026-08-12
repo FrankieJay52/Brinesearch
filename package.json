@@ -26,7 +26,7 @@
     "verify:source-scope-runner": "node v17/scripts/verify-issue97-source-scope-runner.mjs && node v17/scripts/audit-oh-supplemental-name-event-performance-issue97.mjs && node v17/scripts/audit-oh-supplemental-mapping-candidate-cache-issue97.mjs && node v17/scripts/audit-oh-supplemental-compact-name-provenance-issue97.mjs && node v17/scripts/audit-source-scope-content-digest-issue97.mjs && node v17/scripts/audit-compact-scope-content-digest-issue97.mjs && node v17/scripts/audit-failed-retry-freshness-issue97.mjs",
     "verify:oh-component-builder": "node v17/scripts/audit-oh-component-builder-performance-issue97.mjs",
     "verify:wvdot-ingest-hardening": "node v17/scripts/audit-wvdot-multipart-ingest-issue97.mjs",
-    "verify:pa-ingest-hardening": "node v17/scripts/audit-pa-source-ingest-issue97.mjs",
+    "verify:pa-ingest-hardening": "node v17/scripts/audit-pa-source-ingest-issue97.mjs && node v17/scripts/audit-pa-supplemental-spatial-prefilter-issue97.mjs",
     "verify:road-junction-graph": "node v17/scripts/audit-authoritative-road-junction-graph-issue97.mjs",
     "verify:road-junction-performance": "node v17/scripts/audit-graph-builder-performance-issue97.mjs",
     "verify:road-junction-browser": "node v17/scripts/browser-road-junction-issue97.mjs",
