@@ -38,8 +38,10 @@ assert.ok(!mappingSql.includes("join public.brinesearch_odot_road_catalog"),
   "Effective exact mapping insert must not perform the original broad base-table ODOT spatial join");
 assert.ok(!mappingSql.includes("road_name"),
   "Road names must remain excluded from Ohio OGRIP identity mapping");
-assert.ok(!mappingSql.includes("nearest_road"),
-  "Nearest-road matching must remain excluded from Ohio OGRIP identity mapping");
+assert.ok(mappingSql.includes("nearest_road_used_for_mapping',false"),
+  "Exact mapping evidence must explicitly record that nearest-road matching was not used");
+assert.ok(!mappingSql.includes("nearest_road_used_for_mapping',true"),
+  "Nearest-road matching must remain disabled in Ohio OGRIP identity mapping");
 assert.match(sql,
   /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Candidate-cache implementation helper must remain non-callable outside the trusted dispatcher");
