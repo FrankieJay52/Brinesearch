@@ -29,27 +29,31 @@ for (const token of [
   "union all\n        select v_run.state_code,v_run.county_code,v_content_digest",
   "state_code||':'||county_code||':'||digest",
   "latest complete scope digests",
-  "No identity or geometry matching semantics change here"
+  "No identity or geometry matching semantics change here",
+  "v_start:=pg_catalog.strpos(",
+  "update public.brinesearch_road_source_ingest_runs set",
+  "v_definition:=pg_catalog.substr(v_definition,1,v_start-1)"
 ]) assert.ok(sql.includes(token), `Issue #97 scope-bound content digest hardening missing: ${token}`);
 
-const newDigestAt = sql.indexOf("v_new_digest text:=$new$");
-const newDatasetAt = sql.indexOf("v_new_dataset text:=$dataset$", newDigestAt);
-assert.ok(newDigestAt >= 0 && newDatasetAt > newDigestAt,
-  "Issue #97 scope-bound content digest replacement blocks are missing");
-const effectiveDigest = sql.slice(newDigestAt, newDatasetAt);
+const replacementAt = sql.indexOf("v_replacement text:=$replacement$");
+const beginAt = sql.indexOf("begin\n  select pg_catalog.pg_get_functiondef", replacementAt);
+assert.ok(replacementAt >= 0 && beginAt > replacementAt,
+  "Issue #97 scope-bound content digest replacement block is missing");
+const effectiveDigest = sql.slice(replacementAt, beginAt);
 assert.ok(!effectiveDigest.includes("where s.dataset_id=v_run.dataset_id and s.active"),
   "Effective external-segment digest must not scan every county in the dataset");
 assert.ok(!effectiveDigest.includes("where c.dataset_id=v_run.dataset_id and c.active"),
   "Effective supplemental digest must not scan every county in the dataset");
 assert.ok(!effectiveDigest.includes("where v_source='oh_odot_tims_road_inventory' and c.source_active"),
   "Effective ODOT digest must be county-scoped");
+assert.ok(effectiveDigest.includes("update public.brinesearch_road_source_datasets"),
+  "Scope-bound replacement must also update the registry-level aggregate digest");
 
 assert.match(sql,
   /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Scope-bound finalizer must remain service-only");
-assert.ok(sql.includes("v_definition:=pg_catalog.replace(v_definition,v_old_digest,v_new_digest)"),
-  "Scope-bound migration must replace the original dataset-global digest block exactly once");
-assert.ok(sql.includes("v_definition:=pg_catalog.replace(v_definition,v_old_dataset,v_new_dataset)"),
-  "Scope-bound migration must replace the registry digest update with latest-scope aggregation");
+assert.match(sql,
+  /v_start:=pg_catalog\.strpos\([\s\S]*string_agg\(x\.digest[\s\S]*v_finish:=pg_catalog\.strpos\([\s\S]*update public\.brinesearch_road_source_ingest_runs set[\s\S]*v_definition:=pg_catalog\.substr\(v_definition,1,v_start-1\)[\s\S]*v_replacement/,
+  "Scope-bound migration must replace only the digest/registry section between stable finalizer markers");
 
 console.log("Issue #97 state/county-scoped ingest content digest + aggregate dataset digest regression passed.");
