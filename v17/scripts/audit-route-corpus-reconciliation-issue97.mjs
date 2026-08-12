@@ -9,6 +9,10 @@ const migration = fs.readFileSync(
   path.join(root, "supabase/migrations/20260811234700_issue97_route_corpus_reconciliation.sql"),
   "utf8"
 );
+const freshnessCacheSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260812033000_issue97_route_scope_freshness_cache.sql"),
+  "utf8"
+);
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
 const need = (token, message = token) => assert.ok(migration.includes(token), `Issue #97 batch pipeline missing ${message}`);
@@ -48,6 +52,31 @@ forbid("insert into public.brinesearch_roads", "raw authoritative source promoti
 forbid("similarity(", "fuzzy similarity selection");
 forbid("<->", "nearest-geometry selection");
 
+for (const token of [
+  "brinesearch_issue97_prepare_scope_current_cache",
+  "brinesearch_issue97_dataset_scope_current_cached",
+  "tmp_issue97_scope_current_cache",
+  "pg_advisory_xact_lock_shared",
+  "brinesearch:issue97:ingest:",
+  "brinesearch_issue97_dataset_scope_current(",
+  "scope.active and scope.ingest_enabled",
+  "perform private_verification.brinesearch_issue97_prepare_scope_current_cache(v_state)",
+  "v_call_count<>5",
+  "v_definition:=pg_catalog.replace(v_definition,v_old,v_new)",
+  "Fails closed when the locked route-transaction cache is absent"
+]) assert.ok(freshnessCacheSql.includes(token), `Issue #97 route freshness cache missing: ${token}`);
+assert.match(freshnessCacheSql,
+  /revoke all on function private_verification\.brinesearch_issue97_prepare_scope_current_cache\(text\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Route freshness cache builder must remain internal");
+assert.match(freshnessCacheSql,
+  /revoke all on function private_verification\.brinesearch_issue97_dataset_scope_current_cached\(uuid,text,text\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Cached route freshness lookup must remain internal");
+assert.match(freshnessCacheSql,
+  /revoke all on function private_verification\.brinesearch_issue97_refresh_occurrence_candidate\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Occurrence candidate resolver must remain internal");
+assert.ok(!/similarity\(|<->|name_only|nearest_road_used_for_mapping'\s*,\s*true/.test(freshnessCacheSql),
+  "Freshness performance hardening must not introduce fuzzy/name-only/nearest-road resolution");
+
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
   "Issue #97 route corpus audit script is not wired");
@@ -60,4 +89,4 @@ need("v_route.route_group='primary' and v_route.variant_index=1",
 need("pr.route_group='primary' and pr.route_variant_index=0",
   "published primary structured route must use the existing zero-based variant key");
 
-console.log("Issue #97 automatic route-corpus reconciliation audit passed.");
+console.log("Issue #97 automatic route-corpus reconciliation + locked source-freshness cache audit passed.");
