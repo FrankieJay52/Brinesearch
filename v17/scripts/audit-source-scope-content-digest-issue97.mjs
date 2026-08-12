@@ -29,9 +29,12 @@ for (const token of [
   "union all\n        select v_run.state_code,v_run.county_code,v_content_digest",
   "state_code||':'||county_code||':'||digest",
   "latest complete scope digests",
-  "No identity or geometry matching semantics change here",
+  "No identity, name, geometry, or nearest-road matching semantics change here",
   "v_start:=pg_catalog.strpos(",
+  "v_relative_finish:=pg_catalog.strpos(",
+  "pg_catalog.substr(v_definition,v_start)",
   "update public.brinesearch_road_source_ingest_runs set",
+  "v_finish:=v_start+v_relative_finish-1",
   "v_definition:=pg_catalog.substr(v_definition,1,v_start-1)"
 ]) assert.ok(sql.includes(token), `Issue #97 scope-bound content digest hardening missing: ${token}`);
 
@@ -53,7 +56,7 @@ assert.match(sql,
   /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Scope-bound finalizer must remain service-only");
 assert.match(sql,
-  /v_start:=pg_catalog\.strpos\([\s\S]*string_agg\(x\.digest[\s\S]*v_finish:=pg_catalog\.strpos\([\s\S]*update public\.brinesearch_road_source_ingest_runs set[\s\S]*v_definition:=pg_catalog\.substr\(v_definition,1,v_start-1\)[\s\S]*v_replacement/,
-  "Scope-bound migration must replace only the digest/registry section between stable finalizer markers");
+  /v_start:=pg_catalog\.strpos\([\s\S]*string_agg\(x\.digest[\s\S]*v_relative_finish:=pg_catalog\.strpos\([\s\S]*pg_catalog\.substr\(v_definition,v_start\)[\s\S]*update public\.brinesearch_road_source_ingest_runs set[\s\S]*v_finish:=v_start\+v_relative_finish-1[\s\S]*v_definition:=pg_catalog\.substr\(v_definition,1,v_start-1\)[\s\S]*v_replacement/,
+  "Scope-bound migration must search the finish marker after the digest start and replace only that section");
 
 console.log("Issue #97 state/county-scoped ingest content digest + aggregate dataset digest regression passed.");
