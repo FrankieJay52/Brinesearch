@@ -14,6 +14,11 @@
 -- Existing bridge/tunnel/z-level conflict checks still decide whether the candidate
 -- is verified or held. Interior/interior crossings, including ordinary overpasses,
 -- never enter this rule. No road name, fuzzy, or nearest-road evidence is used.
+--
+-- If the same coordinate/identity pair already exists as the weaker raw shared-
+-- vertex candidate, prefer the stronger endpoint-on-interior proof. If the raw
+-- candidate contains extra identities, preserve that broader candidate separately
+-- so unrelated crossings remain held and never inherit the two-road T-junction proof.
 
 do $issue97_patch_endpoint_on_interior$
 declare
@@ -99,6 +104,12 @@ $tail$;
         and 1=(select count(*) from official_points b
           where b.lng=p.lng and b.lat=p.lat and b.identity_ids && p.identity_ids)
     )
+    and not exists(
+      select 1 from endpoint_points e
+      where e.lng=p.lng and e.lat=p.lat
+        and e.identity_ids @> p.identity_ids
+        and p.identity_ids @> e.identity_ids
+    )
   union all
   select 'point:endpoint-interior:'||p.lng::text||':'||p.lat::text||':'
       ||pg_catalog.md5(pg_catalog.array_to_string(p.identity_ids,',')),
@@ -107,10 +118,6 @@ $tail$;
     p.source_z_identity_count,p.source_z_span,p.coordinate_evidence
   from endpoint_points p
   where p.owner_scope=v_state||':'||v_county
-    and not exists(
-      select 1 from exact_points x
-      where x.lng=p.lng and x.lat=p.lat and x.identity_ids && p.identity_ids
-    )
     and not exists(
       select 1 from official_points a
       where a.lng=p.lng and a.lat=p.lat and a.identity_ids && p.identity_ids
@@ -174,4 +181,4 @@ grant execute on function public.brinesearch_issue97_rebuild_county_graph(text,t
 to service_role;
 
 comment on function public.brinesearch_issue97_rebuild_county_graph(text,text) is
-  'Issue #97 authoritative county graph builder. In addition to exact shared vertices and official at-grade nodes, exact authoritative road endpoints that ST_Touch another road interior are T-junction candidates. Existing grade-conflict checks still fail closed; interior/interior crossings, road names, fuzzy matching, and nearest-road matching never prove a junction.';
+  'Issue #97 authoritative county graph builder. In addition to exact shared vertices and official at-grade nodes, exact authoritative road endpoints that ST_Touch another road interior are T-junction candidates. Strong endpoint-on-interior proof replaces only the identical weaker raw-vertex identity set; broader/raw crossing candidates remain separate. Existing grade-conflict checks still fail closed; interior/interior crossings, road names, fuzzy matching, and nearest-road matching never prove a junction.';
