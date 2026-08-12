@@ -33,7 +33,7 @@
     "verify:all-pad-google-route-accounting": "node v17/scripts/verify-all-pad-google-route-accounting-issue97.mjs",
     "verify:route-corpus-reconciliation": "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
     "verify:route-transitions": "node v17/scripts/audit-route-transition-receipts-issue97.mjs && node v17/scripts/audit-authoritative-occurrence-geometry-issue97.mjs && node v17/scripts/audit-saved-turn-geometry-ambiguity-issue97.mjs",
-    "verify:transition-google-manifest": "node v17/scripts/audit-transition-google-manifest-issue97.mjs",
+    "verify:transition-google-manifest": "node v17/scripts/audit-transition-google-manifest-issue97.mjs && node v17/scripts/audit-verified-run-transition-google-hardening-issue97.mjs",
     "verify:road-data-coverage": "node v17/scripts/audit-road-data-coverage-issue70.mjs",
     "verify:road-identity-reconciliation": "node v17/scripts/audit-road-identity-reconciliation-issue70.mjs",
     "verify:road-source-conflicts": "node v17/scripts/audit-road-source-conflicts-issue70.mjs",
