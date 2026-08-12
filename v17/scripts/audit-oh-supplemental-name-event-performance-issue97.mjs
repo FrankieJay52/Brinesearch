@@ -91,8 +91,8 @@ for (const token of [
   "source-evidence geometry guard",
   "valid non-simple OGRIP rows remain preserved source evidence with explicit held dispositions"
 ]) assert.ok(supplementalPreservationSql.includes(token), `Issue #97 supplemental non-simple preservation missing: ${token}`);
-assert.ok(!supplementalPreservationSql.includes("not extensions.st_isvalid(v_geom) or not extensions.st_issimple(v_geom) then continue"),
-  "Supplemental source ingestion must preserve valid non-simple authoritative 1-D records");
+assert.ok(supplementalPreservationSql.includes("v_ingest:=pg_catalog.replace(v_ingest,v_old_ingest,v_new_ingest)"),
+  "Supplemental ingest patch must replace the old simple-only source guard with the valid-1D source guard");
 const constraintAt = supplementalPreservationSql.indexOf("add constraint brinesearch_supplemental_centerlines_geometry_check check(");
 const patchAt = supplementalPreservationSql.indexOf("do $issue97_patch_supplemental_nonsimple$", constraintAt);
 assert.ok(constraintAt >= 0 && patchAt > constraintAt, "Supplemental geometry preservation constraint block is missing");
