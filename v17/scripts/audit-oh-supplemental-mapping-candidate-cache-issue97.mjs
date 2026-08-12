@@ -60,15 +60,26 @@ for (const token of [
   "Name/nearest-road mapping remains prohibited"
 ]) assert.ok(idOnly.includes(token), `Issue #97 ID-only Ohio candidate hardening missing: ${token}`);
 
-const newTableAt = idOnly.indexOf("create temporary table tmp_issue97_oh_map_bbox_candidates");
-const newInsertAt = idOnly.indexOf("insert into public.brinesearch_supplemental_centerline_identity_mappings", newTableAt);
+// The migration intentionally contains the old geometry-heavy SQL as the guarded
+// find/replace target. Inspect only the $new$ replacement body when asserting the
+// effective temporary-table shape; otherwise the audit would reject its own patch
+// target rather than the code that actually gets installed.
+const newReplacementStart = idOnly.indexOf("v_new text:=$new$");
+const newReplacementEnd = idOnly.indexOf("$new$;", newReplacementStart + 1);
+assert.ok(newReplacementStart >= 0 && newReplacementEnd > newReplacementStart,
+  "Issue #97 ID-only migration is missing its effective replacement block");
+const effectiveNew = idOnly.slice(newReplacementStart, newReplacementEnd);
+const newTableAt = effectiveNew.indexOf("create temporary table tmp_issue97_oh_map_bbox_candidates");
+const newInsertAt = effectiveNew.indexOf("insert into public.brinesearch_supplemental_centerline_identity_mappings", newTableAt);
 assert.ok(newTableAt >= 0 && newInsertAt > newTableAt,
-  "ID-only bbox cache must be created before mapping insertion");
-const tableBlock = idOnly.slice(newTableAt, newInsertAt);
+  "ID-only bbox cache must be created before mapping insertion in the effective replacement");
+const tableBlock = effectiveNew.slice(newTableAt, newInsertAt);
 for (const forbidden of ["source_geom_3857", "target_segment_geom_3857", "c.geom as source_geom", "o.geom as target_segment_geom"]) {
   assert.ok(!tableBlock.includes(forbidden), `ID-only bbox cache must not persist repeated geometry payload: ${forbidden}`);
 }
-assert.match(idOnly,
+assert.ok(tableBlock.includes("select c.centerline_id,o.identity_id,o.source_segment_key"),
+  "Effective bbox cache must store only source/identity/segment identifiers");
+assert.match(effectiveNew,
   /with candidate_segments as \([\s\S]*from tmp_issue97_oh_map_bbox_candidates b[\s\S]*join tmp_issue97_oh_map_source c[\s\S]*join tmp_issue97_oh_map_odot o[\s\S]*st_dwithin\(c\.geom::extensions\.geography,o\.geom::extensions\.geography,0\.25\)/,
   "Exact geometry must be joined back only after the ID-only bbox cache is materialized");
 assert.match(idOnly,
