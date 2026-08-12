@@ -12,6 +12,8 @@ const baseGraphSql = fs.readFileSync(path.join(migrationsDir,
   "20260811190000_issue97_authoritative_road_junction_graph.sql"), "utf8");
 const odotPreservationSql = fs.readFileSync(path.join(migrationsDir,
   "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql"), "utf8");
+const timestampHardeningSql = fs.readFileSync(path.join(migrationsDir,
+  "20260811245000_issue97_ingest_generation_timestamp_hardening.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_source_scope(",
@@ -78,6 +80,26 @@ assert.match(baseGraphSql,
   /missing_geometry[\s\S]*not extensions\.st_issimple\(c\.geom\)/i,
   "Ohio identity refresh must continue to treat non-simple source geometry as topology-ineligible evidence");
 
+for (const token of [
+  "v_started_at timestamptz:=pg_catalog.transaction_timestamp()",
+  "v_wall_started_at timestamptz:=pg_catalog.clock_timestamp()",
+  "'generation_cutoff_clock','transaction_timestamp'",
+  "'wall_started_at',v_wall_started_at",
+  "create or replace function private_verification.brinesearch_issue97_terminal_run_clock()",
+  "new.completed_at:=pg_catalog.clock_timestamp()",
+  "create trigger brinesearch_issue97_terminal_run_clock",
+  "check(completed_at is null or completed_at>=started_at)",
+  "issue97_lifecycle_timestamp_repaired"
+]) assert.ok(timestampHardeningSql.includes(token), `Issue #97 ingest timestamp hardening missing: ${token}`);
+assert.ok(!/values\s*\([\s\S]{0,300}'loading',pg_catalog\.clock_timestamp\(\)/.test(timestampHardeningSql),
+  "Issue #97 generation cutoff must never use wall clock while source rows use transaction time");
+assert.match(timestampHardeningSql,
+  /revoke all on function public\.brinesearch_issue97_begin_ingest\(text,text\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "Issue #97 hardened begin-ingest entrypoint must remain service-only");
+assert.match(timestampHardeningSql,
+  /revoke all on function private_verification\.brinesearch_issue97_terminal_run_clock\(\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Issue #97 lifecycle trigger helper must not become browser/service callable");
+
 const issue97Migrations = fs.readdirSync(migrationsDir)
   .filter(name => /^\d{14}_issue97_.*\.sql$/.test(name))
   .sort();
@@ -98,7 +120,8 @@ for (const required of [
   "20260811241200_issue97_turn_segment_hardening.sql",
   "20260811242000_issue97_transition_google_manifests.sql",
   "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql",
-  "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql"
+  "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql",
+  "20260811245000_issue97_ingest_generation_timestamp_hardening.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
-console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + complete unique migration chain regression passed.");
+console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + generation timestamp hardening + complete unique migration chain regression passed.");
