@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812032000_issue97_oh_supplemental_mapping_candidate_cache.sql"), "utf8");
+const idOnly = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812037200_issue97_oh_bbox_candidate_id_cache.sql"), "utf8");
 
 for (const token of [
   "Ohio OGRIP exact-mapping candidate cache hardening",
@@ -46,4 +48,31 @@ assert.match(sql,
   /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Candidate-cache implementation helper must remain non-callable outside the trusted dispatcher");
 
-console.log("Issue #97 Ohio OGRIP indexed bbox candidate-cache + exact 0.25 m geodesic mapping regression passed.");
+for (const token of [
+  "keep Ohio OGRIP bbox candidates ID-only to bound temporary disk",
+  "select c.centerline_id,o.identity_id,o.source_segment_key",
+  "c.nlf_id is not null and o.nlf_id=c.nlf_id",
+  "c.nlf_id is null",
+  "tmp_issue97_oh_map_bbox_segment_idx",
+  "join tmp_issue97_oh_map_source c on c.centerline_id=b.centerline_id",
+  "join tmp_issue97_oh_map_odot o",
+  "extensions.st_dwithin(c.geom::extensions.geography,o.geom::extensions.geography,0.25)",
+  "Name/nearest-road mapping remains prohibited"
+]) assert.ok(idOnly.includes(token), `Issue #97 ID-only Ohio candidate hardening missing: ${token}`);
+
+const newTableAt = idOnly.indexOf("create temporary table tmp_issue97_oh_map_bbox_candidates");
+const newInsertAt = idOnly.indexOf("insert into public.brinesearch_supplemental_centerline_identity_mappings", newTableAt);
+assert.ok(newTableAt >= 0 && newInsertAt > newTableAt,
+  "ID-only bbox cache must be created before mapping insertion");
+const tableBlock = idOnly.slice(newTableAt, newInsertAt);
+for (const forbidden of ["source_geom_3857", "target_segment_geom_3857", "c.geom as source_geom", "o.geom as target_segment_geom"]) {
+  assert.ok(!tableBlock.includes(forbidden), `ID-only bbox cache must not persist repeated geometry payload: ${forbidden}`);
+}
+assert.match(idOnly,
+  /with candidate_segments as \([\s\S]*from tmp_issue97_oh_map_bbox_candidates b[\s\S]*join tmp_issue97_oh_map_source c[\s\S]*join tmp_issue97_oh_map_odot o[\s\S]*st_dwithin\(c\.geom::extensions\.geography,o\.geom::extensions\.geography,0\.25\)/,
+  "Exact geometry must be joined back only after the ID-only bbox cache is materialized");
+assert.match(idOnly,
+  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "ID-only candidate implementation helper must remain non-callable");
+
+console.log("Issue #97 Ohio OGRIP indexed bbox candidate-cache + ID-only temp footprint + exact 0.25 m geodesic mapping regression passed.");
