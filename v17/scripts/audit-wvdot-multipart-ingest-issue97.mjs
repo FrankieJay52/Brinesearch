@@ -9,6 +9,8 @@ const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811243000_issue97_wvdot_multipart_ingest_hardening.sql"), "utf8");
 const endpointLoopMigration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812038000_issue97_wvdot_endpoint_loop_source_split.sql"), "utf8");
+const sourceHoldMigration = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812039000_issue97_wvdot_non_simple_source_geometry_holds.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_ingest_wv_network_page(",
@@ -84,10 +86,53 @@ assert.match(endpointLoopMigration,
   "Split components must meet only at the exact repeated source vertex");
 assert.match(endpointLoopMigration,
   /\[\[0,0,0,0\],\[1,1,0,1\],\[0,1,0,2\],\[1,0,0,3\]\][\s\S]*v_bowtie<>0/,
-  "Synthetic interior bow-tie crossings must remain rejected");
+  "Synthetic interior bow-tie crossings must remain rejected by the routable component helper");
 assert.ok(!endpointLoopMigration.includes("st_node(v_full)"),
   "WVDOT endpoint-loop preservation must split only at the exact source vertex, not node arbitrary source crossings");
 assert.ok(!endpointLoopMigration.includes("st_makevalid(v_full)"),
   "WVDOT endpoint-loop preservation must not rewrite source geometry with ST_MakeValid");
 
-console.log("Issue #97 WVDOT multipart/unmeasured-path + endpoint-loop source-preservation audit passed.");
+for (const token of [
+  "create table if not exists private_verification.brinesearch_issue97_source_geometry_holds",
+  "create or replace function private_verification.brinesearch_issue97_wv_path_holdable(",
+  "non_simple_source_geometry_topology_unproven",
+  "not private_verification.brinesearch_issue97_wv_endpoint_loop_safe(v_geom)",
+  "hold_without_graph_segment",
+  "source_vertex_invented',false",
+  "v_held_rows:=v_held_rows+1",
+  "active_source_geometry_holds",
+  "retired_source_geometry_holds",
+  "source_geometry_hold_active",
+  "ordered active source-segment + held-source digest",
+  "create or replace function public.brinesearch_issue97_source_geometry_hold_metrics()",
+  "create or replace function public.brinesearch_issue97_source_geometry_hold_queue(",
+  "from public,anon;",
+  "to authenticated,service_role;"
+]) {
+  assert.ok(sourceHoldMigration.includes(token),
+    `Issue #97 WVDOT source-hold contract missing: ${token}`);
+}
+
+assert.match(sourceHoldMigration,
+  /not extensions\.st_issimple\(v_geom\)[\s\S]*not private_verification\.brinesearch_issue97_wv_endpoint_loop_safe\(v_geom\)/,
+  "Only valid non-simple paths not already safely segmentable may enter the hold lane");
+assert.match(sourceHoldMigration,
+  /v_geometry_hold[\s\S]*brinesearch_issue97_source_geometry_holds[\s\S]*for v_path in[\s\S]*brinesearch_issue97_wv_path_components/,
+  "Held source rows must be received before the routable component loop, which naturally emits zero segments for ambiguous geometry");
+assert.match(sourceHoldMigration,
+  /not exists\([\s\S]*brinesearch_issue97_source_geometry_holds h[\s\S]*h\.identity_id=i\.id[\s\S]*h\.active/,
+  "Held-only identities must not be retired while a current source hold exists");
+assert.match(sourceHoldMigration,
+  /case when coalesce\(h\.hold_count,0\)>0 then ''held''[\s\S]*resolved_drivable/,
+  "Any current source hold must force the whole authoritative identity to held regardless of source record order");
+assert.match(sourceHoldMigration,
+  /union all select h\.source_digest from private_verification\.brinesearch_issue97_source_geometry_holds h/,
+  "Held authoritative source rows must participate in the source content digest");
+assert.ok(!sourceHoldMigration.includes("st_node("),
+  "Source holds must not node ambiguous interior crossings");
+assert.ok(!sourceHoldMigration.includes("st_makevalid("),
+  "Source holds must not rewrite authoritative geometry");
+assert.ok(!sourceHoldMigration.includes("nearest" + "_road_used',true"),
+  "Source holds must never authorize nearest-road proof");
+
+console.log("Issue #97 WVDOT multipart + endpoint-loop + ambiguous-source-hold audit passed.");
