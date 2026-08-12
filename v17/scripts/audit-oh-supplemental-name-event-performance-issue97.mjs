@@ -13,6 +13,8 @@ const pkJoinSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811254000_issue97_oh_supplemental_odot_pk_join.sql"), "utf8");
 const supplementalPreservationSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811255000_issue97_supplemental_valid_nonsimple_source_preservation.sql"), "utf8");
+const endpointProjectionSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811256000_issue97_oh_supplemental_overlap_endpoint_projection.sql"), "utf8");
 
 for (const token of [
   "drop table if exists pg_temp.tmp_issue97_oh_supp_centerline_proj",
@@ -48,7 +50,7 @@ assert.ok(centerlineCacheAt >= 0 && odotCacheAt > centerlineCacheAt && overlapAt
 
 const overlapBlock = migration.slice(overlapAt, nameExpandAt);
 assert.equal((overlapBlock.match(/extensions\.st_intersection\(/g) || []).length, 1,
-  "Ohio name-event overlap cache should compute one geometry intersection expression per verified centerline/source-segment receipt");
+  "Original Ohio name-event overlap cache should compute one geometry intersection expression per verified centerline/source-segment receipt");
 assert.ok(!/jsonb_array_elements\([^)]*name_events/.test(overlapBlock),
   "Name events must not multiply geometry work before the overlap cache is complete");
 assert.match(migration,
@@ -105,4 +107,29 @@ assert.match(supplementalPreservationSql,
   /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Ohio supplemental implementation helper must remain non-callable after non-simple preservation hardening");
 
-console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key/ODOT-PK joins + non-simple source preservation + precomputed-overlap + fractional-LRS regression passed.");
+for (const token of [
+  "Ohio OGRIP name-overlap endpoint projection hardening",
+  "public.brinesearch_supplemental_centerline_identity_mappings m",
+  "m.active and m.mapping_status='verified'",
+  "o.segment_key=any(m.source_segment_keys)",
+  "extensions.st_dwithin(e.source_start,e.target_line,0.25)",
+  "extensions.st_dwithin(e.target_start,e.source_line,0.25)",
+  "extensions.st_linelocatepoint(e.target_line",
+  "extensions.st_closestpoint(e.target_line,e.source_start)",
+  "extensions.st_linesubstring(f.target_line",
+  "No road names or nearest-road search enter the mapping decision"
+]) assert.ok(endpointProjectionSql.includes(token), `Issue #97 endpoint-projected overlap hardening missing: ${token}`);
+const endpointReplacementAt = endpointProjectionSql.indexOf("v_replacement text:=$replacement$");
+const endpointReplacementEnd = endpointProjectionSql.indexOf("$replacement$;", endpointReplacementAt + 1);
+assert.ok(endpointReplacementAt >= 0 && endpointReplacementEnd > endpointReplacementAt,
+  "Endpoint-projected overlap replacement block is missing");
+const effectiveEndpointSql = endpointProjectionSql.slice(endpointReplacementAt, endpointReplacementEnd);
+assert.ok(!effectiveEndpointSql.includes("st_intersection("),
+  "Effective Belmont-scale overlap materialization must not perform buffered geometry intersections");
+assert.ok(!effectiveEndpointSql.includes("jsonb_array_elements"),
+  "Endpoint interval calculation must finish before name-event expansion");
+assert.match(endpointProjectionSql,
+  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Endpoint-projected Ohio helper must remain non-callable outside the trusted dispatcher");
+
+console.log("Issue #97 Ohio OGRIP cached-projection + exact source-key/ODOT-PK joins + non-simple source preservation + endpoint-projected target intervals + fractional-LRS regression passed.");
