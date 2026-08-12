@@ -116,7 +116,7 @@ begin
   ) into v_loader;
   v_original:=v_loader;
   v_loader:=pg_catalog.replace(v_loader,$old$
-if v_source='pa_penndot_at_grade_intersections' then
+    if v_source='pa_penndot_at_grade_intersections' then
       if v_geometry_json is null or pg_catalog.jsonb_typeof(v_geometry_json)='null' then continue; end if;
       begin
         v_geom:=extensions.st_force2d(
@@ -154,7 +154,7 @@ if v_source='pa_penndot_at_grade_intersections' then
     end if;
 
 $old$,$new$
-if v_source='pa_penndot_at_grade_intersections' then
+    if v_source='pa_penndot_at_grade_intersections' then
       if nullif(v_props->>'OBJECTID','') is null then continue; end if;
       v_segment_key:='PA:PENNDOT:AT_GRADE:OCCURRENCE:'||(v_props->>'OBJECTID')
         ||':SCOPE:PA:'||v_county;
