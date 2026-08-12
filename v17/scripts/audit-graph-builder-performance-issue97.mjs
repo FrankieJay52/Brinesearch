@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811250000_issue97_graph_builder_internal_segment_performance.sql"), "utf8");
+const targetGeogSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260811252000_issue97_graph_builder_target_geography_index.sql"), "utf8");
 
 for (const token of [
   "brinesearch_odot_catalog_geog_issue97_idx",
@@ -39,4 +41,18 @@ assert.match(migration,
   /if v_new_count<>v_old_count[\s\S]*raise exception/,
   "Graph-builder rewrite must prove that every expected source-view reference was replaced");
 
-console.log("Issue #97 graph-builder private normalized view + geography-index regression passed.");
+for (const token of [
+  "tmp_issue97_target_segments_geog_idx",
+  "using gist((geom::extensions.geography))",
+  "analyze tmp_issue97_target_segments",
+  "v_count<>1",
+  "revoke all on function public.brinesearch_issue97_rebuild_county_graph(text,text)",
+  "grant execute on function public.brinesearch_issue97_rebuild_county_graph(text,text)",
+  "to service_role"
+]) assert.ok(targetGeogSql.includes(token), `Issue #97 target-geography hardening missing: ${token}`);
+
+assert.match(targetGeogSql,
+  /create index tmp_issue97_target_segments_geom_idx[\s\S]*create index tmp_issue97_target_segments_geog_idx[\s\S]*analyze tmp_issue97_target_segments;/,
+  "The builder must add/analyze its temporary geography index immediately after the existing geometry index and before boundary discovery");
+
+console.log("Issue #97 graph-builder private source view + persistent/temporary geography-index regression passed.");
