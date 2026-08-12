@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811260000_issue97_scope_bound_content_digest.sql"), "utf8");
+  "supabase/migrations/20260812030100_issue97_scope_bound_content_digest.sql"), "utf8");
 
 for (const token of [
   "scope-bound source content-digest hardening",
