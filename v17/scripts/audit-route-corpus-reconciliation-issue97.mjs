@@ -10,7 +10,7 @@ const migration = fs.readFileSync(
   "utf8"
 );
 const freshnessCacheSql = fs.readFileSync(
-  path.join(root, "supabase/migrations/20260812033000_issue97_route_scope_freshness_cache.sql"),
+  path.join(root, "supabase/migrations/20260812035000_issue97_route_scope_freshness_cache.sql"),
   "utf8"
 );
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
