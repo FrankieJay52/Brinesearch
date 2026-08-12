@@ -55,6 +55,9 @@ $old$;
     )
 $new$;
   v_count integer;
+  v_select_old text:='s.id as segment_id,s.source_segment_key,s.source_record_id,s.source_digest,s.geom';
+  v_select_new text:='s.segment_id as segment_id,s.source_segment_key,s.source_record_id,s.source_digest,s.geom';
+  v_select_count integer;
 begin
   select pg_catalog.pg_get_functiondef(
     'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)'::pg_catalog.regprocedure
@@ -64,7 +67,14 @@ begin
   if v_count<>1 then
     raise exception 'Issue #97 transition Google source lookup patch target changed unexpectedly: %',v_count;
   end if;
-  execute pg_catalog.replace(v_definition,v_old,v_new);
+  v_definition:=pg_catalog.replace(v_definition,v_old,v_new);
+  v_select_count:=(pg_catalog.length(v_definition)-pg_catalog.length(pg_catalog.replace(v_definition,v_select_old,'')))
+    /pg_catalog.length(v_select_old);
+  if v_select_count<>1 then
+    raise exception 'Issue #97 transition Google segment alias patch target changed unexpectedly: %',v_select_count;
+  end if;
+  v_definition:=pg_catalog.replace(v_definition,v_select_old,v_select_new);
+  execute v_definition;
 end
 $issue97_patch_transition_google_identity_first_source_lookup$;
 
@@ -78,6 +88,7 @@ begin
      or v_definition not ilike '%brinesearch_authoritative_external_road_segments%'
      or v_definition not ilike '%offset 0%'
      or v_definition not ilike '%brinesearch_issue97_uuid(a.source_segment_key)%'
+     or v_definition not ilike '%s.segment_id as segment_id%'
      or v_definition ilike '%join public.brinesearch_authoritative_road_segments s%'
   then
     raise exception 'Issue #97 transition Google identity-first source lookup did not install cleanly';
