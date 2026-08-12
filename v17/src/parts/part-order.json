@@ -17,6 +17,7 @@
     "03-global-search.js",
     "04-dashboard-favorites-offline.js",
     "05-company-search-routing.js",
+    "05a-authoritative-route-fallback-issue97.js",
     "06-directions-navigation.js",
     "07-pad-editor-core.js",
     "08-editor-auth-account.js",
