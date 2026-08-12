@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const sql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812037000_issue97_authoritative_occurrence_geometry.sql"), "utf8");
+const routeReceiptSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812043700_issue97_route_receipt_authoritative_geometry.sql"), "utf8");
 
 for (const token of [
   "authoritative occurrence geometry instead of legacy canonical centerline dependency",
@@ -48,4 +50,33 @@ assert.match(sql,
   /revoke all on function private_verification\.brinesearch_issue97_clip_exact_authoritative_occurrence[\s\S]*from public,anon,authenticated,service_role/,
   "Authoritative occurrence clip helper must remain internal-only");
 
-console.log("Issue #97 authoritative identity-component transition/occurrence geometry regression passed.");
+for (const token of [
+  "route-level readiness must follow current #97 occurrence geometry",
+  "brinesearch_route_occurrence_geometry_receipts_issue97 g",
+  "g.status='resolved' and rr.resolution_status='resolved'",
+  "g.identity_id=rr.identity_id and g.road_id=rr.canonical_road_id",
+  "g.occurrence_role='origin_anchor'",
+  "g.occurrence_role='traveled'",
+  "t.receipt_digest=g.start_transition_digest",
+  "t.receipt_digest=g.end_transition_digest",
+  "string_agg(receipt_digest,',' order by boundary_index)",
+  "string_agg(receipt_digest,',' order by occurrence_index)",
+  "v_definition like '%join public.brinesearch_pad_roads pr%'",
+  "$issue97_verify_route_receipt_authoritative_geometry$"
+]) assert.ok(routeReceiptSql.includes(token), `Issue #97 route receipt authoritative geometry missing: ${token}`);
+
+assert.match(routeReceiptSql,
+  /join private_verification\.brinesearch_route_occurrence_receipts_issue97 rr[\s\S]*g\.identity_id=rr\.identity_id and g\.road_id=rr\.canonical_road_id/,
+  "Route receipt geometry count must remain bound to the same resolved identity and canonical road");
+assert.match(routeReceiptSql,
+  /g\.occurrence_index>1[\s\S]*g\.step_geometry is not null[\s\S]*g\.geometry_miles>0[\s\S]*boundary_index=g\.occurrence_index-1[\s\S]*t\.receipt_digest=g\.start_transition_digest/,
+  "Traveled route geometry must begin on the exact preceding transition receipt");
+assert.match(routeReceiptSql,
+  /g\.occurrence_index=v_occurrences or exists\([\s\S]*boundary_index=g\.occurrence_index[\s\S]*t\.receipt_digest=g\.end_transition_digest/,
+  "Non-final route geometry must end on the exact following transition receipt");
+assert.ok(!routeReceiptSql.includes("similarity("),
+  "Route receipt readiness must not introduce fuzzy geometry proof");
+assert.ok(!routeReceiptSql.includes("<->"),
+  "Route receipt readiness must not introduce nearest-geometry proof");
+
+console.log("Issue #97 authoritative identity-component geometry + route-receipt readiness regression passed.");
