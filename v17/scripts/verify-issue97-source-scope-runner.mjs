@@ -16,6 +16,8 @@ const timestampHardeningSql = fs.readFileSync(path.join(migrationsDir,
   "20260811245000_issue97_ingest_generation_timestamp_hardening.sql"), "utf8");
 const retirementHardeningSql = fs.readFileSync(path.join(migrationsDir,
   "20260811246000_issue97_source_identity_retirement_hardening.sql"), "utf8");
+const ohioSupplementalPerfSql = fs.readFileSync(path.join(migrationsDir,
+  "20260811247000_issue97_oh_supplemental_alias_materialization_performance.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_source_scope(",
@@ -118,6 +120,31 @@ assert.match(retirementHardeningSql,
   /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Issue #97 hardened finalizer must remain service-only");
 
+for (const token of [
+  "brinesearch_supp_centerline_scope_run_issue97_idx",
+  "brinesearch_supp_centerline_geom_issue97_idx",
+  "create or replace function public.brinesearch_issue97_refresh_supplemental_aliases_oh(",
+  "public.brinesearch_odot_road_catalog o",
+  "public.brinesearch_authoritative_segment_identity_assignments a",
+  "o.geom && extensions.st_expand(c.geom,0.00001)",
+  "extensions.st_dwithin(",
+  "c.geom::extensions.geography,o.geom::extensions.geography,0.25",
+  "'name_used_for_mapping',false",
+  "'nearest_road_used_for_mapping',false",
+  "'candidate_source','direct indexed ODOT catalog + exact segment assignment'",
+  "'oh_materializer','indexed_direct_odot_source_segments'",
+  "return public.brinesearch_issue97_refresh_supplemental_aliases_oh(p_run_id)",
+  "return public.brinesearch_issue97_refresh_supplemental_aliases_issue97_core(p_run_id)"
+]) assert.ok(ohioSupplementalPerfSql.includes(token), `Issue #97 indexed Ohio supplemental materializer missing: ${token}`);
+assert.ok(!/refresh_supplemental_aliases_oh[\s\S]*join public\.brinesearch_authoritative_road_segments s/.test(ohioSupplementalPerfSql),
+  "Ohio OGRIP materialization must not route its candidate spatial join through the security-barrier normalized segment view");
+assert.match(ohioSupplementalPerfSql,
+  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases_oh\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Ohio supplemental implementation helper must not be directly callable");
+assert.match(ohioSupplementalPerfSql,
+  /revoke all on function public\.brinesearch_issue97_refresh_supplemental_aliases\(uuid\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "Supplemental materializer dispatcher must remain service-only");
+
 const issue97Migrations = fs.readdirSync(migrationsDir)
   .filter(name => /^\d{14}_issue97_.*\.sql$/.test(name))
   .sort();
@@ -140,7 +167,8 @@ for (const required of [
   "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql",
   "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql",
   "20260811245000_issue97_ingest_generation_timestamp_hardening.sql",
-  "20260811246000_issue97_source_identity_retirement_hardening.sql"
+  "20260811246000_issue97_source_identity_retirement_hardening.sql",
+  "20260811247000_issue97_oh_supplemental_alias_materialization_performance.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
-console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + timestamp/source-retirement hardening + complete unique migration chain regression passed.");
+console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + timestamp/source-retirement + indexed Ohio supplemental hardening + complete unique migration chain regression passed.");
