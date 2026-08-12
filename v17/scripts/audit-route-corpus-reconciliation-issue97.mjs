@@ -83,8 +83,8 @@ includesAll(ohio, [
 assert.ok(!ohio.includes("strong_proof'',true"), "Ohio exact-name/designation candidates must remain non-authoritative");
 assert.ok(!ohio.includes("similarity("), "Ohio candidate path must not use fuzzy similarity");
 assert.ok(!ohio.includes("<->"), "Ohio candidate path must not use nearest geometry");
-const ohioNearestSentinels = ohio.match(/nearest_road_used'',true/g) ?? [];
-assert.equal(ohioNearestSentinels.length, 1, "Ohio nearest-road=true may appear only in the runtime rejection sentinel");
+assert.equal((ohio.match(/nearest_road_used'',true/g) ?? []).length, 1,
+  "Ohio nearest-road=true may appear only in the runtime rejection sentinel");
 
 includesAll(wvPaBase, [
   "Issue #97 WV/PA normalized-name drift is not trim-only",
@@ -99,8 +99,7 @@ assert.equal((wvPaBase.match(/similarity\(/g) ?? []).length, 1,
   "WV/PA base migration may mention fuzzy similarity only in its runtime rejection sentinel");
 assert.equal((wvPaBase.match(/<->/g) ?? []).length, 1,
   "WV/PA base migration may mention nearest geometry only in its runtime rejection sentinel");
-const wvPaStrongProofSentinels = wvPaBase.match(/exact_authoritative_name_candidate'',true/g) ?? [];
-assert.equal(wvPaStrongProofSentinels.length, 1,
+assert.equal((wvPaBase.match(/exact_authoritative_name_candidate'',true/g) ?? []).length, 1,
   "WV/PA exact-name=true may appear only in the runtime rejection sentinel");
 assert.ok(wvPaBase.includes("v_definition like '%exact_authoritative_name_candidate'',true%'"),
   "WV/PA base migration must reject any composed runtime that promotes exact-name candidate evidence");
@@ -113,10 +112,15 @@ includesAll(wvPaHits, [
   ") hit",
   "on i.id=hit.identity_id and i.state_code=v_state and i.active",
   "strong_proof remains false",
-  "No fuzzy/name-only/nearest"
+  "No fuzzy/name-only/nearest",
+  "v_definition like '%similarity(%'",
+  "v_definition like '%nearest_road_used'',true%'"
 ], "Issue #97 WV/PA indexed-hit-first contract");
-assert.ok(!wvPaHits.includes("similarity("), "WV/PA indexed-hit-first path must not use fuzzy similarity");
-assert.ok(!wvPaHits.includes("<->"), "WV/PA indexed-hit-first path must not use nearest geometry");
+assert.equal((wvPaHits.match(/similarity\(/g) ?? []).length, 1,
+  "WV/PA indexed-hit migration may mention fuzzy similarity only in its runtime rejection sentinel");
+assert.equal((wvPaHits.match(/nearest_road_used'',true/g) ?? []).length, 1,
+  "WV/PA indexed-hit migration may mention nearest-road=true only in its runtime rejection sentinel");
+assert.ok(!wvPaHits.includes("<->"), "WV/PA indexed-hit-first path must not use nearest geometry operator");
 
 includesAll(graphPrep, [
   "brinesearch_issue97_prepare_graph_current_cache",
