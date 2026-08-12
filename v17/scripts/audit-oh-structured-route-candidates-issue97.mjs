@@ -56,6 +56,7 @@ for (const token of [
   "OH:ODOT:NLF:CMOECR00061**C",
   "OH:ODOT:NLF:THASTR00207**C",
   "canonical-road:'||v_local.source_identity_key",
+  "convergent/idempotent",
   "mapping-refresh",
   "name_matching_used',false",
   "fuzzy_matching_used',false",
@@ -83,6 +84,18 @@ assert.match(adoption,
 assert.match(adoption,
   /m\.mapping_status='verified'[\s\S]*m\.road_id<>v_road_id[\s\S]*conflicting verified mappings/,
   "Ohio family adoption must fail closed on conflicting verified canonical mappings");
+assert.match(adoption,
+  /v_road_id:=private_verification\.brinesearch_issue97_uuid\([\s\S]*canonical-road:'\|\|v_local\.source_identity_key[\s\S]*m\.identity_id=v_identity\.id and m\.mapping_status='verified'[\s\S]*m\.road_id<>v_road_id/,
+  "Ohio local adoption must converge on one deterministic road ID and reject only different verified mappings");
+assert.match(adoption,
+  /r\.route_number=v_local\.route_number[\s\S]*r\.id<>v_road_id[\s\S]*conflicting semantic Road Manager row/,
+  "Ohio local adoption must reject a second semantic county/township road without rejecting its own deterministic rerun row");
+const localRoadUpserts = adoption.match(/on conflict\(id\) do update set/g) ?? [];
+assert.equal(localRoadUpserts.length, 1,
+  "Ohio local canonical adoption must upsert exactly one deterministic Road Manager row path for idempotence");
+const mappingUpserts = adoption.match(/on conflict\(identity_id,road_id\) do update set/g) ?? [];
+assert.equal(mappingUpserts.length, 2,
+  "Ohio family and local exact mappings must both converge idempotently");
 assert.ok(!adoption.includes("public.brinesearch_issue97_refresh_exact_mappings()"),
   "Ohio-only adoption must not invoke the global exact-mapping refresher");
 assert.ok(!adoption.includes("similarity("),
