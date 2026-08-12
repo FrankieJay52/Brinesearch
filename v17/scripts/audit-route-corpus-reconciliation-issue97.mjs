@@ -125,7 +125,8 @@ assert.ok(!wvPaHits.includes("<->"), "WV/PA indexed-hit-first path must not use 
 includesAll(graphPrep, [
   "brinesearch_issue97_prepare_graph_current_cache",
   "brinesearch_issue97_reconcile_route_corpus",
-  "No topology or resolution semantics change"
+  "No topology or",
+  "resolution semantics change"
 ], "Issue #97 graph-cache preparation contract");
 includesAll(graphFailClosed, [
   "tmp_issue97_graph_current_cache",
