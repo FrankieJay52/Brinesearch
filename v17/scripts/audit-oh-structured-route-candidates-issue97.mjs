@@ -7,6 +7,8 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812043600_issue97_oh_structured_route_candidate_cleanup.sql"), "utf8");
+const adoption = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812043800_issue97_oh_route_used_canonical_adoption.sql"), "utf8");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",
@@ -47,4 +49,51 @@ assert.equal(nearestRoadSentinels.length, 1,
 assert.ok(!migration.includes("strong_proof'',true"),
   "Ohio structured candidates must remain non-authoritative evidence");
 
-console.log("Issue #97 Ohio structured maneuver + typed-route candidate audit passed.");
+for (const token of [
+  "Scope is intentionally limited to Ohio",
+  "i.state_code='OH' and i.active",
+  "private_verification.brinesearch_issue97_dataset_scope_current(",
+  "issue97_oh_exact_route_family",
+  "issue97_oh_exact_source_identity",
+  "exact_route_designation",
+  "exact_source_record_id",
+  "OH:ODOT:NLF:CMOECR00061**C",
+  "OH:ODOT:NLF:THASTR00207**C",
+  "canonical-road:'||v_local.source_identity_key",
+  "mapping-refresh",
+  "name_matching_used',false",
+  "fuzzy_matching_used',false",
+  "nearest_road_used',false",
+  "migration','issue97_oh_route_used_canonical_adoption'",
+  "$issue97_verify_oh_route_used_canonical_adoption$"
+]) {
+  assert.ok(adoption.includes(token), `Issue #97 Ohio canonical adoption missing: ${token}`);
+}
+for (const family of [
+  "('us_route'::text,'22'::text",
+  "('state_route','43','OH'",
+  "('state_route','145','OH'",
+  "('state_route','151','OH'",
+  "('state_route','164','OH'"
+]) {
+  assert.ok(adoption.includes(family), `Issue #97 Ohio family adoption missing ${family}`);
+}
+assert.match(adoption,
+  /select count\(\*\)::integer,min\(r\.id\)[\s\S]*if v_row_count<>1[\s\S]*expected one % % Road Manager family row/,
+  "Each Ohio highway family adoption must require one existing semantic placeholder");
+assert.match(adoption,
+  /i\.state_code='OH' and i\.active[\s\S]*i\.road_class=v_family\.road_class[\s\S]*i\.route_number=v_family\.route_number[\s\S]*i\.public_access_status='public'[\s\S]*i\.drivable_status='drivable'/,
+  "Ohio family mappings must come from exact active public/drivable Ohio identities only");
+assert.match(adoption,
+  /m\.mapping_status='verified'[\s\S]*m\.road_id<>v_road_id[\s\S]*conflicting verified mappings/,
+  "Ohio family adoption must fail closed on conflicting verified canonical mappings");
+assert.ok(!adoption.includes("public.brinesearch_issue97_refresh_exact_mappings()"),
+  "Ohio-only adoption must not invoke the global exact-mapping refresher");
+assert.ok(!adoption.includes("similarity("),
+  "Ohio canonical adoption must not use fuzzy similarity");
+assert.ok(!adoption.includes("<->"),
+  "Ohio canonical adoption must not use nearest geometry");
+assert.ok(!adoption.includes("mapping_method='name_only'"),
+  "Ohio canonical adoption must not create name-only mappings");
+
+console.log("Issue #97 Ohio structured candidates + Ohio-only canonical adoption audit passed.");
