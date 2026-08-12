@@ -14,6 +14,8 @@ const odotPreservationSql = fs.readFileSync(path.join(migrationsDir,
   "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql"), "utf8");
 const timestampHardeningSql = fs.readFileSync(path.join(migrationsDir,
   "20260811245000_issue97_ingest_generation_timestamp_hardening.sql"), "utf8");
+const retirementHardeningSql = fs.readFileSync(path.join(migrationsDir,
+  "20260811246000_issue97_source_identity_retirement_hardening.sql"), "utf8");
 
 for (const token of [
   "create or replace function public.brinesearch_issue97_refresh_source_scope(",
@@ -100,6 +102,22 @@ assert.match(timestampHardeningSql,
   /revoke all on function private_verification\.brinesearch_issue97_terminal_run_clock\(\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Issue #97 lifecycle trigger helper must not become browser/service callable");
 
+for (const token of [
+  "create or replace function public.brinesearch_issue97_finalize_ingest(",
+  "public.brinesearch_authoritative_segment_identity_assignments a",
+  "a.source_segment_key='OH:ODOT:SEGMENT:'||c.roadway_inventory_id",
+  "a.identity_id=i.id and a.active",
+  "c.county_code=v_source_county and c.source_active",
+  "public.brinesearch_authoritative_external_road_segments s",
+  "s.dataset_id=v_run.dataset_id and s.identity_id=i.id and s.active",
+  "'identity_retirement_basis'"
+]) assert.ok(retirementHardeningSql.includes(token), `Issue #97 source identity retirement hardening missing: ${token}`);
+assert.ok(!retirementHardeningSql.includes("not exists(\n        select 1 from public.brinesearch_authoritative_road_segments"),
+  "Source identity retirement must never use the geometry-strict normalized topology view");
+assert.match(retirementHardeningSql,
+  /revoke all on function public\.brinesearch_issue97_finalize_ingest\(uuid,integer,integer,integer,jsonb\)[\s\S]*grant execute[\s\S]*to service_role;/,
+  "Issue #97 hardened finalizer must remain service-only");
+
 const issue97Migrations = fs.readdirSync(migrationsDir)
   .filter(name => /^\d{14}_issue97_.*\.sql$/.test(name))
   .sort();
@@ -121,7 +139,8 @@ for (const required of [
   "20260811242000_issue97_transition_google_manifests.sql",
   "20260811243000_issue97_wvdot_multipart_ingest_hardening.sql",
   "20260811244000_issue97_odot_valid_nonsimple_source_preservation.sql",
-  "20260811245000_issue97_ingest_generation_timestamp_hardening.sql"
+  "20260811245000_issue97_ingest_generation_timestamp_hardening.sql",
+  "20260811246000_issue97_source_identity_retirement_hardening.sql"
 ]) assert.ok(issue97Migrations.includes(required), `Issue #97 migration chain missing: ${required}`);
 
-console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + generation timestamp hardening + complete unique migration chain regression passed.");
+console.log("Issue #97 restartable source-scope ingestion + WVDOT/ODOT preservation + timestamp/source-retirement hardening + complete unique migration chain regression passed.");
