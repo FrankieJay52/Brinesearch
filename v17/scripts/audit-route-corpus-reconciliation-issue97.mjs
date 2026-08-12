@@ -99,8 +99,11 @@ assert.equal((wvPaBase.match(/similarity\(/g) ?? []).length, 1,
   "WV/PA base migration may mention fuzzy similarity only in its runtime rejection sentinel");
 assert.equal((wvPaBase.match(/<->/g) ?? []).length, 1,
   "WV/PA base migration may mention nearest geometry only in its runtime rejection sentinel");
-assert.ok(!wvPaBase.includes("exact_authoritative_name_candidate'',true"),
-  "WV/PA exact-name candidates must remain non-authoritative");
+const wvPaStrongProofSentinels = wvPaBase.match(/exact_authoritative_name_candidate'',true/g) ?? [];
+assert.equal(wvPaStrongProofSentinels.length, 1,
+  "WV/PA exact-name=true may appear only in the runtime rejection sentinel");
+assert.ok(wvPaBase.includes("v_definition like '%exact_authoritative_name_candidate'',true%'"),
+  "WV/PA base migration must reject any composed runtime that promotes exact-name candidate evidence");
 assert.match(wvPaBase, /revoke all on function private_verification\.brinesearch_issue97_refresh_occurrence_candidate\(uuid\)[\s\S]*from public,anon,authenticated,service_role;/,
   "WV/PA candidate resolver must remain internal");
 
