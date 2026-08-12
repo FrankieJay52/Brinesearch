@@ -81,36 +81,32 @@ assert.match(freshnessCacheSql,
 assert.ok(!/similarity\(|<->|name_only|nearest_road_used_for_mapping'\s*,\s*true/.test(freshnessCacheSql),
   "Freshness performance hardening must not introduce fuzzy/name-only/nearest-road resolution");
 
+// Ohio-specific performance hardening has its own executable migration self-check.
+// The static audit verifies the durable safety contract without trying to parse
+// quote-doubled dynamic PL/pgSQL source.
 for (const token of [
-  "Ohio route-occurrence candidate discovery use exact indexed",
   "brinesearch_authoritative_names_exact_issue97_idx",
   "brinesearch_authoritative_identities_oh_route_number_issue97_idx",
+  "brinesearch_issue97_normalize_route_token(i.display_name)",
+  "brinesearch_issue97_normalize_route_token(n.road_name)",
   "normalized_name=v_token",
   "pg_catalog.lower(i.route_number)",
-  "pg_catalog.regexp_replace(v_token",
   "v_token=any(array[",
-  "exact name equality is candidate evidence only",
-  "route designation is candidate evidence only",
-  "strong_proof",
+  "exact_authoritative_name_candidate'',false",
+  "exact_authoritative_designation_candidate'',false",
+  "brinesearch_issue97_dataset_scope_current_cached",
   "v_legacy_body",
-  "Issue #97 Ohio indexed candidate lookup contract did not install cleanly",
-  "i.route_number!~'^[0-9A-Za-z]+$'"
-]) assert.ok(ohioIndexedCandidatesSql.includes(token), `Issue #97 Ohio indexed candidate lookup missing: ${token}`);
-assert.ok((ohioIndexedCandidatesSql.match(/normalized_name=v_token/g) ?? []).length >= 2,
-  "Ohio exact identity and alias name discovery must both use stored indexed normalized equality");
-assert.ok(ohioIndexedCandidatesSql.includes("brinesearch_issue97_dataset_scope_current_cached"),
-  "Ohio indexed candidates must retain the locked source-freshness gate");
-assert.ok(ohioIndexedCandidatesSql.includes("mapping_status=''verified''"),
-  "Ohio indexed candidates must retain verified canonical mapping evidence");
-assert.ok(ohioIndexedCandidatesSql.includes("drivable_status=''drivable''"),
-  "Ohio indexed candidates must remain limited to authoritative drivable identities");
-assert.ok(ohioIndexedCandidatesSql.includes("public_access_status=''public''") &&
-  ohioIndexedCandidatesSql.includes("public_access_status=''access''"),
-  "Ohio indexed candidates must retain public/access eligibility rules");
-assert.ok(ohioIndexedCandidatesSql.includes("v_legacy_body||E'    end if;"),
-  "WV/PA must retain the legacy runtime-normalization branch");
-assert.ok(!/similarity\(|<->|strong_proof'',true|nearest_road_used'',true/.test(ohioIndexedCandidatesSql),
-  "Ohio candidate performance patch must not add fuzzy, nearest, or strong candidate proof");
+  "$issue97_verify_oh_indexed_candidate_lookup$",
+  "Issue #97 Ohio indexed candidate lookup contract did not install cleanly"
+]) assert.ok(ohioIndexedCandidatesSql.includes(token), `Issue #97 Ohio performance contract missing: ${token}`);
+assert.ok(!ohioIndexedCandidatesSql.includes("similarity("),
+  "Ohio candidate performance patch must not use fuzzy similarity");
+assert.ok(!ohioIndexedCandidatesSql.includes("<->"),
+  "Ohio candidate performance patch must not use nearest-geometry selection");
+assert.ok(!ohioIndexedCandidatesSql.includes("strong_proof'',true"),
+  "Ohio exact name/designation candidates must remain non-authoritative evidence");
+assert.ok(!ohioIndexedCandidatesSql.includes("nearest_road_used'',true"),
+  "Ohio candidate performance patch must not authorize nearest-road resolution");
 
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
