@@ -1,18 +1,16 @@
 -- GitHub #97 — scope-bound source content-digest hardening.
 --
--- Source ingestion is state/county scoped, but the original finalizer hashed every
--- active row for the entire dataset on every county finalization. As Ohio OGRIP
--- coverage grew, a 6,346-row Jefferson run completed ingest/materialization but
--- timed out while re-hashing all already-loaded Ohio counties. The run receipt
--- must describe the current source scope, while the registry-level dataset digest
--- can be derived cheaply from the latest complete per-scope receipt digests.
---
--- No identity or geometry matching semantics change here.
+-- Ingest runs are state/county scoped. Hash only the current scope when issuing
+-- the run receipt; derive the registry-level dataset digest from latest complete
+-- per-scope receipt digests. This avoids re-hashing every already-loaded county on
+-- each later ingest while preserving the same source-integrity evidence.
+-- No identity, name, geometry, or nearest-road matching semantics change here.
 
 do $issue97_patch_scope_digest$
 declare
   v_definition text;
   v_start integer;
+  v_relative_finish integer;
   v_finish integer;
   v_replacement text:=$replacement$
 select pg_catalog.md5(coalesce(pg_catalog.string_agg(x.digest,',' order by x.digest),''))
@@ -57,7 +55,8 @@ select pg_catalog.md5(coalesce(pg_catalog.string_agg(x.digest,',' order by x.dig
   ) x;
 
   update public.brinesearch_road_source_datasets
-  set fetched_at=now(),content_digest=(
+  set fetched_at=now(),
+    content_digest=(
       with latest_scope as (
         select distinct on(r.state_code,r.county_code)
           r.state_code,r.county_code,r.details->>'content_digest' as digest
@@ -92,13 +91,17 @@ begin
     v_definition,
     'select pg_catalog.md5(coalesce(pg_catalog.string_agg(x.digest,'','' order by x.digest),''''))'
   );
-  v_finish:=pg_catalog.strpos(
-    v_definition,
+  if v_start=0 then
+    raise exception 'Issue #97 scope digest start marker is missing';
+  end if;
+  v_relative_finish:=pg_catalog.strpos(
+    pg_catalog.substr(v_definition,v_start),
     'update public.brinesearch_road_source_ingest_runs set'
   );
-  if v_start=0 or v_finish=0 or v_finish<=v_start then
-    raise exception 'Issue #97 scope digest block changed unexpectedly: start=% finish=%',v_start,v_finish;
+  if v_relative_finish=0 then
+    raise exception 'Issue #97 scope digest finish marker is missing after digest start';
   end if;
+  v_finish:=v_start+v_relative_finish-1;
 
   v_definition:=pg_catalog.substr(v_definition,1,v_start-1)
     ||v_replacement
@@ -113,4 +116,4 @@ grant execute on function public.brinesearch_issue97_finalize_ingest(uuid,intege
 to service_role;
 
 comment on function public.brinesearch_issue97_finalize_ingest(uuid,integer,integer,integer,jsonb) is
-  'Issue #97 authoritative ingest finalizer. Content receipts are state/county-scope bound; the source-registry dataset digest is aggregated from latest complete scope digests. Identity retirement remains exact source-assignment/source-segment based; no topology/name/nearest-road inference.';
+  'Issue #97 authoritative ingest finalizer. Content receipts are state/county-scope bound; the registry dataset digest aggregates latest complete scope digests. Identity retirement remains exact source-assignment/source-segment based; no topology/name/nearest-road inference.';
