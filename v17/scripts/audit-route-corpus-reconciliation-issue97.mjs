@@ -13,6 +13,10 @@ const freshnessCacheSql = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812035000_issue97_route_scope_freshness_cache.sql"),
   "utf8"
 );
+const ohioIndexedCandidatesSql = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260812043500_issue97_route_occurrence_indexed_exact_candidate_lookup.sql"),
+  "utf8"
+);
 const pkg = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
 
 const need = (token, message = token) => assert.ok(migration.includes(token), `Issue #97 batch pipeline missing ${message}`);
@@ -77,6 +81,31 @@ assert.match(freshnessCacheSql,
 assert.ok(!/similarity\(|<->|name_only|nearest_road_used_for_mapping'\s*,\s*true/.test(freshnessCacheSql),
   "Freshness performance hardening must not introduce fuzzy/name-only/nearest-road resolution");
 
+for (const token of [
+  "Ohio route-occurrence candidate discovery use exact indexed",
+  "brinesearch_authoritative_names_exact_issue97_idx",
+  "brinesearch_authoritative_identities_oh_route_number_issue97_idx",
+  "i.normalized_name=v_token",
+  "n.normalized_name=v_token",
+  "pg_catalog.lower(i.route_number)=pg_catalog.regexp_replace(v_token,'^.*[[:space:]]','')",
+  "if v_state='OH' then",
+  "exact name equality is candidate evidence only",
+  "route designation is candidate evidence only",
+  "strong_proof",
+  "v_legacy_body"
+]) assert.ok(ohioIndexedCandidatesSql.includes(token), `Issue #97 Ohio indexed candidate lookup missing: ${token}`);
+assert.match(ohioIndexedCandidatesSql,
+  /where i\.state_code='OH' and i\.active and i\.normalized_name=v_token[\s\S]*union[\s\S]*n\.normalized_name=v_token/,
+  "Ohio exact-name candidate discovery must start from stored indexed normalized equality");
+assert.match(ohioIndexedCandidatesSql,
+  /pg_catalog\.lower\(i\.route_number\)=pg_catalog\.regexp_replace\(v_token,'\^\.\*\[\[:space:\]\]','',''\)[\s\S]*and v_token=any\(array\[/,
+  "Ohio designation candidate discovery must prefilter exact route number and still require the original exact designation equality");
+assert.match(ohioIndexedCandidatesSql,
+  /else\n'\|\|v_legacy_body\|\|E'    end if;/,
+  "WV/PA must retain the legacy runtime-normalization branch");
+assert.ok(!/similarity\(|<->|strong_proof'',true|nearest_road_used'',true/.test(ohioIndexedCandidatesSql),
+  "Ohio candidate performance patch must not add fuzzy, nearest, or strong candidate proof");
+
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
   "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs",
   "Issue #97 route corpus audit script is not wired");
@@ -89,4 +118,4 @@ need("v_route.route_group='primary' and v_route.variant_index=1",
 need("pr.route_group='primary' and pr.route_variant_index=0",
   "published primary structured route must use the existing zero-based variant key");
 
-console.log("Issue #97 automatic route-corpus reconciliation + locked source-freshness cache audit passed.");
+console.log("Issue #97 automatic route-corpus reconciliation + locked source-freshness cache + Ohio indexed candidate audit passed.");
