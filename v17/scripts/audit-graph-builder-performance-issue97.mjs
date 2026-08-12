@@ -11,6 +11,8 @@ const targetGeogSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260811252000_issue97_graph_builder_target_geography_index.sql"), "utf8");
 const endpointTJunctionSql = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812036000_issue97_endpoint_on_interior_t_junctions.sql"), "utf8");
+const ohioRegistryPerfSql = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260812044200_issue97_oh_graph_registry_digest_performance.sql"), "utf8");
 const syntheticTopologySql = fs.readFileSync(path.join(root,
   "supabase/tests/issue97_road_junction_graph_synthetic.sql"), "utf8");
 
@@ -60,6 +62,28 @@ assert.match(targetGeogSql,
   "The builder must add/analyze its temporary geography index immediately after the existing geometry index and before boundary discovery");
 
 for (const token of [
+  "Ohio graph registry-digest performance hardening",
+  "tmp_issue97_segments_geog_idx",
+  "using gist((geom::extensions.geography))",
+  "analyze tmp_issue97_segments",
+  "if v_state=''OH'' then",
+  "extensions.st_dwithin(n.geom::extensions.geography,s.geom::extensions.geography,1)",
+  "$issue97_verify_oh_graph_registry_digest_performance$"
+]) assert.ok(ohioRegistryPerfSql.includes(token), `Issue #97 Ohio registry-digest performance hardening missing: ${token}`);
+assert.match(ohioRegistryPerfSql,
+  /create index tmp_issue97_segments_geom_idx[\s\S]*create index tmp_issue97_segments_identity_idx[\s\S]*if v_state=''OH'' then[\s\S]*create index tmp_issue97_segments_geog_idx[\s\S]*analyze tmp_issue97_segments/,
+  "Ohio graph builds must add/analyze the temp-segment geography index after the existing indexes");
+assert.ok(!ohioRegistryPerfSql.includes("st_expand("),
+  "Ohio registry-digest performance hardening must not introduce a coarse geometry approximation");
+assert.ok(!ohioRegistryPerfSql.includes("similarity("),
+  "Ohio registry-digest performance hardening must not introduce fuzzy identity proof");
+assert.ok(!ohioRegistryPerfSql.includes("<->"),
+  "Ohio registry-digest performance hardening must not introduce nearest-road proof");
+assert.match(ohioRegistryPerfSql,
+  /This patch is intentionally Ohio-only[\s\S]*It changes no topology[\s\S]*registry digest formula[\s\S]*tolerance/,
+  "Ohio registry performance patch must remain explicitly performance-only and Ohio-scoped");
+
+for (const token of [
   "exact authoritative endpoint-on-interior T-junction recovery",
   "exact_authoritative_endpoint_on_interior",
   "extensions.st_intersects(ep.geom,b.geom)",
@@ -87,10 +111,6 @@ assert.match(endpointTJunctionSql,
   /revoke all on function public\.brinesearch_issue97_rebuild_county_graph\(text,text\)[\s\S]*grant execute[\s\S]*to service_role;/,
   "Hardened graph builder must remain service-only");
 
-// The executable rollback fixture deliberately uses the same geometric pattern as
-// the Cologie recovery but marks the endpoint road as a bridge at another level.
-// The builder must therefore hold the source-endpoint overpass even after the
-// endpoint-on-interior T-junction rule is enabled.
 for (const token of [
   "('WV:TEST:SEG:OVER_A','WV:TEST:OVER_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.800,-81.095 39.800,-81.090 39.800)')",
   "('WV:TEST:SEG:OVER_B','WV:TEST:OVER_B','DOD','Doddridge','public','drivable',1,'bridge','LINESTRING(-81.095 39.800,-81.095 39.810)')",
@@ -101,4 +121,4 @@ assert.match(syntheticTopologySql,
   /OVER_A[\s\S]*LINESTRING\(-81\.100 39\.800,-81\.095 39\.800,-81\.090 39\.800\)[\s\S]*OVER_B[\s\S]*1,'bridge'[\s\S]*LINESTRING\(-81\.095 39\.800,-81\.095 39\.810\)/,
   "The executable overpass fixture must remain an endpoint-on-interior contact with explicit grade separation");
 
-console.log("Issue #97 graph-builder performance + strong exact endpoint-on-interior T-junction + executable endpoint-overpass regression passed.");
+console.log("Issue #97 graph-builder performance + Ohio registry digest + strong exact endpoint-on-interior T-junction + executable endpoint-overpass regression passed.");
