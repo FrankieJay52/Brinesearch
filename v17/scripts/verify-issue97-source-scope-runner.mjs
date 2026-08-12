@@ -62,9 +62,18 @@ for (const token of [
 ]) assert.ok(odotPreservationSql.includes(token), `Issue #97 ODOT preservation migration missing: ${token}`);
 assert.ok(!odotPreservationSql.includes("or not extensions.st_issimple(v_geom)"),
   "ODOT source ingestion must preserve valid non-simple authoritative LineStrings instead of rejecting the source row");
-assert.match(baseGraphSql,
-  /brinesearch_authoritative_road_segments[\s\S]*st_isvalid\(c\.geom\)[\s\S]*st_issimple\(c\.geom\)[\s\S]*st_dimension\(c\.geom\) = 1/i,
-  "Authoritative ODOT route/topology segment exposure must remain valid + simple + linear");
+
+const segmentViewStart = baseGraphSql.indexOf("create or replace view public.brinesearch_authoritative_road_segments");
+const segmentViewEnd = baseGraphSql.indexOf("comment on view public.brinesearch_authoritative_road_segments", segmentViewStart);
+assert.ok(segmentViewStart >= 0 && segmentViewEnd > segmentViewStart,
+  "Issue #97 base migration is missing the authoritative road-segment view block");
+const segmentViewSql = baseGraphSql.slice(segmentViewStart, segmentViewEnd);
+for (const token of [
+  "extensions.st_isvalid(c.geom)",
+  "extensions.st_issimple(c.geom)",
+  "extensions.st_dimension(c.geom)=1",
+  "extensions.st_coveredby(c.geom,extensions.st_makeenvelope(-180,-90,180,90,4326))"
+]) assert.ok(segmentViewSql.includes(token), `Authoritative ODOT route/topology segment view missing strict geometry guard: ${token}`);
 assert.match(baseGraphSql,
   /missing_geometry[\s\S]*not extensions\.st_issimple\(c\.geom\)/i,
   "Ohio identity refresh must continue to treat non-simple source geometry as topology-ineligible evidence");
