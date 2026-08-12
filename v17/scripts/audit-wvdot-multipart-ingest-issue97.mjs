@@ -98,7 +98,7 @@ for (const token of [
   "non_simple_source_geometry_topology_unproven",
   "not private_verification.brinesearch_issue97_wv_endpoint_loop_safe(v_geom)",
   "hold_without_graph_segment",
-  "source_vertex_invented',false",
+  "''source_vertex_invented'',false",
   "v_held_rows:=v_held_rows+1",
   "active_source_geometry_holds",
   "retired_source_geometry_holds",
@@ -132,7 +132,7 @@ assert.ok(!sourceHoldMigration.includes("st_node("),
   "Source holds must not node ambiguous interior crossings");
 assert.ok(!sourceHoldMigration.includes("st_makevalid("),
   "Source holds must not rewrite authoritative geometry");
-assert.ok(!sourceHoldMigration.includes("nearest" + "_road_used',true"),
+assert.ok(!sourceHoldMigration.includes("nearest" + "_road_used'',true"),
   "Source holds must never authorize nearest-road proof");
 
 console.log("Issue #97 WVDOT multipart + endpoint-loop + ambiguous-source-hold audit passed.");
