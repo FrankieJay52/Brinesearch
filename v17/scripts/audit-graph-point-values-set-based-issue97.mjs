@@ -8,7 +8,7 @@ const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(
   path.join(
     root,
-    "supabase/migrations/20260812046100_issue97_graph_point_values_set_based.sql"
+    "supabase/migrations/20260812046200_issue97_graph_point_values_set_based.sql"
   ),
   "utf8"
 );
