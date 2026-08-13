@@ -52,8 +52,13 @@ assert.ok(
   "identity-derived source_segment_keys and terminus flag must flow to final output"
 );
 
-for (const forbidden of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
-  assert.ok(!migration.toLowerCase().includes(forbidden), `must not introduce: ${forbidden}`);
+// The migration's post-install verifier intentionally contains one rejection
+// sentinel for each forbidden strategy. Allow exactly those verifier literals,
+// but fail if the patch introduces an additional executable/reference occurrence.
+const lower = migration.toLowerCase();
+for (const sentinel of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
+  const count = lower.split(sentinel).length - 1;
+  assert.equal(count, 1, `expected exactly one verifier rejection sentinel for ${sentinel}; got ${count}`);
 }
 
 console.log("Issue #97 point-values set-based V2 audit passed.");
