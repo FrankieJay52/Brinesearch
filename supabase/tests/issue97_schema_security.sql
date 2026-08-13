@@ -95,6 +95,23 @@ begin
     end if;
   end loop;
 
+  foreach function_signature in array array[
+    'private_verification.brinesearch_issue97_graph_mapping_evidence(text,jsonb)',
+    'private_verification.brinesearch_issue97_graph_mapping_fingerprint_v2(uuid)',
+    'private_verification.brinesearch_issue97_refresh_exact_mappings_non_oh(text,text)',
+    'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,numeric)',
+    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,numeric,numeric,numeric)'
+  ] loop
+    if pg_catalog.to_regprocedure(function_signature) is null then
+      raise exception '#97 private infrastructure function is missing: %',function_signature;
+    end if;
+    if pg_catalog.has_function_privilege('anon',function_signature,'EXECUTE')
+       or pg_catalog.has_function_privilege('authenticated',function_signature,'EXECUTE')
+       or pg_catalog.has_function_privilege('service_role',function_signature,'EXECUTE') then
+      raise exception '#97 private infrastructure function execution leaked: %',function_signature;
+    end if;
+  end loop;
+
   if exists(select 1 from pg_catalog.pg_proc p
     join pg_catalog.pg_namespace n on n.oid=p.pronamespace
     where (p.proname like 'brinesearch_issue97%'

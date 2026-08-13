@@ -196,8 +196,8 @@ with segment_rows(segment_key,identity_key,county_code,county_name,access_status
     ('WV:TEST:SEG:SHARED_B','WV:TEST:SHARED_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.900,-81.090 39.900)'),
     ('WV:TEST:SEG:PUBLIC','WV:TEST:PUBLIC','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.920,-81.095 39.920,-81.090 39.920)'),
     ('WV:TEST:SEG:PRIVATE','WV:TEST:PRIVATE','DOD','Doddridge','private','drivable',0,null,'LINESTRING(-81.095 39.920,-81.095 39.925)'),
-    ('WV:TEST:SEG:BOUNDARY_DOD','WV:TEST:BOUNDARY_DOD','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.940,-81.095 39.940)'),
-    ('WV:TEST:SEG:BOUNDARY_HAR','WV:TEST:BOUNDARY_HAR','HAR','Harrison','public','drivable',0,null,'LINESTRING(-81.095 39.940,-81.090 39.940)'),
+    ('WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD','WV:TEST:BOUNDARY_DOD','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.940,-81.095 39.940)'),
+    ('WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR','WV:TEST:BOUNDARY_HAR','HAR','Harrison','public','drivable',0,null,'LINESTRING(-81.095 39.940,-81.090 39.940)'),
     ('WV:TEST:SEG:TRAIL','WV:TEST:TRAIL','DOD','Doddridge','held','non_drivable',0,null,'LINESTRING(-81.095 39.950,-81.095 39.955)'),
     ('WV:TEST:SEG:TR7A','WV:TEST:TR_7_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.970,-81.090 39.970)'),
     ('WV:TEST:SEG:TR7B','WV:TEST:TR_7_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.980,-81.090 39.980)')
@@ -209,8 +209,12 @@ insert into public.brinesearch_authoritative_external_road_segments(
 )
 select private_verification.brinesearch_issue97_uuid(s.segment_key),d.id,
   private_verification.brinesearch_issue97_uuid(s.identity_key),s.segment_key,s.segment_key,
-  'WV',s.county_code,s.county_name,0,
-  extensions.st_length(extensions.st_geomfromtext(s.wkt,4326)::extensions.geography)/1609.344,
+  'WV',s.county_code,s.county_name,
+  case when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'
+    then -0.000000027168425731360912::numeric else 0::numeric end,
+  extensions.st_length(extensions.st_geomfromtext(s.wkt,4326)::extensions.geography)/1609.344+
+    case when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD'
+      then 0.00000003::numeric else 0::numeric end,
   s.z_level,s.bridge_status,s.access_status,s.drivable_status,
   extensions.st_geomfromtext(s.wkt,4326),jsonb_build_object('synthetic_fixture',true),
   md5(s.segment_key||s.wkt),true,clock_timestamp()
@@ -220,27 +224,106 @@ cross join lateral (
   where source_key='wv_wvdot_publication_lrs'
 ) d;
 
+-- WVDOT publishes higher-precision network M-values than its unscoped name
+-- events. These names exercise only exact-identity decoration; they cannot
+-- create topology or establish an identity.
+insert into public.brinesearch_authoritative_road_names(
+  identity_id,source_dataset_id,source_record_id,name_type,road_name,
+  normalized_name,from_measure,to_measure,provenance
+)
+select i.id,d.id,'SYNTH-WVDOT-LOWER','911','WVDOT Lower Endpoint Alias',
+  'wvdot lower endpoint alias',0,s.to_measure,
+  jsonb_build_object('synthetic_fixture',true,'exact_identity_decoration_only',true)
+from public.brinesearch_authoritative_road_identities i
+join public.brinesearch_authoritative_external_road_segments s on s.identity_id=i.id
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_street_name_sams'
+) d
+where s.source_segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'
+union all
+select i.id,d.id,'SYNTH-WVDOT-UPPER','911','WVDOT Upper Endpoint Alias',
+  'wvdot upper endpoint alias',0,s.to_measure-0.00000003::numeric,
+  jsonb_build_object('synthetic_fixture',true,'exact_identity_decoration_only',true)
+from public.brinesearch_authoritative_road_identities i
+join public.brinesearch_authoritative_external_road_segments s on s.identity_id=i.id
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_street_name_sams'
+) d
+where s.source_segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD'
+union all
+select i.id,d.id,'SYNTH-WVDOT-DOUBLE-BOUND','911','WVDOT Stacked Bound Alias',
+  'wvdot stacked bound alias',0.00000008::numeric,s.to_measure,
+  jsonb_build_object('synthetic_fixture',true,'must_remain_excluded',true)
+from public.brinesearch_authoritative_road_identities i
+join public.brinesearch_authoritative_external_road_segments s on s.identity_id=i.id
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_street_name_sams'
+) d
+where s.source_segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'
+union all
+select i.id,d.id,'SYNTH-WVDOT-OUTSIDE','911','WVDOT Outside Bound Alias',
+  'wvdot outside bound alias',0,s.to_measure-0.0000002::numeric,
+  jsonb_build_object('synthetic_fixture',true,'must_remain_excluded',true)
+from public.brinesearch_authoritative_road_identities i
+join public.brinesearch_authoritative_external_road_segments s on s.identity_id=i.id
+cross join lateral (
+  select id from public.brinesearch_road_source_datasets
+  where source_key='wv_wvdot_street_name_sams'
+) d
+where s.source_segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD';
+
 -- Canonical road mappings must exist before the graph is built because each
 -- generation snapshots the exact identity-to-road mapping it publishes.
 insert into public.brinesearch_roads(
-  id,canonical_name,normalized_name,road_type,state,county,aliases,
+  id,canonical_name,normalized_name,road_type,state,county,township,aliases,
   verification_status,verified_at,route_number,source_agency,source_dataset,
   source_method,source_url,source_record_id,centerline_geojson,geometry_status,
   geometry_checked_at,approved_by_default,candidate_only,coverage_states
 ) values
   (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP_MAIN'),
-   'Ramp Main','ramp main','state_route','WV','Doddridge','{}'::text[],
+   'Ramp Main','ramp main','state_route','WV','Doddridge',null,'{}'::text[],
    'verified',now(),'97007','Synthetic fixture','WVDOT Publication LRS',
    'official_centerline','https://fixture.invalid/issue97/ramp-main','WV:TEST:SEG:RAMP_MAIN',
    extensions.st_asgeojson(extensions.st_geomfromtext(
      'LINESTRING(-81.100 39.820,-81.095 39.820,-81.090 39.820)',4326),15)::jsonb,
    'official_centerline_loaded',now(),true,false,array['WV']),
   (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
-   'Ramp 7A','ramp 7a','ramp','WV','Doddridge','{}'::text[],
+   'Ramp 7A','ramp 7a','ramp','WV','Doddridge',null,'{}'::text[],
    'verified',now(),'97007A','Synthetic fixture','WVDOT Publication LRS',
    'official_centerline','https://fixture.invalid/issue97/ramp','WV:TEST:SEG:RAMP',
    extensions.st_asgeojson(extensions.st_geomfromtext(
      'LINESTRING(-81.095 39.820,-81.092 39.825)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_DOD'),
+   'Boundary DOD','boundary dod','local','WV','Doddridge',null,'{}'::text[],
+   'verified',now(),null,'Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/boundary-dod','WV:TEST:BOUNDARY_DOD',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.100 39.940,-81.095 39.940)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR'),
+   'Boundary HAR','boundary har','local','WV','Harrison',null,'{}'::text[],
+   'verified',now(),null,'Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/boundary-har','WV:TEST:BOUNDARY_HAR',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.095 39.940,-81.090 39.940)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:TR7_EXACT'),
+   'Synthetic Exact Source','synthetic exact source','township','WV','Doddridge','Alpha','{}'::text[],
+   'verified',now(),'8','Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/tr7-exact','WV:TEST:TR_7_A',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.100 39.970,-81.090 39.970)',4326),15)::jsonb,
+   'official_centerline_loaded',now(),true,false,array['WV']),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:TR7_DESIGNATION'),
+   'TR-7 Alpha','tr 7 alpha','township','WV','Doddridge','Alpha','{}'::text[],
+   'verified',now(),'7','Synthetic fixture','WVDOT Publication LRS',
+   'official_centerline','https://fixture.invalid/issue97/tr7-designation','SYNTH:TR7:DESIGNATION',
+   extensions.st_asgeojson(extensions.st_geomfromtext(
+     'LINESTRING(-81.100 39.970,-81.090 39.970)',4326),15)::jsonb,
    'official_centerline_loaded',now(),true,false,array['WV']);
 
 insert into public.brinesearch_road_identity_mappings(
@@ -253,7 +336,39 @@ insert into public.brinesearch_road_identity_mappings(
   (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:RAMP'),
    private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP'),
 	   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:RAMP'),
-	   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now());
+	   'verified','owner_verified_source_record_id',jsonb_build_object('synthetic_fixture',true),now()),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:BOUNDARY_DOD'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_DOD'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_DOD'),
+   'verified','exact_source_record_id',jsonb_build_object(
+     'synthetic_fixture',true,'state_and_jurisdiction_checked',true
+   ),now()),
+  (private_verification.brinesearch_issue97_uuid('WV:TEST:MAPPING:BOUNDARY_HAR'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR'),
+   private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR'),
+   'verified','exact_source_record_id',jsonb_build_object(
+     'synthetic_fixture',true,'state_and_jurisdiction_checked',true
+   ),now());
+
+create temporary table issue97_out_of_scope_mapping_snapshot on commit drop as
+select pg_catalog.to_jsonb(m) as mapping_row,pg_catalog.to_jsonb(r) as road_row
+from public.brinesearch_road_identity_mappings m
+join public.brinesearch_roads r on r.id=m.road_id
+where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR');
+
+create temporary table issue97_manual_mapping_snapshot on commit drop as
+select pg_catalog.to_jsonb(m) as mapping_row
+from public.brinesearch_road_identity_mappings m
+where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN');
+
+do $issue97_non_oh_scope_guard$
+begin
+  perform private_verification.brinesearch_issue97_refresh_exact_mappings_non_oh('OH','BEL');
+  raise exception '#97 non-OH exact mapping helper accepted an Ohio scope';
+exception when others then
+  if sqlerrm not like '%outside the active WV/PA graph footprint%' then raise; end if;
+end
+$issue97_non_oh_scope_guard$;
 
 do $issue97_finalize_runs$
 declare
@@ -283,11 +398,154 @@ declare
   v_second jsonb;
   v_second_build uuid;
   v_activation jsonb;
+  v_har_evidence jsonb;
+  v_manual_evidence jsonb;
+  v_har_canonical_name text;
 begin
   v_activation:=public.brinesearch_issue97_activate_graph_build(v_build);
   if not coalesce((v_activation->>'activated')::boolean,false) then
     raise exception '#97 first validated graph generation did not activate: %',v_activation;
   end if;
+  if (select details->>'mapping_snapshot_version'
+      from public.brinesearch_road_graph_builds where id=v_build)
+      is distinct from 'issue97-graph-mapping-v2' then
+    raise exception '#97 graph build did not declare semantic mapping snapshot v2';
+  end if;
+
+  -- The DOD build may refresh only DOD machine mappings. The boundary HAR
+  -- mapping and shared canonical road evidence remain byte-for-byte unchanged.
+  if (select pg_catalog.to_jsonb(m)
+      from public.brinesearch_road_identity_mappings m
+      where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR'))
+      is distinct from (select mapping_row from issue97_out_of_scope_mapping_snapshot)
+     or (select pg_catalog.to_jsonb(r)
+      from public.brinesearch_roads r
+      where r.id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR'))
+      is distinct from (select road_row from issue97_out_of_scope_mapping_snapshot) then
+    raise exception '#97 county-scoped WV refresh changed an out-of-scope mapping or road';
+  end if;
+  if (select pg_catalog.to_jsonb(m)
+      from public.brinesearch_road_identity_mappings m
+      where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN'))
+      is distinct from (select mapping_row from issue97_manual_mapping_snapshot) then
+    raise exception '#97 county-scoped WV refresh changed a reviewed/manual mapping';
+  end if;
+  if not exists(
+    select 1 from public.brinesearch_road_identity_mappings m
+    where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_DOD')
+      and m.mapping_status='verified' and m.mapping_method='exact_source_record_id'
+      and m.evidence->>'refresh_scope'='WV:DOD'
+  ) or exists(
+    select 1 from public.brinesearch_road_identity_mappings m
+    join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+    where m.evidence->>'refresh_scope'='WV:DOD'
+      and (i.state_code<>'WV' or i.county_code<>'DOD')
+  ) then
+    raise exception '#97 county-scoped WV refresh did not stay inside WV:DOD';
+  end if;
+  if (select count(*) from public.brinesearch_road_identity_mappings m
+      where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:TR_7_A')
+        and m.mapping_status='candidate'
+        and m.evidence->>'ambiguity_held'='true'
+        and m.evidence->>'exact_candidate_count'='2')<>2
+     or exists(
+       select 1 from public.brinesearch_road_identity_mappings m
+       where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:TR_7_A')
+         and m.mapping_status='verified'
+     ) then
+    raise exception '#97 conflicting exact WV evidence was not held as two candidates';
+  end if;
+
+  -- WVDOT-only measure correction: raw endpoint evidence is retained, the
+  -- lower endpoint stores exactly zero, and exact-identity aliases receive only
+  -- the bounded endpoint containment allowance.
+  if exists(
+    select 1 from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build and m.distance_along_road_m<0
+  ) then
+    raise exception '#97 WVDOT endpoint precision left a negative graph distance';
+  end if;
+  if not exists(
+    select 1 from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build
+      and m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR')
+      and m.source_measure=0 and m.distance_along_road_m=0
+      and (m.approach_data->>'raw_source_measure')::numeric
+        =(-0.000000027168425731360912)::numeric
+      and m.approach_data->>'source_measure_normalized'='true'
+      and 'WVDOT Lower Endpoint Alias'=any(m.aliases_at_junction)
+      and not ('WVDOT Stacked Bound Alias'=any(m.aliases_at_junction))
+      and 'WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'=any(m.source_segment_keys)
+  ) then
+    raise exception '#97 WVDOT lower endpoint was not normalized with raw evidence and alias';
+  end if;
+  if not exists(
+    select 1 from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build
+      and m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_DOD')
+      and 'WVDOT Upper Endpoint Alias'=any(m.aliases_at_junction)
+      and not ('WVDOT Outside Bound Alias'=any(m.aliases_at_junction))
+  ) then
+    raise exception '#97 WVDOT upper endpoint alias bound was too narrow or too broad';
+  end if;
+  if private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
+       'WV:WVDOT:SEGMENT:FAIL_CLOSED',-0.0000001000001
+     ) is distinct from (-0.0000001000001)::numeric
+     or private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
+       'WV:TEST:SEGMENT:NON_WVDOT',-0.000000027168425731360912
+     ) is distinct from (-0.000000027168425731360912)::numeric then
+    raise exception '#97 WVDOT measure normalization escaped its source/bound';
+  end if;
+
+  -- `refresh_scope` is operational only for machine exact mappings. Every
+  -- substantive evidence/road change and every manual evidence change remains
+  -- fail-closed under graph-semantic v2.
+  select m.evidence into v_har_evidence
+  from public.brinesearch_road_identity_mappings m
+  where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR');
+  update public.brinesearch_road_identity_mappings set
+    evidence=evidence||jsonb_build_object('refresh_scope','WV:HAR'),updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR');
+  if not private_verification.brinesearch_issue97_graph_build_sources_current(v_build) then
+    raise exception '#97 machine refresh_scope bookkeeping staled a v2 boundary graph';
+  end if;
+  update public.brinesearch_road_identity_mappings set
+    evidence=evidence||jsonb_build_object('substantive_proof_changed',true),updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR');
+  if private_verification.brinesearch_issue97_graph_build_sources_current(v_build) then
+    raise exception '#97 substantive exact-mapping evidence did not stale a v2 graph';
+  end if;
+  update public.brinesearch_road_identity_mappings set evidence=v_har_evidence,updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR');
+
+  select m.evidence into v_manual_evidence
+  from public.brinesearch_road_identity_mappings m
+  where m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN');
+  update public.brinesearch_road_identity_mappings set
+    evidence=evidence||jsonb_build_object('refresh_scope','manual-review'),updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN');
+  if private_verification.brinesearch_issue97_graph_build_sources_current(v_build) then
+    raise exception '#97 manual mapping refresh_scope was incorrectly ignored';
+  end if;
+  update public.brinesearch_road_identity_mappings set evidence=v_manual_evidence,updated_at=now()
+  where identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:RAMP_MAIN');
+
+  select r.canonical_name into v_har_canonical_name from public.brinesearch_roads r
+  where r.id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR');
+  update public.brinesearch_roads set canonical_name=canonical_name||' Changed'
+  where id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR');
+  if private_verification.brinesearch_issue97_graph_build_sources_current(v_build) then
+    raise exception '#97 canonical road metadata change did not stale a v2 graph';
+  end if;
+  update public.brinesearch_roads set canonical_name=v_har_canonical_name
+  where id=private_verification.brinesearch_issue97_uuid('WV:TEST:CANONICAL:BOUNDARY_HAR');
+  if not private_verification.brinesearch_issue97_graph_build_sources_current(v_build) then
+    raise exception '#97 v2 graph currentness did not recover after exact restoration';
+  end if;
+
   if (select count(*) from public.brinesearch_road_junctions where build_id=v_build)<>8 then
     raise exception '#97 synthetic expected 8 logical physical occurrences';
   end if;
@@ -314,8 +572,27 @@ begin
   if not exists(select 1 from public.brinesearch_road_junctions j
       where j.build_id=v_build and j.junction_type='shared_segment'
         and extensions.st_dimension(j.geom)=1
-        and (select count(*) from public.brinesearch_road_junction_anchors a where a.junction_id=j.id)=2) then
+        and (select count(*) from public.brinesearch_road_junction_anchors a where a.junction_id=j.id)=2
+        and not exists(
+          select 1 from public.brinesearch_road_junction_memberships m
+          where m.junction_id=j.id
+            and (
+              m.approach_data ? 'endpoint_measure_normalization_bound_miles'
+              or m.approach_data ? 'raw_source_measure'
+            )
+        )) then
     raise exception '#97 different-vertexization shared section regression failed';
+  end if;
+  if exists(
+    select 1 from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build and j.junction_type='name_change'
+      and (
+        m.approach_data ? 'endpoint_measure_normalization_bound_miles'
+        or m.approach_data ? 'raw_source_measure'
+      )
+  ) then
+    raise exception '#97 non-WVDOT name-change provenance received a WVDOT bound';
   end if;
   if exists(select 1 from public.brinesearch_road_junctions p
       where p.build_id=v_build and p.junction_type<>'shared_segment'
@@ -357,6 +634,22 @@ begin
     raise exception '#97 graph digest is not deterministic';
   end if;
   v_second_build:=(v_second->>'build_id')::uuid;
+  update public.brinesearch_road_graph_builds set
+    details=details||jsonb_build_object('mapping_snapshot_version','issue97-unknown-fixture')
+  where id=v_second_build;
+  if private_verification.brinesearch_issue97_graph_build_sources_current(v_second_build) then
+    raise exception '#97 unknown mapping snapshot version did not fail currentness closed';
+  end if;
+  v_activation:=public.brinesearch_issue97_activate_graph_build(v_second_build);
+  if coalesce((v_activation->>'activated')::boolean,false) then
+    raise exception '#97 unknown mapping snapshot version activated';
+  end if;
+  update public.brinesearch_road_graph_builds set
+    details=details||jsonb_build_object('mapping_snapshot_version','issue97-graph-mapping-v2')
+  where id=v_second_build;
+  if not private_verification.brinesearch_issue97_graph_build_sources_current(v_second_build) then
+    raise exception '#97 restored v2 mapping snapshot did not recover currentness';
+  end if;
   v_activation:=public.brinesearch_issue97_activate_graph_build(v_second_build);
   if not coalesce((v_activation->>'activated')::boolean,false) then
     raise exception '#97 second validated graph generation did not activate: %',v_activation;

@@ -273,7 +273,8 @@ begin
     and extensions.st_dwithin(j.geom::extensions.geography,
       extensions.st_setsrid(extensions.st_makepoint(-80.7129895,40.0855589),4326)::extensions.geography,0.03)
     and exists(select 1 from public.brinesearch_road_junction_memberships m where m.junction_id=j.id and m.identity_id=v_target);
-  if (select count(*) from public.brinesearch_road_junction_memberships where junction_id=v_junction)<>3
+  if (select j.junction_type from public.brinesearch_road_junctions j where j.id=v_junction)<>'multiway'
+     or (select count(*) from public.brinesearch_road_junction_memberships where junction_id=v_junction)<>3
      or not exists(select 1 from public.brinesearch_road_junction_memberships m
        join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
        where m.junction_id=v_junction and i.source_identity_key='WV:WVDOT:ROUTE_ID:3500272000000')
@@ -291,6 +292,99 @@ begin
       where m.identity_id=v_target and j.verification_status='verified'
     ) ordered where distance_along_road_m is null or (prior is not null and distance_along_road_m<=prior)
   ) then raise exception '#97 Thrush authoritative measures are not strictly ordered'; end if;
+  if exists(
+    with actual as (
+      select distinct i.source_identity_key
+      from public.brinesearch_road_junction_memberships own
+      join public.brinesearch_road_junctions j on j.id=own.junction_id
+      join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
+      join public.brinesearch_road_junction_memberships connected
+        on connected.junction_id=j.id and connected.identity_id<>v_target
+      join public.brinesearch_authoritative_road_identities i on i.id=connected.identity_id
+      where own.identity_id=v_target
+    ), expected(source_identity_key) as (values
+      ('WV:WVDOT:ROUTE_ID:3578278001900'),
+      ('WV:WVDOT:ROUTE_ID:3500329000000'),
+      ('WV:WVDOT:ROUTE_ID:3501102000000'),
+      ('WV:WVDOT:ROUTE_ID:3500272000000'),
+      ('WV:WVDOT:ROUTE_ID:3501008000000')
+    )
+    (select source_identity_key from actual except select source_identity_key from expected)
+    union all
+    (select source_identity_key from expected except select source_identity_key from actual)
+  ) then raise exception '#97 Thrush exact connected-identity set changed'; end if;
+  if exists(
+    select 1 from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
+    where m.identity_id=v_target and (
+      j.verification_status<>'verified'
+      or j.junction_type in ('shared_segment','name_change')
+      or not ('Thrush Ave'=any(m.aliases_at_junction))
+      or m.distance_along_road_m is null
+      or m.distance_along_road_m<0
+      or coalesce(j.source_provenance->'source_exact_coordinate_evidence','[]'::jsonb)='[]'::jsonb
+    )
+  ) then raise exception '#97 Thrush emitted a held/nonpoint occurrence or lost exact alias/measure provenance'; end if;
+  for fixture in select * from (values
+    ('WV:WVDOT:ROUTE_ID:3578278001900','Mt Wood Rd'),
+    ('WV:WVDOT:ROUTE_ID:3500329000000','Finch Ave'),
+    ('WV:WVDOT:ROUTE_ID:3501102000000','Northwood Dr'),
+    ('WV:WVDOT:ROUTE_ID:3500272000000','E Cardinal Ave'),
+    ('WV:WVDOT:ROUTE_ID:3501008000000','W Cardinal Ave')
+  ) x(identity_key,required_alias)
+  loop
+    if not exists(
+      select 1 from public.brinesearch_road_junction_memberships own
+      join public.brinesearch_road_junctions j on j.id=own.junction_id
+      join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
+      join public.brinesearch_road_junction_memberships connected on connected.junction_id=j.id
+      join public.brinesearch_authoritative_road_identities i on i.id=connected.identity_id
+      where own.identity_id=v_target and i.source_identity_key=fixture.identity_key
+        and fixture.required_alias=any(connected.aliases_at_junction)
+    ) then raise exception '#97 Thrush connected alias missing: %',fixture.required_alias; end if;
+  end loop;
+  if not exists(
+    select 1 from public.brinesearch_road_junction_memberships own
+    join public.brinesearch_road_junctions j on j.id=own.junction_id
+    join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'
+    join public.brinesearch_road_junction_memberships mt on mt.junction_id=j.id
+    join public.brinesearch_authoritative_road_identities i on i.id=mt.identity_id
+    where own.identity_id=v_target
+      and i.source_identity_key='WV:WVDOT:ROUTE_ID:3578278001900'
+      and 'WV:WVDOT:SEGMENT:1774131'=any(mt.source_segment_keys)
+      and 'WV:WVDOT:SEGMENT:1861464'=any(mt.source_segment_keys)
+      and (select count(*) from public.brinesearch_road_junction_memberships duplicate
+        where duplicate.junction_id=j.id and duplicate.identity_id=mt.identity_id)=1
+  ) then raise exception '#97 Mt Wood temporal source rows were not collapsed to one identity membership'; end if;
+  if not exists(
+    select 1
+    from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_authoritative_road_identities i on i.id=m.identity_id
+    where m.junction_id=v_junction
+      and i.source_identity_key='WV:WVDOT:ROUTE_ID:3501008000000'
+      and m.source_measure=0 and m.distance_along_road_m=0
+      and (m.approach_data->>'raw_source_measure')::numeric
+        =(-0.000000027168425731360912)::numeric
+      and m.approach_data->>'source_measure_normalized'='true'
+      and (m.approach_data->>'endpoint_measure_normalization_bound_miles')::numeric
+        =0.0000001::numeric
+      and 'W Cardinal Ave'=any(m.aliases_at_junction)
+  ) then raise exception '#97 W Cardinal endpoint precision was not normalized with raw provenance'; end if;
+  if not exists(
+    select 1
+    from public.brinesearch_road_junction_memberships m
+    where m.junction_id=v_junction and m.identity_id=v_target
+      and pg_catalog.abs(m.source_measure-0.143000002484769::numeric)<0.000000000001::numeric
+      and pg_catalog.abs(
+        m.distance_along_road_m-m.source_measure*1609.344
+      )<0.000000001::numeric
+      and pg_catalog.abs(
+        (m.approach_data->>'raw_source_measure')::numeric-m.source_measure
+      )<0.000000000001::numeric
+      and m.approach_data->>'source_measure_normalized'='false'
+      and 'Thrush Ave'=any(m.aliases_at_junction)
+  ) then raise exception '#97 Thrush upper endpoint alias/provenance precision regression failed'; end if;
 
   -- Bellaire 44th Street: six shared sections plus Noble/Jefferson point
   -- occurrences. Shared endpoints are anchors, not duplicate connection cards.
