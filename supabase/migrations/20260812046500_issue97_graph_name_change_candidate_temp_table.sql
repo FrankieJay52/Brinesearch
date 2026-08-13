@@ -48,8 +48,6 @@ begin
   v_end_pos := v_start_pos + v_end_rel + pg_catalog.length(v_end_marker) - 1;
 
   v_new_block := $new$
-  -- Materialize the exact endpoint candidate set so PostgreSQL has real stats
-  -- and indexes for the subsequent exact segment-name joins.
   drop table if exists pg_temp.tmp_issue97_name_change_candidates;
   create temporary table tmp_issue97_name_change_candidates on commit drop as
   select distinct
@@ -102,7 +100,7 @@ begin
     join tmp_issue97_segment_preferred_names nb
       on nb.identity_id=p.identity_id and nb.source_segment_key=p.right_segment_key
     where na.normalized_name<>nb.normalized_name
-      and pg_catalog.least(
+      and least(
         p.left_state_code||':'||p.left_county_code,
         p.right_state_code||':'||p.right_county_code
       )=v_state||':'||v_county
@@ -151,6 +149,14 @@ begin
   from grouped g;
   $new$;
 
+  if pg_catalog.lower(v_new_block) like '%similarity(%'
+     or pg_catalog.lower(v_new_block) like '%nearest_road%'
+     or pg_catalog.lower(v_new_block) like '%fuzzy_name%'
+     or pg_catalog.lower(v_new_block) like '%name_only%'
+  then
+    raise exception 'Issue #97 name-change replacement block contains forbidden semantics';
+  end if;
+
   v_definition := pg_catalog.substr(v_definition,1,v_start_pos-1)
     || v_new_block
     || pg_catalog.substr(v_definition,v_end_pos+1);
@@ -196,14 +202,6 @@ begin
      or v_definition not like '%array_agg(distinct%'
   then
     raise exception 'Issue #97 name-change candidate temp table lost a live contract token';
-  end if;
-
-  if v_definition like '%similarity(%'
-     or v_definition like '%nearest_road%'
-     or v_definition like '%fuzzy_name%'
-     or v_definition like '%name_only%'
-  then
-    raise exception 'Issue #97 name-change candidate temp table must not introduce forbidden semantics';
   end if;
 end
 $issue97_verify_name_change_candidate_temp_table$;
