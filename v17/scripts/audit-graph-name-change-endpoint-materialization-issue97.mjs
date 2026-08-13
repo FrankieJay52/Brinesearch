@@ -94,4 +94,9 @@ assert.ok(
   "exact boundary intersection must still emit every exact point"
 );
 
+// The newer candidate-temp-table audit is intentionally chained from this
+// existing build-wired name-change audit so the shared verification path cannot
+// omit the planner fix while package wiring remains stable.
+await import("./audit-graph-name-change-candidate-temp-table-issue97.mjs");
+
 console.log("Issue #97 name-change endpoint/name materialization audits passed.");
