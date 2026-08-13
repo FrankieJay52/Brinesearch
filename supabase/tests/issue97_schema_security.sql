@@ -184,6 +184,55 @@ begin
        'service_role','public.brinesearch_issue97_google_route_current(uuid)','EXECUTE') then
     raise exception '#97 current-route predicate ACL is incomplete';
   end if;
+  if exists(
+    select 1
+    from pg_catalog.pg_proc function_row
+    cross join lateral pg_catalog.aclexplode(
+      coalesce(function_row.proacl,pg_catalog.acldefault('f',function_row.proowner))
+    ) acl
+    where function_row.oid=
+      'public.brinesearch_issue97_google_route_current(uuid)'::regprocedure
+      and acl.grantee=0 and acl.privilege_type='EXECUTE'
+  ) then
+    raise exception '#97 generic PUBLIC execution leaked on current-route dispatcher';
+  end if;
+  if pg_catalog.to_regprocedure(
+       'public.brinesearch_issue97_google_route_current_published_core(uuid)'
+     ) is null
+     or pg_catalog.has_function_privilege(
+       'anon','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE')
+     or pg_catalog.has_function_privilege(
+       'authenticated','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE')
+     or pg_catalog.has_function_privilege(
+       'service_role','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE') then
+    raise exception '#97 published-core route predicate remains directly executable';
+  end if;
+  if not exists(
+       select 1
+       from pg_catalog.pg_policy policy
+       join pg_catalog.pg_depend dependency
+         on dependency.classid='pg_catalog.pg_policy'::regclass
+         and dependency.objid=policy.oid
+         and dependency.refclassid='pg_catalog.pg_proc'::regclass
+       where policy.polrelid='public.brinesearch_driver_google_routes_public'::regclass
+         and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+         and dependency.refobjid=
+           'public.brinesearch_issue97_google_route_current(uuid)'::regprocedure
+     )
+     or exists(
+       select 1
+       from pg_catalog.pg_policy policy
+       join pg_catalog.pg_depend dependency
+         on dependency.classid='pg_catalog.pg_policy'::regclass
+         and dependency.objid=policy.oid
+         and dependency.refclassid='pg_catalog.pg_proc'::regclass
+       where policy.polrelid='public.brinesearch_driver_google_routes_public'::regclass
+         and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+         and dependency.refobjid=
+           'public.brinesearch_issue97_google_route_current_published_core(uuid)'::regprocedure
+     ) then
+    raise exception '#97 public Google-route policy is not bound only to the final dispatcher';
+  end if;
 
   select pg_catalog.pg_get_functiondef(
     pg_catalog.to_regprocedure('public.brinesearch_route_step_boundary_candidates(uuid,uuid,jsonb,integer)')

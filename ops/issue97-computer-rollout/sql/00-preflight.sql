@@ -1,0 +1,180 @@
+\set ON_ERROR_STOP on
+\pset pager off
+\timing on
+
+begin read only;
+set local statement_timeout='2min';
+
+select pg_catalog.jsonb_pretty(pg_catalog.jsonb_build_object(
+  'checked_at',pg_catalog.clock_timestamp(),
+  'database',pg_catalog.current_database(),
+  'current_user',current_user,
+  'application_name',pg_catalog.current_setting('application_name'),
+  'backend_pid',pg_catalog.pg_backend_pid(),
+  'server_version',pg_catalog.current_setting('server_version'),
+  'statement_timeout',pg_catalog.current_setting('statement_timeout'),
+  'transaction_read_only',pg_catalog.current_setting('transaction_read_only')
+)) as connection;
+
+with required_scopes as (
+  select scope.dataset_id,scope.state_code,scope.county_code
+  from public.brinesearch_road_source_dataset_counties scope
+  join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
+  where scope.active and scope.ingest_enabled and scope.required_for_graph and dataset.active
+), graph_summary as (
+  select
+    (select count(*) from public.brinesearch_road_graph_counties where active)::integer
+      as registered_counties,
+    count(*) filter(where build.status='active')::integer as active_graphs,
+    count(*) filter(where build.status='active'
+      and private_verification.brinesearch_issue97_graph_build_sources_current(build.id))::integer
+      as active_current_graphs,
+    count(*) filter(where build.status='staging')::integer as staging_graphs
+  from public.brinesearch_road_graph_builds build
+), source_summary as (
+  select count(*)::integer as required_scopes,
+    count(*) filter(where private_verification.brinesearch_issue97_dataset_scope_current(
+      dataset_id,state_code,county_code
+    ))::integer as current_scopes
+  from required_scopes
+), frozen_summary as (
+  select count(*)::integer as active_rows,
+    count(*) filter(where private_verification.brinesearch_issue97_graph_build_sources_current(build.id))::integer
+      as current_rows
+  from public.brinesearch_road_graph_builds build
+  where build.state_code='OH' and build.county_code in ('BEL','JEF','NOB')
+    and build.status='active'
+), policy_summary as (
+  select exists(
+    select 1
+    from pg_catalog.pg_policy policy
+    join pg_catalog.pg_depend dependency
+      on dependency.classid='pg_catalog.pg_policy'::pg_catalog.regclass
+      and dependency.objid=policy.oid
+      and dependency.refclassid='pg_catalog.pg_proc'::pg_catalog.regclass
+    where policy.polrelid='public.brinesearch_driver_google_routes_public'::pg_catalog.regclass
+      and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+      and dependency.refobjid=
+        'public.brinesearch_issue97_google_route_current(uuid)'::pg_catalog.regprocedure
+  ) and not exists(
+    select 1
+    from pg_catalog.pg_policy policy
+    join pg_catalog.pg_depend dependency
+      on dependency.classid='pg_catalog.pg_policy'::pg_catalog.regclass
+      and dependency.objid=policy.oid
+      and dependency.refclassid='pg_catalog.pg_proc'::pg_catalog.regclass
+    where policy.polrelid='public.brinesearch_driver_google_routes_public'::pg_catalog.regclass
+      and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+      and dependency.refobjid=
+        'public.brinesearch_issue97_google_route_current_published_core(uuid)'::pg_catalog.regprocedure
+  ) as dispatcher_bound
+), active_build_sessions as (
+  select count(*)::integer as session_count
+  from pg_catalog.pg_stat_activity activity
+  where activity.pid<>pg_catalog.pg_backend_pid()
+    and activity.state='active'
+    and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
+)
+select
+  not public.brinesearch_issue97_cutover_active() as cutover_off,
+  graph_summary.*,
+  source_summary.*,
+  frozen_summary.active_rows as frozen_active_rows,
+  frozen_summary.current_rows as frozen_current_rows,
+  policy_summary.dispatcher_bound as google_policy_dispatcher_bound,
+  active_build_sessions.session_count as active_build_sessions,
+  pg_catalog.has_function_privilege(
+    current_user,'public.brinesearch_issue97_rebuild_county_graph(text,text)','EXECUTE'
+  ) as can_execute_builder,
+  pg_catalog.has_function_privilege(
+    current_user,'public.brinesearch_issue97_activate_graph_build(uuid,text,jsonb)','EXECUTE'
+  ) as can_execute_activation
+from graph_summary,source_summary,frozen_summary,policy_summary,active_build_sessions;
+
+with required_scopes as (
+  select scope.dataset_id,scope.state_code,scope.county_code
+  from public.brinesearch_road_source_dataset_counties scope
+  join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
+  where scope.active and scope.ingest_enabled and scope.required_for_graph and dataset.active
+), checks as (
+  select
+    not public.brinesearch_issue97_cutover_active() as cutover_off,
+    (select count(*) from required_scopes)=114 as source_scope_count_exact,
+    not exists(
+      select 1 from required_scopes scope
+      where not private_verification.brinesearch_issue97_dataset_scope_current(
+        scope.dataset_id,scope.state_code,scope.county_code
+      )
+    ) as all_sources_current,
+    (select count(*) from public.brinesearch_road_graph_counties where active)=39
+      as graph_footprint_exact,
+    not exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
+      as no_staging_builds,
+    (select count(*) from public.brinesearch_road_graph_builds build
+      where build.state_code='OH' and build.county_code in ('BEL','JEF','NOB')
+        and build.status='active'
+        and private_verification.brinesearch_issue97_graph_build_sources_current(build.id))=3
+      as frozen_counties_current,
+    not exists(
+      select 1 from pg_catalog.pg_stat_activity activity
+      where activity.pid<>pg_catalog.pg_backend_pid() and activity.state='active'
+        and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
+    ) as no_active_build_session,
+    pg_catalog.has_function_privilege(
+      current_user,'public.brinesearch_issue97_rebuild_county_graph(text,text)','EXECUTE'
+    ) as builder_acl,
+    pg_catalog.has_function_privilege(
+      'anon','public.brinesearch_issue97_google_route_current(uuid)','EXECUTE'
+    ) and pg_catalog.has_function_privilege(
+      'authenticated','public.brinesearch_issue97_google_route_current(uuid)','EXECUTE'
+    ) and pg_catalog.has_function_privilege(
+      'service_role','public.brinesearch_issue97_google_route_current(uuid)','EXECUTE'
+    ) and not pg_catalog.has_function_privilege(
+      'anon','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE'
+    ) and not pg_catalog.has_function_privilege(
+      'authenticated','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE'
+    ) and not pg_catalog.has_function_privilege(
+      'service_role','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE'
+    ) as google_predicate_acl,
+    exists(
+      select 1
+      from pg_catalog.pg_policy policy
+      join pg_catalog.pg_depend dependency
+        on dependency.classid='pg_catalog.pg_policy'::pg_catalog.regclass
+        and dependency.objid=policy.oid
+        and dependency.refclassid='pg_catalog.pg_proc'::pg_catalog.regclass
+      where policy.polrelid='public.brinesearch_driver_google_routes_public'::pg_catalog.regclass
+        and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+        and dependency.refobjid=
+          'public.brinesearch_issue97_google_route_current(uuid)'::pg_catalog.regprocedure
+    ) and not exists(
+      select 1
+      from pg_catalog.pg_policy policy
+      join pg_catalog.pg_depend dependency
+        on dependency.classid='pg_catalog.pg_policy'::pg_catalog.regclass
+        and dependency.objid=policy.oid
+        and dependency.refclassid='pg_catalog.pg_proc'::pg_catalog.regclass
+      where policy.polrelid='public.brinesearch_driver_google_routes_public'::pg_catalog.regclass
+        and policy.polname='brinesearch_driver_google_routes_public_read_issue97'
+        and dependency.refobjid=
+          'public.brinesearch_issue97_google_route_current_published_core(uuid)'::pg_catalog.regprocedure
+    ) as dispatcher_policy
+)
+select bool_and(value) as ready
+from checks
+cross join lateral (values
+  (cutover_off),(source_scope_count_exact),(all_sources_current),(graph_footprint_exact),
+  (no_staging_builds),(frozen_counties_current),(no_active_build_session),
+  (builder_acl),(google_predicate_acl),(dispatcher_policy)
+) gate(value)
+\gset issue97_
+
+\if :issue97_ready
+  \echo 'Issue #97 computer preflight: PASS'
+\else
+  \echo 'Issue #97 computer preflight: FAIL — no write was attempted'
+  rollback;
+  \quit 3
+\endif
+
+commit;
