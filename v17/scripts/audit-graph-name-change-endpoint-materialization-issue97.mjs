@@ -6,17 +6,15 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(
-  path.join(
-    root,
-    "supabase/migrations/20260812045900_issue97_graph_name_change_endpoint_materialization.sql"
-  ),
+  path.join(root, "supabase/migrations/20260812045900_issue97_graph_name_change_endpoint_materialization.sql"),
   "utf8"
 );
 const keysetMigration = fs.readFileSync(
-  path.join(
-    root,
-    "supabase/migrations/20260812046000_issue97_graph_name_change_preferred_name_keyset.sql"
-  ),
+  path.join(root, "supabase/migrations/20260812046000_issue97_graph_name_change_preferred_name_keyset.sql"),
+  "utf8"
+);
+const leastMigration = fs.readFileSync(
+  path.join(root, "supabase/migrations/20260812046100_issue97_graph_name_change_least_qualification.sql"),
   "utf8"
 );
 
@@ -69,32 +67,27 @@ for (const token of [
   assert.ok(keysetMigration.includes(token), `missing preferred-name keyset token: ${token}`);
 }
 
-for (const source of [migration, keysetMigration]) {
-  for (const forbidden of [
-    "similarity(",
-    "nearest_road",
-    "fuzzy_name",
-    "name_only",
-  ]) {
+assert.ok(
+  leastMigration.includes("v_definition := pg_catalog.replace(v_definition,v_bad,'least(')"),
+  "owner-scope correction must replace only the invalid pg_catalog.least qualification"
+);
+assert.ok(
+  leastMigration.includes("unexpected pg_catalog.least occurrence count"),
+  "owner-scope correction must fail closed if the target count changes"
+);
+
+for (const source of [migration, keysetMigration, leastMigration]) {
+  for (const forbidden of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
     assert.ok(!source.toLowerCase().includes(forbidden), `must not introduce: ${forbidden}`);
   }
 }
 
-assert.ok(
-  !migration.toLowerCase().includes("is distinct from nb.normalized_name"),
-  "normalized-name comparison must preserve <> NULL behavior"
-);
-assert.ok(
-  !migration.toLowerCase().includes("string_agg(distinct left_segment_key"),
-  "source_segment_keys must remain arrays"
-);
-assert.ok(
-  !migration.toLowerCase().includes("string_agg(distinct left_name_event_id"),
-  "name_event_ids must remain arrays"
-);
+assert.ok(!migration.toLowerCase().includes("is distinct from nb.normalized_name"), "normalized-name comparison must preserve <> NULL behavior");
+assert.ok(!migration.toLowerCase().includes("string_agg(distinct left_segment_key"), "source_segment_keys must remain arrays");
+assert.ok(!migration.toLowerCase().includes("string_agg(distinct left_name_event_id"), "name_event_ids must remain arrays");
 assert.ok(
   migration.includes("st_dump(\n    extensions.st_collectionextract(extensions.st_boundary(s.geom),1)"),
-  "endpoint materialization must preserve all boundary points, including multipart-safe boundary evidence"
+  "endpoint materialization must preserve all boundary points"
 );
 assert.ok(
   migration.includes("cross join lateral extensions.st_dump(extensions.st_collectionextract(\n      extensions.st_intersection("),
