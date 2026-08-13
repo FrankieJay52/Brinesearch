@@ -117,8 +117,18 @@ declare
     on membership_names.candidate_key=v.candidate_key
    and membership_names.identity_id=v.identity_id;
   $newnames$;
+  v_old_select text := $oldsel$
+    j.id,i.id,map.road_id,v.source_segment_keys,coalesce(primary_name.road_name,i.display_name),
+    coalesce(alias_names.aliases,'{}'::text[]),
+  $oldsel$;
+  v_new_select text := $newsel$
+    j.id,i.id,map.road_id,v.source_segment_keys,coalesce(membership_names.primary_name,i.display_name),
+    coalesce(membership_names.aliases,'{}'::text[]),
+  $newsel$;
   v_anchor_count integer;
   v_name_block_count integer;
+  v_select_count integer;
+  v_pos integer;
 begin
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
@@ -144,28 +154,30 @@ begin
     raise exception 'Issue #97 expected exactly two identical membership name lateral blocks before patch, found %',v_name_block_count;
   end if;
 
+  v_select_count := (
+    pg_catalog.length(v_definition)
+    - pg_catalog.length(pg_catalog.replace(v_definition,v_old_select,''))
+  ) / pg_catalog.length(v_old_select);
+  if v_select_count<>2 then
+    raise exception 'Issue #97 expected exactly two point/shared membership select-name blocks before patch, found %',v_select_count;
+  end if;
+
   -- Insert the set-based materialization only before the first (point) membership insert.
   v_definition := pg_catalog.replace(v_definition,v_anchor,v_materialized_anchor);
 
   -- Replace only the first name/alias lateral block (the point membership insert).
-  v_definition := pg_catalog.overlay(
-    v_definition placing v_new_names
-    from pg_catalog.position(v_old_names in v_definition)
-    for pg_catalog.length(v_old_names)
-  );
+  v_pos := pg_catalog.position(v_old_names in v_definition);
+  if v_pos<1 then raise exception 'Issue #97 first point membership name block disappeared'; end if;
+  v_definition := pg_catalog.substr(v_definition,1,v_pos-1)
+    ||v_new_names
+    ||pg_catalog.substr(v_definition,v_pos+pg_catalog.length(v_old_names));
 
-  -- The SELECT list in that first insert must read the materialized values.
-  v_definition := pg_catalog.overlay(
-    v_definition placing
-      'j.id,i.id,map.road_id,v.source_segment_keys,coalesce(membership_names.primary_name,i.display_name),\n    coalesce(membership_names.aliases,''{}''::text[]),'
-    from pg_catalog.position(
-      'j.id,i.id,map.road_id,v.source_segment_keys,coalesce(primary_name.road_name,i.display_name),\n    coalesce(alias_names.aliases,''{}''::text[]),'
-      in v_definition
-    )
-    for pg_catalog.length(
-      'j.id,i.id,map.road_id,v.source_segment_keys,coalesce(primary_name.road_name,i.display_name),\n    coalesce(alias_names.aliases,''{}''::text[]),'
-    )
-  );
+  -- Replace only the first SELECT-list reference pair, again leaving shared memberships untouched.
+  v_pos := pg_catalog.position(v_old_select in v_definition);
+  if v_pos<1 then raise exception 'Issue #97 first point membership select-name block disappeared'; end if;
+  v_definition := pg_catalog.substr(v_definition,1,v_pos-1)
+    ||v_new_select
+    ||pg_catalog.substr(v_definition,v_pos+pg_catalog.length(v_old_select));
 
   execute v_definition;
 end
