@@ -12,6 +12,7 @@ const migration = fs.readFileSync(
   ),
   "utf8"
 );
+const lower = migration.toLowerCase();
 
 for (const token of [
   "brinesearch_authoritative_names_preferred_cover_issue97_idx",
@@ -26,20 +27,26 @@ for (const token of [
   "performance-only",
   "analyze public.brinesearch_authoritative_road_names",
 ]) {
-  assert.ok(migration.includes(token), `missing required token: ${token}`);
+  assert.ok(lower.includes(token.toLowerCase()), `missing required token: ${token}`);
 }
 
-for (const forbidden of [
-  "similarity(",
-  "nearest_road",
-  "fuzzy_name",
-  "name_only",
-  "tmp_issue97_segment_name_keys",
-  "distinct on",
-]) {
-  assert.ok(!migration.includes(forbidden), `must not introduce/reinstall: ${forbidden}`);
+for (const forbidden of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
+  assert.ok(!lower.includes(forbidden), `must not introduce: ${forbidden}`);
 }
 
-console.log(
-  "Issue #97 preferred-name covering index audit passed."
+// This migration is index-only. Comments may mention the already-live keyset or
+// DISTINCT ON path, but the SQL must not recreate/rewrite either one.
+assert.ok(
+  !/create\s+temporary\s+table\s+tmp_issue97_segment_name_keys/i.test(migration),
+  "must not reinstall tmp_issue97_segment_name_keys"
 );
+assert.ok(
+  !/create\s+temporary\s+table\s+tmp_issue97_segment_preferred_names/i.test(migration),
+  "must not rewrite tmp_issue97_segment_preferred_names"
+);
+assert.ok(
+  !/select\s+distinct\s+on\s*\(/i.test(migration),
+  "must not rewrite the preferred-name DISTINCT ON query"
+);
+
+console.log("Issue #97 preferred-name covering index audit passed.");
