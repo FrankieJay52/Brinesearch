@@ -12,6 +12,13 @@ const migration = fs.readFileSync(
   ),
   "utf8"
 );
+const keysetMigration = fs.readFileSync(
+  path.join(
+    root,
+    "supabase/migrations/20260812046000_issue97_graph_name_change_preferred_name_keyset.sql"
+  ),
+  "utf8"
+);
 
 for (const token of [
   "tmp_issue97_segment_endpoints",
@@ -49,18 +56,42 @@ for (const token of [
   assert.ok(migration.includes(token), `missing required contract token: ${token}`);
 }
 
-for (const forbidden of [
-  "similarity(",
-  "nearest_road",
-  "fuzzy_name",
-  "name_only",
-  "is distinct from nb.normalized_name",
-  "string_agg(distinct left_segment_key",
-  "string_agg(distinct left_name_event_id",
+for (const token of [
+  "tmp_issue97_segment_name_keys",
+  "select distinct identity_id,source_segment_key",
+  "join public.brinesearch_authoritative_road_names n",
+  "n.identity_id=k.identity_id",
+  "n.source_segment_key=k.source_segment_key",
+  "when 'official' then 0 when 'signed' then 1 else 2 end",
+  "n.valid_from is null or n.valid_from<=now()",
+  "n.valid_to is null or n.valid_to>now()",
 ]) {
-  assert.ok(!migration.toLowerCase().includes(forbidden), `must not introduce/change contract: ${forbidden}`);
+  assert.ok(keysetMigration.includes(token), `missing preferred-name keyset token: ${token}`);
 }
 
+for (const source of [migration, keysetMigration]) {
+  for (const forbidden of [
+    "similarity(",
+    "nearest_road",
+    "fuzzy_name",
+    "name_only",
+  ]) {
+    assert.ok(!source.toLowerCase().includes(forbidden), `must not introduce: ${forbidden}`);
+  }
+}
+
+assert.ok(
+  !migration.toLowerCase().includes("is distinct from nb.normalized_name"),
+  "normalized-name comparison must preserve <> NULL behavior"
+);
+assert.ok(
+  !migration.toLowerCase().includes("string_agg(distinct left_segment_key"),
+  "source_segment_keys must remain arrays"
+);
+assert.ok(
+  !migration.toLowerCase().includes("string_agg(distinct left_name_event_id"),
+  "name_event_ids must remain arrays"
+);
 assert.ok(
   migration.includes("st_dump(\n    extensions.st_collectionextract(extensions.st_boundary(s.geom),1)"),
   "endpoint materialization must preserve all boundary points, including multipart-safe boundary evidence"
@@ -70,4 +101,4 @@ assert.ok(
   "exact boundary intersection must still emit every exact point"
 );
 
-console.log("Issue #97 name-change endpoint/name materialization audit passed.");
+console.log("Issue #97 name-change endpoint/name materialization audits passed.");
