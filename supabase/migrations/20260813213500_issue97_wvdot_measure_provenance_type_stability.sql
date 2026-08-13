@@ -965,14 +965,20 @@ begin
   -- recovers a positive exact line overlap. This is not a proximity/name match.
   if extensions.st_length(extensions.st_collectionextract(extensions.st_intersection(
        extensions.st_geomfromtext('LINESTRING(-80.71326351 40.08363887,-80.71298951 40.08555887)',4326),
-       extensions.st_geomfromtext('LINESTRING(-80.7132635 40.0836389,-80.7129895 40.0855589)',4326)
+       extensions.st_snaptogrid(
+         extensions.st_geomfromtext('LINESTRING(-80.7132635 40.0836389,-80.7129895 40.0855589)',4326),
+         0.0000001
+       )
      ),2)::extensions.geography)<>0
      or extensions.st_length(extensions.st_collectionextract(extensions.st_intersection(
        extensions.st_snaptogrid(
          extensions.st_geomfromtext('LINESTRING(-80.71326351 40.08363887,-80.71298951 40.08555887)',4326),
          0.0000001
        ),
-       extensions.st_geomfromtext('LINESTRING(-80.7132635 40.0836389,-80.7129895 40.0855589)',4326)
+       extensions.st_snaptogrid(
+         extensions.st_geomfromtext('LINESTRING(-80.7132635 40.0836389,-80.7129895 40.0855589)',4326),
+         0.0000001
+       )
      ),2)::extensions.geography)<=0.02 then
     raise exception 'Issue #97 shared snap-grid source association behavior changed';
   end if;
