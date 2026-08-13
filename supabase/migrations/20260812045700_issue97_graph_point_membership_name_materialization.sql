@@ -118,8 +118,6 @@ begin
     return;
   end if;
 
-  -- Locate the point-membership region structurally. It must occur after the
-  -- point-values temp table and end immediately before shared-values creation.
   v_point_values_pos := pg_catalog.position(
     'create temporary table tmp_issue97_point_values on commit drop as' in v_definition
   );
@@ -149,14 +147,12 @@ begin
     raise exception 'Issue #97 point membership structural anchors are out of order';
   end if;
 
-  -- Replace exactly the point-membership region; shared and name-change regions
-  -- begin after v_shared_values_pos and are retained byte-for-byte.
   v_definition := pg_catalog.substr(v_definition,1,v_point_insert_pos-1)
     ||v_new_block
     ||pg_catalog.substr(v_definition,v_shared_values_pos);
 
   execute v_definition;
-end
+end;
 $issue97_patch_point_membership_names$;
 
 do $issue97_verify_point_membership_names$
@@ -190,5 +186,5 @@ begin
   then
     raise exception 'Issue #97 point membership name materialization contract did not install cleanly';
   end if;
-end
+end;
 $issue97_verify_point_membership_names$;
