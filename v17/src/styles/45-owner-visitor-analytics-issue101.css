@@ -1,0 +1,196 @@
+/* GitHub Issue #101 — Owner-only visitor analytics. */
+.visitor-analytics-page,
+.visitor-privacy-page {
+  width: min(1180px, calc(100% - 28px));
+  margin: 0 auto;
+  padding: 4px 0 72px;
+}
+
+.va-hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 24px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: linear-gradient(145deg, var(--panel), var(--panel-2));
+  box-shadow: var(--shadow);
+}
+.va-hero h1 { margin-top: 7px; font-size: clamp(1.9rem, 6vw, 3rem); }
+.va-hero p { margin: 8px 0 0; color: var(--muted); max-width: 720px; }
+.va-owner-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(98,214,180,.4);
+  background: rgba(98,214,180,.1);
+  color: var(--accent);
+  font-size: .76rem;
+  font-weight: 850;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+}
+.va-owner-badge.public { color: var(--accent-2); border-color: rgba(103,168,255,.42); background: rgba(103,168,255,.1); }
+
+.va-notice,
+.va-panel,
+.va-controls,
+.va-privacy-card,
+.va-privacy-link {
+  margin-top: 16px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  border-radius: 17px;
+}
+.va-notice { padding: 14px 16px; color: var(--muted); }
+.va-notice strong { color: var(--text); }
+
+.va-controls {
+  display: grid;
+  grid-template-columns: minmax(250px, 1.4fr) minmax(150px, .7fr) minmax(150px, .7fr) auto;
+  gap: 12px;
+  align-items: end;
+  padding: 16px;
+}
+.va-presets { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+.va-presets button,
+.va-controls input {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: #091827;
+  color: var(--text);
+}
+.va-presets button { padding: 8px 9px; cursor: pointer; font-weight: 780; }
+.va-presets button:hover { border-color: var(--accent-2); }
+.va-controls label { display: grid; gap: 5px; color: var(--muted); font-size: .8rem; font-weight: 750; }
+.va-controls input { width: 100%; padding: 8px 10px; color-scheme: dark; }
+.va-status { grid-column: 1 / -1; min-height: 18px; color: var(--muted); font-size: .82rem; }
+
+.va-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+.va-stat {
+  min-width: 0;
+  padding: 15px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--panel);
+}
+.va-stat.accent { border-color: rgba(98,214,180,.56); background: rgba(98,214,180,.08); }
+.va-stat strong { display: block; font-size: clamp(1.35rem, 4vw, 2rem); line-height: 1.1; }
+.va-stat span { display: block; margin-top: 5px; color: var(--muted); font-size: .82rem; }
+
+.va-panel { padding: 17px; overflow: hidden; }
+.va-panel h2,
+.va-privacy-card h2 { font-size: 1.08rem; }
+.va-panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.va-panel-head p { margin: 4px 0 0; color: var(--muted); font-size: .82rem; }
+.va-panel-head > span { color: var(--muted); font-size: .82rem; white-space: nowrap; }
+.va-empty { margin: 12px 0 0; color: var(--muted); }
+.va-error { border-color: rgba(255,138,138,.5); }
+.va-error p { color: var(--muted); }
+
+.va-trend {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(24px, 1fr);
+  gap: 7px;
+  min-height: 190px;
+  margin-top: 16px;
+  padding: 0 2px 4px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  scrollbar-width: thin;
+}
+.va-trend-day { min-width: 24px; display: grid; grid-template-rows: 24px 126px 22px; gap: 5px; text-align: center; align-items: end; }
+.va-trend-count { color: var(--muted); font-size: .68rem; align-self: center; }
+.va-trend-bar { height: 126px; display: flex; align-items: flex-end; justify-content: center; border-radius: 8px; background: rgba(7,17,29,.48); overflow: hidden; }
+.va-trend-bar i { display: block; width: 72%; min-height: 2px; max-height: 100%; border-radius: 6px 6px 2px 2px; background: linear-gradient(180deg, var(--accent-2), var(--accent)); }
+.va-trend-day small { color: var(--muted); font-size: .64rem; white-space: nowrap; }
+
+.va-two-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.va-ranked { display: grid; gap: 8px; margin-top: 12px; }
+.va-ranked > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(73,100,132,.28);
+}
+.va-ranked > div:last-child { border-bottom: 0; }
+.va-ranked span { min-width: 0; overflow-wrap: anywhere; }
+.va-ranked strong { font-size: 1rem; }
+.va-ranked small { grid-column: 1 / -1; color: var(--muted); }
+
+.va-breakdown-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.va-breakdown { margin-top: 9px; }
+.va-breakdown-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; padding: 8px 0; border-bottom: 1px solid rgba(73,100,132,.25); }
+.va-breakdown-row:last-child { border-bottom: 0; }
+.va-breakdown-row span { overflow-wrap: anywhere; }
+.va-breakdown-row small { grid-column: 1 / -1; color: var(--muted); }
+
+.va-recent-head,
+.va-recent-row {
+  display: grid;
+  grid-template-columns: 140px minmax(110px, .8fr) minmax(150px, 1fr) minmax(150px, 1fr) minmax(150px, 1.2fr);
+  gap: 12px;
+}
+.va-recent-head { margin-top: 15px; padding: 0 11px 8px; color: var(--muted); font-size: .72rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.va-recent-list { display: grid; gap: 7px; }
+.va-recent-row { align-items: start; padding: 11px; border: 1px solid rgba(73,100,132,.36); border-radius: 12px; background: rgba(7,17,29,.34); }
+.va-recent-row > span { min-width: 0; overflow-wrap: anywhere; font-size: .86rem; }
+.va-recent-row strong,
+.va-recent-row small { display: block; }
+.va-recent-row small { margin-top: 2px; color: var(--muted); }
+.va-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; margin-top: 14px; color: var(--muted); font-size: .82rem; }
+.va-pagination button:disabled { opacity: .45; cursor: default; transform: none; }
+
+.va-privacy-link { padding: 13px 16px; }
+.va-privacy-link a { color: var(--accent-2); font-weight: 750; text-decoration: none; }
+.va-privacy-card { padding: 18px; }
+.va-privacy-card p { margin: 9px 0 0; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .va-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .va-presets { grid-column: 1 / -1; }
+  .va-controls .btn { width: 100%; }
+  .va-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .va-breakdown-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
+  .va-recent-head { display: none; }
+  .va-recent-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .va-recent-row > span::before { content: attr(data-label); display: block; margin-bottom: 2px; color: var(--muted); font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+}
+
+@media (max-width: 720px) {
+  .visitor-analytics-page,
+  .visitor-privacy-page { width: min(100% - 20px, 1180px); padding-bottom: calc(64px + env(safe-area-inset-bottom)); }
+  .va-hero { padding: 18px; flex-direction: column; }
+  .va-hero .btn { align-self: stretch; }
+  .va-controls { grid-template-columns: 1fr; padding: 13px; }
+  .va-presets { grid-column: auto; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .va-status { grid-column: auto; }
+  .va-summary-grid { gap: 8px; }
+  .va-stat { padding: 13px 11px; }
+  .va-two-column,
+  .va-breakdown-grid { grid-template-columns: 1fr; gap: 0; }
+  .va-panel { padding: 14px; }
+  .va-trend { grid-auto-columns: 29px; }
+  .va-recent-row { grid-template-columns: 1fr; gap: 10px; }
+  .va-pagination { justify-content: space-between; gap: 8px; }
+  .va-pagination span { text-align: center; }
+  .va-pagination .btn { min-height: 44px; }
+}
+
+@media (max-width: 390px) {
+  .va-summary-grid { grid-template-columns: 1fr 1fr; }
+  .va-presets { grid-template-columns: 1fr 1fr; }
+  .va-pagination { flex-wrap: wrap; }
+  .va-pagination span { order: -1; width: 100%; }
+}

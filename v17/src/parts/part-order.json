@@ -83,6 +83,7 @@
     "22y-direction-global-card-compactor-v17322.js",
     "22z-generic-exit-road-truth-v17330.js",
     "22za-driver-safety-contract-v17330.js",
+    "17b-owner-visitor-analytics-issue101.js",
     "18-account-theme-startup.js"
   ],
   "assembledSha256": ""
