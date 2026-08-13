@@ -194,9 +194,9 @@ begin
   from grouped g;
   $new$;
 
-  v_definition := pg_catalog.overlay(
-    v_definition placing v_new_block from v_start_pos for (v_end_pos-v_start_pos+1)
-  );
+  v_definition := pg_catalog.substr(v_definition,1,v_start_pos-1)
+    ||v_new_block
+    ||pg_catalog.substr(v_definition,v_end_pos+1);
   execute v_definition;
 end
 $issue97_patch_name_change_endpoint_materialization$;
