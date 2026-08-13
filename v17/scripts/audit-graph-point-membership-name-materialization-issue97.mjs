@@ -26,8 +26,9 @@ for (const token of [
   "least(n.from_measure,n.to_measure)<=v.source_measure",
   "greatest(n.from_measure,n.to_measure)>=v.source_measure",
   "array_agg(distinct n.road_name order by n.road_name)",
-  "v_name_block_count<>2",
-  "v_select_count<>2",
+  "create temporary table tmp_issue97_point_values on commit drop as",
+  "create temporary table tmp_issue97_shared_values on commit drop as",
+  "shared-section and name-change membership paths are left untouched",
 ]) {
   assert.ok(migration.includes(token), `missing required point-membership contract token: ${token}`);
 }
@@ -45,13 +46,17 @@ for (const forbidden of [
 
 assert.match(
   migration,
-  /v_definition := pg_catalog\.substr\(v_definition,1,v_pos-1\)[\s\S]*\|\|v_new_names[\s\S]*v_pos\+pg_catalog\.length\(v_old_names\)/,
-  "point membership patch must replace only the first exact name/alias lateral block"
+  /v_point_values_pos[\s\S]*v_point_insert_pos[\s\S]*v_shared_values_pos/,
+  "point membership patch must locate the point insert structurally between point-values and shared-values"
 );
 assert.match(
   migration,
-  /v_definition := pg_catalog\.substr\(v_definition,1,v_pos-1\)[\s\S]*\|\|v_new_select[\s\S]*v_pos\+pg_catalog\.length\(v_old_select\)/,
-  "point membership patch must replace only the first exact SELECT-list name references"
+  /v_definition := pg_catalog\.substr\(v_definition,1,v_point_insert_pos-1\)[\s\S]*\|\|v_new_block[\s\S]*\|\|pg_catalog\.substr\(v_definition,v_shared_values_pos\)/,
+  "point membership patch must replace only the structurally bounded point-membership region"
+);
+assert.ok(
+  migration.includes("v_shared_lateral_pos") && migration.includes("coalesce(primary_name.road_name,i.display_name)"),
+  "verification must prove the shared-membership name lateral remains after the point-only rewrite"
 );
 
 console.log("Issue #97 point-membership name materialization audit passed.");
