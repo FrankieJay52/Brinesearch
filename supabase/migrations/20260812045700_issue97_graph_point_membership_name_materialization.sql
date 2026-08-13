@@ -24,7 +24,9 @@ declare
   v_point_insert_pos integer;
   v_shared_values_rel integer;
   v_shared_values_pos integer;
-  v_new_block text := $newblock$
+  v_new_block text;
+begin
+  v_new_block := $newblock$
   -- Issue #97 performance: set-based primary name + aliases for POINT memberships only.
   drop table if exists pg_temp.tmp_issue97_point_membership_names;
   create temporary table tmp_issue97_point_membership_names on commit drop as
@@ -109,7 +111,7 @@ declare
    and membership_names.identity_id=v.identity_id;
 
   $newblock$;
-begin
+
   select pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
   ) into v_definition;
