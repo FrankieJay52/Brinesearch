@@ -15,6 +15,8 @@ const us40 = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812044000_issue97_oh_us40_canonical_adoption.sql"), "utf8");
 const countyRefresh = fs.readFileSync(path.join(root,
   "supabase/migrations/20260812044100_issue97_oh_county_scoped_mapping_refresh.sql"), "utf8");
+const stableRefresh = fs.readFileSync(path.join(root,
+  "supabase/migrations/20260813101140_issue97_oh_exact_adoption_refresh_stability.sql"), "utf8");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",
@@ -196,5 +198,48 @@ assert.ok(!countyRefresh.includes("similarity("),
   "County-scoped Ohio refresh must not use fuzzy similarity");
 assert.ok(!countyRefresh.includes("<->"),
   "County-scoped Ohio refresh must not use nearest geometry");
+
+for (const token of [
+  "tmp_issue97_oh_prior_exact_mappings",
+  "drop table if exists pg_temp.tmp_issue97_oh_prior_exact_mappings",
+  "retained_adoption_candidates",
+  "prior.mapping_status=''verified''",
+  "prior.mapping_method=''exact_route_designation''",
+  "i.public_access_status=''public'' and i.drivable_status=''drivable''",
+  "brinesearch_issue97_dataset_scope_current(",
+  "r.verification_status=''verified'' and not r.candidate_only",
+  "issue97_oh_route_used_canonical_adoption",
+  "issue97_oh_us40_canonical_adoption",
+  "issue97_oh_sr331_canonical_adoption",
+  "prior.evidence->>''source_identity_key''=i.source_identity_key",
+  "prior.evidence->>''source_digest''=i.source_digest",
+  "prior.evidence->>''source_current''=''true''",
+  "prior.evidence->>''exact_designation''=''true''",
+  "prior.evidence->>''name_matching_used''=''false''",
+  "prior.evidence->>''fuzzy_matching_used''=''false''",
+  "prior.evidence->>''nearest_road_used''=''false''",
+  "not (prior.evidence ? ''retired_by_refresh'')",
+  "prior.evidence->>''uses_name_only''",
+  "prior.evidence->>''uses_fuzzy_name''",
+  "prior.evidence->>''uses_nearest_road''",
+  "(i.road_class,i.route_number) in (",
+  "select retained.identity_id,retained.road_id,retained.priority",
+  "from retained_adoption_candidates retained",
+  "case when e.priority=-1 and e.candidate_count=1 then e.evidence",
+]) {
+  assert.ok(stableRefresh.includes(token), `Issue #97 stable Ohio adoption refresh missing: ${token}`);
+}
+assert.equal((stableRefresh.match(/similarity\(/g) || []).length, 1,
+  "Stable Ohio adoption refresh may mention fuzzy similarity only in its rejection sentinel");
+assert.equal((stableRefresh.match(/<->/g) || []).length, 1,
+  "Stable Ohio adoption refresh may mention nearest geometry only in its rejection sentinel");
+assert.ok(stableRefresh.includes("v_normalized like '%similarity(%'"),
+  "Stable Ohio adoption refresh must reject fuzzy similarity in the installed function");
+assert.ok(stableRefresh.includes("v_normalized like '%<->%'"),
+  "Stable Ohio adoption refresh must reject nearest geometry in the installed function");
+assert.ok(!stableRefresh.includes("brinesearch_issue97_activate_graph_build"),
+  "Stable Ohio adoption refresh must not activate a graph");
+assert.ok(!stableRefresh.includes("brinesearch_issue97_activate_cutover"),
+  "Stable Ohio adoption refresh must not activate cutover");
 
 console.log("Issue #97 Ohio candidates + canonical adoption + scoped graph refresh + US-40 audit passed.");

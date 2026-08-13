@@ -16,6 +16,9 @@ const scoped = read(
 const wvdot = read(
   "supabase/migrations/20260812046800_issue97_wvdot_endpoint_measure_precision.sql"
 );
+const noble = read(
+  "supabase/migrations/20260813101230_issue97_noble_graph_mapping_semantic_upgrade.sql"
+);
 const synthetic = read("supabase/tests/issue97_road_junction_graph_synthetic.sql");
 const live = read("supabase/tests/issue97_required_live_cases.sql");
 const security = read("supabase/tests/issue97_schema_security.sql");
@@ -99,6 +102,43 @@ forbid(wvdot, "pg_catalog.least(", "invalid schema-qualified LEAST construct");
 forbid(wvdot, "pg_catalog.greatest(", "invalid schema-qualified GREATEST construct");
 forbid(wvdot, "update public.brinesearch_authoritative_road", "authoritative source mutation");
 forbid(wvdot, "insert into public.brinesearch_road_junctions", "junction topology creation");
+
+for (const token of [
+  "brinesearch:issue97:graph:OH:NOB",
+  "pre_washington_refresh_scope_guard",
+  "v_build.source_revision_digest is distinct from '89af7128d56bbc4ef3733436d0813823'",
+  "v_build.graph_digest is distinct from '83e3e777c8ec9732f43e513832560ad8'",
+  "'2308bdcba13fea269b578acb152dd240'",
+  "'ee7692fde47360caa2203b3436ca099b'",
+  "brinesearch_issue97_graph_mapping_fingerprint_v2(",
+  "v_membership_mapping_mismatches<>0",
+  "v_was_boundary_identity_count<>32",
+  "v_was_machine_mapping_count<>3",
+  "v_was_machine_missing_refresh_scope<>3",
+  "OH:ODOT:NLF:SWASIR00077**C",
+  "OH:ODOT:NLF:SWASIR00077**N",
+  "OH:ODOT:NLF:SWASSR00145**C",
+  "interstate::77",
+  "state_route:OH:145",
+  "'mapping_method','exact_route_designation'",
+  "issue97_oh_route_used_canonical_adoption",
+  "issue97_oh_exact_route_family",
+  "'adoption','exact_route_family'",
+  "v_was_candidate_rows",
+  "'candidate_count',1",
+  "casewhene.priority=-1ande.candidate_count=1thene.evidence",
+  "v_bad_anchor_count<>0",
+  "topology_changed',false",
+]) need(noble, token);
+for (const token of [
+  "update public.brinesearch_road_junctions",
+  "update public.brinesearch_road_junction_memberships",
+  "update public.brinesearch_road_junction_anchors",
+  "update public.brinesearch_road_identity_mappings",
+  "update public.brinesearch_authoritative_road_identities",
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+]) forbid(noble, token, `Noble metadata upgrade ${token}`);
 
 for (const token of [
   "issue97_out_of_scope_mapping_snapshot",

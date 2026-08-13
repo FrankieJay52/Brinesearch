@@ -6,7 +6,9 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
 const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
+const foundation = read("supabase/migrations/20260811190000_issue97_authoritative_road_junction_graph.sql");
 const correction = read("supabase/migrations/20260811200000_issue97_confirmed_pad_county_scope.sql");
+const live = read("supabase/tests/issue97_required_live_cases.sql");
 
 const expected = [
   "OH:ATH","OH:BEL","OH:CAR","OH:COL","OH:COS","OH:GUE","OH:HAS","OH:JEF",
@@ -25,6 +27,59 @@ assert.deepEqual(actual, expected, "Issue #97 final active county manifest must 
 assert.equal(actual.filter(v => v.startsWith("OH:")).length, 19, "Issue #97 must have 19 Ohio counties");
 assert.equal(actual.filter(v => v.startsWith("PA:")).length, 10, "Issue #97 must have 10 Pennsylvania counties");
 assert.equal(actual.filter(v => v.startsWith("WV:")).length, 10, "Issue #97 must have 10 West Virginia counties");
+
+const liveManifestMatch = live.match(
+  /with expected\(state_code,county_code,county_name,county_geoid,source_county_code\) as \(values([\s\S]*?)\n\s*\), actual as \(/
+);
+assert.ok(liveManifestMatch, "Issue #97 effective live county manifest is missing");
+const parseManifest = (sql, fieldCount) => [...sql.matchAll(
+  new RegExp(`\\('((?:OH|PA|WV))','([A-Z]{3})','([^']+)','([0-9]{5})','([^']+)'${
+    fieldCount === 6 ? ",'[^']+'(?:,true)?" : ""
+  }\\)`, "g")
+)].map(([, state, county, name, geoid, sourceCounty]) =>
+  [state, county, name, geoid, sourceCounty].join(":"));
+
+const foundationManifestMatch = foundation.match(
+  /insert into public\.brinesearch_road_graph_counties\([\s\S]*?\) values([\s\S]*?)\non conflict\(state_code,county_code\)/
+);
+assert.ok(foundationManifestMatch, "Issue #97 foundation county manifest is missing");
+const correctionManifestMatch = correction.match(
+  /-- Add the three confirmed counties omitted[\s\S]*?\) values([\s\S]*?)\non conflict\(state_code,county_code\)/
+);
+assert.ok(correctionManifestMatch, "Issue #97 corrected county rows are missing");
+const effectiveManifest = new Map(
+  parseManifest(foundationManifestMatch[1], 6).map(row => [row.split(":", 2).join(":"), row])
+);
+for (const removed of ["OH:HOL", "OH:LIC", "WV:HAR"]) effectiveManifest.delete(removed);
+for (const row of parseManifest(correctionManifestMatch[1], 6)) {
+  effectiveManifest.set(row.split(":", 2).join(":"), row);
+}
+
+const liveRows = parseManifest(liveManifestMatch[1], 5).sort();
+const expectedRows = [...effectiveManifest.values()].sort();
+assert.deepEqual(
+  liveRows,
+  expectedRows,
+  "Issue #97 live regression must pin all five fields of the effective 39-county manifest"
+);
+const liveActual = liveRows
+  .map(row => row.split(":", 2).join(":"))
+  .sort();
+assert.deepEqual(
+  liveActual,
+  expected,
+  "Issue #97 live regression must use the corrected 39-county footprint"
+);
+for (const token of [
+  "('OH','MEG','Meigs','39105','MEG')",
+  "('OH','VIN','Vinton','39163','VIN')",
+  "('WV','LEW','Lewis','54041','21')",
+]) {
+  assert.ok(liveManifestMatch[1].includes(token), `Issue #97 live manifest missing corrected county: ${token}`);
+}
+for (const forbidden of ["('OH','HOL'", "('OH','LIC'", "('WV','HAR'"]) {
+  assert.ok(!liveManifestMatch[1].includes(forbidden), `Issue #97 removed county leaked into live manifest: ${forbidden}`);
+}
 
 for (const token of [
   "('OH','MEG','Meigs','39105','MEG','ODOT COUNTY_CD',true)",
