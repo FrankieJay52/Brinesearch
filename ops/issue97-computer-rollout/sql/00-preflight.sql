@@ -72,8 +72,93 @@ with required_scopes as (
   select count(*)::integer as session_count
   from pg_catalog.pg_stat_activity activity
   where activity.pid<>pg_catalog.pg_backend_pid()
-    and activity.state='active'
+    and activity.state in ('active','idle in transaction','idle in transaction (aborted)')
     and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
+), wvdot_runtime_summary as (
+  select
+    pg_catalog.to_regprocedure(
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)'
+    ) is not null
+    and exists(
+      select 1
+      from pg_catalog.pg_proc proc
+      join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace
+      join pg_catalog.pg_language language on language.oid=proc.prolang
+      where proc.oid=pg_catalog.to_regprocedure(
+          'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)'
+        )
+        and namespace.nspname='private_verification'
+        and language.lanname='sql'
+        and proc.provolatile='i'
+        and not proc.prosecdef
+        and proc.proconfig @> array['search_path=""']
+        and pg_catalog.pg_get_userbyid(proc.proowner)='postgres'
+    )
+    and exists(
+      select 1
+      from pg_catalog.pg_proc proc
+      join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace
+      join pg_catalog.pg_language language on language.oid=proc.prolang
+      where proc.oid=pg_catalog.to_regprocedure(
+          'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+        )
+        and namespace.nspname='private_verification'
+        and language.lanname='sql'
+        and proc.provolatile='i'
+        and not proc.prosecdef
+        and proc.proconfig @> array['search_path=""']
+        and pg_catalog.pg_get_userbyid(proc.proowner)='postgres'
+    )
+    and pg_catalog.to_regprocedure(
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+    ) is not null
+    and not pg_catalog.has_function_privilege(
+      'anon',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'authenticated',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'service_role',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'anon',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'authenticated',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'service_role',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    ) as helpers_ready,
+    pg_catalog.pg_typeof(
+      0::numeric+
+        ((-0.000000054336851462721824)::numeric-0::numeric)*0.5::double precision
+    )='double precision'::pg_catalog.regtype
+    and private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
+      'WV:WVDOT:SEGMENT:preflight',
+      0::numeric+
+        ((-0.000000054336851462721824)::numeric-0::numeric)*0.5::double precision
+    )=0::numeric
+    and private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+      'WV:WVDOT:SEGMENT:preflight',
+      0.14300003076286521::double precision,0::numeric,0.143::numeric
+    )
+    and not private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+      'WV:WVDOT:SEGMENT:preflight',
+      0.1430001000001::double precision,0::numeric,0.143::numeric
+    ) as typed_calls_pass
 )
 select
   not public.brinesearch_issue97_cutover_active() as cutover_off,
@@ -83,13 +168,16 @@ select
   frozen_summary.current_rows as frozen_current_rows,
   policy_summary.dispatcher_bound as google_policy_dispatcher_bound,
   active_build_sessions.session_count as active_build_sessions,
+  wvdot_runtime_summary.helpers_ready as wvdot_float8_helpers_ready,
+  wvdot_runtime_summary.typed_calls_pass as wvdot_float8_typed_calls_pass,
   pg_catalog.has_function_privilege(
     current_user,'public.brinesearch_issue97_rebuild_county_graph(text,text)','EXECUTE'
   ) as can_execute_builder,
   pg_catalog.has_function_privilege(
     current_user,'public.brinesearch_issue97_activate_graph_build(uuid,text,jsonb)','EXECUTE'
   ) as can_execute_activation
-from graph_summary,source_summary,frozen_summary,policy_summary,active_build_sessions;
+from graph_summary,source_summary,frozen_summary,policy_summary,active_build_sessions,
+  wvdot_runtime_summary;
 
 with required_scopes as (
   select scope.dataset_id,scope.state_code,scope.county_code
@@ -117,7 +205,8 @@ with required_scopes as (
       as frozen_counties_current,
     not exists(
       select 1 from pg_catalog.pg_stat_activity activity
-      where activity.pid<>pg_catalog.pg_backend_pid() and activity.state='active'
+      where activity.pid<>pg_catalog.pg_backend_pid()
+        and activity.state in ('active','idle in transaction','idle in transaction (aborted)')
         and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
     ) as no_active_build_session,
     pg_catalog.has_function_privilege(
@@ -136,6 +225,89 @@ with required_scopes as (
     ) and not pg_catalog.has_function_privilege(
       'service_role','public.brinesearch_issue97_google_route_current_published_core(uuid)','EXECUTE'
     ) as google_predicate_acl,
+    pg_catalog.to_regprocedure(
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)'
+    ) is not null
+    and exists(
+      select 1
+      from pg_catalog.pg_proc proc
+      join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace
+      join pg_catalog.pg_language language on language.oid=proc.prolang
+      where proc.oid=pg_catalog.to_regprocedure(
+          'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)'
+        )
+        and namespace.nspname='private_verification'
+        and language.lanname='sql'
+        and proc.provolatile='i'
+        and not proc.prosecdef
+        and proc.proconfig @> array['search_path=""']
+        and pg_catalog.pg_get_userbyid(proc.proowner)='postgres'
+    )
+    and exists(
+      select 1
+      from pg_catalog.pg_proc proc
+      join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace
+      join pg_catalog.pg_language language on language.oid=proc.prolang
+      where proc.oid=pg_catalog.to_regprocedure(
+          'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+        )
+        and namespace.nspname='private_verification'
+        and language.lanname='sql'
+        and proc.provolatile='i'
+        and not proc.prosecdef
+        and proc.proconfig @> array['search_path=""']
+        and pg_catalog.pg_get_userbyid(proc.proowner)='postgres'
+    )
+    and pg_catalog.to_regprocedure(
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+    ) is not null
+    and not pg_catalog.has_function_privilege(
+      'anon',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'authenticated',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'service_role',
+      'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'anon',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'authenticated',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    )
+    and not pg_catalog.has_function_privilege(
+      'service_role',
+      'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+      'EXECUTE'
+    )
+    and pg_catalog.pg_typeof(
+      0::numeric+
+        ((-0.000000054336851462721824)::numeric-0::numeric)*0.5::double precision
+    )='double precision'::pg_catalog.regtype
+    and private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
+      'WV:WVDOT:SEGMENT:preflight',
+      0::numeric+
+        ((-0.000000054336851462721824)::numeric-0::numeric)*0.5::double precision
+    )=0::numeric
+    and private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+      'WV:WVDOT:SEGMENT:preflight',
+      0.14300003076286521::double precision,0::numeric,0.143::numeric
+    )
+    and not private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+      'WV:WVDOT:SEGMENT:preflight',
+      0.1430001000001::double precision,0::numeric,0.143::numeric
+    ) as wvdot_float8_runtime,
     exists(
       select 1
       from pg_catalog.pg_policy policy
@@ -165,7 +337,7 @@ from checks
 cross join lateral (values
   (cutover_off),(source_scope_count_exact),(all_sources_current),(graph_footprint_exact),
   (no_staging_builds),(frozen_counties_current),(no_active_build_session),
-  (builder_acl),(google_predicate_acl),(dispatcher_policy)
+  (builder_acl),(google_predicate_acl),(wvdot_float8_runtime),(dispatcher_policy)
 ) gate(value)
 \gset issue97_
 

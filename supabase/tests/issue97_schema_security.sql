@@ -100,7 +100,9 @@ begin
     'private_verification.brinesearch_issue97_graph_mapping_fingerprint_v2(uuid)',
     'private_verification.brinesearch_issue97_refresh_exact_mappings_non_oh(text,text)',
     'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,numeric)',
-    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,numeric,numeric,numeric)'
+    'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,numeric,numeric,numeric)',
+    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
   ] loop
     if pg_catalog.to_regprocedure(function_signature) is null then
       raise exception '#97 private infrastructure function is missing: %',function_signature;
@@ -109,6 +111,24 @@ begin
        or pg_catalog.has_function_privilege('authenticated',function_signature,'EXECUTE')
        or pg_catalog.has_function_privilege('service_role',function_signature,'EXECUTE') then
       raise exception '#97 private infrastructure function execution leaked: %',function_signature;
+    end if;
+    if function_signature in (
+         'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
+         'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+       ) and not exists(
+         select 1
+         from pg_catalog.pg_proc proc
+         join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace
+         join pg_catalog.pg_language language on language.oid=proc.prolang
+         where proc.oid=pg_catalog.to_regprocedure(function_signature)
+           and namespace.nspname='private_verification'
+           and language.lanname='sql'
+           and proc.provolatile='i'
+           and not proc.prosecdef
+           and proc.proconfig @> array['search_path=""']
+           and pg_catalog.pg_get_userbyid(proc.proowner)='postgres'
+       ) then
+      raise exception '#97 WVDOT runtime overload metadata changed: %',function_signature;
     end if;
   end loop;
 

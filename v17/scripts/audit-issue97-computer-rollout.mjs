@@ -73,6 +73,19 @@ for (const token of ["eval ", "SUPABASE_DB_PASSWORD", "--command="])
 for (const source of [preflight, verify, status, ohi, report])
   need(source, "begin read only", "read-only transaction");
 for (const source of [build, directions]) need(source, "\\set ON_ERROR_STOP on");
+for (const token of [
+  "brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)",
+  "brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)",
+  "wvdot_float8_helpers_ready",
+  "wvdot_float8_typed_calls_pass",
+  "wvdot_float8_runtime",
+  "0.14300003076286521::double precision",
+  "0.1430001000001::double precision",
+  "idle in transaction",
+  "proc.provolatile='i'",
+  "not proc.prosecdef",
+  "proc.proconfig @> array['search_path=\"\"']",
+]) need(preflight, token, `WVDOT runtime preflight ${token}`);
 
 assert.equal(
   count(build, "public.brinesearch_issue97_rebuild_county_graph("),

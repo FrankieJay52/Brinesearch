@@ -500,6 +500,42 @@ begin
     raise exception '#97 WVDOT measure normalization escaped its source/bound';
   end if;
 
+  create temporary table issue97_typed_runtime_measure on commit drop as
+  select
+    0::numeric as from_measure,
+    (-0.000000054336851462721824)::numeric as to_measure,
+    0.5::double precision as fraction;
+
+  if exists(
+    select 1
+    from issue97_typed_runtime_measure fixture
+    where pg_catalog.pg_typeof(
+            fixture.from_measure+
+              (fixture.to_measure-fixture.from_measure)*fixture.fraction
+          ) is distinct from 'double precision'::pg_catalog.regtype
+       or private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
+            'WV:WVDOT:SEGMENT:TYPED_RUNTIME',
+            fixture.from_measure+
+              (fixture.to_measure-fixture.from_measure)*fixture.fraction
+          ) is distinct from 0::numeric
+  ) then
+    raise exception '#97 typed WVDOT runtime dispatch did not normalize the builder expression';
+  end if;
+  if not private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+       'WV:WVDOT:SEGMENT:TYPED_RUNTIME',
+       0.14300003076286521::double precision,0::numeric,0.143::numeric
+     )
+     or private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+       'WV:WVDOT:SEGMENT:TYPED_RUNTIME',
+       0.1430001000001::double precision,0::numeric,0.143::numeric
+     )
+     or private_verification.brinesearch_issue97_wvdot_name_measure_contains(
+       'PA:PENNDOT:SEGMENT:TYPED_RUNTIME',
+       0.14300003::double precision,0::numeric,0.143::numeric
+     ) then
+    raise exception '#97 typed WVDOT runtime containment escaped its source/bound';
+  end if;
+
   -- `refresh_scope` is operational only for machine exact mappings. Every
   -- substantive evidence/road change and every manual evidence change remains
   -- fail-closed under graph-semantic v2.

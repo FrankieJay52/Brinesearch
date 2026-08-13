@@ -16,6 +16,9 @@ const scoped = read(
 const wvdot = read(
   "supabase/migrations/20260812046800_issue97_wvdot_endpoint_measure_precision.sql"
 );
+const wvdotRuntime = read(
+  "supabase/migrations/20260813203050_issue97_wvdot_measure_runtime_dispatch.sql"
+);
 const noble = read(
   "supabase/migrations/20260813101230_issue97_noble_graph_mapping_semantic_upgrade.sql"
 );
@@ -104,6 +107,43 @@ forbid(wvdot, "update public.brinesearch_authoritative_road", "authoritative sou
 forbid(wvdot, "insert into public.brinesearch_road_junctions", "junction topology creation");
 
 for (const token of [
+  "brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)",
+  "brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)",
+  "p_raw_measure::numeric",
+  "p_source_measure::numeric",
+  "pg_typeof(",
+  "'double precision'::pg_catalog.regtype",
+  "v_normalize_call_count<>7",
+  "v_contains_call_count<>3",
+  "zero OHI builds, and zero staging builds",
+  "pg_advisory_xact_lock(",
+  "proc.provolatile='i'",
+  "not proc.prosecdef",
+  "proc.proconfig @> array['search_path=\"\"']",
+  "has_function_privilege(v_role,v_signature,'EXECUTE')",
+  "v_builder_definition_after is distinct from",
+  "Issue #97 runtime-dispatch repair changed builder, graph, staging, or cutover state",
+]) need(wvdotRuntime, token);
+for (const token of [
+  "insert into public.",
+  "update public.",
+  "delete from public.",
+  "create or replace function public.brinesearch_issue97_rebuild_county_graph",
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+]) forbid(wvdotRuntime.toLowerCase(), token.toLowerCase(), `runtime-dispatch repair ${token}`);
+assert.match(
+  wvdotRuntime,
+  /revoke all on function private_verification\.brinesearch_issue97_normalize_wvdot_membership_measure\(text,double precision\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Issue #97 float8 normalizer overload must remain private"
+);
+assert.match(
+  wvdotRuntime,
+  /revoke all on function private_verification\.brinesearch_issue97_wvdot_name_measure_contains\(text,double precision,numeric,numeric\)[\s\S]*from public,anon,authenticated,service_role;/,
+  "Issue #97 float8 containment overload must remain private"
+);
+
+for (const token of [
   "brinesearch:issue97:graph:OH:NOB",
   "pre_washington_refresh_scope_guard",
   "v_build.source_revision_digest is distinct from '89af7128d56bbc4ef3733436d0813823'",
@@ -152,6 +192,9 @@ for (const token of [
   "WVDOT Outside Bound Alias",
   "WVDOT Stacked Bound Alias",
   "raw_source_measure",
+  "issue97_typed_runtime_measure",
+  "#97 typed WVDOT runtime dispatch did not normalize the builder expression",
+  "#97 typed WVDOT runtime containment escaped its source/bound",
 ]) need(synthetic, token);
 for (const token of [
   "Thrush exact connected-identity set changed",
@@ -166,7 +209,10 @@ for (const signature of [
   "brinesearch_issue97_graph_mapping_fingerprint_v2(uuid)",
   "brinesearch_issue97_refresh_exact_mappings_non_oh(text,text)",
   "brinesearch_issue97_normalize_wvdot_membership_measure(text,numeric)",
+  "brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)",
   "brinesearch_issue97_wvdot_name_measure_contains(text,numeric,numeric,numeric)",
+  "brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)",
+  "#97 WVDOT runtime overload metadata changed",
 ]) need(security, signature);
 
 assert.equal(
