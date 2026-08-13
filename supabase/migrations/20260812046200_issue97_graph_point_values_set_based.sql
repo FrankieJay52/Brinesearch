@@ -136,9 +136,10 @@ begin
   left join tmp_issue97_identity_segment_counts sc on sc.identity_id=b.identity_id;
   $new$;
 
-  v_definition := pg_catalog.overlay(
-    v_definition placing v_new_block from v_start_pos for (v_end_pos-v_start_pos+1)
-  );
+  -- Avoid special OVERLAY grammar so the replacement remains valid PL/pgSQL.
+  v_definition := pg_catalog.substr(v_definition,1,v_start_pos-1)
+    || v_new_block
+    || pg_catalog.substr(v_definition,v_end_pos+1);
   execute v_definition;
 end
 $issue97_patch_point_values_set_based_v2$;
