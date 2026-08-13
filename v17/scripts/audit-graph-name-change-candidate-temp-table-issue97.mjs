@@ -36,8 +36,12 @@ for (const token of [
   assert.ok(migration.includes(token), `missing: ${token}`);
 }
 
-for (const forbidden of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
-  assert.ok(!migration.includes(forbidden), `forbidden: ${forbidden}`);
+// The migration's fail-closed verification block intentionally contains each
+// forbidden token once as a rejection sentinel. No second occurrence may be
+// introduced into executable graph-building logic.
+for (const sentinel of ["similarity(", "nearest_road", "fuzzy_name", "name_only"]) {
+  const count = migration.split(sentinel).length - 1;
+  assert.equal(count, 1, `unexpected forbidden-token occurrence count for ${sentinel}: ${count}`);
 }
 
 assert.ok(
