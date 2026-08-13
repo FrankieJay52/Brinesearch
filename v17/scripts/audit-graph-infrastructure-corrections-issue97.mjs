@@ -19,6 +19,9 @@ const wvdot = read(
 const wvdotRuntime = read(
   "supabase/migrations/20260813203050_issue97_wvdot_measure_runtime_dispatch.sql"
 );
+const wvdotProvenance = read(
+  "supabase/migrations/20260813213500_issue97_wvdot_measure_provenance_type_stability.sql"
+);
 const noble = read(
   "supabase/migrations/20260813101230_issue97_noble_graph_mapping_semantic_upgrade.sql"
 );
@@ -26,6 +29,10 @@ const synthetic = read("supabase/tests/issue97_road_junction_graph_synthetic.sql
 const live = read("supabase/tests/issue97_required_live_cases.sql");
 const security = read("supabase/tests/issue97_schema_security.sql");
 const pkg = JSON.parse(read("package.json"));
+const wvdotProvenanceBuilderPatch = wvdotProvenance.slice(
+  wvdotProvenance.indexOf("do $issue97_patch_wvdot_graph_provenance$"),
+  wvdotProvenance.indexOf("do $issue97_reject_audited_ohi_generation$")
+);
 
 const need = (source, token, message = token) =>
   assert.ok(source.includes(token), `Issue #97 infrastructure audit missing ${message}`);
@@ -137,6 +144,66 @@ assert.match(
   /revoke all on function private_verification\.brinesearch_issue97_normalize_wvdot_membership_measure\(text,double precision\)[\s\S]*from public,anon,authenticated,service_role;/,
   "Issue #97 float8 normalizer overload must remain private"
 );
+
+for (const token of [
+  "v.raw_source_measure::numeric is distinct from v.source_measure",
+  "n.source_measure::numeric is distinct from",
+  "WVDOT raw comparison anchors changed",
+  "WVDOT name comparison anchor changed",
+  "Freeze every registered county build lane",
+  "tmp_issue97_shared_segment_coverage",
+  "tmp_issue97_shared_segment_coverage_key_idx",
+  "extensions.st_snaptogrid(seg.geom,0.0000001)",
+  "extensions.st_coveredby(",
+  "choice_rank",
+  "source_segment_keys_by_identity",
+  "exact_canonical_grid_line_intersection",
+  "shared source coverage does not span a final card",
+  "shared provenance map, choice, or hold contract failed",
+  "join tmp_issue97_shared_values expected",
+  "membership.source_measure is distinct from expected.source_measure",
+  "expected.source_measure_conflict",
+  "WVDOT normalization flag disagrees with persisted measures",
+  "source_measure_conflict_bound_miles",
+  "39ca43fc16878fa7d6c2b70f4c6a48d3",
+  "6573d51a-700a-458c-9d6e-c0d22c0e4201",
+  "status='rejected'",
+  "replacement_required",
+  "Issue #97 provenance repair changed builder metadata or ACL",
+  "Issue #97 provenance repair changed graph data/cutover beyond guarded rejection",
+  "'double precision'::pg_catalog.regtype",
+  "(-0.000000027168425731360912)::double precision",
+]) need(wvdotProvenance, token);
+for (const token of [
+  "WV:TEST:SEG:SHARED_A_CONFLICT",
+  "fixture.measure_conflict",
+  "membership.source_measure is not null",
+  "membership.distance_along_road_m is not null",
+]) need(synthetic, token, `shared conflict fixture ${token}`);
+assert.equal(
+  wvdotProvenance.split("update public.brinesearch_road_graph_builds").length - 1,
+  1,
+  "Issue #97 provenance migration may reject only one guarded graph build"
+);
+assert.equal(
+  wvdotProvenance.split("update public.brinesearch_road_junctions junction set").length - 1,
+  1,
+  "Issue #97 builder text must materialize shared conflict state exactly once"
+);
+for (const token of [
+  "update public.brinesearch_road_junction_memberships",
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+]) forbid(wvdotProvenance.toLowerCase(), token.toLowerCase(), `provenance repair ${token}`);
+for (const token of [
+  "c.fraction::numeric",
+  "choice.fraction::numeric",
+]) forbid(wvdotProvenanceBuilderPatch, token, `provenance builder patch ${token}`);
+forbid(
+  wvdotProvenance,
+  "wvdot_raw_endpoint_precision_loss",
+  "unsupported raw endpoint rejection reason"
+);
 assert.match(
   wvdotRuntime,
   /revoke all on function private_verification\.brinesearch_issue97_wvdot_name_measure_contains\(text,double precision,numeric,numeric\)[\s\S]*from public,anon,authenticated,service_role;/,
@@ -195,6 +262,14 @@ for (const token of [
   "issue97_typed_runtime_measure",
   "#97 typed WVDOT runtime dispatch did not normalize the builder expression",
   "#97 typed WVDOT runtime containment escaped its source/bound",
+  "#97 WVDOT normalization provenance flag disagrees with persisted measures",
+  "WV:TEST:SEG:SHARED_A_2",
+  "WV:TEST:SEG:SHARED_B_2",
+  "39.90000001",
+  "39.90500001",
+  "#97 off-grid/component-scoped shared provenance failed",
+  "source_segment_keys_by_identity",
+  "chosen_source_segment_key",
 ]) need(synthetic, token);
 for (const token of [
   "Thrush exact connected-identity set changed",
@@ -204,6 +279,8 @@ for (const token of [
   "Thrush upper endpoint alias/provenance precision regression failed",
   "WV:WVDOT:SEGMENT:1774131",
   "WV:WVDOT:SEGMENT:1861464",
+  "#97 active WVDOT normalization flag disagrees with persisted measures",
+  "#97 active shared exact-coverage provenance is incomplete",
 ]) need(live, token);
 for (const signature of [
   "brinesearch_issue97_graph_mapping_fingerprint_v2(uuid)",

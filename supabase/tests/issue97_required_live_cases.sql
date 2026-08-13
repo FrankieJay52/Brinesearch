@@ -365,7 +365,7 @@ begin
       and i.source_identity_key='WV:WVDOT:ROUTE_ID:3501008000000'
       and m.source_measure=0 and m.distance_along_road_m=0
       and (m.approach_data->>'raw_source_measure')::numeric
-        =(-0.000000027168425731360912)::numeric
+        =((-0.000000027168425731360912)::double precision)::numeric
       and m.approach_data->>'source_measure_normalized'='true'
       and (m.approach_data->>'endpoint_measure_normalization_bound_miles')::numeric
         =0.0000001::numeric
@@ -834,6 +834,145 @@ begin
     where not exists(select 1 from public.brinesearch_authoritative_road_segments s
       where s.source_segment_key=source_segment_key and s.identity_id=m.identity_id and s.active)) then
     raise exception '#97 an active membership source segment does not resolve to its exact identity';
+  end if;
+  if exists(
+    select 1
+    from public.brinesearch_road_junction_memberships membership
+    join public.brinesearch_road_junctions junction
+      on junction.id=membership.junction_id
+    join public.brinesearch_road_graph_builds build
+      on build.id=junction.build_id and build.status='active'
+    where membership.approach_data ? 'raw_source_measure'
+      and (
+        membership.approach_data->>'source_measure_normalized'
+      )::boolean is distinct from (
+        (membership.approach_data->>'raw_source_measure')::numeric
+          is distinct from membership.source_measure
+      )
+  ) then
+    raise exception '#97 active WVDOT normalization flag disagrees with persisted measures';
+  end if;
+  if exists(
+    select 1
+    from public.brinesearch_road_junctions junction
+    join public.brinesearch_road_graph_builds build
+      on build.id=junction.build_id and build.status='active'
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    where junction.junction_type='shared_segment'
+      and (
+        pg_catalog.jsonb_typeof(
+          junction.source_provenance->'source_segment_keys_by_identity'
+        ) is distinct from 'object'
+        or (
+          select array_agg(map_key.key order by map_key.key)
+          from pg_catalog.jsonb_object_keys(
+            junction.source_provenance->'source_segment_keys_by_identity'
+          ) map_key(key)
+        ) is distinct from (
+          select array_agg(expected.identity_id::text order by expected.identity_id::text)
+          from public.brinesearch_road_junction_memberships expected
+          where expected.junction_id=junction.id
+        )
+        or junction.source_provenance->'source_segment_keys_by_identity'
+             ->membership.identity_id::text
+           is distinct from pg_catalog.to_jsonb(membership.source_segment_keys)
+        or pg_catalog.cardinality(membership.source_segment_keys)=0
+        or exists(
+          select 1
+          from unnest(membership.source_segment_keys) source_key(value)
+          where not exists(
+            select 1
+            from public.brinesearch_authoritative_road_segments segment
+            where segment.identity_id=membership.identity_id
+              and segment.source_segment_key=source_key.value
+              and segment.active
+              and extensions.st_length(
+                extensions.st_collectionextract(extensions.st_intersection(
+                  extensions.st_snaptogrid(segment.geom,0.0000001),
+                  junction.geom
+                ),2)::extensions.geography
+              )>0.02
+          )
+        )
+        or (
+          nullif(
+            membership.approach_data->>'chosen_source_segment_key',''
+          ) is null
+          and not coalesce(
+            (membership.approach_data->>'source_measure_conflict')::boolean,
+            false
+          )
+        )
+        or (
+          nullif(
+            membership.approach_data->>'chosen_source_segment_key',''
+          ) is not null
+          and not (
+            membership.approach_data->>'chosen_source_segment_key'
+              =any(membership.source_segment_keys)
+          )
+        )
+        or (
+          nullif(
+            membership.approach_data->>'chosen_source_segment_key',''
+          ) is not null
+          and not exists(
+          select 1
+          from public.brinesearch_authoritative_road_segments chosen
+          where chosen.identity_id=membership.identity_id
+            and chosen.source_segment_key=
+              membership.approach_data->>'chosen_source_segment_key'
+            and chosen.active
+            and extensions.st_coveredby(
+              extensions.st_startpoint(extensions.st_linemerge(junction.geom)),
+              extensions.st_snaptogrid(chosen.geom,0.0000001)
+            )
+          )
+        )
+        or (
+          coalesce(
+            (membership.approach_data->>'source_measure_conflict')::boolean,
+            false
+          )
+          and (
+            junction.verification_status<>'held'
+            or nullif(
+              membership.approach_data->>'chosen_source_segment_key',''
+            ) is not null
+            or membership.source_measure is not null
+            or membership.distance_along_road_m is not null
+            or membership.approach_data->>'measure_method'<>'ambiguous'
+          )
+        )
+        or coalesce((
+          select extensions.st_length(
+            extensions.st_collectionextract(extensions.st_unaryunion(
+              extensions.st_collect(extensions.st_collectionextract(
+                extensions.st_intersection(
+                  extensions.st_snaptogrid(segment.geom,0.0000001),
+                  junction.geom
+                ),2
+              ))
+            ),2)::extensions.geography
+          )
+          from public.brinesearch_authoritative_road_segments segment
+          where segment.identity_id=membership.identity_id
+            and segment.source_segment_key=any(membership.source_segment_keys)
+            and segment.active
+        ),0)<extensions.st_length(junction.geom::extensions.geography)-0.01
+        or (
+          membership.approach_data->>'measure_method'
+            ='authoritative_linear_measure'
+          and (
+            membership.source_measure is null
+            or membership.distance_along_road_m
+                 is distinct from membership.source_measure*1609.344
+          )
+        )
+      )
+  ) then
+    raise exception '#97 active shared exact-coverage provenance is incomplete';
   end if;
   if exists(select 1 from public.brinesearch_road_junctions j
     join public.brinesearch_road_graph_builds b on b.id=j.build_id and b.status='active'

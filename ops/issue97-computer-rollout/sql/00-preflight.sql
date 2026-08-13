@@ -159,6 +159,23 @@ with required_scopes as (
       'WV:WVDOT:SEGMENT:preflight',
       0.1430001000001::double precision,0::numeric,0.143::numeric
     ) as typed_calls_pass
+), builder_contract as (
+  select
+    pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
+      ='39ca43fc16878fa7d6c2b70f4c6a48d3'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%tmp_issue97_shared_segment_coverage%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%exact_canonical_grid_line_intersection%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%v.raw_source_measure::numeric is distinct from v.source_measure%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%n.source_measure::numeric is distinct from%'
+    and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+      as provenance_ready
+  from pg_catalog.pg_proc proc
+  where proc.oid=
+    'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
 )
 select
   not public.brinesearch_issue97_cutover_active() as cutover_off,
@@ -170,6 +187,7 @@ select
   active_build_sessions.session_count as active_build_sessions,
   wvdot_runtime_summary.helpers_ready as wvdot_float8_helpers_ready,
   wvdot_runtime_summary.typed_calls_pass as wvdot_float8_typed_calls_pass,
+  builder_contract.provenance_ready as builder_provenance_ready,
   pg_catalog.has_function_privilege(
     current_user,'public.brinesearch_issue97_rebuild_county_graph(text,text)','EXECUTE'
   ) as can_execute_builder,
@@ -177,7 +195,7 @@ select
     current_user,'public.brinesearch_issue97_activate_graph_build(uuid,text,jsonb)','EXECUTE'
   ) as can_execute_activation
 from graph_summary,source_summary,frozen_summary,policy_summary,active_build_sessions,
-  wvdot_runtime_summary;
+  wvdot_runtime_summary,builder_contract;
 
 with required_scopes as (
   select scope.dataset_id,scope.state_code,scope.county_code
@@ -310,6 +328,23 @@ with required_scopes as (
     ) as wvdot_float8_runtime,
     exists(
       select 1
+      from pg_catalog.pg_proc proc
+      where proc.oid=
+        'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
+        and pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
+          ='39ca43fc16878fa7d6c2b70f4c6a48d3'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%tmp_issue97_shared_segment_coverage%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%exact_canonical_grid_line_intersection%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%v.raw_source_measure::numeric is distinct from v.source_measure%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%n.source_measure::numeric is distinct from%'
+        and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+    ) as builder_provenance_contract,
+    exists(
+      select 1
       from pg_catalog.pg_policy policy
       join pg_catalog.pg_depend dependency
         on dependency.classid='pg_catalog.pg_policy'::pg_catalog.regclass
@@ -337,7 +372,8 @@ from checks
 cross join lateral (values
   (cutover_off),(source_scope_count_exact),(all_sources_current),(graph_footprint_exact),
   (no_staging_builds),(frozen_counties_current),(no_active_build_session),
-  (builder_acl),(google_predicate_acl),(wvdot_float8_runtime),(dispatcher_policy)
+  (builder_acl),(google_predicate_acl),(wvdot_float8_runtime),
+  (builder_provenance_contract),(dispatcher_policy)
 ) gate(value)
 \gset issue97_
 
@@ -345,8 +381,11 @@ cross join lateral (values
   \echo 'Issue #97 computer preflight: PASS'
 \else
   \echo 'Issue #97 computer preflight: FAIL — no write was attempted'
-  rollback;
-  \quit 3
+  do $issue97_preflight_failed$
+  begin
+    raise exception 'Issue #97 computer preflight failed; no write was attempted';
+  end
+  $issue97_preflight_failed$;
 \endif
 
 commit;

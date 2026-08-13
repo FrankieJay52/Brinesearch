@@ -73,6 +73,14 @@ for (const token of ["eval ", "SUPABASE_DB_PASSWORD", "--command="])
 for (const source of [preflight, verify, status, ohi, report])
   need(source, "begin read only", "read-only transaction");
 for (const source of [build, directions]) need(source, "\\set ON_ERROR_STOP on");
+for (const source of [preflight, build, verify, directions])
+  forbid(source, "\\quit", "psql quit-code gate (PostgreSQL 17 ignores its argument)");
+for (const [source, token] of [
+  [preflight, "Issue #97 computer preflight failed; no write was attempted"],
+  [build, "Issue #97 county build gate failed"],
+  [verify, "Issue #97 county validated-dark verification failed"],
+  [directions, "Issue #97 dark directions gate failed"],
+]) need(source, token, `fail-closed SQL exception ${token}`);
 for (const token of [
   "brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)",
   "brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)",
@@ -85,7 +93,27 @@ for (const token of [
   "proc.provolatile='i'",
   "not proc.prosecdef",
   "proc.proconfig @> array['search_path=\"\"']",
+  "builder_provenance_ready",
+  "builder_provenance_contract",
+  "39ca43fc16878fa7d6c2b70f4c6a48d3",
+  "tmp_issue97_shared_segment_coverage",
+  "exact_canonical_grid_line_intersection",
+  "not like '%fraction::numeric%'",
 ]) need(preflight, token, `WVDOT runtime preflight ${token}`);
+
+for (const token of [
+  "provenance_integrity",
+  "Validated graph measure/shared provenance integrity failed",
+  "source_segment_keys_by_identity",
+  "source_measure_normalized",
+  "source_measure_conflict",
+  "extensions.st_coveredby(",
+  "shared_ranked as materialized",
+  "choice_rank",
+  "expected_chosen_segment_key",
+  "expected_raw_source_measure",
+]) need(verify, token, `county provenance verification ${token}`);
+need(ohi, "\\ir 11-verify-county.sql", "OHI must run the exact county provenance verifier");
 
 assert.equal(
   count(build, "public.brinesearch_issue97_rebuild_county_graph("),
@@ -141,10 +169,27 @@ for (const token of [
   "wv_wvdot_street_name_sams",
   "wv_wvdot_alternate_route_name",
   "'t_junction'::text",
+  "'exact_authoritative_endpoint_on_interior'::text",
+  "'exact_authoritative_source_vertex'::text",
+  "expected(lng,lat,expected_type,expected_method,expected_keys)",
+  "fixture.expected_method",
+  "topology_supported",
   "membership.distance_along_road_m-membership.source_measure*1609.344",
   "fuzzy_matching_used",
   "chosen_source_segment_key",
+  "exactly one inactive validated candidate and no active/staging generation",
+  "\\ir 11-verify-county.sql",
 ]) need(ohi, token);
+forbid(
+  ohi,
+  "OHI must have exactly one graph build at this checkpoint",
+  "stale one-total-build history gate"
+);
+forbid(
+  ohi,
+  "junction.source_method<>'exact_authoritative_source_vertex'",
+  "stale all-source-vertex Thrush proof assertion"
+);
 assert.ok(
   count(ohi, "junction.verification_status='verified'") >= 7,
   "Issue #97 positive Thrush assertions must exclude held junctions"

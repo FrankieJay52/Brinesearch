@@ -27,7 +27,10 @@ select
     as no_staging_build,
   not exists(
     select 1 from pg_catalog.pg_stat_activity activity
-    where activity.pid<>pg_catalog.pg_backend_pid() and activity.state='active'
+    where activity.pid<>pg_catalog.pg_backend_pid()
+      and activity.state in (
+        'active','idle in transaction','idle in transaction (aborted)'
+      )
       and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
   ) as no_other_builder
 \gset issue97_gate_
@@ -35,32 +38,44 @@ select
 \if :issue97_gate_footprint_ok
 \else
   \echo 'Unknown/inactive graph county; refusing build'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 \if :issue97_gate_not_frozen_scope
 \else
   \echo 'BEL/JEF/NOB are frozen; refusing rebuild'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 \if :issue97_gate_no_current_build
 \else
   \echo 'A current active/validated graph already exists; refusing duplicate build'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 \if :issue97_gate_cutover_off
 \else
   \echo 'Global #97 cutover is active; refusing build'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 \if :issue97_gate_no_staging_build
 \else
   \echo 'A staging graph exists; refusing build'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 \if :issue97_gate_no_other_builder
 \else
   \echo 'Another county rebuild is active; refusing build'
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 county build gate failed';
+  end $issue97_build_gate_failed$;
 \endif
 
 begin;
@@ -82,8 +97,9 @@ select not public.brinesearch_issue97_cutover_active()
 \if :issue97_gate_build_guard_ready
 \else
   \echo 'Transactional build guard failed; rolling back without a build'
-  rollback;
-  \quit 3
+  do $issue97_build_gate_failed$ begin
+    raise exception 'Issue #97 transactional county build guard failed';
+  end $issue97_build_gate_failed$;
 \endif
 select public.brinesearch_issue97_rebuild_county_graph(
   :'issue97_scope_state_code',:'issue97_scope_county_code'
@@ -104,7 +120,9 @@ select not public.brinesearch_issue97_cutover_active()
 \if :issue97_postbuild_pass
 \else
   \echo 'Post-build production state is not one validated/current dark graph'
-  \quit 4
+  do $issue97_build_postcheck_failed$ begin
+    raise exception 'Issue #97 county build postcheck failed';
+  end $issue97_build_postcheck_failed$;
 \endif
 
 \echo 'Validated dark-build result:'

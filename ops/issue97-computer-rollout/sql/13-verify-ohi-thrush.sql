@@ -2,6 +2,13 @@
 \pset pager off
 \timing on
 
+-- The county verifier independently reconstructs every shared-card source
+-- candidate, conflict decision, deterministic rank-1 choice and measure before
+-- this OHI-specific fixture audit begins.
+\set issue97_state WV
+\set issue97_county OHI
+\ir 11-verify-county.sql
+
 begin read only;
 set local statement_timeout='5min';
 
@@ -19,8 +26,14 @@ begin
     raise exception 'Issue #97 global cutover must remain off';
   end if;
   if (select count(*) from public.brinesearch_road_graph_builds
-      where state_code='WV' and county_code='OHI')<>1 then
-    raise exception 'OHI must have exactly one graph build at this checkpoint';
+      where state_code='WV' and county_code='OHI'
+        and status='validated' and activated_at is null)<>1
+     or exists(
+       select 1 from public.brinesearch_road_graph_builds
+       where state_code='WV' and county_code='OHI'
+         and (status in ('staging','active') or activated_at is not null)
+     ) then
+    raise exception 'OHI must have exactly one inactive validated candidate and no active/staging generation';
   end if;
   select build.id into strict v_build
   from public.brinesearch_road_graph_builds build
@@ -69,18 +82,22 @@ begin
 
   for fixture in select * from (values
     (-80.7132635::numeric,40.0836389::numeric,'t_junction'::text,
+      'exact_authoritative_endpoint_on_interior'::text,
       array['WV:WVDOT:ROUTE_ID:3500895000000','WV:WVDOT:ROUTE_ID:3578278001900']::text[]),
     (-80.7132025::numeric,40.0841629::numeric,'t_junction'::text,
+      'exact_authoritative_endpoint_on_interior'::text,
       array['WV:WVDOT:ROUTE_ID:3500329000000','WV:WVDOT:ROUTE_ID:3500895000000']::text[]),
     (-80.7127235::numeric,40.0848739::numeric,'t_junction'::text,
+      'exact_authoritative_endpoint_on_interior'::text,
       array['WV:WVDOT:ROUTE_ID:3500895000000','WV:WVDOT:ROUTE_ID:3501102000000']::text[]),
     (-80.7129895::numeric,40.0855589::numeric,'multiway'::text,
+      'exact_authoritative_source_vertex'::text,
       array[
         'WV:WVDOT:ROUTE_ID:3500272000000',
         'WV:WVDOT:ROUTE_ID:3500895000000',
         'WV:WVDOT:ROUTE_ID:3501008000000'
       ]::text[])
-  ) expected(lng,lat,expected_type,expected_keys)
+  ) expected(lng,lat,expected_type,expected_method,expected_keys)
   loop
     select junction.id into strict v_junction
     from public.brinesearch_road_junctions junction
@@ -106,6 +123,11 @@ begin
          is distinct from fixture.expected_type then
       raise exception 'Thrush junction type changed at %, %; expected %',
         fixture.lng,fixture.lat,fixture.expected_type;
+    end if;
+    if (select source_method from public.brinesearch_road_junctions where id=v_junction)
+         is distinct from fixture.expected_method then
+      raise exception 'Thrush source proof changed at %, %; expected %',
+        fixture.lng,fixture.lat,fixture.expected_method;
     end if;
     if fixture.expected_type<>'multiway' and (
       select count(*) from public.brinesearch_road_junction_memberships
@@ -149,8 +171,14 @@ begin
       and junction.verification_status='verified'
       and (
         junction.junction_type in ('shared_segment','name_change')
-        or junction.source_method<>'exact_authoritative_source_vertex'
+        or junction.source_method not in (
+          'exact_authoritative_source_vertex',
+          'exact_authoritative_endpoint_on_interior'
+        )
         or coalesce((junction.source_provenance->>'grade_conflict')::boolean,false)
+        or not coalesce(
+          (junction.source_provenance->>'topology_supported')::boolean,false
+        )
         or coalesce(
           (junction.source_provenance->>'name_matching_used_for_topology')::boolean,false
         )
@@ -162,7 +190,7 @@ begin
         or membership.distance_along_road_m<0
       )
   ) then
-    raise exception 'Thrush admitted a held/name/shared/grade connection or lost exact provenance';
+    raise exception 'Thrush admitted a non-exact/held/name/shared/grade connection or lost exact provenance';
   end if;
 
   if exists(
@@ -288,7 +316,7 @@ begin
       and identity.source_identity_key='WV:WVDOT:ROUTE_ID:3501008000000'
       and membership.source_measure=0 and membership.distance_along_road_m=0
       and (membership.approach_data->>'raw_source_measure')::numeric
-        =(-0.000000027168425731360912)::numeric
+        =((-0.000000027168425731360912)::double precision)::numeric
       and membership.approach_data->>'source_measure_normalized'='true'
       and (membership.approach_data->>'endpoint_measure_normalization_bound_miles')::numeric
         =0.0000001::numeric
@@ -341,7 +369,8 @@ select build.id as validated_build_id,build.graph_digest,
   private_verification.brinesearch_issue97_graph_build_sources_current(build.id)
     as sources_current
 from public.brinesearch_road_graph_builds build
-where build.state_code='WV' and build.county_code='OHI';
+where build.state_code='WV' and build.county_code='OHI'
+  and build.status='validated' and build.activated_at is null;
 
 select pg_catalog.round(extensions.st_x(junction.geom)::numeric,7) as longitude,
   pg_catalog.round(extensions.st_y(junction.geom)::numeric,7) as latitude,

@@ -42,7 +42,7 @@ as $$
     'query_url','https://fixture.invalid/issue97/'||p_source_key||'/'||p_county_code,
     'source_version','synthetic-v1','object_id_field','OBJECTID',
     'expected_source_rows',case when d.topology_role='primary_network'
-      then case p_county_code when 'DOD' then 19 when 'HAR' then 1 else 0 end else 0 end,
+      then case p_county_code when 'DOD' then 22 when 'HAR' then 1 else 0 end else 0 end,
     'object_id_set_digest',pg_catalog.md5('ids:'||p_source_key||':'||p_county_code),
     'source_revision_token',pg_catalog.md5('revision:'||p_source_key||':'||p_county_code),
     'count_checked_at',pg_catalog.clock_timestamp()
@@ -192,8 +192,11 @@ with segment_rows(segment_key,identity_key,county_code,county_name,access_status
     ('WV:TEST:SEG:MULTI_A','WV:TEST:MULTI_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.880,-81.095 39.880,-81.090 39.880)'),
     ('WV:TEST:SEG:MULTI_B','WV:TEST:MULTI_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.095 39.875,-81.095 39.880)'),
     ('WV:TEST:SEG:MULTI_C','WV:TEST:MULTI_C','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.885,-81.095 39.880)'),
-    ('WV:TEST:SEG:SHARED_A','WV:TEST:SHARED_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.900,-81.095 39.900,-81.090 39.900)'),
-    ('WV:TEST:SEG:SHARED_B','WV:TEST:SHARED_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.900,-81.090 39.900)'),
+    ('WV:TEST:SEG:SHARED_A','WV:TEST:SHARED_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.90000001,-81.095 39.90000001,-81.090 39.90000001)'),
+    ('WV:TEST:SEG:SHARED_A_CONFLICT','WV:TEST:SHARED_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.90000001,-81.095 39.90000001,-81.090 39.90000001)'),
+    ('WV:TEST:SEG:SHARED_B','WV:TEST:SHARED_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.90000001,-81.090 39.90000001)'),
+    ('WV:TEST:SEG:SHARED_A_2','WV:TEST:SHARED_A','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.90500001,-81.095 39.90500001,-81.090 39.90500001)'),
+    ('WV:TEST:SEG:SHARED_B_2','WV:TEST:SHARED_B','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.90500001,-81.090 39.90500001)'),
     ('WV:TEST:SEG:PUBLIC','WV:TEST:PUBLIC','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.920,-81.095 39.920,-81.090 39.920)'),
     ('WV:TEST:SEG:PRIVATE','WV:TEST:PRIVATE','DOD','Doddridge','private','drivable',0,null,'LINESTRING(-81.095 39.920,-81.095 39.925)'),
     ('WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD','WV:TEST:BOUNDARY_DOD','DOD','Doddridge','public','drivable',0,null,'LINESTRING(-81.100 39.940,-81.095 39.940)'),
@@ -210,11 +213,21 @@ insert into public.brinesearch_authoritative_external_road_segments(
 select private_verification.brinesearch_issue97_uuid(s.segment_key),d.id,
   private_verification.brinesearch_issue97_uuid(s.identity_key),s.segment_key,s.segment_key,
   'WV',s.county_code,s.county_name,
-  case when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'
-    then -0.000000027168425731360912::numeric else 0::numeric end,
+  case
+    when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_HAR'
+      then -0.000000027168425731360912::numeric
+    when s.segment_key='WV:TEST:SEG:SHARED_A_CONFLICT'
+      then 1.0000005::numeric
+    else 0::numeric
+  end,
   extensions.st_length(extensions.st_geomfromtext(s.wkt,4326)::extensions.geography)/1609.344+
-    case when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD'
-      then 0.00000003::numeric else 0::numeric end,
+    case
+      when s.segment_key='WV:WVDOT:SEGMENT:SYNTH_BOUNDARY_DOD'
+        then 0.00000003::numeric
+      when s.segment_key='WV:TEST:SEG:SHARED_A_CONFLICT'
+        then 1.0000005::numeric
+      else 0::numeric
+    end,
   s.z_level,s.bridge_status,s.access_status,s.drivable_status,
   extensions.st_geomfromtext(s.wkt,4326),jsonb_build_object('synthetic_fixture',true),
   md5(s.segment_key||s.wkt),true,clock_timestamp()
@@ -401,6 +414,7 @@ declare
   v_har_evidence jsonb;
   v_manual_evidence jsonb;
   v_har_canonical_name text;
+  fixture record;
 begin
   v_activation:=public.brinesearch_issue97_activate_graph_build(v_build);
   if not coalesce((v_activation->>'activated')::boolean,false) then
@@ -473,7 +487,7 @@ begin
       and m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_HAR')
       and m.source_measure=0 and m.distance_along_road_m=0
       and (m.approach_data->>'raw_source_measure')::numeric
-        =(-0.000000027168425731360912)::numeric
+        =((-0.000000027168425731360912)::double precision)::numeric
       and m.approach_data->>'source_measure_normalized'='true'
       and 'WVDOT Lower Endpoint Alias'=any(m.aliases_at_junction)
       and not ('WVDOT Stacked Bound Alias'=any(m.aliases_at_junction))
@@ -488,8 +502,23 @@ begin
       and m.identity_id=private_verification.brinesearch_issue97_uuid('WV:TEST:BOUNDARY_DOD')
       and 'WVDOT Upper Endpoint Alias'=any(m.aliases_at_junction)
       and not ('WVDOT Outside Bound Alias'=any(m.aliases_at_junction))
+      and (m.approach_data->>'raw_source_measure')::numeric
+        is not distinct from m.source_measure
+      and m.approach_data->>'source_measure_normalized'='false'
   ) then
     raise exception '#97 WVDOT upper endpoint alias bound was too narrow or too broad';
+  end if;
+  if exists(
+    select 1
+    from public.brinesearch_road_junction_memberships m
+    join public.brinesearch_road_junctions j on j.id=m.junction_id
+    where j.build_id=v_build and m.approach_data ? 'raw_source_measure'
+      and (
+        (m.approach_data->>'source_measure_normalized')::boolean is distinct from
+          ((m.approach_data->>'raw_source_measure')::numeric is distinct from m.source_measure)
+      )
+  ) then
+    raise exception '#97 WVDOT normalization provenance flag disagrees with persisted measures';
   end if;
   if private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(
        'WV:WVDOT:SEGMENT:FAIL_CLOSED',-0.0000001000001
@@ -582,8 +611,8 @@ begin
     raise exception '#97 v2 graph currentness did not recover after exact restoration';
   end if;
 
-  if (select count(*) from public.brinesearch_road_junctions where build_id=v_build)<>8 then
-    raise exception '#97 synthetic expected 8 logical physical occurrences';
+  if (select count(*) from public.brinesearch_road_junctions where build_id=v_build)<>9 then
+    raise exception '#97 synthetic expected 9 logical physical occurrences';
   end if;
   if (select count(*) from public.brinesearch_road_junctions
       where build_id=v_build and verification_status='held' and source_provenance->>'grade_conflict'='true')<>1 then
@@ -605,20 +634,151 @@ begin
         and (select count(*) from public.brinesearch_road_junction_memberships m where m.junction_id=j.id)=3) then
     raise exception '#97 multiway regression failed';
   end if;
-  if not exists(select 1 from public.brinesearch_road_junctions j
-      where j.build_id=v_build and j.junction_type='shared_segment'
-        and extensions.st_dimension(j.geom)=1
-        and (select count(*) from public.brinesearch_road_junction_anchors a where a.junction_id=j.id)=2
+  for fixture in select * from (values
+    (
+      39.9000000::numeric,
+      array[
+        'WV:TEST:SEG:SHARED_A',
+        'WV:TEST:SEG:SHARED_A_CONFLICT'
+      ]::text[],
+      array['WV:TEST:SEG:SHARED_B']::text[],
+      true
+    ),
+    (
+      39.9050000::numeric,
+      array['WV:TEST:SEG:SHARED_A_2']::text[],
+      array['WV:TEST:SEG:SHARED_B_2']::text[],
+      false
+    )
+  ) expected(latitude,segment_a_keys,segment_b_keys,measure_conflict)
+  loop
+    if (
+      select count(*)
+      from public.brinesearch_road_junctions junction
+      where junction.build_id=v_build
+        and junction.junction_type='shared_segment'
+        and pg_catalog.round(extensions.st_y(
+          extensions.st_startpoint(extensions.st_linemerge(junction.geom))
+        )::numeric,7)=fixture.latitude
+    )<>1 then
+      raise exception '#97 disconnected off-grid shared card count changed at %',
+        fixture.latitude;
+    end if;
+
+    if not exists(
+      select 1
+      from public.brinesearch_road_junctions junction
+      where junction.build_id=v_build
+        and junction.junction_type='shared_segment'
+        and pg_catalog.round(extensions.st_y(
+          extensions.st_startpoint(extensions.st_linemerge(junction.geom))
+        )::numeric,7)=fixture.latitude
+        and extensions.st_dimension(junction.geom)=1
+        and (
+          select count(*)
+          from public.brinesearch_road_junction_anchors anchor
+          where anchor.junction_id=junction.id
+        )=2
+        and junction.source_provenance->'source_segment_keys_by_identity'
+          =pg_catalog.jsonb_build_object(
+            private_verification.brinesearch_issue97_uuid(
+              'WV:TEST:SHARED_A'
+            )::text,pg_catalog.to_jsonb(fixture.segment_a_keys),
+            private_verification.brinesearch_issue97_uuid(
+              'WV:TEST:SHARED_B'
+            )::text,pg_catalog.to_jsonb(fixture.segment_b_keys)
+          )
+        and (
+          select count(*)
+          from public.brinesearch_road_junction_memberships membership
+          where membership.junction_id=junction.id
+        )=2
         and not exists(
-          select 1 from public.brinesearch_road_junction_memberships m
-          where m.junction_id=j.id
+          select 1
+          from public.brinesearch_road_junction_memberships membership
+          where membership.junction_id=junction.id
             and (
-              m.approach_data ? 'endpoint_measure_normalization_bound_miles'
-              or m.approach_data ? 'raw_source_measure'
+              membership.source_segment_keys is distinct from
+                case membership.identity_id
+                  when private_verification.brinesearch_issue97_uuid(
+                    'WV:TEST:SHARED_A'
+                  ) then fixture.segment_a_keys
+                  when private_verification.brinesearch_issue97_uuid(
+                    'WV:TEST:SHARED_B'
+                  ) then fixture.segment_b_keys
+                  else '{}'::text[]
+                end
+              or case
+                when membership.identity_id=
+                  private_verification.brinesearch_issue97_uuid(
+                    'WV:TEST:SHARED_A'
+                  ) and fixture.measure_conflict then
+                  nullif(
+                    membership.approach_data->>'chosen_source_segment_key',''
+                  ) is not null
+                  or coalesce((
+                    membership.approach_data->>'source_measure_conflict'
+                  )::boolean,false) is distinct from true
+                  or membership.approach_data->>'measure_method'
+                       is distinct from 'ambiguous'
+                  or membership.source_measure is not null
+                  or membership.distance_along_road_m is not null
+                else
+                  membership.approach_data->>'chosen_source_segment_key'
+                    is distinct from membership.source_segment_keys[1]
+                  or coalesce((
+                    membership.approach_data->>'source_measure_conflict'
+                  )::boolean,false) is distinct from false
+                  or membership.approach_data->>'measure_method'
+                       is distinct from 'authoritative_linear_measure'
+                  or membership.source_measure is null
+                  or membership.distance_along_road_m
+                       is distinct from membership.source_measure*1609.344
+              end
+              or membership.approach_data ? 'endpoint_measure_normalization_bound_miles'
+              or membership.approach_data ? 'raw_source_measure'
+              or exists(
+                select 1
+                from unnest(membership.source_segment_keys) source_key(value)
+                where not exists(
+                  select 1
+                  from public.brinesearch_authoritative_road_segments segment
+                  where segment.identity_id=membership.identity_id
+                    and segment.source_segment_key=source_key.value
+                    and extensions.st_length(
+                      extensions.st_collectionextract(extensions.st_intersection(
+                        segment.geom,junction.geom
+                      ),2)::extensions.geography
+                    )=0
+                    and extensions.st_length(
+                      extensions.st_collectionextract(extensions.st_intersection(
+                        extensions.st_snaptogrid(segment.geom,0.0000001),
+                        junction.geom
+                      ),2)::extensions.geography
+                    )>=extensions.st_length(
+                      junction.geom::extensions.geography
+                    )-0.01
+                    and extensions.st_coveredby(
+                      extensions.st_startpoint(
+                        extensions.st_linemerge(junction.geom)
+                      ),
+                      extensions.st_snaptogrid(segment.geom,0.0000001)
+                    )
+                )
+              )
             )
-        )) then
-    raise exception '#97 different-vertexization shared section regression failed';
-  end if;
+        )
+        and coalesce((
+          junction.source_provenance->>'source_measure_conflict'
+        )::boolean,false) is not distinct from fixture.measure_conflict
+        and junction.verification_status is not distinct from case
+          when fixture.measure_conflict then 'held' else 'verified'
+        end
+    ) then
+      raise exception '#97 off-grid/component-scoped shared provenance failed at %',
+        fixture.latitude;
+    end if;
+  end loop;
   if exists(
     select 1 from public.brinesearch_road_junction_memberships m
     join public.brinesearch_road_junctions j on j.id=m.junction_id
@@ -632,8 +792,16 @@ begin
   end if;
   if exists(select 1 from public.brinesearch_road_junctions p
       where p.build_id=v_build and p.junction_type<>'shared_segment'
-        and extensions.st_dwithin(p.geom::extensions.geography,
-          extensions.st_geomfromtext('LINESTRING(-81.100 39.900,-81.090 39.900)',4326)::extensions.geography,0.05)) then
+        and (
+          extensions.st_dwithin(p.geom::extensions.geography,
+            extensions.st_geomfromtext(
+              'LINESTRING(-81.100 39.900,-81.090 39.900)',4326
+            )::extensions.geography,0.05)
+          or extensions.st_dwithin(p.geom::extensions.geography,
+            extensions.st_geomfromtext(
+              'LINESTRING(-81.100 39.905,-81.090 39.905)',4326
+            )::extensions.geography,0.05)
+        )) then
     raise exception '#97 shared section emitted duplicate point cards';
   end if;
   if not exists(select 1 from public.brinesearch_road_junctions j

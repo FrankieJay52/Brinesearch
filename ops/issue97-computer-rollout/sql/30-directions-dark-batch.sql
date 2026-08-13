@@ -42,22 +42,30 @@ select
 \if :issue97_gate_cutover_off
 \else
   \echo 'Global cutover must remain off for dark direction preparation'
-  \quit 3
+  do $issue97_directions_gate_failed$ begin
+    raise exception 'Issue #97 dark directions gate failed';
+  end $issue97_directions_gate_failed$;
 \endif
 \if :issue97_gate_all_sources_current
 \else
   \echo 'All 114 source scopes must be current'
-  \quit 3
+  do $issue97_directions_gate_failed$ begin
+    raise exception 'Issue #97 dark directions gate failed';
+  end $issue97_directions_gate_failed$;
 \endif
 \if :issue97_gate_all_graphs_active_current
 \else
   \echo 'All 39 county graphs must be active and source-current'
-  \quit 3
+  do $issue97_directions_gate_failed$ begin
+    raise exception 'Issue #97 dark directions gate failed';
+  end $issue97_directions_gate_failed$;
 \endif
 \if :issue97_gate_no_staging_build
 \else
   \echo 'A staging graph exists; refusing directions batch'
-  \quit 3
+  do $issue97_directions_gate_failed$ begin
+    raise exception 'Issue #97 dark directions gate failed';
+  end $issue97_directions_gate_failed$;
 \endif
 
 begin;
@@ -90,7 +98,9 @@ select not public.brinesearch_issue97_cutover_active()
 \if :issue97_post_direction_pass
 \else
   \echo 'Post-direction cutover/staging state changed unexpectedly'
-  \quit 4
+  do $issue97_directions_postcheck_failed$ begin
+    raise exception 'Issue #97 dark directions postcheck failed';
+  end $issue97_directions_postcheck_failed$;
 \endif
 
 \echo 'Saved-road reconciliation:'
