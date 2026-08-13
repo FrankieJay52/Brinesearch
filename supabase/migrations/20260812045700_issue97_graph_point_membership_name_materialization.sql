@@ -120,25 +120,25 @@ begin
     return;
   end if;
 
-  v_point_values_pos := pg_catalog.position(
-    'create temporary table tmp_issue97_point_values on commit drop as' in v_definition
+  v_point_values_pos := pg_catalog.strpos(
+    v_definition,'create temporary table tmp_issue97_point_values on commit drop as'
   );
   if v_point_values_pos<1 then
     raise exception 'Issue #97 point-values anchor missing';
   end if;
 
-  v_point_insert_rel := pg_catalog.position(
+  v_point_insert_rel := pg_catalog.strpos(
+    pg_catalog.substr(v_definition,v_point_values_pos),
     'insert into public.brinesearch_road_junction_memberships('
-    in pg_catalog.substr(v_definition,v_point_values_pos)
   );
   if v_point_insert_rel<1 then
     raise exception 'Issue #97 point membership insert missing after point-values anchor';
   end if;
   v_point_insert_pos := v_point_values_pos+v_point_insert_rel-1;
 
-  v_shared_values_rel := pg_catalog.position(
+  v_shared_values_rel := pg_catalog.strpos(
+    pg_catalog.substr(v_definition,v_point_insert_pos),
     'create temporary table tmp_issue97_shared_values on commit drop as'
-    in pg_catalog.substr(v_definition,v_point_insert_pos)
   );
   if v_shared_values_rel<1 then
     raise exception 'Issue #97 shared-values boundary missing after point membership insert';
@@ -168,11 +168,11 @@ begin
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
   ) into v_definition;
 
-  v_materialized_pos := pg_catalog.position('tmp_issue97_point_membership_names' in v_definition);
-  v_shared_values_pos := pg_catalog.position('create temporary table tmp_issue97_shared_values on commit drop as' in v_definition);
-  v_shared_lateral_pos := pg_catalog.position(
+  v_materialized_pos := pg_catalog.strpos(v_definition,'tmp_issue97_point_membership_names');
+  v_shared_values_pos := pg_catalog.strpos(v_definition,'create temporary table tmp_issue97_shared_values on commit drop as');
+  v_shared_lateral_pos := pg_catalog.strpos(
+    pg_catalog.substr(v_definition,v_shared_values_pos),
     'coalesce(primary_name.road_name,i.display_name)'
-    in pg_catalog.substr(v_definition,v_shared_values_pos)
   );
 
   if v_materialized_pos<1
