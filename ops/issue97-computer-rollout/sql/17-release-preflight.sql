@@ -62,6 +62,20 @@ with required_scopes as (
     (select count(*) from private_verification.brinesearch_issue97_graph_release_generations where active)=1 as one_release_generation,
     private_verification.brinesearch_issue97_active_graph_release_generation()='issue97-release-20260814-r1' as release_generation_exact,
     private_verification.brinesearch_issue97_release_manifest_current() as exact_release_manifest_current,
+    (select source_content_contract='captured-run-content+authoritative-name+supplemental-map-v2'
+      from private_verification.brinesearch_issue97_graph_release_generations where active)
+      and pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_graph_name_input_digest(uuid)') is not null
+      and pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_graph_supplemental_input_digest(uuid)') is not null
+      as complete_graph_input_contract,
+    pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifests') is not null
+      and pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifest_members') is not null
+      and pg_catalog.to_regclass('private_verification.brinesearch_issue97_verification_reports') is not null
+      and pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_persist_release_manifest(text,text,text,jsonb)') is not null
+      and pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_verification_report_current(text)') is not null
+      and pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(text,uuid)') is not null
+      and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_release_manifests','SELECT')
+      and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_verification_reports','SELECT')
+      as release_evidence_infrastructure_ready,
     pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='7abd11f432c3e7b475b10d0817f5e8fc'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%independent_ogrip_endpoint_corroboration%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%create index tmp_issue97_segments_geog_idx%'
@@ -122,6 +136,14 @@ select * from checks
 \if :issue97_release_exact_release_manifest_current
 \else
   do $fail$ begin raise exception 'Issue #97 release preflight: exact county/source-scope manifest changed'; end $fail$;
+\endif
+\if :issue97_release_complete_graph_input_contract
+\else
+  do $fail$ begin raise exception 'Issue #97 release preflight: complete derived graph-input currentness contract is missing'; end $fail$;
+\endif
+\if :issue97_release_release_evidence_infrastructure_ready
+\else
+  do $fail$ begin raise exception 'Issue #97 release preflight: persisted private release manifests/reports are not installed safely'; end $fail$;
 \endif
 \if :issue97_release_builder_exact
 \else
