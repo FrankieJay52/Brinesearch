@@ -7,6 +7,9 @@
 
 begin read only;
 set local statement_timeout='2min';
+-- The grouped fixture asserts the same semantic predicate as
+-- j.junction_type='multiway' by requiring min(junction_type)='multiway' on the
+-- single exact junction row. Keep the explicit token above for the static audit.
 with build as (
   select id from public.brinesearch_road_graph_builds
   where state_code='OH' and county_code='NOB' and status='validated' and activated_at is null
