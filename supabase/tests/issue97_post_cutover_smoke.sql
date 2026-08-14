@@ -2,6 +2,7 @@
 -- This suite never authorizes cutover. It runs only after the irreversible
 -- release switch and proves the public Google projection/dispatcher remain
 -- bound to the exact immutable pre-cutover report and ready current receipts.
+-- Every non-list-only pad must be exactly ready or held; stale is forbidden.
 begin transaction read only;
 set local statement_timeout='15min';
 set local lock_timeout='5s';
