@@ -23,6 +23,7 @@ const shell = fs.readFileSync(shellPath, "utf8");
 const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
 const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const sharedRoute = read("supabase/migrations/20260814163250_issue97_shared_route_right_continuation_context.sql");
+const fixtureReceipts = read("supabase/migrations/20260814164250_issue97_database_bound_fixture_receipts.sql");
 const plan = read("ops/issue97-computer-rollout/sql/24-ohio-release-dark-plan.sql");
 const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate.sql");
 const belCanary = read("ops/issue97-computer-rollout/sql/26-verify-bel-concurrency-release.sql");
@@ -111,22 +112,24 @@ for (const token of [
 ]) need(starkCanary, token, `Stark scale canary ${token}`);
 
 for (const token of [
-  "expected exactly 19 final release migrations",
+  "expected exactly 20 final release migrations",
   "20260814074500_issue97_graph_builder_temp_geography_index.sql",
   "20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql",
   "20260814163250_issue97_shared_route_right_continuation_context.sql",
-  "20260814164200_issue97_post_cutover_report_integrity.sql",
+  "20260814164250_issue97_database_bound_fixture_receipts.sql",
   "set local statement_timeout='15min'",
   "set local lock_timeout='2min'",
   "begin;",
   "rollback;",
   "FINAL RELEASE MIGRATION CHAIN COMPILED AND VERIFIED INSIDE TRANSACTION",
   "production snapshot changed across rollback rehearsal",
-  "all 19 final #97 release migrations compiled/verified in one transaction",
+  "all 20 final #97 release migrations compiled/verified in one transaction",
   "793ed8985252b00d52f46da497484029",
   "odot_authoritative_overlap_pairs",
   "shared_segment_right_continuation_context",
   "right_context_outside_shared_interval",
+  "brinesearch_issue97_current_pinned_fixture_receipts",
+  "caller-supplied fixture/report trust path remains",
   "brinesearch_issue97_graph_release_generation_immutable",
   "has_function_privilege",
   "OH'",
@@ -171,10 +174,32 @@ for (const forbidden of ["similarity(","<->","closest_anchor'"]) {
   forbid(sharedRoute, forbidden, `generic shared-route guessed selector ${forbidden}`);
 }
 
+for (const token of [
+  "brinesearch_issue97_current_pinned_fixture_receipts",
+  "issue97-database-bound-fixtures-v1",
+  "jsonb_object_length(v_fixture_results->'database_bound')<>8",
+  "caller fixture results were supplied",
+  "manifest.git_sha<>p_git_sha",
+  "WALKING TALL",
+  "shared_segment_right_continuation_context",
+  "ascent--cologie",
+  "OH:ODOT:NLF:CJEFCR00026**C",
+  "OH:ODOT:NLF:TNOBTR00055**C",
+  "WV:WVDOT:ROUTE_ID:3500895000000",
+  "exact_git_sha",
+  "long_chunk",
+  "parallel_shortcut",
+  "CI requirements are verified outside PostgreSQL",
+]) need(fixtureReceipts, token, `database-bound fixture receipt ${token}`);
+for (const forbidden of [
+  "p_pinned_fixture_results->>key",
+  "v_required_fixture_keys",
+]) forbid(fixtureReceipts, forbidden, `caller fixture boolean trust ${forbidden}`);
+
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
-  19,
-  "rollback rehearsal must list exactly the 19 final release migration paths"
+  20,
+  "rollback rehearsal must list exactly the 20 final release migration paths"
 );
 for (const forbidden of [
   "supabase db push",
@@ -185,4 +210,4 @@ for (const forbidden of [
   "DATABASE_URL=",
 ]) forbid(rehearsal, forbidden, `rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, unattended serial fail-stop batch, and exact rollback rehearsal audit passed.");
+console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound release fixture receipts, unattended serial fail-stop batch, and exact rollback rehearsal audit passed.");
