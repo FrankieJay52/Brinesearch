@@ -95,8 +95,8 @@ for (const token of [
 
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
-  34,
-  "rollback rehearsal must mention each of the 17 final migration paths in the array and version gate"
+  17,
+  "rollback rehearsal must list exactly the 17 final release migration paths"
 );
 for (const forbidden of [
   "supabase db push",
