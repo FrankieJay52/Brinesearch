@@ -28,6 +28,7 @@ migration_files=(
   "supabase/migrations/20260814164000_issue97_release_manifests_and_verification_reports.sql"
   "supabase/migrations/20260814164100_issue97_manifest_bound_activation_cutover.sql"
   "supabase/migrations/20260814164200_issue97_post_cutover_report_integrity.sql"
+  "supabase/migrations/20260814164250_issue97_database_bound_fixture_receipts.sql"
 )
 
 require_repo_checkpoint() {
@@ -57,7 +58,7 @@ require_connection_profile() {
 
 verify_files() {
   local file previous=""
-  [[ "${#migration_files[@]}" -eq 19 ]] || die "expected exactly 19 final release migrations"
+  [[ "${#migration_files[@]}" -eq 20 ]] || die "expected exactly 20 final release migrations"
   for file in "${migration_files[@]}"; do
     [[ -f "${repo_root}/${file}" ]] || die "missing migration file ${file}"
     if [[ -n "${previous}" && "${file}" < "${previous}" ]]; then
@@ -101,7 +102,7 @@ select pg_catalog.jsonb_build_object(
       '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
       '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
       '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
-      '20260814163400','20260814164000','20260814164100','20260814164200'
+      '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250'
     )),
   'oh_source_current',(select count(*) from public.brinesearch_road_source_dataset_counties scope
     join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
@@ -149,7 +150,7 @@ begin
         '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
         '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
         '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
-        '20260814163400','20260814164000','20260814164100','20260814164200'
+        '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250'
       ))<>0 then
     raise exception 'Issue #97 release rehearsal refuses partially/fully installed final release migration chain';
   end if;
@@ -194,9 +195,36 @@ begin
   end if;
   if pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifests') is null
      or pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifest_members') is null
-     or pg_catalog.to_regclass('private_verification.brinesearch_issue97_verification_reports') is null then
-    raise exception 'Issue #97 rehearsal private release evidence tables missing';
+     or pg_catalog.to_regclass('private_verification.brinesearch_issue97_verification_reports') is null
+     or pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_current_pinned_fixture_receipts(text)') is null then
+    raise exception 'Issue #97 rehearsal private release evidence/fixture infrastructure missing';
   end if;
+
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_persist_verification_report(text,uuid,uuid,uuid,uuid,jsonb,jsonb)'::pg_catalog.regprocedure
+  );
+  if v_definition like '%p_pinned_fixture_results->>key%'
+     or v_definition like '%v_required_fixture_keys%'
+     or v_definition not like '%caller fixture results were supplied%'
+     or v_definition not like '%brinesearch_issue97_current_pinned_fixture_receipts%'
+     or v_definition not like '%manifest.git_sha<>p_git_sha%' then
+    raise exception 'Issue #97 rehearsal caller-supplied fixture/report trust path remains';
+  end if;
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_verification_report_current(text)'::pg_catalog.regprocedure
+  );
+  if v_definition like '%v_report.pinned_fixture_results->>key%'
+     or v_definition not like '%brinesearch_issue97_current_pinned_fixture_receipts%' then
+    raise exception 'Issue #97 rehearsal report currentness still trusts fixture booleans';
+  end if;
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_verification_report_integrity(text)'::pg_catalog.regprocedure
+  );
+  if v_definition like '%v_report.pinned_fixture_results->>key%'
+     or v_definition not like '%brinesearch_issue97_current_pinned_fixture_receipts%' then
+    raise exception 'Issue #97 rehearsal post-cutover report integrity still trusts fixture booleans';
+  end if;
+
   select count(*)::integer into v_generation
   from private_verification.brinesearch_issue97_graph_release_generations
   where active and generation_key='issue97-release-20260814-r1'
@@ -281,7 +309,7 @@ main() {
     die "release migration rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
-  printf 'PASS: all 19 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
+  printf 'PASS: all 20 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
 main "$@"
