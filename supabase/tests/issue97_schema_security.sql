@@ -40,7 +40,12 @@ begin
     'private_verification.brinesearch_issue97_saved_road_release_baseline',
     'private_verification.brinesearch_issue97_saved_road_reconciliation',
     'private_verification.brinesearch_google_route_receipts_issue97',
-    'private_verification.brinesearch_google_route_refresh_queue_issue97'
+    'private_verification.brinesearch_google_route_refresh_queue_issue97',
+    'private_verification.brinesearch_issue97_graph_release_generations',
+    'private_verification.brinesearch_issue97_graph_release_qualifications',
+    'private_verification.brinesearch_issue97_release_manifests',
+    'private_verification.brinesearch_issue97_release_manifest_members',
+    'private_verification.brinesearch_issue97_verification_reports'
   ] loop
     if pg_catalog.to_regclass(relation_name) is null then
       raise exception '#97 relation is missing: %',relation_name;
@@ -56,6 +61,17 @@ begin
     end if;
     if pg_catalog.has_table_privilege('service_role',relation_name,'INSERT,UPDATE,DELETE,TRUNCATE,REFERENCES,TRIGGER') then
       raise exception '#97 service role bypasses controlled RPCs on %',relation_name;
+    end if;
+    if relation_name like 'private_verification.brinesearch_issue97_release_%'
+       or relation_name in (
+         'private_verification.brinesearch_issue97_graph_release_generations',
+         'private_verification.brinesearch_issue97_graph_release_qualifications'
+       ) then
+      if pg_catalog.has_table_privilege('anon',relation_name,'SELECT')
+         or pg_catalog.has_table_privilege('authenticated',relation_name,'SELECT')
+         or pg_catalog.has_table_privilege('service_role',relation_name,'SELECT') then
+        raise exception '#97 private release evidence SELECT leaked: %',relation_name;
+      end if;
     end if;
   end loop;
 
@@ -102,7 +118,19 @@ begin
     'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,numeric)',
     'private_verification.brinesearch_issue97_normalize_wvdot_membership_measure(text,double precision)',
     'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,numeric,numeric,numeric)',
-    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)'
+    'private_verification.brinesearch_issue97_wvdot_name_measure_contains(text,double precision,numeric,numeric)',
+    'private_verification.brinesearch_issue97_graph_name_input_digest(uuid)',
+    'private_verification.brinesearch_issue97_graph_supplemental_input_digest(uuid)',
+    'private_verification.brinesearch_issue97_graph_build_release_current(uuid)',
+    'private_verification.brinesearch_issue97_current_route_eligibility_members()',
+    'private_verification.brinesearch_issue97_release_manifest_integrity(uuid)',
+    'private_verification.brinesearch_issue97_persist_release_manifest(text,text,text,jsonb)',
+    'private_verification.brinesearch_issue97_candidate_manifest_activation_current(uuid)',
+    'private_verification.brinesearch_issue97_release_manifest_matches_live(uuid)',
+    'private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(text,uuid)',
+    'private_verification.brinesearch_issue97_persist_verification_report(text,uuid,uuid,uuid,uuid,jsonb,jsonb)',
+    'private_verification.brinesearch_issue97_verification_report_current(text)',
+    'private_verification.brinesearch_issue97_verification_report_integrity(text)'
   ] loop
     if pg_catalog.to_regprocedure(function_signature) is null then
       raise exception '#97 private infrastructure function is missing: %',function_signature;
@@ -180,6 +208,18 @@ begin
       raise exception '#97 service-only function ACL failed: %',function_signature;
     end if;
   end loop;
+
+  if pg_catalog.has_function_privilege(
+       'service_role','public.brinesearch_issue97_activate_cutover_without_google_routes(jsonb)','EXECUTE'
+     ) or pg_catalog.has_function_privilege(
+       'service_role','public.brinesearch_publish_structured_route_issue97_without_google(uuid,uuid,jsonb,bigint)','EXECUTE'
+     ) or pg_catalog.has_function_privilege(
+       'authenticated','public.brinesearch_issue97_activate_cutover_without_google_routes(jsonb)','EXECUTE'
+     ) or pg_catalog.has_function_privilege(
+       'anon','public.brinesearch_publish_structured_route_issue97_without_google(uuid,uuid,jsonb,bigint)','EXECUTE'
+     ) then
+    raise exception '#97 internal cutover/publisher implementation remains directly executable';
+  end if;
 
   if pg_catalog.to_regclass('public.brinesearch_driver_google_routes_public') is null
      or not exists(select 1 from pg_catalog.pg_class c
@@ -259,9 +299,10 @@ begin
   ) into definition;
   if position('brinesearch_road_junction_anchors' in definition)=0
      or position('brinesearch_road_junction_memberships' in definition)=0
-     or position('brinesearch_issue97_graph_build_sources_current' in definition)=0
+     or position('brinesearch_issue97_graph_build_release_current' in definition)=0
+     or position('brinesearch_issue97_graph_build_sources_current' in definition)>0
      or position('st_dumppoints' in pg_catalog.lower(definition))>0 then
-    raise exception '#97 effective boundary candidate RPC is not authoritative-graph-only';
+    raise exception '#97 effective boundary candidate RPC is not release-current authoritative-graph-only';
   end if;
   select pg_catalog.pg_get_functiondef(
     pg_catalog.to_regprocedure('public.brinesearch_publish_structured_route(uuid,uuid,jsonb,bigint)')
@@ -274,9 +315,10 @@ begin
   if position('brinesearch_publish_structured_route_issue97_without_google' in definition)=0
      or position('brinesearch_issue97_refresh_google_route' in definition)=0
      or position('entry_junction_anchor_id' in inner_definition)=0
-     or position('brinesearch_issue97_graph_build_sources_current' in inner_definition)=0
+     or position('brinesearch_issue97_graph_build_release_current' in inner_definition)=0
+     or position('brinesearch_issue97_graph_build_sources_current' in inner_definition)>0
      or position('st_dumppoints' in pg_catalog.lower(inner_definition))>0 then
-    raise exception '#97 effective structured publisher has a geometry-proximity bypass';
+    raise exception '#97 effective structured publisher has a source-only/geometry-proximity bypass';
   end if;
   select pg_catalog.pg_get_functiondef(
     pg_catalog.to_regprocedure('public.brinesearch_get_structured_route_steps(uuid)')
@@ -298,8 +340,27 @@ begin
      or not exists(select 1 from pg_catalog.pg_indexes
       where schemaname='public' and indexname='brinesearch_graph_build_scope_history_issue97_idx')
      or not exists(select 1 from pg_catalog.pg_indexes
-      where schemaname='public' and indexname='brinesearch_nodes_finalize_issue97_idx') then
-    raise exception '#97 graph/source ordering indexes are incomplete';
+      where schemaname='public' and indexname='brinesearch_nodes_finalize_issue97_idx')
+     or not exists(select 1 from pg_catalog.pg_indexes
+      where schemaname='public' and indexname='brinesearch_supp_centerline_oh_active_start_geog_issue97_idx')
+     or not exists(select 1 from pg_catalog.pg_indexes
+      where schemaname='public' and indexname='brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') then
+    raise exception '#97 graph/source/OGRIP ordering indexes are incomplete';
+  end if;
+
+  if not exists(select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid='private_verification.brinesearch_issue97_graph_release_generations'::pg_catalog.regclass
+        and t.tgname='brinesearch_issue97_graph_release_generation_immutable' and t.tgenabled<>'D')
+     or not exists(select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid='private_verification.brinesearch_issue97_graph_release_qualifications'::pg_catalog.regclass
+        and t.tgname='brinesearch_issue97_graph_release_qualification_immutable' and t.tgenabled<>'D')
+     or not exists(select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid='private_verification.brinesearch_issue97_release_manifests'::pg_catalog.regclass
+        and t.tgname='brinesearch_issue97_release_manifest_immutable' and t.tgenabled<>'D')
+     or not exists(select 1 from pg_catalog.pg_trigger t
+      where t.tgrelid='private_verification.brinesearch_issue97_verification_reports'::pg_catalog.regclass
+        and t.tgname='brinesearch_issue97_verification_report_immutable' and t.tgenabled<>'D') then
+    raise exception '#97 reviewed release receipt immutability triggers are incomplete';
   end if;
 end
 $issue97_schema_security$;
