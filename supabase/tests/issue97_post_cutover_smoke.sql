@@ -17,6 +17,7 @@ declare
   v_missing integer;
   v_report_digest text;
   v_report record;
+  v_current_fixtures jsonb;
   v_cologie uuid;
 begin
   if not public.brinesearch_issue97_cutover_active() then
@@ -32,11 +33,29 @@ begin
   select * into strict v_report
   from private_verification.brinesearch_issue97_verification_reports
   where report_digest=v_report_digest;
-  if exists(select 1 from unnest(array[
-      'thrush','bellaire','leonard','cr26','possum',
-      'cologie','repeated_road','shared_segment','long_chunk','parallel_shortcut'
-    ]) key where coalesce((v_report.pinned_fixture_results->>key)::boolean,false) is not true) then
-    raise exception '#97 post-cutover persisted report lost a required topology/product fixture';
+
+  -- Fixture authorization is database-bound. The report stores eight structured
+  -- production receipts; JavaScript-only chunking/parallel-shortcut tests remain
+  -- exact-SHA CI requirements and are never represented as caller booleans.
+  v_current_fixtures:=private_verification.brinesearch_issue97_current_pinned_fixture_receipts(
+    v_report.git_sha
+  );
+  if v_report.pinned_fixture_results is distinct from v_current_fixtures
+     or v_report.report_body->'pinned_fixture_results' is distinct from v_current_fixtures
+     or coalesce(v_report.pinned_fixture_results->>'receipt_version','')
+          <>'issue97-database-bound-fixtures-v1'
+     or pg_catalog.jsonb_object_length(v_report.pinned_fixture_results->'database_bound')<>8
+     or exists(
+       select 1
+       from pg_catalog.jsonb_each(v_report.pinned_fixture_results->'database_bound') fixture(key,value)
+       where coalesce((fixture.value->>'pass')::boolean,false) is not true
+          or coalesce(fixture.value->>'evidence_digest','')!~'^[0-9a-f]{32}$'
+     )
+     or v_report.pinned_fixture_results->'ci_required'->>'exact_git_sha'<>v_report.git_sha
+     or coalesce((v_report.pinned_fixture_results->'ci_required'->>'database_authoritative')::boolean,true)
+     or not (v_report.pinned_fixture_results->'ci_required'->'requirements' ? 'long_chunk')
+     or not (v_report.pinned_fixture_results->'ci_required'->'requirements' ? 'parallel_shortcut') then
+    raise exception '#97 post-cutover persisted report lost database-bound fixture or exact-SHA CI evidence';
   end if;
 
   -- Match the production all-pad Google refresh denominator exactly. record_type
