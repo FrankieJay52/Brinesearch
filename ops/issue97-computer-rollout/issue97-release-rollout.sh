@@ -20,7 +20,8 @@ Usage:
 
 Current release order is deliberately Ohio first, then West Virginia, then
 Pennsylvania. The old mixed-state canaries/plan/batch commands are disabled
-while the Ohio phase is active.
+while the Ohio phase is active. The PA WAS Possum/performance canary is deferred
+until the Pennsylvania phase and cannot run from the Ohio commands below.
 
 This release-generation lane accepts no database URI, password, token, SQL,
 build ID or activation input. Configure a private libpq service and export only
