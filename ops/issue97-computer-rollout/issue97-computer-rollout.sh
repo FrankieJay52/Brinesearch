@@ -91,14 +91,23 @@ run_sql() {
   psql -X --no-psqlrc --set=ON_ERROR_STOP=1 --file="${sql_file}" "$@"
 }
 
+mirror_log() {
+  local log_file="$1" line
+  while IFS= read -r line || [[ -n "${line}" ]]; do
+    printf '%s\n' "${line}"
+    printf '%s\n' "${line}" >> "${log_file}"
+  done
+}
+
 run_logged_sql() {
   local label="$1" sql_file="$2"
   shift 2
   local log_file rc
   log_file="$(new_log "${label}")"
+  : > "${log_file}"
   printf 'Log: %s\n' "${log_file}"
   set +e
-  run_sql "${sql_file}" "$@" 2>&1 | tee "${log_file}"
+  run_sql "${sql_file}" "$@" 2>&1 | mirror_log "${log_file}"
   rc=${PIPESTATUS[0]}
   set -e
   return "${rc}"

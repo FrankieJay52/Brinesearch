@@ -29,7 +29,10 @@ for (const token of [
   "sleep 5",
   "no retry will occur",
   "OH:BEL|OH:JEF|OH:NOB",
+  "mirror_log()",
+  "rc=${PIPESTATUS[0]}",
 ]) need(shell, token);
+forbid(shell, "| tee ", "external tee logging dependency");
 
 const batchStart = shell.indexOf("build-pending-dark)");
 assert.ok(batchStart >= 0, "dark batch command must exist");
