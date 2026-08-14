@@ -76,10 +76,18 @@ with required_scopes as (
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_release_manifests','SELECT')
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_verification_reports','SELECT')
       as release_evidence_infrastructure_ready,
-    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='7abd11f432c3e7b475b10d0817f5e8fc'
+    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='793ed8985252b00d52f46da497484029'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%independent_ogrip_endpoint_corroboration%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%create index tmp_issue97_segments_geog_idx%'
-      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%analyze tmp_issue97_segments;%' as builder_exact,
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%analyze tmp_issue97_segments;%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%odot_authoritative_overlap_pairs%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%PRIMARY_OVERLAP_ID%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%issue97_persistent_secondary_geometry_unchanged%' as builder_exact,
+    (select builder_definition_md5='793ed8985252b00d52f46da497484029'
+      and review_details->>'persistent_odot_geometry_rewritten'='false'
+      and review_details->>'name_or_nearest_matching_used'='false'
+      from private_verification.brinesearch_issue97_graph_release_generations where active)
+      as odot_overlap_release_bound,
     pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is not null
       and pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is not null
       as ogrip_endpoint_indexes_ready,
@@ -148,6 +156,10 @@ select * from checks
 \if :issue97_release_builder_exact
 \else
   do $fail$ begin raise exception 'Issue #97 release preflight: builder definition changed'; end $fail$;
+\endif
+\if :issue97_release_odot_overlap_release_bound
+\else
+  do $fail$ begin raise exception 'Issue #97 release preflight: authoritative ODOT overlap builder is not bound to the release generation'; end $fail$;
 \endif
 \if :issue97_release_ogrip_endpoint_indexes_ready
 \else
