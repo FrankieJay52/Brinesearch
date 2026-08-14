@@ -112,9 +112,20 @@ for (const token of [
   "persistent_secondary_geometry_unchanged",
   "793ed8985252b00d52f46da497484029",
 ]) need(overlap, token, `ODOT shared-pavement contract ${token}`);
+
+// similarity()/nearest operators occur only as strings in the migration's
+// fail-closed self-checks. Strip those exact guard expressions, then require
+// the remaining migration source to contain no such matching primitive.
+const overlapWithoutNoGuessGuards = overlap
+  .replaceAll("v_patched like '%similarity(%'", "")
+  .replaceAll("v_definition like '%similarity(%'", "")
+  .replaceAll("v_patched like '%<->%'", "")
+  .replaceAll("v_definition like '%<->%'", "");
 for (const forbidden of ["similarity(","<->","nearest_road"]) {
-  forbid(overlap, forbidden, `ODOT shared-pavement guess ${forbidden}`);
+  forbid(overlapWithoutNoGuessGuards, forbidden, `ODOT shared-pavement guess ${forbidden}`);
 }
+need(overlap, "v_patched like '%similarity(%'", "ODOT no-fuzzy generated-builder guard");
+need(overlap, "v_patched like '%<->%'", "ODOT no-nearest generated-builder guard");
 
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
