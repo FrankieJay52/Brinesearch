@@ -72,6 +72,11 @@ for (const token of ["eval ", "SUPABASE_DB_PASSWORD", "--command="])
 
 for (const source of [preflight, verify, status, ohi, report])
   need(source, "begin read only", "read-only transaction");
+need(
+  verify,
+  "set local statement_timeout='7min'",
+  "full shared-provenance verifier timeout"
+);
 for (const source of [build, directions]) need(source, "\\set ON_ERROR_STOP on");
 for (const source of [preflight, build, verify, directions])
   forbid(source, "\\quit", "psql quit-code gate (PostgreSQL 17 ignores its argument)");

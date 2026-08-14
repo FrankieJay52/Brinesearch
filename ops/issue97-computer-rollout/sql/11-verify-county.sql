@@ -3,7 +3,7 @@
 \timing on
 
 begin read only;
-set local statement_timeout='2min';
+set local statement_timeout='7min';
 
 select pg_catalog.upper(:'issue97_state') as state_code,
   pg_catalog.upper(:'issue97_county') as county_code
