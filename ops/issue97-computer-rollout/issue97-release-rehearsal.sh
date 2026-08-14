@@ -307,7 +307,8 @@ main() {
     printf "set local lock_timeout='2min';\n"
     for file in "${migration_files[@]}"; do
       printf '\\echo Rehearsing %s\n' "${file}"
-      printf '\\ir %s\n' "${repo_root}/${file}"
+      cat "${repo_root}/${file}"
+      printf '\n'
     done
     printf '%s\n' "${in_transaction_verify}"
     printf '\\echo FINAL RELEASE MIGRATION CHAIN COMPILED AND VERIFIED INSIDE TRANSACTION\n'
