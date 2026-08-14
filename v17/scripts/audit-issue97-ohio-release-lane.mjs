@@ -191,10 +191,26 @@ for (const token of [
   "parallel_shortcut",
   "CI requirements are verified outside PostgreSQL",
 ]) need(fixtureReceipts, token, `database-bound fixture receipt ${token}`);
+
+// The forbidden historical tokens appear only inside the migration's own final
+// pg_get_functiondef guards. Remove those exact guard expressions before
+// asserting that no executable report/currentness body still trusts them.
+const fixtureReceiptsWithoutTrustGuards = fixtureReceipts
+  .replaceAll("v_persist like '%p_pinned_fixture_results->>key%'", "")
+  .replaceAll("v_persist like '%v_required_fixture_keys%'", "")
+  .replaceAll("v_current like '%v_report.pinned_fixture_results->>key%'", "")
+  .replaceAll("v_integrity like '%v_report.pinned_fixture_results->>key%'", "");
 for (const forbidden of [
   "p_pinned_fixture_results->>key",
   "v_required_fixture_keys",
-]) forbid(fixtureReceipts, forbidden, `caller fixture boolean trust ${forbidden}`);
+  "v_report.pinned_fixture_results->>key",
+]) forbid(fixtureReceiptsWithoutTrustGuards, forbidden, `caller fixture boolean trust ${forbidden}`);
+for (const guard of [
+  "v_persist like '%p_pinned_fixture_results->>key%'",
+  "v_persist like '%v_required_fixture_keys%'",
+  "v_current like '%v_report.pinned_fixture_results->>key%'",
+  "v_integrity like '%v_report.pinned_fixture_results->>key%'",
+]) need(fixtureReceipts, guard, `caller-fixture trust rejection guard ${guard}`);
 
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
