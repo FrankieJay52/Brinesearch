@@ -77,6 +77,10 @@ select pg_catalog.jsonb_build_object(
   'cutover_active',public.brinesearch_issue97_cutover_active(),
   'build_count',(select count(*) from public.brinesearch_road_graph_builds),
   'staging_count',(select count(*) from public.brinesearch_road_graph_builds where status='staging'),
+  'builder_sessions',(select count(*) from pg_catalog.pg_stat_activity activity
+    where activity.pid<>pg_catalog.pg_backend_pid()
+      and activity.state in ('active','idle in transaction','idle in transaction (aborted)')
+      and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'),
   'build_state_digest',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     b.id::text||':'||b.state_code||':'||b.county_code||':'||b.status||':'||
     coalesce(b.activated_at::text,'')||':'||coalesce(b.graph_digest,'')||':'||
@@ -206,7 +210,7 @@ SQL
 )
 
 main() {
-  local pre_snapshot post_snapshot sql_file log_file file
+  local pre_snapshot post_snapshot sql_file log_file file rehearsal_rc
   require_repo_checkpoint
   require_connection_profile
   verify_files
@@ -236,18 +240,26 @@ main() {
   } > "${sql_file}"
 
   printf 'Rollback rehearsal log: %s\n' "${log_file}"
-  if ! run_psql --file="${sql_file}" 2>&1 | tee "${log_file}"; then
-    die "release migration rollback rehearsal failed; inspect ${log_file}"
-  fi
+  set +e
+  run_psql --file="${sql_file}" 2>&1 | tee "${log_file}"
+  rehearsal_rc=${PIPESTATUS[0]}
+  set -e
 
-  post_snapshot="$(run_psql --tuples-only --no-align --quiet --command="${snapshot_sql}")"
-  [[ -n "${post_snapshot}" ]] || die "failed to capture after snapshot"
+  # Always inspect production through a fresh connection after the rehearsal
+  # process returns, including after SQL errors or a dropped client connection.
+  # A client response alone is never proof of rollback or success.
+  post_snapshot="$(run_psql --tuples-only --no-align --quiet --command="${snapshot_sql}")" ||
+    die "rehearsal returned rc=${rehearsal_rc} and fresh after-snapshot could not be captured; do not retry"
+  [[ -n "${post_snapshot}" ]] || die "failed to capture fresh after snapshot; do not retry"
   if [[ "${pre_snapshot}" != "${post_snapshot}" ]]; then
     printf 'BEFORE: %s\nAFTER:  %s\n' "${pre_snapshot}" "${post_snapshot}" >&2
-    die "production snapshot changed across rollback rehearsal"
+    die "production snapshot changed across rollback rehearsal; do not retry"
+  fi
+  if [[ "${rehearsal_rc}" -ne 0 ]]; then
+    die "release migration rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
-  printf 'PASS: all 17 final #97 release migrations compiled/verified in one transaction and production snapshot is byte-for-byte unchanged.\n'
+  printf 'PASS: all 17 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
 main "$@"
