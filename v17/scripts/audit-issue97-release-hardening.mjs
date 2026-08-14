@@ -24,6 +24,9 @@ const generation = read("supabase/migrations/20260814163000_issue97_graph_releas
 const releasePredicate = read("supabase/migrations/20260814163100_issue97_graph_release_current_predicate.sql");
 const ohi = read("supabase/migrations/20260814163200_issue97_ohi_release_qualification.sql");
 const consumers = read("supabase/migrations/20260814163300_issue97_release_current_consumers.sql");
+const releaseInputs = read("supabase/migrations/20260814163400_issue97_graph_release_input_digests.sql");
+const releaseManifests = read("supabase/migrations/20260814164000_issue97_release_manifests_and_verification_reports.sql");
+const irreversibleGates = read("supabase/migrations/20260814164100_issue97_manifest_bound_activation_cutover.sql");
 const shell = read("ops/issue97-computer-rollout/issue97-release-rollout.sh");
 const preflight = read("ops/issue97-computer-rollout/sql/17-release-preflight.sql");
 const build = read("ops/issue97-computer-rollout/sql/18-build-county-release.sql");
@@ -87,6 +90,8 @@ for (const token of [
   "where active and state_code='OH'",
   "analyze public.brinesearch_authoritative_supplemental_centerlines",
 ]) need(endpointIndexes, token, `OGRIP endpoint performance ${token}`);
+assert.equal(count(endpointIndexes, "using gist"), 2,
+  "Issue #97 must create exactly two OGRIP endpoint geography GiST indexes");
 
 for (const token of [
   "06c4b57ff9056b96137b9aaf4f4b856d",
@@ -102,8 +107,7 @@ forbid(ogrip, "nearest_road_used',true", "nearest-road OGRIP promotion");
 forbid(ogrip, "name_used',true", "name-driven OGRIP promotion");
 
 // The transition migration patches function source held inside SQL strings, so
-// quote-aware anchors deliberately use doubled SQL quotes. Do not require an
-// impossible raw-source token such as run.details->>'page_set_digest'.
+// quote-aware anchors deliberately use doubled SQL quotes.
 for (const token of [
   "private_verification.brinesearch_issue97_mapping_fingerprint(o.identity_id)",
   "t.graph_digest is null",
@@ -148,6 +152,52 @@ for (const token of [
   "brinesearch_issue97_release_manifest_current()",
   "stale-generation BEL/JEF/NOB graphs were silently grandfathered",
 ]) need(consumers, token, `release-current consumer ${token}`);
+
+for (const token of [
+  "brinesearch_issue97_graph_name_input_digest",
+  "brinesearch_issue97_graph_supplemental_input_digest",
+  "release_authoritative_name_digest",
+  "release_supplemental_input_digest",
+  "captured-run-content+authoritative-name+supplemental-map-v2",
+  "authoritative_name_input_digest",
+  "supplemental_input_digest",
+  "brinesearch_issue97_graph_release_qualification_immutable",
+  "brinesearch_issue97_reject_release_receipt_mutation",
+]) need(releaseInputs, token, `complete graph input currentness ${token}`);
+
+for (const token of [
+  "brinesearch_issue97_release_manifests",
+  "brinesearch_issue97_release_manifest_members",
+  "brinesearch_issue97_verification_reports",
+  "brinesearch_issue97_current_route_eligibility_members",
+  "coalesce(p.list_only,false)=false",
+  "brinesearch_issue97_persist_release_manifest",
+  "candidate manifest requires 38 release-current dark builds plus retained OHI",
+  "brinesearch_issue97_candidate_manifest_activation_current",
+  "brinesearch_issue97_candidate_manifest_authorizes_build",
+  "brinesearch_issue97_persist_verification_report",
+  "brinesearch_issue97_verification_report_current",
+  "route_eligibility_manifest_digest",
+  "ready_or_explicit_held_during_cutover_transaction",
+  "'thrush','bellaire','leonard','cr26','possum'",
+  "'cologie','repeated_road','shared_segment','long_chunk','parallel_shortcut'",
+  "brinesearch_issue97_release_manifest_immutable",
+  "brinesearch_issue97_verification_report_immutable",
+]) need(releaseManifests, token, `persisted release evidence ${token}`);
+for (const role of ["public","anon","authenticated","service_role"]) {
+  need(releaseManifests, `from public,anon,authenticated,service_role`, `private release-ledger ACLs including ${role}`);
+}
+
+for (const token of [
+  "candidate_manifest_digest",
+  "brinesearch_issue97_candidate_manifest_authorizes_build",
+  "verification_report_digest",
+  "brinesearch_issue97_verification_report_current",
+  "reviewed non-list-only scope",
+  "coalesce(pad.list_only,false)=false",
+  "blocked_unreviewed_candidate_manifest",
+]) need(irreversibleGates, token, `manifest-bound irreversible gate ${token}`);
+forbid(irreversibleGates, "\\n             where status", "fragile literal backslash-n receipt replacement");
 
 for (const token of [
   "canaries",
@@ -215,6 +265,4 @@ for (const token of [
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
 forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-assert.equal(count(endpointIndexes, "using gist"), 2,
-  "Issue #97 must create exactly two OGRIP endpoint geography GiST indexes");
-console.log("Issue #97 release-generation, baseline, Possum, transition ACL, OGRIP performance and canary rollout static audit passed.");
+console.log("Issue #97 release-generation, complete input currentness, saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
