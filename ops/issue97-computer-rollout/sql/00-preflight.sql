@@ -162,7 +162,7 @@ with required_scopes as (
 ), builder_contract as (
   select
     pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
-      ='c5d54a4d839df79eff99f4dfd4b0b780'
+      ='06c4b57ff9056b96137b9aaf4f4b856d'
     and pg_catalog.pg_get_functiondef(proc.oid)
       like '%tmp_issue97_shared_segment_coverage%'
     and pg_catalog.pg_get_functiondef(proc.oid)
@@ -180,6 +180,12 @@ with required_scopes as (
     and pg_catalog.pg_get_functiondef(proc.oid)
       like '%(choice.fraction*choice.source_length_m)::numeric%'
     and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%create index tmp_issue97_segments_geog_idx%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%on tmp_issue97_segments using gist((geom::extensions.geography));%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%analyze tmp_issue97_segments;%'
     and pg_catalog.has_table_privilege(
       current_user,
       'private_verification.brinesearch_issue97_authoritative_road_segments_internal',
@@ -351,7 +357,7 @@ with required_scopes as (
       where proc.oid=
         'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
         and pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
-          ='c5d54a4d839df79eff99f4dfd4b0b780'
+          ='06c4b57ff9056b96137b9aaf4f4b856d'
         and pg_catalog.pg_get_functiondef(proc.oid)
           like '%tmp_issue97_shared_segment_coverage%'
         and pg_catalog.pg_get_functiondef(proc.oid)
@@ -369,6 +375,12 @@ with required_scopes as (
         and pg_catalog.pg_get_functiondef(proc.oid)
           like '%(choice.fraction*choice.source_length_m)::numeric%'
         and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%create index tmp_issue97_segments_geog_idx%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%on tmp_issue97_segments using gist((geom::extensions.geography));%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%analyze tmp_issue97_segments;%'
     ) and pg_catalog.has_table_privilege(
       current_user,
       'private_verification.brinesearch_issue97_authoritative_road_segments_internal',

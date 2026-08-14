@@ -10,6 +10,9 @@ const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
 const migration = read(
   "supabase/migrations/20260813174828_issue97_google_route_dispatcher_policy_readiness.sql"
 );
+const performanceMigration = read(
+  "supabase/migrations/20260814074500_issue97_graph_builder_temp_geography_index.sql"
+);
 const shell = read(
   "ops/issue97-computer-rollout/issue97-computer-rollout.sh"
 );
@@ -53,6 +56,43 @@ assert.equal(
 forbid(migration, "update public.brinesearch_issue97_release_state", "cutover mutation");
 forbid(migration, "insert into public.brinesearch_driver_google_routes_public", "route write");
 forbid(migration, "delete from public.brinesearch_driver_google_routes_public", "route delete");
+
+for (const token of [
+  "c5d54a4d839df79eff99f4dfd4b0b780",
+  "06c4b57ff9056b96137b9aaf4f4b856d",
+  "pg_advisory_xact_lock",
+  "v_definition is distinct from v_expected",
+  "build_state_digest",
+  "Issue #97 graph builder metadata or ACL changed",
+  "Issue #97 temp geography migration changed graph or release state",
+  "execute v_patched",
+]) need(performanceMigration, token, `graph temp-geography migration ${token}`);
+assert.equal(
+  count(performanceMigration, "create index tmp_issue97_segments_geog_idx"),
+  4,
+  "temp geography migration must pin the index in patch and verification anchors"
+);
+assert.equal(
+  count(
+    performanceMigration,
+    "on tmp_issue97_segments using gist((geom::extensions.geography));"
+  ),
+  4,
+  "temp geography migration must pin the exact geography expression"
+);
+assert.equal(
+  count(performanceMigration, "analyze tmp_issue97_segments;"),
+  4,
+  "temp geography migration must pin post-index temp-table statistics"
+);
+for (const token of [
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+  "brinesearch_issue97_refresh_google_routes",
+  "insert into public.brinesearch_road_",
+  "update public.brinesearch_road_",
+  "delete from public.brinesearch_road_",
+]) forbid(performanceMigration, token, `temp geography migration semantic expansion ${token}`);
 
 for (const token of [
   "expected_branch=\"data/issue-97-authoritative-road-junction-graph\"",
@@ -100,7 +140,7 @@ for (const token of [
   "proc.proconfig @> array['search_path=\"\"']",
   "builder_provenance_ready",
   "builder_provenance_contract",
-  "c5d54a4d839df79eff99f4dfd4b0b780",
+  "06c4b57ff9056b96137b9aaf4f4b856d",
   "tmp_issue97_shared_segment_coverage",
   "exact_canonical_grid_line_intersection",
   "v.raw_source_measure::numeric",
@@ -108,11 +148,29 @@ for (const token of [
   "(c.fraction*c.length_m)::numeric",
   "(choice.fraction*choice.source_length_m)::numeric",
   "not like '%fraction::numeric%'",
+  "create index tmp_issue97_segments_geog_idx",
+  "on tmp_issue97_segments using gist((geom::extensions.geography));",
+  "analyze tmp_issue97_segments;",
   "brinesearch_issue97_authoritative_road_segments_internal",
   "has_table_privilege(",
   "pg_get_viewdef(",
   "'public.brinesearch_authoritative_road_segments'::pg_catalog.regclass",
-]) need(preflight, token, `WVDOT runtime preflight ${token}`);
+]) need(preflight, token, `WVDOT/runtime/builder preflight ${token}`);
+assert.equal(
+  count(preflight, "06c4b57ff9056b96137b9aaf4f4b856d"),
+  2,
+  "preflight must pin the optimized builder in summary and final gate"
+);
+assert.equal(
+  count(preflight, "create index tmp_issue97_segments_geog_idx"),
+  2,
+  "preflight must verify the geography index in summary and final gate"
+);
+assert.equal(
+  count(preflight, "analyze tmp_issue97_segments;"),
+  2,
+  "preflight must verify temp-segment statistics in summary and final gate"
+);
 
 for (const token of [
   "provenance_integrity",
@@ -250,9 +308,18 @@ assert.equal(
   1,
   "county build must call the unchanged builder exactly once"
 );
+assert.equal(
+  (build.match(/^set local statement_timeout='90min';$/gm) || []).length,
+  1,
+  "county build must have one finite 90-minute builder statement maximum"
+);
+assert.equal(
+  (build.match(/^set local statement_timeout='15min';$/gm) || []).length,
+  0,
+  "county build must not retain an executable 15-minute whole-builder limit"
+);
 for (const token of [
   "begin;",
-  "set local statement_timeout='15min'",
   "set local lock_timeout='2min'",
   "commit;",
   "brinesearch_road_graph_counties",
