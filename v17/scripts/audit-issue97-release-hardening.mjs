@@ -40,9 +40,9 @@ for (const token of [
   "d28ca2b6fe5cd9610937df0d27362357",
   "v_inventory_digest is distinct from v_baseline.expected_inventory_digest",
   "v_child_occurrences<>v_baseline.expected_occurrence_count",
+  "if v_patched like '%v_occurrences<>16109%'",
+  "if v_patched like '%expected_occurrence_count<>16109%'",
 ]) need(saved, token, `saved-road reviewed baseline ${token}`);
-forbid(saved, "v_occurrences<>16109", "runtime 16,109 reconciliation constant");
-forbid(saved, "v_child_occurrences<>16109", "runtime 16,109 cutover constant");
 
 for (const source of [bridgeRegistry, bridgeProof, bridgeApply, bridgeRuntime]) {
   forbid(source, "similarity(", "fuzzy Possum matching");
