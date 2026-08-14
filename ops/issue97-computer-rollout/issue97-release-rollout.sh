@@ -29,13 +29,17 @@ This release-generation lane accepts no database URI, password, token, SQL,
 build ID or activation input. Configure a private libpq service and export only
 PGSERVICE.
 
-ohio-canary runs exactly OH/NOB, once, fail-stop. It never retries, activates a
-graph, changes global cutover, publishes routes or starts another state.
+ohio-canary runs exactly three Ohio dark builds, serially and once each:
+  1. OH/NOB — semantic multiway/topology canary
+  2. OH/BEL — authoritative concurrency canary including all 10 US-40/I-70 pairs
+  3. OH/STA — scale canary with the release-pinned 623 eligible ODOT overlap pairs
+It never retries, activates a graph, changes global cutover, publishes routes or
+starts another state.
 
-build-pending-ohio-dark is permitted only after the Noble canary checkpoint has
-been independently audited. It discovers only remaining Ohio release-current
-work, runs counties serially, verifies each immediately, stops on the first
-failure, never retries, and never activates/cuts over/publishes.
+build-pending-ohio-dark is permitted only after the complete NOB/BEL/STA canary
+checkpoint has been independently audited. It discovers only remaining Ohio
+release-current work, runs counties serially, verifies each immediately, stops
+on the first failure, never retries, and never activates/cuts over/publishes.
 USAGE
 }
 
@@ -155,10 +159,18 @@ main() {
     ohio-canary)
       [[ $# -eq 0 ]] || die "ohio-canary accepts no arguments"
       run_sql "${sql_dir}/17-release-preflight.sql"
-      printf 'Ohio canary: OH NOB semantic topology canary. One attempt, no retry.\n'
+      printf 'Ohio canary 1/3: OH NOB semantic topology canary. One attempt, no retry.\n'
       build_release_scope OH NOB "21-verify-nob-leonard-release.sql" ohio-canary
-      printf 'Ohio canary PASS: OH NOB is validated, release-current, and inactive.\n'
-      printf 'STOP: this exact canary checkpoint requires one independent read-only audit before the remaining Ohio batch.\n'
+      printf 'Ohio canary 1/3 PASS: OH NOB validated/release-current/inactive.\n'
+      printf 'Ohio canary 2/3: OH BEL authoritative concurrency canary. One attempt, no retry.\n'
+      build_release_scope OH BEL "26-verify-bel-concurrency-release.sql" ohio-canary
+      printf 'Ohio canary 2/3 PASS: OH BEL validated/release-current/inactive with US-40/I-70 coverage.\n'
+      printf 'Ohio canary 3/3: OH STA scale canary. One attempt, no retry.\n'
+      build_release_scope OH STA "27-verify-stark-scale-release.sql" ohio-canary
+      printf 'Ohio canary 3/3 PASS: OH STA validated/release-current/inactive at the 623-overlap release scale.\n'
+      run_sql "${sql_dir}/25-ohio-canary-complete-gate.sql"
+      printf 'Ohio canary set PASS: NOB semantic + BEL concurrency + STA scale.\n'
+      printf 'STOP: this exact three-canary checkpoint requires one independent read-only audit before the remaining Ohio batch.\n'
       ;;
     plan-ohio-dark)
       [[ $# -eq 0 ]] || die "plan-ohio-dark accepts no arguments"
@@ -180,7 +192,7 @@ main() {
         printf 'No pending release-current Ohio dark county builds.\n'
         exit 0
       fi
-      [[ "${total}" -le 18 ]] || die "Ohio post-canary plan unexpectedly contains more than 18 counties"
+      [[ "${total}" -le 16 ]] || die "Ohio post-canary plan unexpectedly contains more than 16 counties"
       printf 'Remaining Ohio dark-build plan: %s counties. Serial, fail-stop, no activation.\n' "${total}"
       printf '%s\n' "${pending[@]}"
       completed=0
@@ -188,7 +200,9 @@ main() {
         IFS='|' read -r state county <<<"${scope}"
         [[ "${state}" == "OH" ]] || die "non-Ohio scope leaked into Ohio batch: ${state}:${county}"
         validate_scope "${state}" "${county}"
-        [[ "${county}" != "NOB" ]] || die "Noble canary unexpectedly remained in post-canary Ohio plan"
+        case "${county}" in
+          NOB|BEL|STA) die "Ohio canary ${county} unexpectedly remained in post-canary Ohio plan" ;;
+        esac
         printf '\n[%s/%s] Ohio release dark build %s %s\n' "$((completed + 1))" "${total}" "${state}" "${county}"
         build_release_scope "${state}" "${county}" "19-verify-county-release.sql" ohio-batch
         completed=$((completed + 1))
