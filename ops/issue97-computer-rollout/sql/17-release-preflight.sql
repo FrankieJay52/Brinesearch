@@ -66,6 +66,9 @@ with required_scopes as (
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%independent_ogrip_endpoint_corroboration%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%create index tmp_issue97_segments_geog_idx%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%analyze tmp_issue97_segments;%' as builder_exact,
+    pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is not null
+      and pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is not null
+      as ogrip_endpoint_indexes_ready,
     pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_refresh_supplemental_aliases_issue97_core(uuid)'::pg_catalog.regprocedure))='4dd8a572b153d795163cf38a41ea9d1f' as supplemental_mapper_exact,
     (select count(*) from public.brinesearch_road_graph_builds b where b.state_code='WV' and b.county_code='OHI' and b.status='active' and private_verification.brinesearch_issue97_graph_build_release_current(b.id))=1 as ohi_release_current,
     (select count(*) from public.brinesearch_road_graph_builds b where b.state_code='OH' and b.county_code in ('BEL','JEF','NOB') and b.status='active' and private_verification.brinesearch_issue97_graph_build_release_current(b.id))=0 as old_frozen_not_grandfathered,
@@ -123,6 +126,10 @@ select * from checks
 \if :issue97_release_builder_exact
 \else
   do $fail$ begin raise exception 'Issue #97 release preflight: builder definition changed'; end $fail$;
+\endif
+\if :issue97_release_ogrip_endpoint_indexes_ready
+\else
+  do $fail$ begin raise exception 'Issue #97 release preflight: OGRIP endpoint geography indexes are missing'; end $fail$;
 \endif
 \if :issue97_release_supplemental_mapper_exact
 \else
