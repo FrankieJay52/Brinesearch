@@ -24,10 +24,13 @@ const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
 const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const sharedRoute = read("supabase/migrations/20260814163250_issue97_shared_route_right_continuation_context.sql");
 const fixtureReceipts = read("supabase/migrations/20260814164250_issue97_database_bound_fixture_receipts.sql");
+const stateActivation = read("supabase/migrations/20260814164300_issue97_state_scoped_activation_manifests.sql");
 const plan = read("ops/issue97-computer-rollout/sql/24-ohio-release-dark-plan.sql");
 const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate.sql");
 const belCanary = read("ops/issue97-computer-rollout/sql/26-verify-bel-concurrency-release.sql");
 const starkCanary = read("ops/issue97-computer-rollout/sql/27-verify-stark-scale-release.sql");
+const ohioDirections = read("ops/issue97-computer-rollout/sql/32-ohio-directions-dark-batch.sql");
+const ohioReport = read("ops/issue97-computer-rollout/sql/33-ohio-directions-report.sql");
 
 for (const token of [
   "ohio-canary",
@@ -112,24 +115,28 @@ for (const token of [
 ]) need(starkCanary, token, `Stark scale canary ${token}`);
 
 for (const token of [
-  "expected exactly 20 final release migrations",
+  "expected exactly 21 final release migrations",
   "20260814074500_issue97_graph_builder_temp_geography_index.sql",
   "20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql",
   "20260814163250_issue97_shared_route_right_continuation_context.sql",
   "20260814164250_issue97_database_bound_fixture_receipts.sql",
+  "20260814164300_issue97_state_scoped_activation_manifests.sql",
   "set local statement_timeout='15min'",
   "set local lock_timeout='2min'",
   "begin;",
   "rollback;",
   "FINAL RELEASE MIGRATION CHAIN COMPILED AND VERIFIED INSIDE TRANSACTION",
   "production snapshot changed across rollback rehearsal",
-  "all 20 final #97 release migrations compiled/verified in one transaction",
+  "all 21 final #97 release migrations compiled/verified in one transaction",
   "793ed8985252b00d52f46da497484029",
   "odot_authoritative_overlap_pairs",
   "shared_segment_right_continuation_context",
   "right_context_outside_shared_interval",
   "brinesearch_issue97_current_pinned_fixture_receipts",
   "caller-supplied fixture/report trust path remains",
+  "brinesearch_issue97_state_candidate_manifests",
+  "brinesearch_issue97_state_candidate_manifest_authorizes_build",
+  "final global candidate manifest cannot survive state activation",
   "brinesearch_issue97_graph_release_generation_immutable",
   "has_function_privilege",
   "OH'",
@@ -192,9 +199,6 @@ for (const token of [
   "CI requirements are verified outside PostgreSQL",
 ]) need(fixtureReceipts, token, `database-bound fixture receipt ${token}`);
 
-// The forbidden historical tokens appear only inside the migration's own final
-// pg_get_functiondef guards. Remove those exact guard expressions before
-// asserting that no executable report/currentness body still trusts them.
 const fixtureReceiptsWithoutTrustGuards = fixtureReceipts
   .replaceAll("v_persist like '%p_pinned_fixture_results->>key%'", "")
   .replaceAll("v_persist like '%v_required_fixture_keys%'", "")
@@ -212,10 +216,58 @@ for (const guard of [
   "v_integrity like '%v_report.pinned_fixture_results->>key%'",
 ]) need(fixtureReceipts, guard, `caller-fixture trust rejection guard ${guard}`);
 
+for (const token of [
+  "brinesearch_issue97_state_candidate_manifests",
+  "brinesearch_issue97_state_candidate_manifest_members",
+  "brinesearch_issue97_persist_state_candidate_manifest",
+  "brinesearch_issue97_state_candidate_manifest_current",
+  "brinesearch_issue97_state_candidate_manifest_authorizes_build",
+  "status in (''validated'',''active'')",
+  "not (b.state_code=''WV'' and b.county_code=''OHI'')",
+  "global_cutover_authorized',false",
+  "candidate_manifest_authorizes_build",
+  "global cutover remains separately report-gated",
+]) need(stateActivation, token, `state activation manifest ${token}`);
+for (const forbidden of [
+  "update public.brinesearch_road_graph_builds set status='active'",
+  "brinesearch_issue97_activate_cutover(",
+  "brinesearch_issue97_refresh_google_routes(",
+]) forbid(stateActivation, forbidden, `state manifest migration must not activate/publish ${forbidden}`);
+
+for (const token of [
+  "pad.state='Ohio'",
+  "v_pads<>939",
+  "v_counties<>19",
+  "v_sources<>38 or v_current_sources<>38",
+  "brinesearch_issue97_graph_build_release_current",
+  "brinesearch_issue97_run_all_pad_routing_pipeline_geometry_core",
+  "non_ohio_receipt_digest",
+  "non_ohio_receipts_unchanged",
+  "public_google_dark",
+  "set local statement_timeout='90min'",
+]) need(ohioDirections, token, `Ohio dark direction batch ${token}`);
+for (const forbidden of [
+  "brinesearch_issue97_refresh_saved_road_reconciliation",
+  "brinesearch_issue97_refresh_google_routes",
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+]) forbid(ohioDirections, forbidden, `Ohio dark direction forbidden cross-phase action ${forbidden}`);
+for (const token of [
+  "'state','Ohio'",
+  "active_release_current_graphs",
+  "non_list_only_pads",
+  "route_ready_receipts",
+  "transition_holds_by_reason",
+  "geometry_holds_by_reason",
+  "ascent--cologie",
+  "WALKING TALL",
+  "pad.state='Ohio'",
+]) need(ohioReport, token, `Ohio report ${token}`);
+
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
-  20,
-  "rollback rehearsal must list exactly the 20 final release migration paths"
+  21,
+  "rollback rehearsal must list exactly the 21 final release migration paths"
 );
 for (const forbidden of [
   "supabase db push",
@@ -226,4 +278,4 @@ for (const forbidden of [
   "DATABASE_URL=",
 ]) forbid(rehearsal, forbidden, `rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound release fixture receipts, unattended serial fail-stop batch, and exact rollback rehearsal audit passed.");
+console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 939-pad dark reconciliation isolation, and exact 21-migration rollback rehearsal audit passed.");
