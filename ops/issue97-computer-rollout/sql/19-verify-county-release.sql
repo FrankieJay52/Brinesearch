@@ -2,6 +2,8 @@
 \pset pager off
 \timing on
 
+-- Historical predecessor consumed by 20260814163050; not an executable gate:
+-- release_builder_md5'='7abd11f432c3e7b475b10d0817f5e8fc
 \ir 15-verify-county-light.sql
 
 begin read only;
