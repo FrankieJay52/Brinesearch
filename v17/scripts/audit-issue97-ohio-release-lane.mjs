@@ -21,6 +21,7 @@ for (const scriptPath of [shellPath,rehearsalPath]) {
 
 const shell = fs.readFileSync(shellPath, "utf8");
 const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
+const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const plan = read("ops/issue97-computer-rollout/sql/24-ohio-release-dark-plan.sql");
 const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate.sql");
 
@@ -84,8 +85,9 @@ for (const token of [
 ]) need(gate, token, `Noble canary gate ${token}`);
 
 for (const token of [
-  "expected exactly 17 final release migrations",
+  "expected exactly 18 final release migrations",
   "20260814074500_issue97_graph_builder_temp_geography_index.sql",
+  "20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql",
   "20260814164200_issue97_post_cutover_report_integrity.sql",
   "set local statement_timeout='15min'",
   "set local lock_timeout='2min'",
@@ -93,18 +95,31 @@ for (const token of [
   "rollback;",
   "FINAL RELEASE MIGRATION CHAIN COMPILED AND VERIFIED INSIDE TRANSACTION",
   "production snapshot changed across rollback rehearsal",
-  "all 17 final #97 release migrations compiled/verified in one transaction",
-  "7abd11f432c3e7b475b10d0817f5e8fc",
+  "all 18 final #97 release migrations compiled/verified in one transaction",
+  "793ed8985252b00d52f46da497484029",
+  "odot_authoritative_overlap_pairs",
   "brinesearch_issue97_graph_release_generation_immutable",
   "has_function_privilege",
   "OH'",
   "v_required<>38 or v_current<>38",
 ]) need(rehearsal, token, `rollback rehearsal ${token}`);
 
+for (const token of [
+  "PRIMARY_OVERLAP_ID",
+  "OVERLAP_INVERSE_IND",
+  "issue97_topology_geometry_source",
+  "odot_authoritative_overlap_pairs",
+  "persistent_secondary_geometry_unchanged",
+  "793ed8985252b00d52f46da497484029",
+]) need(overlap, token, `ODOT shared-pavement contract ${token}`);
+for (const forbidden of ["similarity(","<->","nearest_road"]) {
+  forbid(overlap, forbidden, `ODOT shared-pavement guess ${forbidden}`);
+}
+
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
-  17,
-  "rollback rehearsal must list exactly the 17 final release migration paths"
+  18,
+  "rollback rehearsal must list exactly the 18 final release migration paths"
 );
 for (const forbidden of [
   "supabase db push",
@@ -115,4 +130,4 @@ for (const forbidden of [
   "DATABASE_URL=",
 ]) forbid(rehearsal, forbidden, `rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first Noble-canary + unattended serial fail-stop batch + exact rollback rehearsal audit passed.");
+console.log("Issue #97 Ohio-first Noble-canary + authoritative ODOT shared-pavement + unattended serial fail-stop batch + exact rollback rehearsal audit passed.");
