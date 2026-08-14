@@ -96,9 +96,11 @@ for (const token of [
   "revoke all on function public.brinesearch_issue97_activate_cutover_without_google_routes",
   "revoke all on function public.brinesearch_publish_structured_route_issue97_without_google",
   "all_current_pads_accounted",
+  "if v_patched like '%public.brinesearch_issue97_road_mapping_fingerprint(%'",
+  "or v_patched like '%run.status=''succeeded''%'",
+  "if v_definition like '%public.brinesearch_issue97_road_mapping_fingerprint%'",
+  "or v_definition like '%status=''succeeded''%'",
 ]) need(transition, token, `transition/cutover hardening ${token}`);
-forbid(transition, "public.brinesearch_issue97_road_mapping_fingerprint(o.canonical_road_id)", "dead public mapping fingerprint");
-forbid(transition, "run.status='succeeded'", "obsolete succeeded ingest status");
 
 for (const token of [
   "issue97-release-20260814-r1",
