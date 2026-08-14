@@ -22,6 +22,7 @@ migration_files=(
   "supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql"
   "supabase/migrations/20260814163100_issue97_graph_release_current_predicate.sql"
   "supabase/migrations/20260814163200_issue97_ohi_release_qualification.sql"
+  "supabase/migrations/20260814163250_issue97_shared_route_right_continuation_context.sql"
   "supabase/migrations/20260814163300_issue97_release_current_consumers.sql"
   "supabase/migrations/20260814163400_issue97_graph_release_input_digests.sql"
   "supabase/migrations/20260814164000_issue97_release_manifests_and_verification_reports.sql"
@@ -56,7 +57,7 @@ require_connection_profile() {
 
 verify_files() {
   local file previous=""
-  [[ "${#migration_files[@]}" -eq 18 ]] || die "expected exactly 18 final release migrations"
+  [[ "${#migration_files[@]}" -eq 19 ]] || die "expected exactly 19 final release migrations"
   for file in "${migration_files[@]}"; do
     [[ -f "${repo_root}/${file}" ]] || die "missing migration file ${file}"
     if [[ -n "${previous}" && "${file}" < "${previous}" ]]; then
@@ -99,8 +100,8 @@ select pg_catalog.jsonb_build_object(
     where version in (
       '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
       '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
-      '20260814163050','20260814163100','20260814163200','20260814163300','20260814163400',
-      '20260814164000','20260814164100','20260814164200'
+      '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
+      '20260814163400','20260814164000','20260814164100','20260814164200'
     )),
   'oh_source_current',(select count(*) from public.brinesearch_road_source_dataset_counties scope
     join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
@@ -147,8 +148,8 @@ begin
       where version in (
         '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
         '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
-        '20260814163050','20260814163100','20260814163200','20260814163300','20260814163400',
-        '20260814164000','20260814164100','20260814164200'
+        '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
+        '20260814163400','20260814164000','20260814164100','20260814164200'
       ))<>0 then
     raise exception 'Issue #97 release rehearsal refuses partially/fully installed final release migration chain';
   end if;
@@ -175,6 +176,18 @@ begin
      or v_definition not like '%issue97_persistent_secondary_geometry_unchanged%' then
     raise exception 'Issue #97 rehearsal final builder contract mismatch: %',v_builder_md5;
   end if;
+
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_refresh_transition_receipts(uuid)'::pg_catalog.regprocedure
+  );
+  if v_definition not like '%shared_segment_right_continuation_context%'
+     or v_definition not like '%right_context_outside_shared_interval%'
+     or v_definition not like '%selection_uses_exact_right_identity%'
+     or v_definition not like '%private_verification.brinesearch_issue97_graph_build_release_current(%'
+     or v_definition like '%private_verification.brinesearch_issue97_graph_build_sources_current(%' then
+    raise exception 'Issue #97 rehearsal shared-route/release-current transition contract mismatch';
+  end if;
+
   if pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is null
      or pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is null then
     raise exception 'Issue #97 rehearsal OGRIP endpoint geography indexes missing';
@@ -268,7 +281,7 @@ main() {
     die "release migration rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
-  printf 'PASS: all 18 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
+  printf 'PASS: all 19 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
 main "$@"
