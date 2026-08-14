@@ -1,0 +1,5 @@
+# BrineSearch release/migration tooling relies on exact SQL/function-definition anchors.
+# Keep execution-critical text canonical across Windows/macOS/Linux checkouts.
+*.sql text eol=lf
+*.sh text eol=lf
+*.mjs text eol=lf
