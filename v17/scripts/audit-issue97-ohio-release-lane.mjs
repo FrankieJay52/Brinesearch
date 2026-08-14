@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -12,8 +13,14 @@ const forbid = (source, token, label = token) =>
   assert.ok(!source.includes(token), `Issue #97 Ohio release audit forbids ${label}`);
 const count = (source, token) => source.split(token).length - 1;
 
-const shell = read("ops/issue97-computer-rollout/issue97-release-rollout.sh");
-const rehearsal = read("ops/issue97-computer-rollout/issue97-release-rehearsal.sh");
+const shellPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rollout.sh");
+const rehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal.sh");
+for (const scriptPath of [shellPath,rehearsalPath]) {
+  execFileSync("bash", ["-n", scriptPath], { stdio: "pipe" });
+}
+
+const shell = fs.readFileSync(shellPath, "utf8");
+const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
 const plan = read("ops/issue97-computer-rollout/sql/24-ohio-release-dark-plan.sql");
 const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate.sql");
 
@@ -31,6 +38,7 @@ for (const token of [
   "No WV/PA build, activation, cutover, route publication or retry occurred.",
   "whole-Ohio independent read-only audit",
   "mixed-state release command disabled during Ohio-first phase",
+  "PA WAS Possum/performance canary is deferred",
 ]) need(shell, token, `Ohio-first shell ${token}`);
 
 for (const forbidden of [
