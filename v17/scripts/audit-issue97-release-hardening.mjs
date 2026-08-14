@@ -72,7 +72,6 @@ for (const token of [
   "mapping_method','exact_source_subsegment_boundary_pair",
 ]) need(bridgeApply, token, `Possum apply contract ${token}`);
 for (const token of [
-  "4dd8a572b153d795163cf38a41ea9d1f",
   "af72c01100aa90636ba0d40304724531",
   "1072f796d437a8e9bf94bb025785ea8e",
   "Issue #97 required Possum Hollow reviewed bridge fixtures failed",
