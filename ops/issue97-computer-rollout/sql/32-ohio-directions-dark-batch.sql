@@ -65,6 +65,36 @@ begin
 end
 $issue97_ohio_direction_preflight$;
 
+-- Exact non-Ohio receipt snapshot. The postcheck recomputes this digest rather
+-- than relying on timestamps, so unrelated old rows cannot create a false alarm.
+select pg_catalog.md5(pg_catalog.concat_ws('|',
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.occurrence_index
+    ),''))
+   from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.boundary_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.boundary_index
+    ),''))
+   from private_verification.brinesearch_route_transition_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.occurrence_index
+    ),''))
+   from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id
+    ),''))
+   from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio')
+)) as non_ohio_receipt_digest
+\gset issue97_before_
+
 rollback;
 
 begin;
@@ -101,27 +131,53 @@ commit;
 begin read only;
 set local statement_timeout='5min';
 
-do $issue97_ohio_direction_postcheck$
-begin
-  if public.brinesearch_issue97_cutover_active()
-     or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
-     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0 then
-    raise exception 'Issue #97 Ohio dark direction batch changed cutover/staging/public Google state';
-  end if;
-  if exists(
-    select 1 from public.pads pad
-    where pad.state<>'Ohio'
-      and exists(
-        select 1
-        from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
-        where receipt.pad_id=pad.id
-          and receipt.updated_at>=pg_catalog.transaction_timestamp()-interval '5 minutes'
-      )
-  ) then
-    raise exception 'Issue #97 Ohio dark direction batch touched a non-Ohio route receipt';
-  end if;
-end
-$issue97_ohio_direction_postcheck$;
+select pg_catalog.md5(pg_catalog.concat_ws('|',
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.occurrence_index
+    ),''))
+   from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.boundary_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.boundary_index
+    ),''))
+   from private_verification.brinesearch_route_transition_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id,receipt.occurrence_index
+    ),''))
+   from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||receipt.receipt_digest,
+      '|' order by receipt.route_prep_id
+    ),''))
+   from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
+   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio')
+))=:'issue97_before_non_ohio_receipt_digest' as non_ohio_receipts_unchanged,
+not public.brinesearch_issue97_cutover_active() as cutover_off,
+not exists(select 1 from public.brinesearch_road_graph_builds where status='staging') as no_staging,
+(select count(*) from public.brinesearch_driver_google_routes_public)=0 as public_google_dark
+\gset issue97_after_
+
+\if :issue97_after_non_ohio_receipts_unchanged
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch changed non-Ohio route receipts'; end $fail$;
+\endif
+\if :issue97_after_cutover_off
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch changed global cutover'; end $fail$;
+\endif
+\if :issue97_after_no_staging
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch left a staging graph'; end $fail$;
+\endif
+\if :issue97_after_public_google_dark
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch populated public Google routes before cutover'; end $fail$;
+\endif
 
 commit;
-\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 939 pads; Google/public cutover remains dark.'
+\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 939 pads; non-Ohio receipts unchanged; Google/public cutover remains dark.'
