@@ -123,16 +123,42 @@ begin
   end if;
   v_patched:=pg_catalog.replace(v_patched,v_anchor,v_insert);
 
-  -- Persisted private receipt accounting must use the same non-list-only scope
-  -- as the all-pad refresh, even if an old list-only receipt exists historically.
-  v_patched:=pg_catalog.replace(v_patched,
-    '(select count(*) from private_verification.brinesearch_google_route_receipts_issue97\n             where status=''ready'')',
-    '(select count(*) from private_verification.brinesearch_google_route_receipts_issue97 receipt\n             join public.pads pad on pad.id=receipt.pad_id\n             where coalesce(pad.list_only,false)=false and receipt.status=''ready'')'
-  );
-  v_patched:=pg_catalog.replace(v_patched,
-    '(select count(*) from private_verification.brinesearch_google_route_receipts_issue97\n             where status=''held'')',
-    '(select count(*) from private_verification.brinesearch_google_route_receipts_issue97 receipt\n             join public.pads pad on pad.id=receipt.pad_id\n             where coalesce(pad.list_only,false)=false and receipt.status=''held'')'
-  );
+  -- Replace the persisted receipt/accounting block as one exact multiline anchor.
+  -- This deliberately ignores historical list-only receipts, matching the same
+  -- denominator used by refresh_google_routes(NULL) and the reviewed route manifest.
+  v_anchor:=$anchor$    if (select count(*) from public.brinesearch_driver_google_routes_public)
+         <>coalesce((v_google->>'ready')::integer,0)
+       or (select count(*) from private_verification.brinesearch_google_route_receipts_issue97
+             where status='ready')<>coalesce((v_google->>'ready')::integer,0)
+       or (select count(*) from private_verification.brinesearch_google_route_receipts_issue97
+             where status='held')<>coalesce((v_google->>'held')::integer,0) then
+      raise exception 'Issue #97 cutover Google-route persisted receipt/public projection accounting disagrees with refresh result: %',
+        v_google using errcode='55000';
+    end if;$anchor$;
+  v_insert:=$insert$    if (select count(*) from public.brinesearch_driver_google_routes_public public_route
+             join public.pads pad on pad.id=public_route.pad_id
+             where coalesce(pad.list_only,false)=false)
+         <>coalesce((v_google->>'ready')::integer,0)
+       or (select count(*) from private_verification.brinesearch_google_route_receipts_issue97 receipt
+             join public.pads pad on pad.id=receipt.pad_id
+             where coalesce(pad.list_only,false)=false and receipt.status='ready')
+          <>coalesce((v_google->>'ready')::integer,0)
+       or (select count(*) from private_verification.brinesearch_google_route_receipts_issue97 receipt
+             join public.pads pad on pad.id=receipt.pad_id
+             where coalesce(pad.list_only,false)=false and receipt.status='held')
+          <>coalesce((v_google->>'held')::integer,0)
+       or exists(select 1 from private_verification.brinesearch_google_route_receipts_issue97 receipt
+             join public.pads pad on pad.id=receipt.pad_id
+             where coalesce(pad.list_only,false)=false and receipt.status='stale') then
+      raise exception 'Issue #97 cutover Google-route persisted receipt/public projection accounting disagrees with reviewed non-list-only scope: %',
+        v_google using errcode='55000';
+    end if;$insert$;
+  if (pg_catalog.length(v_patched)-pg_catalog.length(pg_catalog.replace(v_patched,v_anchor,'')))
+       /pg_catalog.length(v_anchor)<>1 then
+    raise exception 'Issue #97 scoped Google persisted-accounting anchor changed';
+  end if;
+  v_patched:=pg_catalog.replace(v_patched,v_anchor,v_insert);
+
   execute v_patched;
 end
 $issue97_outer_cutover_verification_report_gate$;
