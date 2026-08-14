@@ -19,6 +19,7 @@ migration_files=(
   "supabase/migrations/20260814161500_issue97_ogrip_corroborated_source_vertex.sql"
   "supabase/migrations/20260814162000_issue97_transition_google_schema_acl_hardening.sql"
   "supabase/migrations/20260814163000_issue97_graph_release_generation_registry.sql"
+  "supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql"
   "supabase/migrations/20260814163100_issue97_graph_release_current_predicate.sql"
   "supabase/migrations/20260814163200_issue97_ohi_release_qualification.sql"
   "supabase/migrations/20260814163300_issue97_release_current_consumers.sql"
@@ -55,7 +56,7 @@ require_connection_profile() {
 
 verify_files() {
   local file previous=""
-  [[ "${#migration_files[@]}" -eq 17 ]] || die "expected exactly 17 final release migrations"
+  [[ "${#migration_files[@]}" -eq 18 ]] || die "expected exactly 18 final release migrations"
   for file in "${migration_files[@]}"; do
     [[ -f "${repo_root}/${file}" ]] || die "missing migration file ${file}"
     if [[ -n "${previous}" && "${file}" < "${previous}" ]]; then
@@ -98,8 +99,8 @@ select pg_catalog.jsonb_build_object(
     where version in (
       '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
       '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
-      '20260814163100','20260814163200','20260814163300','20260814163400','20260814164000',
-      '20260814164100','20260814164200'
+      '20260814163050','20260814163100','20260814163200','20260814163300','20260814163400',
+      '20260814164000','20260814164100','20260814164200'
     )),
   'oh_source_current',(select count(*) from public.brinesearch_road_source_dataset_counties scope
     join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
@@ -146,8 +147,8 @@ begin
       where version in (
         '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
         '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
-        '20260814163100','20260814163200','20260814163300','20260814163400','20260814164000',
-        '20260814164100','20260814164200'
+        '20260814163050','20260814163100','20260814163200','20260814163300','20260814163400',
+        '20260814164000','20260814164100','20260814164200'
       ))<>0 then
     raise exception 'Issue #97 release rehearsal refuses partially/fully installed final release migration chain';
   end if;
@@ -162,12 +163,17 @@ declare
   v_builder_md5 text;
   v_generation integer;
   v_ohi integer;
+  v_definition text;
 begin
-  v_builder_md5:=pg_catalog.md5(pg_catalog.pg_get_functiondef(
+  v_definition:=pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
-  ));
-  if v_builder_md5<>'7abd11f432c3e7b475b10d0817f5e8fc' then
-    raise exception 'Issue #97 rehearsal final builder MD5 mismatch: %',v_builder_md5;
+  );
+  v_builder_md5:=pg_catalog.md5(v_definition);
+  if v_builder_md5<>'793ed8985252b00d52f46da497484029'
+     or v_definition not like '%odot_authoritative_overlap_pairs%'
+     or v_definition not like '%PRIMARY_OVERLAP_ID%'
+     or v_definition not like '%issue97_persistent_secondary_geometry_unchanged%' then
+    raise exception 'Issue #97 rehearsal final builder contract mismatch: %',v_builder_md5;
   end if;
   if pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is null
      or pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is null then
@@ -181,9 +187,12 @@ begin
   select count(*)::integer into v_generation
   from private_verification.brinesearch_issue97_graph_release_generations
   where active and generation_key='issue97-release-20260814-r1'
+    and builder_definition_md5='793ed8985252b00d52f46da497484029'
+    and review_details->>'persistent_odot_geometry_rewritten'='false'
+    and review_details->>'name_or_nearest_matching_used'='false'
     and source_content_contract='captured-run-content+authoritative-name+supplemental-map-v2';
   if v_generation<>1 then
-    raise exception 'Issue #97 rehearsal active release generation contract missing';
+    raise exception 'Issue #97 rehearsal active release generation/ODOT overlap contract missing';
   end if;
   select count(*)::integer into v_ohi
   from public.brinesearch_road_graph_builds b
@@ -259,7 +268,7 @@ main() {
     die "release migration rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
-  printf 'PASS: all 17 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
+  printf 'PASS: all 18 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
 main "$@"
