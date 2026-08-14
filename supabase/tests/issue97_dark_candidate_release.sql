@@ -1,7 +1,8 @@
 -- GitHub #97 — dark candidate release verification.
 -- Run only after release migrations are installed. This test never activates a
--- graph and never requires global cutover. It verifies the exact latest
--- validated candidate set that would be eligible for later activation.
+-- graph and never requires global cutover. It verifies only validated candidates
+-- stamped by the active release generation; historical validated builds are not
+-- silently treated as candidates for this release.
 begin transaction read only;
 set local statement_timeout='15min';
 set local lock_timeout='5s';
@@ -12,6 +13,7 @@ declare
   v_candidates integer;
   v_missing integer;
   v_bad integer;
+  v_generation text;
 begin
   if public.brinesearch_issue97_cutover_active() then
     raise exception '#97 dark candidate release test requires cutover OFF';
@@ -24,21 +26,28 @@ begin
   from public.brinesearch_road_graph_counties where active;
   if v_registered<>39 then raise exception '#97 expected 39 registered counties, found %',v_registered; end if;
 
-  with latest as (
-    select distinct on(state_code,county_code) id,state_code,county_code,status,completed_at
-    from public.brinesearch_road_graph_builds
-    where status='validated'
-    order by state_code,county_code,completed_at desc nulls last,started_at desc,id desc
-  )
-  select count(*)::integer into v_candidates from latest;
+  v_generation:=private_verification.brinesearch_issue97_active_graph_release_generation();
+  if nullif(v_generation,'') is null then
+    raise exception '#97 active graph release generation is missing';
+  end if;
 
-  -- This suite is also useful at the two-canary checkpoint. It requires every
-  -- candidate that exists to be release-current, but does not require all 39
-  -- counties to have been built yet.
   with latest as (
     select distinct on(state_code,county_code) b.*
     from public.brinesearch_road_graph_builds b
     where b.status='validated'
+      and b.details->>'release_generation_key'=v_generation
+    order by state_code,county_code,completed_at desc nulls last,started_at desc,id desc
+  )
+  select count(*)::integer into v_candidates from latest;
+
+  -- This suite is useful at the two-canary checkpoint: every candidate stamped
+  -- for this release must be current, but old validated historical generations
+  -- are intentionally ignored rather than failing the candidate set.
+  with latest as (
+    select distinct on(state_code,county_code) b.*
+    from public.brinesearch_road_graph_builds b
+    where b.status='validated'
+      and b.details->>'release_generation_key'=v_generation
     order by state_code,county_code,completed_at desc nulls last,started_at desc,id desc
   )
   select count(*)::integer into v_bad
@@ -68,14 +77,15 @@ begin
           where j.build_id=b.id and m.approach_data ? 'raw_source_measure'
             and (m.approach_data->>'source_measure_normalized')::boolean is distinct from
               ((m.approach_data->>'raw_source_measure')::numeric is distinct from m.source_measure));
-  if v_bad<>0 then raise exception '#97 % latest validated dark candidates failed release/digest/provenance verification',v_bad; end if;
+  if v_bad<>0 then
+    raise exception '#97 % active-release validated dark candidates failed release/digest/provenance verification',v_bad;
+  end if;
 
-  -- Every current source-run receipt captured by a candidate must still resolve
-  -- to a content digest; release-currentness binds that digest to the build.
   with latest as (
     select distinct on(state_code,county_code) b.*
     from public.brinesearch_road_graph_builds b
     where b.status='validated'
+      and b.details->>'release_generation_key'=v_generation
     order by state_code,county_code,completed_at desc nulls last,started_at desc,id desc
   )
   select count(*)::integer into v_missing from latest b
@@ -85,12 +95,16 @@ end
 $issue97_dark_candidates$;
 
 -- Execute the repaired transition dependency against every currently materialized
--- transition pad. A schema-drifted function fails here even when it eventually
--- returns NULL because a graph is intentionally dark/stale.
+-- transition pad. A schema-drifted function fails here even when it returns NULL
+-- because a graph is intentionally dark/stale.
 do $issue97_transition_dependency_exec$
 declare r record; v_dependency text;
 begin
-  for r in select distinct pad_id from private_verification.brinesearch_route_transition_receipts_issue97 order by pad_id loop
+  for r in
+    select distinct pad_id
+    from private_verification.brinesearch_route_transition_receipts_issue97
+    order by pad_id
+  loop
     v_dependency:=private_verification.brinesearch_issue97_transition_google_dependency(r.pad_id);
     if v_dependency is not null and v_dependency!~'^[0-9a-f]{32}$' then
       raise exception '#97 transition dependency returned a non-digest value for %: %',r.pad_id,v_dependency;
