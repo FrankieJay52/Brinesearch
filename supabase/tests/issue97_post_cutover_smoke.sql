@@ -20,21 +20,36 @@ begin
     raise exception '#97 post-cutover smoke requires cutover ACTIVE';
   end if;
 
+  -- Match the production all-pad Google refresh denominator exactly. record_type
+  -- is not the list-only authority; current production includes list-only disposal
+  -- records whose record_type is still 'disposal'.
   select count(*)::integer into v_pad_scope
   from public.pads p
-  where coalesce(p.record_type,'pad')<>'list_only';
+  where coalesce(p.list_only,false)=false;
 
-  select count(*) filter(where status='ready')::integer,
-    count(*) filter(where status='held')::integer,
-    count(*) filter(where status='stale')::integer
+  select count(*) filter(where receipt.status='ready')::integer,
+    count(*) filter(where receipt.status='held')::integer,
+    count(*) filter(where receipt.status='stale')::integer
   into v_ready,v_held,v_stale
   from private_verification.brinesearch_google_route_receipts_issue97 receipt
   join public.pads p on p.id=receipt.pad_id
-  where coalesce(p.record_type,'pad')<>'list_only';
+  where coalesce(p.list_only,false)=false;
 
   if v_ready+v_held+v_stale<>v_pad_scope or v_stale<>0 then
     raise exception '#97 post-cutover Google receipt accounting incomplete: scope %, ready %, held %, stale %',
       v_pad_scope,v_ready,v_held,v_stale;
+  end if;
+
+  if exists(
+    select 1
+    from public.pads p
+    where coalesce(p.list_only,false)=false
+      and not exists(
+        select 1 from private_verification.brinesearch_google_route_receipts_issue97 receipt
+        where receipt.pad_id=p.id and receipt.status in ('ready','held')
+      )
+  ) then
+    raise exception '#97 post-cutover has a current non-list-only pad without one ready-or-held receipt';
   end if;
 
   select count(*)::integer into v_public
@@ -47,7 +62,7 @@ begin
   select count(*)::integer into v_missing
   from private_verification.brinesearch_google_route_receipts_issue97 receipt
   join public.pads p on p.id=receipt.pad_id
-  where coalesce(p.record_type,'pad')<>'list_only'
+  where coalesce(p.list_only,false)=false
     and receipt.status='ready'
     and (
       not public.brinesearch_issue97_google_route_current(receipt.pad_id)
@@ -64,11 +79,9 @@ begin
     raise exception '#97 post-cutover public projection exposed a non-current Google route';
   end if;
 
-  -- Representative product classes must remain present in the reviewed release
-  -- corpus. Their detailed coordinate/chunk behavior is covered by the existing
-  -- Google-route planner/browser regressions and live-site verification.
-  if not exists(select 1 from public.pads p where coalesce(p.record_type,'pad')<>'list_only'
-      and p.latitude is not null and p.longitude is not null) then
+  if not exists(select 1 from public.pads p
+      where coalesce(p.list_only,false)=false
+        and p.latitude is not null and p.longitude is not null) then
     raise exception '#97 post-cutover has no exact-GPS pad available for live route smoke';
   end if;
 end
