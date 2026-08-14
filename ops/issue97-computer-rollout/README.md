@@ -6,15 +6,15 @@ job system and it must not be run through the Supabase management connector,
 SQL Editor, transaction-mode pooler, a phone browser, or an Edge Function.
 
 It contains no credentials, database URI, arbitrary SQL input, automatic retry,
-global cutover command, or automatic activation loop. Every county build stays a
-single atomic transaction and calls the existing unchanged builder.
+global cutover command, or graph activation command. Every county build remains
+one atomic transaction and calls the existing unchanged builder.
 
 ## One-time computer setup
 
 1. Install the PostgreSQL client (`psql`).
 2. Clone/fetch BrineSearch and check out
    `data/issue-97-authoritative-road-junction-graph`.
-3. Wait for Work to confirm the exact PR #98 head is green and the pending
+3. Wait for the coordinator to confirm the exact PR #98 head is green and all
    migrations on that head are installed in production.
 4. Configure a private libpq service using the official Supabase direct
    connection or Supavisor session endpoint. Keep the password in a local
@@ -44,51 +44,86 @@ the required #97 functions, all 114 required source scopes are current, global
 cutover is off, there is no staging build, BEL/JEF/NOB remain current, and the
 public Google-route policy is bound to the final cutover-aware dispatcher.
 
-## One county at a time
+## Preferred dark-build batch
 
-Build only in a quiet ingestion window:
+The human/operator does **not** need to start and approve each remaining county
+one at a time. The database work itself still stays county-scoped and serial so
+one bad county cannot contaminate another.
+
+Preview the exact pending queue:
 
 ```sh
-./ops/issue97-computer-rollout/issue97-computer-rollout.sh build WV OHI
+./ops/issue97-computer-rollout/issue97-computer-rollout.sh plan-dark
 ```
 
-The fixed build command executes exactly:
+Then run the controlled batch:
 
-```sql
-BEGIN;
-SET LOCAL statement_timeout='15min';
-SELECT public.brinesearch_issue97_rebuild_county_graph('WV','OHI');
-COMMIT;
+```sh
+./ops/issue97-computer-rollout/issue97-computer-rollout.sh build-pending-dark
 ```
 
-with the supplied scope validated against the active graph registry. It never
-activates a build. If the connection returns an error or drops, the script
-performs one read-only status inspection and **never retries**. A client timeout,
-HTTP error, or disconnect is not proof of either rollback or success.
+The batch:
 
-For OHI, immediately run the fixed dark-build regression:
+- computes the queue from the current 39-county registry and current graph/source
+  receipts; it does not use a hand-maintained county list;
+- puts Washington County PA first while it remains pending, preserving the
+  Possum Hollow milestone;
+- permanently excludes frozen Ohio `BEL`, `JEF`, and `NOB`;
+- automatically skips any county that already has a source/mapping-current
+  active or validated graph;
+- runs **serially**, never in parallel;
+- executes the existing `10-build-county.sql` once per pending county;
+- keeps each build in its own `BEGIN` / 15-minute transaction;
+- runs a bounded lightweight post-build check of persisted graph digest, counts,
+  source/mapping currentness, holds, and cutover/staging state;
+- waits five seconds between counties;
+- stops on the first error, inspects server state once, and **never retries**;
+- never activates a graph, never activates global cutover, never publishes
+  Google routes, and never starts the directions batch.
+
+A client disconnect or timeout is never treated as proof of success or rollback.
+The fail-stop status check remains the source of truth before any later retry.
+
+After the dark-build batch completes, stop production writes and perform one
+checkpoint-wide independent read-only audit. Deep/pinned verification is a
+release gate before activation, but it is not duplicated after every county
+during the long build batch.
+
+## Individual county recovery / deep verification
+
+The original one-county command remains available for an intentionally isolated
+recovery or regression:
+
+```sh
+./ops/issue97-computer-rollout/issue97-computer-rollout.sh build PA WAS
+```
+
+That command runs the full shared-provenance verifier after the build. It is not
+the preferred way to complete the remaining 35-county dark queue.
+
+Read-only county verification can also be run separately:
+
+```sh
+./ops/issue97-computer-rollout/issue97-computer-rollout.sh verify PA WAS
+```
+
+OHI retains its pinned Thrush regression:
 
 ```sh
 ./ops/issue97-computer-rollout/issue97-computer-rollout.sh verify-ohi
 ```
 
-Stop for the independent read-only audit. This kit intentionally contains no
-activation command. After that audit is reconciled, Work must recover the exact
-validated build ID from GitHub Issue #97, independently recheck production, and
-perform the established county activation as a separate authorized checkpoint.
+This kit intentionally contains no activation command. County activation remains
+a separate reviewed production phase after the batch checkpoint is audited.
 
-## Current Ohio queue
+## Frozen/current and already completed graph state
 
-- Frozen/current: `BEL`, `JEF`, `NOB` — do not rebuild or activate.
-- Active but stale; controlled rebuild required: `CAR`, `COL`, `GUE`, `HAS`,
-  `MOE`.
-- No graph yet: `ATH`, `COS`, `MAH`, `MEG`, `MUS`, `POR`, `STA`, `TRU`, `TUS`,
-  `VIN`, `WAS`.
-
-Do not turn this list into an unattended loop. For each county: preflight,
-build, inspect exact topology/regressions and holds, checkpoint/audit, then hand
-back to Work for separately authorized activation/postcheck/freeze. Washington County PA / Possum Hollow remains its own
-special state-path regression. Global cutover stays off throughout.
+- `OH/BEL`, `OH/JEF`, `OH/NOB` are frozen and cannot be rebuilt by this kit.
+- `WV/OHI` is already active/current and is skipped automatically while that
+  state remains current.
+- Existing stale Ohio graph generations are not treated as current merely
+  because their status says `active` or `validated`; the batch plan also checks
+  their source-run vector and mapping snapshot against current production truth.
 
 ## Dark directions preparation
 
@@ -115,4 +150,4 @@ The following are explicit release gates, not tasks this kit guesses around:
 - independently audit the final route-ready ↔ manifest accounting;
 - activate global cutover only through the separately reviewed release process.
 
-There is intentionally no cutover command in this directory.
+There is intentionally no graph-activation or cutover command in this directory.

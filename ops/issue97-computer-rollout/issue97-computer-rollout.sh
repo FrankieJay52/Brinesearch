@@ -20,11 +20,17 @@ Usage:
   issue97-computer-rollout.sh build STATE COUNTY
   issue97-computer-rollout.sh verify STATE COUNTY
   issue97-computer-rollout.sh verify-ohi
+  issue97-computer-rollout.sh plan-dark
+  issue97-computer-rollout.sh build-pending-dark
   issue97-computer-rollout.sh directions-dark
   issue97-computer-rollout.sh directions-report
 
 The script accepts no database URI, password, token or SQL argument. Configure a
 private libpq service and export only its non-secret name as PGSERVICE.
+
+build-pending-dark is a fail-stop SERIAL batch. It never runs county builds in
+parallel, never retries a failed county, never activates a graph, and never
+changes global cutover.
 USAGE
 }
 
@@ -65,6 +71,13 @@ validate_scope() {
   [[ "${county}" =~ ^[A-Z]{3}$ ]] || die "COUNTY must be an exact three-letter registry code"
 }
 
+reject_frozen_scope() {
+  local state="$1" county="$2"
+  case "${state}:${county}" in
+    OH:BEL|OH:JEF|OH:NOB) die "BEL/JEF/NOB are frozen; this kit cannot rebuild them" ;;
+  esac
+}
+
 new_log() {
   local label="$1"
   umask 077
@@ -91,6 +104,52 @@ run_logged_sql() {
   return "${rc}"
 }
 
+run_plan_sql() {
+  local sql_file="$1"
+  shift
+  run_sql "${sql_file}" --tuples-only --no-align --field-separator='|' --quiet "$@"
+}
+
+inspect_after_error() {
+  local state="$1" county="$2" phase="$3"
+  printf '%s client returned an error. This is not proof of rollback or success.\n' "${phase}" >&2
+  printf 'Inspecting server activity and graph state once; no retry will occur.\n' >&2
+  run_logged_sql "status-after-error-${state}-${county}" "${sql_dir}/12-county-status.sql" \
+    --set="issue97_state=${state}" --set="issue97_county=${county}" || true
+}
+
+build_scope_dark() {
+  local state="$1" county="$2" verify_mode="$3"
+  validate_scope "${state}" "${county}"
+  reject_frozen_scope "${state}" "${county}"
+
+  if ! run_logged_sql "build-${state}-${county}" "${sql_dir}/10-build-county.sql" \
+    --set="issue97_state=${state}" --set="issue97_county=${county}"; then
+    inspect_after_error "${state}" "${county}" "Build"
+    return 1
+  fi
+
+  case "${verify_mode}" in
+    full)
+      if ! run_logged_sql "verify-${state}-${county}" "${sql_dir}/11-verify-county.sql" \
+        --set="issue97_state=${state}" --set="issue97_county=${county}"; then
+        inspect_after_error "${state}" "${county}" "Full verification"
+        return 1
+      fi
+      ;;
+    light)
+      if ! run_logged_sql "verify-light-${state}-${county}" "${sql_dir}/15-verify-county-light.sql" \
+        --set="issue97_state=${state}" --set="issue97_county=${county}"; then
+        inspect_after_error "${state}" "${county}" "Light verification"
+        return 1
+      fi
+      ;;
+    *)
+      die "unknown verification mode: ${verify_mode}"
+      ;;
+  esac
+}
+
 main() {
   local command_name="${1:-}"
   [[ -n "${command_name}" ]] || { usage; exit 2; }
@@ -113,20 +172,9 @@ main() {
     build)
       [[ $# -eq 2 ]] || die "build requires STATE COUNTY"
       validate_scope "$1" "$2"
-      case "$1:$2" in
-        OH:BEL|OH:JEF|OH:NOB) die "BEL/JEF/NOB are frozen; this kit cannot rebuild them" ;;
-      esac
+      reject_frozen_scope "$1" "$2"
       run_sql "${sql_dir}/00-preflight.sql"
-      if ! run_logged_sql "build-$1-$2" "${sql_dir}/10-build-county.sql" \
-        --set="issue97_state=$1" --set="issue97_county=$2"; then
-        printf 'Build client returned an error. This is not proof of rollback or success.\n' >&2
-        printf 'Inspecting server activity and graph state once; no retry will occur.\n' >&2
-        run_logged_sql "status-after-error-$1-$2" "${sql_dir}/12-county-status.sql" \
-          --set="issue97_state=$1" --set="issue97_county=$2" || true
-        exit 1
-      fi
-      run_logged_sql "verify-$1-$2" "${sql_dir}/11-verify-county.sql" \
-        --set="issue97_state=$1" --set="issue97_county=$2"
+      build_scope_dark "$1" "$2" full
       ;;
     verify)
       [[ $# -eq 2 ]] || die "verify requires STATE COUNTY"
@@ -137,6 +185,53 @@ main() {
     verify-ohi)
       [[ $# -eq 0 ]] || die "verify-ohi accepts no arguments"
       run_logged_sql verify-WV-OHI-Thrush "${sql_dir}/13-verify-ohi-thrush.sql"
+      ;;
+    plan-dark)
+      [[ $# -eq 0 ]] || die "plan-dark accepts no arguments"
+      run_sql "${sql_dir}/00-preflight.sql"
+      run_logged_sql plan-dark "${sql_dir}/14-dark-build-plan.sql"
+      ;;
+    build-pending-dark)
+      [[ $# -eq 0 ]] || die "build-pending-dark accepts no arguments"
+      local plan_output
+      local -a pending=()
+      local scope state county completed total
+
+      run_sql "${sql_dir}/00-preflight.sql"
+      if ! plan_output="$(run_plan_sql "${sql_dir}/14-dark-build-plan.sql")"; then
+        die "dark-build plan failed; no county build was attempted"
+      fi
+      mapfile -t pending < <(
+        printf '%s\n' "${plan_output}" |
+          grep -E '^(OH|WV|PA)\|[A-Z]{3}$' || true
+      )
+
+      total=${#pending[@]}
+      if [[ "${total}" -eq 0 ]]; then
+        printf 'No pending dark county builds. No production write was attempted.\n'
+        exit 0
+      fi
+
+      printf 'Pending dark-build plan: %s counties. Serial, fail-stop, no activation.\n' "${total}"
+      printf '%s\n' "${pending[@]}"
+      completed=0
+
+      for scope in "${pending[@]}"; do
+        IFS='|' read -r state county <<<"${scope}"
+        validate_scope "${state}" "${county}"
+        reject_frozen_scope "${state}" "${county}"
+        printf '\n[%s/%s] Dark build %s %s\n' "$((completed + 1))" "${total}" "${state}" "${county}"
+        build_scope_dark "${state}" "${county}" light
+        completed=$((completed + 1))
+        printf '[%s/%s] PASS %s %s; build remains inactive.\n' "${completed}" "${total}" "${state}" "${county}"
+        if [[ "${completed}" -lt "${total}" ]]; then
+          sleep 5
+        fi
+      done
+
+      printf '\nDark-build batch complete: %s/%s counties built and lightly verified.\n' "${completed}" "${total}"
+      printf 'No graph activation, global cutover, route publication, or automatic retry occurred.\n'
+      printf 'Stop here for one checkpoint-wide independent read-only audit before activation work.\n'
       ;;
     directions-dark)
       [[ $# -eq 0 ]] || die "directions-dark accepts no arguments"
