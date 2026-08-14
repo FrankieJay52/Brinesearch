@@ -307,7 +307,11 @@ main() {
     printf "set local lock_timeout='2min';\n"
     for file in "${migration_files[@]}"; do
       printf '\\echo Rehearsing %s\n' "${file}"
-      cat "${repo_root}/${file}"
+      # Git for Windows may materialize tracked SQL as CRLF even though the
+      # canonical repository content is LF. Dollar-quoted exact anchors compare
+      # against pg_get_functiondef(), which is LF. Normalize line-ending CR only;
+      # do not alter SQL content, spacing, ordering, or migration boundaries.
+      sed 's/\r$//' "${repo_root}/${file}"
       printf '\n'
     done
     printf '%s\n' "${in_transaction_verify}"
