@@ -29,6 +29,7 @@ migration_files=(
   "supabase/migrations/20260814164100_issue97_manifest_bound_activation_cutover.sql"
   "supabase/migrations/20260814164200_issue97_post_cutover_report_integrity.sql"
   "supabase/migrations/20260814164250_issue97_database_bound_fixture_receipts.sql"
+  "supabase/migrations/20260814164300_issue97_state_scoped_activation_manifests.sql"
 )
 
 require_repo_checkpoint() {
@@ -58,7 +59,7 @@ require_connection_profile() {
 
 verify_files() {
   local file previous=""
-  [[ "${#migration_files[@]}" -eq 20 ]] || die "expected exactly 20 final release migrations"
+  [[ "${#migration_files[@]}" -eq 21 ]] || die "expected exactly 21 final release migrations"
   for file in "${migration_files[@]}"; do
     [[ -f "${repo_root}/${file}" ]] || die "missing migration file ${file}"
     if [[ -n "${previous}" && "${file}" < "${previous}" ]]; then
@@ -102,7 +103,8 @@ select pg_catalog.jsonb_build_object(
       '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
       '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
       '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
-      '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250'
+      '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250',
+      '20260814164300'
     )),
   'oh_source_current',(select count(*) from public.brinesearch_road_source_dataset_counties scope
     join public.brinesearch_road_source_datasets dataset on dataset.id=scope.dataset_id
@@ -117,9 +119,7 @@ SQL
 
 preflight_sql=$(cat <<'SQL'
 do $gate$
-declare
-  v_required integer;
-  v_current integer;
+declare v_required integer; v_current integer;
 begin
   if public.brinesearch_issue97_cutover_active() then
     raise exception 'Issue #97 release rehearsal requires cutover OFF';
@@ -150,7 +150,8 @@ begin
         '20260814074500','20260814160000','20260814161000','20260814161100','20260814161200',
         '20260814161300','20260814161400','20260814161500','20260814162000','20260814163000',
         '20260814163050','20260814163100','20260814163200','20260814163250','20260814163300',
-        '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250'
+        '20260814163400','20260814164000','20260814164100','20260814164200','20260814164250',
+        '20260814164300'
       ))<>0 then
     raise exception 'Issue #97 release rehearsal refuses partially/fully installed final release migration chain';
   end if;
@@ -161,11 +162,7 @@ SQL
 
 in_transaction_verify=$(cat <<'SQL'
 do $verify$
-declare
-  v_builder_md5 text;
-  v_generation integer;
-  v_ohi integer;
-  v_definition text;
+declare v_builder_md5 text; v_generation integer; v_ohi integer; v_definition text;
 begin
   v_definition:=pg_catalog.pg_get_functiondef(
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
@@ -196,8 +193,37 @@ begin
   if pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifests') is null
      or pg_catalog.to_regclass('private_verification.brinesearch_issue97_release_manifest_members') is null
      or pg_catalog.to_regclass('private_verification.brinesearch_issue97_verification_reports') is null
-     or pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_current_pinned_fixture_receipts(text)') is null then
-    raise exception 'Issue #97 rehearsal private release evidence/fixture infrastructure missing';
+     or pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_current_pinned_fixture_receipts(text)') is null
+     or pg_catalog.to_regclass('private_verification.brinesearch_issue97_state_candidate_manifests') is null
+     or pg_catalog.to_regclass('private_verification.brinesearch_issue97_state_candidate_manifest_members') is null
+     or pg_catalog.to_regprocedure('private_verification.brinesearch_issue97_persist_state_candidate_manifest(text,text,text,jsonb)') is null then
+    raise exception 'Issue #97 rehearsal private release/state evidence infrastructure missing';
+  end if;
+
+  if pg_catalog.has_table_privilege(
+       'service_role','private_verification.brinesearch_issue97_state_candidate_manifests','SELECT'
+     ) or pg_catalog.has_function_privilege(
+       'service_role','private_verification.brinesearch_issue97_persist_state_candidate_manifest(text,text,text,jsonb)','EXECUTE'
+     ) then
+    raise exception 'Issue #97 rehearsal state activation evidence is exposed to service_role';
+  end if;
+  if (select count(*) from private_verification.brinesearch_issue97_state_candidate_manifests)<>0 then
+    raise exception 'Issue #97 rehearsal unexpectedly persisted a state candidate manifest';
+  end if;
+
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_persist_release_manifest(text,text,text,jsonb)'::pg_catalog.regprocedure
+  );
+  if v_definition not like '%status in (''validated'',''active'')%'
+     or v_definition not like '%not (b.state_code=''WV'' and b.county_code=''OHI'')%' then
+    raise exception 'Issue #97 rehearsal final global candidate manifest cannot survive state activation';
+  end if;
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(text,uuid)'::pg_catalog.regprocedure
+  );
+  if v_definition not like '%brinesearch_issue97_candidate_manifest_activation_current%'
+     or v_definition not like '%brinesearch_issue97_state_candidate_manifest_authorizes_build%' then
+    raise exception 'Issue #97 rehearsal activation authorizer lost global/state manifest support';
   end if;
 
   v_definition:=pg_catalog.pg_get_functiondef(
@@ -239,9 +265,8 @@ begin
   from public.brinesearch_road_graph_builds b
   where b.state_code='WV' and b.county_code='OHI' and b.status='active'
     and private_verification.brinesearch_issue97_graph_build_release_current(b.id);
-  if v_ohi<>1 then
-    raise exception 'Issue #97 rehearsal OHI compatibility qualification failed';
-  end if;
+  if v_ohi<>1 then raise exception 'Issue #97 rehearsal OHI compatibility qualification failed'; end if;
+
   if pg_catalog.has_function_privilege(
        'service_role','public.brinesearch_issue97_activate_cutover_without_google_routes(jsonb)','EXECUTE'
      ) or pg_catalog.has_function_privilege(
@@ -295,9 +320,9 @@ main() {
   rehearsal_rc=${PIPESTATUS[0]}
   set -e
 
-  # Always inspect production through a fresh connection after the rehearsal
-  # process returns, including after SQL errors or a dropped client connection.
-  # A client response alone is never proof of rollback or success.
+  # Always inspect production through a fresh connection after the rehearsal,
+  # including after SQL errors or a dropped client connection. A client reply is
+  # never proof of rollback or success.
   post_snapshot="$(run_psql --tuples-only --no-align --quiet --command="${snapshot_sql}")" ||
     die "rehearsal returned rc=${rehearsal_rc} and fresh after-snapshot could not be captured; do not retry"
   [[ -n "${post_snapshot}" ]] || die "failed to capture fresh after snapshot; do not retry"
@@ -309,7 +334,7 @@ main() {
     die "release migration rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
-  printf 'PASS: all 20 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
+  printf 'PASS: all 21 final #97 release migrations compiled/verified in one transaction and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
 main "$@"
