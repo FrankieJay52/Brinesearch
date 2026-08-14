@@ -520,8 +520,8 @@ select
             )
             or (
               expected.approach_data->>'raw_source_measure'
-            )::double precision is distinct from
-              expected.expected_raw_source_measure
+            )::numeric is distinct from
+              expected.expected_raw_source_measure::numeric
             or (
               expected.approach_data->>'source_measure_normalized'
             )::boolean is distinct from (

@@ -95,9 +95,13 @@ for (const token of [
   "proc.proconfig @> array['search_path=\"\"']",
   "builder_provenance_ready",
   "builder_provenance_contract",
-  "39ca43fc16878fa7d6c2b70f4c6a48d3",
+  "c5d54a4d839df79eff99f4dfd4b0b780",
   "tmp_issue97_shared_segment_coverage",
   "exact_canonical_grid_line_intersection",
+  "v.raw_source_measure::numeric",
+  "n.source_measure::numeric",
+  "(c.fraction*c.length_m)::numeric",
+  "(choice.fraction*choice.source_length_m)::numeric",
   "not like '%fraction::numeric%'",
 ]) need(preflight, token, `WVDOT runtime preflight ${token}`);
 

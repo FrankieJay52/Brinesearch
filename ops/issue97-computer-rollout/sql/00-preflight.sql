@@ -162,7 +162,7 @@ with required_scopes as (
 ), builder_contract as (
   select
     pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
-      ='39ca43fc16878fa7d6c2b70f4c6a48d3'
+      ='c5d54a4d839df79eff99f4dfd4b0b780'
     and pg_catalog.pg_get_functiondef(proc.oid)
       like '%tmp_issue97_shared_segment_coverage%'
     and pg_catalog.pg_get_functiondef(proc.oid)
@@ -171,6 +171,14 @@ with required_scopes as (
       like '%v.raw_source_measure::numeric is distinct from v.source_measure%'
     and pg_catalog.pg_get_functiondef(proc.oid)
       like '%n.source_measure::numeric is distinct from%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%''raw_source_measure'',v.raw_source_measure::numeric%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%''raw_source_measure'',n.source_measure::numeric%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%(c.fraction*c.length_m)::numeric%'
+    and pg_catalog.pg_get_functiondef(proc.oid)
+      like '%(choice.fraction*choice.source_length_m)::numeric%'
     and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
       as provenance_ready
   from pg_catalog.pg_proc proc
@@ -332,7 +340,7 @@ with required_scopes as (
       where proc.oid=
         'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
         and pg_catalog.md5(pg_catalog.pg_get_functiondef(proc.oid))
-          ='39ca43fc16878fa7d6c2b70f4c6a48d3'
+          ='c5d54a4d839df79eff99f4dfd4b0b780'
         and pg_catalog.pg_get_functiondef(proc.oid)
           like '%tmp_issue97_shared_segment_coverage%'
         and pg_catalog.pg_get_functiondef(proc.oid)
@@ -341,6 +349,14 @@ with required_scopes as (
           like '%v.raw_source_measure::numeric is distinct from v.source_measure%'
         and pg_catalog.pg_get_functiondef(proc.oid)
           like '%n.source_measure::numeric is distinct from%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%''raw_source_measure'',v.raw_source_measure::numeric%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%''raw_source_measure'',n.source_measure::numeric%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%(c.fraction*c.length_m)::numeric%'
+        and pg_catalog.pg_get_functiondef(proc.oid)
+          like '%(choice.fraction*choice.source_length_m)::numeric%'
         and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
     ) as builder_provenance_contract,
     exists(

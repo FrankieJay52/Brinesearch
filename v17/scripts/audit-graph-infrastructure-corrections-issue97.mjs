@@ -22,6 +22,9 @@ const wvdotRuntime = read(
 const wvdotProvenance = read(
   "supabase/migrations/20260813213500_issue97_wvdot_measure_provenance_type_stability.sql"
 );
+const wvdotJsonReceipts = read(
+  "supabase/migrations/20260814010300_issue97_wvdot_json_numeric_receipts.sql"
+);
 const noble = read(
   "supabase/migrations/20260813101230_issue97_noble_graph_mapping_semantic_upgrade.sql"
 );
@@ -174,6 +177,23 @@ for (const token of [
   "'double precision'::pg_catalog.regtype",
   "(-0.000000027168425731360912)::double precision",
 ]) need(wvdotProvenance, token);
+for (const token of [
+  "39ca43fc16878fa7d6c2b70f4c6a48d3",
+  "c5d54a4d839df79eff99f4dfd4b0b780",
+  "(c.fraction*c.length_m)::numeric",
+  "(choice.fraction*choice.source_length_m)::numeric",
+  "'raw_source_measure',v.raw_source_measure::numeric",
+  "'raw_source_measure',n.source_measure::numeric",
+  "expected.raw_source_measure::numeric",
+  "extra_float_digits",
+  "Issue #97 numeric JSON receipt behavior changed",
+]) need(wvdotJsonReceipts, token);
+for (const token of [
+  "insert into public.brinesearch_road_junctions",
+  "update public.brinesearch_road_graph_builds",
+  "brinesearch_issue97_activate_graph_build",
+  "brinesearch_issue97_activate_cutover",
+]) forbid(wvdotJsonReceipts.toLowerCase(), token.toLowerCase(), `JSON receipt repair ${token}`);
 for (const token of [
   "WV:TEST:SEG:SHARED_A_CONFLICT",
   "fixture.measure_conflict",
