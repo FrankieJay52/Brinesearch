@@ -10,12 +10,14 @@ const need = (source, token, label = token) =>
   assert.ok(source.includes(token), `Issue #97 release hardening missing ${label}`);
 const forbid = (source, token, label = token) =>
   assert.ok(!source.includes(token), `Issue #97 release hardening forbids ${label}`);
+const count = (source, token) => source.split(token).length - 1;
 
 const saved = read("supabase/migrations/20260814160000_issue97_saved_road_release_baseline_current.sql");
 const bridgeRegistry = read("supabase/migrations/20260814161000_issue97_possum_reviewed_subsegment_bridge_registry.sql");
 const bridgeProof = read("supabase/migrations/20260814161100_issue97_possum_reviewed_subsegment_bridge_proof.sql");
 const bridgeApply = read("supabase/migrations/20260814161200_issue97_possum_reviewed_subsegment_bridge_apply.sql");
 const bridgeRuntime = read("supabase/migrations/20260814161300_issue97_possum_reviewed_subsegment_bridge_runtime.sql");
+const endpointIndexes = read("supabase/migrations/20260814161400_issue97_ogrip_endpoint_geography_indexes.sql");
 const ogrip = read("supabase/migrations/20260814161500_issue97_ogrip_corroborated_source_vertex.sql");
 const transition = read("supabase/migrations/20260814162000_issue97_transition_google_schema_acl_hardening.sql");
 const generation = read("supabase/migrations/20260814163000_issue97_graph_release_generation_registry.sql");
@@ -78,20 +80,34 @@ for (const token of [
 ]) need(bridgeRuntime, token, `Possum runtime fixture ${token}`);
 
 for (const token of [
+  "brinesearch_supp_centerline_oh_active_start_geog_issue97_idx",
+  "brinesearch_supp_centerline_oh_active_end_geog_issue97_idx",
+  "extensions.st_startpoint(extensions.st_linemerge(geom))::extensions.geography",
+  "extensions.st_endpoint(extensions.st_linemerge(geom))::extensions.geography",
+  "where active and state_code='OH'",
+  "analyze public.brinesearch_authoritative_supplemental_centerlines",
+]) need(endpointIndexes, token, `OGRIP endpoint performance ${token}`);
+
+for (const token of [
   "06c4b57ff9056b96137b9aaf4f4b856d",
   "7abd11f432c3e7b475b10d0817f5e8fc",
   "independent_ogrip_endpoint_corroboration",
   "candidate_coordinate_retained",
   "mapping_method='exact_geometry_coverage'",
   "coalesce(corroboration.corroborated,false)",
+  "extensions.st_startpoint(extensions.st_linemerge(c.geom))::extensions.geography",
+  "extensions.st_endpoint(extensions.st_linemerge(c.geom))::extensions.geography",
 ]) need(ogrip, token, `OGRIP corroboration ${token}`);
 forbid(ogrip, "nearest_road_used',true", "nearest-road OGRIP promotion");
 forbid(ogrip, "name_used',true", "name-driven OGRIP promotion");
 
+// The transition migration patches function source held inside SQL strings, so
+// quote-aware anchors deliberately use doubled SQL quotes. Do not require an
+// impossible raw-source token such as run.details->>'page_set_digest'.
 for (const token of [
   "private_verification.brinesearch_issue97_mapping_fingerprint(o.identity_id)",
   "t.graph_digest is null",
-  "run.details->>'page_set_digest'",
+  "run.details->>''page_set_digest''",
   "private_verification.brinesearch_issue97_ingest_run_verified(run.id)",
   "revoke all on function public.brinesearch_issue97_activate_cutover_without_google_routes",
   "revoke all on function public.brinesearch_publish_structured_route_issue97_without_google",
@@ -143,10 +159,12 @@ for (const token of [
   "rc=${PIPESTATUS[0]}",
   "23-release-canary-complete-gate.sql",
 ]) need(shell, token, `release rollout ${token}`);
-forbid(shell, "activate_graph_build", "activation in release dark runner");
-forbid(shell, "activate_cutover", "cutover in release dark runner");
-forbid(shell, "refresh_google_routes", "Google publication in release dark runner");
-forbid(shell, "| tee ", "external tee dependency");
+for (const token of [
+  "activate_graph_build",
+  "activate_cutover",
+  "refresh_google_routes",
+  "| tee ",
+]) forbid(shell, token, `release dark runner forbidden surface ${token}`);
 
 for (const token of [
   "7abd11f432c3e7b475b10d0817f5e8fc",
@@ -156,6 +174,8 @@ for (const token of [
   "old_frozen_not_grandfathered",
   "inner_bypasses_closed",
   "transition_schema_current",
+  "brinesearch_supp_centerline_oh_active_start_geog_issue97_idx",
+  "brinesearch_supp_centerline_oh_active_end_geog_issue97_idx",
 ]) need(preflight, token, `release preflight ${token}`);
 need(build, "set local statement_timeout='90min'", "finite release county builder timeout");
 need(build, "brinesearch_issue97_graph_build_release_current", "release-current build duplicate guard");
@@ -173,22 +193,28 @@ need(canaryGate, "PA','WAS", "PA/WAS canary completion gate");
 
 for (const token of [
   "cutover OFF",
-  "latest validated candidate",
+  "release_generation_key",
   "brinesearch_issue97_graph_build_release_current",
   "brinesearch_issue97_transition_google_dependency",
 ]) need(darkCandidate, token, `dark-candidate release suite ${token}`);
+for (const stale of ["OH','HOL", "OH','LIC", "WV','HAR"]) forbid(preCutover, stale, `stale county ${stale}`);
+for (const current of ["OH','MEG", "OH','VIN", "WV','LEW"]) need(preCutover, current, `correct county ${current}`);
 for (const token of [
   "cutover OFF",
   "exact 39-county active release-current manifest",
   "16111",
   "route_critical_held_count",
-  "public Google route projection is populated before cutover",
+  "brinesearch_issue97_release_manifest_current",
 ]) need(preCutover, token, `pre-cutover suite ${token}`);
 for (const token of [
   "cutover ACTIVE",
   "ready or held",
   "brinesearch_issue97_google_route_current",
   "public projection exposed a non-current Google route",
+  "coalesce(p.list_only,false)=false",
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
+forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-console.log("Issue #97 release-generation, baseline, Possum, transition ACL and canary rollout static audit passed.");
+assert.equal(count(endpointIndexes, "using gist"), 2,
+  "Issue #97 must create exactly two OGRIP endpoint geography GiST indexes");
+console.log("Issue #97 release-generation, baseline, Possum, transition ACL, OGRIP performance and canary rollout static audit passed.");
