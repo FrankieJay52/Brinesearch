@@ -1,6 +1,6 @@
 -- GitHub #97 — pre-cutover production authorization gate.
--- This suite requires all exact release manifests but requires cutover to remain
--- OFF. It is never a post-cutover smoke test.
+-- This suite requires all exact release manifests plus one current persisted
+-- final verification report, while requiring cutover to remain OFF.
 begin transaction read only;
 set local statement_timeout='15min';
 set local lock_timeout='5s';
@@ -8,6 +8,7 @@ set local lock_timeout='5s';
 do $issue97_pre_cutover$
 declare
   v_count integer;
+  v_report_count integer;
   v_baseline record;
   v_reconcile record;
   v_child jsonb;
@@ -87,6 +88,16 @@ begin
      or (v_child->>'forbidden_resolution_count')::integer<>0
      or v_reconcile.source_digest<>private_verification.brinesearch_issue97_saved_road_source_digest() then
     raise exception '#97 saved-road reconciliation is not release-complete';
+  end if;
+
+  -- The database must resolve exactly one immutable report whose candidate,
+  -- active, source and route manifests still match the locked production state.
+  select count(*)::integer into v_report_count
+  from private_verification.brinesearch_issue97_verification_reports report
+  where private_verification.brinesearch_issue97_verification_report_current(report.report_digest);
+  if v_report_count<>1 then
+    raise exception '#97 pre-cutover requires exactly one current persisted final verification report; found %',
+      v_report_count;
   end if;
 
   if pg_catalog.has_function_privilege(
