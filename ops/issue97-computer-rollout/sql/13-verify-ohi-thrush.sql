@@ -102,8 +102,13 @@ begin
     select junction.id into strict v_junction
     from public.brinesearch_road_junctions junction
     where junction.build_id=v_build and junction.verification_status='verified'
-      and pg_catalog.round(extensions.st_x(junction.geom)::numeric,7)=fixture.lng
-      and pg_catalog.round(extensions.st_y(junction.geom)::numeric,7)=fixture.lat
+      and extensions.geometrytype(junction.geom)='POINT'
+      and pg_catalog.round(extensions.st_x(case
+        when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+      end)::numeric,7)=fixture.lng
+      and pg_catalog.round(extensions.st_y(case
+        when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+      end)::numeric,7)=fixture.lat
       and exists(
         select 1 from public.brinesearch_road_junction_memberships membership
         where membership.junction_id=junction.id and membership.identity_id=v_target
@@ -372,8 +377,12 @@ from public.brinesearch_road_graph_builds build
 where build.state_code='WV' and build.county_code='OHI'
   and build.status='validated' and build.activated_at is null;
 
-select pg_catalog.round(extensions.st_x(junction.geom)::numeric,7) as longitude,
-  pg_catalog.round(extensions.st_y(junction.geom)::numeric,7) as latitude,
+select pg_catalog.round(extensions.st_x(case
+    when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+  end)::numeric,7) as longitude,
+  pg_catalog.round(extensions.st_y(case
+    when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+  end)::numeric,7) as latitude,
   junction.junction_type,junction.source_method,junction.confidence,
   pg_catalog.array_agg(identity.source_identity_key order by identity.source_identity_key)
     as exact_identity_keys,
@@ -386,6 +395,7 @@ join public.brinesearch_road_junctions junction on junction.build_id=build.id
 join public.brinesearch_road_junction_memberships membership on membership.junction_id=junction.id
 join public.brinesearch_authoritative_road_identities identity on identity.id=membership.identity_id
 where build.state_code='WV' and build.county_code='OHI' and build.status='validated'
+  and extensions.geometrytype(junction.geom)='POINT'
   and exists(
     select 1 from public.brinesearch_road_junction_memberships own
     join public.brinesearch_authoritative_road_identities target on target.id=own.identity_id
@@ -396,8 +406,12 @@ group by junction.id,junction.geom,junction.junction_type,junction.source_method
 order by latitude,longitude;
 
 select identity.source_identity_key,junction.junction_type,
-  pg_catalog.round(extensions.st_x(junction.geom)::numeric,7) as longitude,
-  pg_catalog.round(extensions.st_y(junction.geom)::numeric,7) as latitude,
+  pg_catalog.round(extensions.st_x(case
+    when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+  end)::numeric,7) as longitude,
+  pg_catalog.round(extensions.st_y(case
+    when extensions.geometrytype(junction.geom)='POINT' then junction.geom
+  end)::numeric,7) as latitude,
   membership.source_segment_keys,membership.source_measure,
   membership.distance_along_road_m,membership.approach_data,membership.provenance
 from public.brinesearch_road_graph_builds build
@@ -405,6 +419,7 @@ join public.brinesearch_road_junctions junction on junction.build_id=build.id
 join public.brinesearch_road_junction_memberships membership on membership.junction_id=junction.id
 join public.brinesearch_authoritative_road_identities identity on identity.id=membership.identity_id
 where build.state_code='WV' and build.county_code='OHI' and build.status='validated'
+  and extensions.geometrytype(junction.geom)='POINT'
   and identity.source_identity_key=any(array[
     'WV:WVDOT:ROUTE_ID:3500895000000','WV:WVDOT:ROUTE_ID:3578278001900',
     'WV:WVDOT:ROUTE_ID:3500329000000','WV:WVDOT:ROUTE_ID:3501102000000',

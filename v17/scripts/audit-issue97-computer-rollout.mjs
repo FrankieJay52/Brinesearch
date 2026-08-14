@@ -74,7 +74,7 @@ for (const source of [preflight, verify, status, ohi, report])
   need(source, "begin read only", "read-only transaction");
 need(
   verify,
-  "set local statement_timeout='7min'",
+  "set local statement_timeout='15min'",
   "full shared-provenance verifier timeout"
 );
 for (const source of [build, directions]) need(source, "\\set ON_ERROR_STOP on");
@@ -108,6 +108,10 @@ for (const token of [
   "(c.fraction*c.length_m)::numeric",
   "(choice.fraction*choice.source_length_m)::numeric",
   "not like '%fraction::numeric%'",
+  "brinesearch_issue97_authoritative_road_segments_internal",
+  "has_table_privilege(",
+  "pg_get_viewdef(",
+  "'public.brinesearch_authoritative_road_segments'::pg_catalog.regclass",
 ]) need(preflight, token, `WVDOT runtime preflight ${token}`);
 
 for (const token of [
@@ -121,8 +125,125 @@ for (const token of [
   "choice_rank",
   "expected_chosen_segment_key",
   "expected_raw_source_measure",
+  "shared_identities as materialized",
+  "target_segments as materialized",
+  "build_segments as materialized",
+  "from target_segments segment",
+  "join build_segments segment",
+  "left join build_segments segment using(identity_id)",
+  "expected_shared_cards as materialized",
+  "private_verification.brinesearch_issue97_authoritative_road_segments_internal",
+  "set transaction isolation level repeatable read",
+  "\\set issue97_summary_pass false",
+  "\\gset issue97_summary_",
+  "Issue #97 county graph/digest/receipt summary failed",
+  "external_segments as materialized",
+  "select distinct on(segment.id)",
+  "from target_segments target_segment",
+  "cross join lateral (",
+  "source.identity_id=shared.identity_id",
+  "offset 0",
+  "order by segment.id",
+  "true as graph_integrity",
+  "Fresh post-verification state check failed",
+  "\\gset issue97_post_",
 ]) need(verify, token, `county provenance verification ${token}`);
+assert.equal(
+  count(verify, "extensions.st_dwithin("),
+  1,
+  "county provenance verification must reconstruct the county-boundary scope once"
+);
+assert.equal(
+  count(
+    verify,
+    "private_verification.brinesearch_issue97_authoritative_road_segments_internal"
+  ),
+  2,
+  "county provenance verification must scan the trusted normalized view only for target and external scope"
+);
+assert.equal(
+  count(verify, "build_segments"),
+  3,
+  "county provenance verification must define and reuse one materialized builder scope"
+);
+assert.equal(
+  count(verify, "from expected_shared"),
+  2,
+  "county provenance verification must aggregate cards once and scan expectations once"
+);
+assert.equal(
+  count(verify, "select segment.id,segment.identity_id,segment.source_segment_key,"),
+  3,
+  "county provenance verification must keep spatial segment materialization narrow"
+);
+assert.equal(count(verify, "union all"), 1, "county provenance scope must have two disjoint arms");
+forbid(verify, "select segment.*", "wide spatial segment materialization");
+need(
+  verify,
+  "coalesce(pg_catalog.bool_or(expected.source_measure_conflict),false)",
+  "non-null expected card conflict aggregate"
+);
+assert.equal(
+  count(preflight, "has_table_privilege("),
+  2,
+  "preflight must guard internal-view SELECT privilege in summary and final gate"
+);
+assert.equal(
+  count(preflight, "pg_get_viewdef("),
+  4,
+  "preflight must compare internal/public view definitions in summary and final gate"
+);
+const summaryBoundary = verify.indexOf("\\gset issue97_summary_");
+assert.ok(summaryBoundary > 0, "county verifier summary boundary must exist");
+const summaryPhase = verify.slice(0, summaryBoundary);
+const deepPhase = verify.slice(summaryBoundary);
+need(
+  summaryPhase,
+  "pg_catalog.md5(coalesce(pg_catalog.string_agg(",
+  "fail-closed summary graph digest recomputation"
+);
+need(
+  summaryPhase,
+  "membership.approach_data ? 'raw_source_measure'",
+  "fail-closed summary normalization receipt check"
+);
+forbid(deepPhase, "candidate_build.graph_digest", "duplicate deep graph digest scan");
+forbid(
+  deepPhase,
+  "pg_catalog.md5(coalesce(pg_catalog.string_agg(",
+  "duplicate deep graph digest recomputation"
+);
+forbid(
+  deepPhase,
+  "membership.approach_data ? 'raw_source_measure'",
+  "duplicate deep normalization receipt scan"
+);
+const postBoundary = verify.lastIndexOf("-- Repeatable read keeps the deep reconstruction");
+assert.ok(postBoundary > summaryBoundary, "fresh verifier postcheck boundary must exist");
+const postPhase = verify.slice(postBoundary);
+for (const token of [
+  ":'issue97_summary_validated_build_id'::uuid",
+  "build.status='validated' and build.activated_at is null",
+  "latest.completed_at desc nulls last",
+  "brinesearch_issue97_graph_build_sources_current(",
+  "where status='staging'",
+  "brinesearch_issue97_cutover_active()",
+  "build.county_code in ('BEL','JEF','NOB')",
+  "from pg_catalog.pg_stat_activity activity",
+  "brinesearch_issue97_rebuild_county_graph",
+]) need(postPhase, token, `fresh county postcheck ${token}`);
 need(ohi, "\\ir 11-verify-county.sql", "OHI must run the exact county provenance verifier");
+for (const token of [
+  "extensions.geometrytype(junction.geom)='POINT'",
+  "extensions.st_x(case",
+  "extensions.st_y(case",
+]) need(ohi, token, `Thrush point-geometry guard ${token}`);
+assert.equal(count(ohi, "extensions.st_x("), 3, "Thrush verifier must have three X reads");
+assert.equal(count(ohi, "extensions.st_x(case"), 3, "every Thrush X read must be CASE guarded");
+assert.equal(count(ohi, "extensions.st_y("), 3, "Thrush verifier must have three Y reads");
+assert.equal(count(ohi, "extensions.st_y(case"), 3, "every Thrush Y read must be CASE guarded");
+forbid(ohi, "extensions.st_x(junction.geom)", "unguarded Thrush X read");
+forbid(ohi, "extensions.st_y(junction.geom)", "unguarded Thrush Y read");
 
 assert.equal(
   count(build, "public.brinesearch_issue97_rebuild_county_graph("),

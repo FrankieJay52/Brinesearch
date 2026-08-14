@@ -180,6 +180,17 @@ with required_scopes as (
     and pg_catalog.pg_get_functiondef(proc.oid)
       like '%(choice.fraction*choice.source_length_m)::numeric%'
     and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+    and pg_catalog.has_table_privilege(
+      current_user,
+      'private_verification.brinesearch_issue97_authoritative_road_segments_internal',
+      'SELECT'
+    )
+    and pg_catalog.pg_get_viewdef(
+      'private_verification.brinesearch_issue97_authoritative_road_segments_internal'::pg_catalog.regclass,
+      true
+    )=pg_catalog.pg_get_viewdef(
+      'public.brinesearch_authoritative_road_segments'::pg_catalog.regclass,true
+    )
       as provenance_ready
   from pg_catalog.pg_proc proc
   where proc.oid=
@@ -358,6 +369,15 @@ with required_scopes as (
         and pg_catalog.pg_get_functiondef(proc.oid)
           like '%(choice.fraction*choice.source_length_m)::numeric%'
         and pg_catalog.pg_get_functiondef(proc.oid) not like '%fraction::numeric%'
+    ) and pg_catalog.has_table_privilege(
+      current_user,
+      'private_verification.brinesearch_issue97_authoritative_road_segments_internal',
+      'SELECT'
+    ) and pg_catalog.pg_get_viewdef(
+      'private_verification.brinesearch_issue97_authoritative_road_segments_internal'::pg_catalog.regclass,
+      true
+    )=pg_catalog.pg_get_viewdef(
+      'public.brinesearch_authoritative_road_segments'::pg_catalog.regclass,true
     ) as builder_provenance_contract,
     exists(
       select 1

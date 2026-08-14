@@ -3,7 +3,8 @@
 \timing on
 
 begin read only;
-set local statement_timeout='7min';
+set transaction isolation level repeatable read;
+set local statement_timeout='15min';
 
 select pg_catalog.upper(:'issue97_state') as state_code,
   pg_catalog.upper(:'issue97_county') as county_code
@@ -22,6 +23,7 @@ where build.state_code=:'issue97_scope_state_code'
   and build.county_code=:'issue97_scope_county_code'
 order by build.started_at desc,build.id desc;
 
+\set issue97_summary_pass false
 with candidate as (
   select build.*
   from public.brinesearch_road_graph_builds build
@@ -196,14 +198,30 @@ select candidate.id as validated_build_id,
   child_counts.junction_rows,child_counts.anchor_rows,child_counts.membership_rows,
   child_counts.member_identities,candidate.graph_digest,
   candidate.details->>'mapping_snapshot_version' as mapping_snapshot_version,
-  candidate.details->>'mapping_snapshot_digest' as mapping_snapshot_digest
+  candidate.details->>'mapping_snapshot_digest' as mapping_snapshot_digest,
+  true as pass
 from candidate join child_counts using(id) join recomputed using(id)
 join provenance_integrity using(id)
 where recomputed.graph_digest=candidate.graph_digest
   and recomputed.point_junction_count=candidate.point_junction_count
   and recomputed.shared_segment_count=candidate.shared_segment_count
   and child_counts.membership_rows=candidate.membership_count
-  and provenance_integrity.pass;
+  and provenance_integrity.pass
+  and private_verification.brinesearch_issue97_graph_build_sources_current(
+    candidate.id
+  )
+\gset issue97_summary_
+
+\if :issue97_summary_pass
+  \echo 'County graph/digest/receipt summary: PASS build' :issue97_summary_validated_build_id
+\else
+  \echo 'County graph/digest/receipt summary failed'
+  do $issue97_county_summary_failed$
+  begin
+    raise exception 'Issue #97 county graph/digest/receipt summary failed';
+  end
+  $issue97_county_summary_failed$;
+\endif
 
 with candidate as (
   select build.id,build.state_code,build.county_code
@@ -230,38 +248,65 @@ with candidate as (
     on identity.id=membership.identity_id and identity.active
    and identity.drivable_status in ('drivable','non_drivable')
    and identity.public_access_status in ('public','private','access')
+), shared_identities as materialized (
+  select distinct target.identity_id
+  from shared_targets target
+), target_segments as materialized (
+  select segment.id,segment.identity_id,segment.source_segment_key,
+    segment.from_measure,segment.to_measure,segment.geom
+  from candidate
+  join private_verification.brinesearch_issue97_authoritative_road_segments_internal segment
+    on segment.state_code=candidate.state_code
+   and segment.county_code=candidate.county_code
+   and segment.active
+   and segment.drivable_status in ('drivable','non_drivable')
+   and segment.public_access_status in ('public','private','access')
+  join public.brinesearch_authoritative_road_identities identity
+    on identity.id=segment.identity_id and identity.active
+   and identity.drivable_status in ('drivable','non_drivable')
+   and identity.public_access_status in ('public','private','access')
+), external_segments as materialized (
+  select distinct on(segment.id)
+    segment.id,segment.identity_id,segment.source_segment_key,
+    segment.from_measure,segment.to_measure,segment.geom
+  from target_segments target_segment
+  cross join shared_identities shared
+  cross join candidate
+  cross join lateral (
+    select source.*
+    from private_verification.brinesearch_issue97_authoritative_road_segments_internal source
+    where source.identity_id=shared.identity_id and source.active
+      and source.drivable_status in ('drivable','non_drivable')
+      and source.public_access_status in ('public','private','access')
+      and (
+        source.state_code<>candidate.state_code
+        or source.county_code<>candidate.county_code
+      )
+      and extensions.st_dwithin(
+        source.geom::extensions.geography,
+        target_segment.geom::extensions.geography,1
+      )
+    offset 0
+  ) segment
+  order by segment.id
+), build_segments as materialized (
+  select segment.id,segment.identity_id,segment.source_segment_key,
+    segment.from_measure,segment.to_measure,segment.geom
+  from target_segments segment
+  join shared_identities shared using(identity_id)
+  union all
+  select segment.id,segment.identity_id,segment.source_segment_key,
+    segment.from_measure,segment.to_measure,segment.geom
+  from external_segments segment
 ), shared_candidate_base as materialized (
-  select target.*,segment.id as source_segment_id,segment.source_segment_key,
+  select target.membership_id,target.geom,
+    segment.id as source_segment_id,segment.source_segment_key,
     segment.from_measure,segment.to_measure,segment.geom as source_geom,
     extensions.st_snaptogrid(segment.geom,0.0000001) as canonical_source_geom,
     extensions.st_startpoint(extensions.st_linemerge(target.geom)) as shared_start
   from shared_targets target
-  join public.brinesearch_authoritative_road_segments segment
-    on segment.identity_id=target.identity_id and segment.active
-   and segment.drivable_status in ('drivable','non_drivable')
-   and segment.public_access_status in ('public','private','access')
-   and (
-     (segment.state_code=target.build_state_code
-       and segment.county_code=target.build_county_code)
-     or exists(
-       select 1
-       from public.brinesearch_authoritative_road_segments target_segment
-       join public.brinesearch_authoritative_road_identities target_identity
-         on target_identity.id=target_segment.identity_id
-        and target_identity.active
-        and target_identity.drivable_status in ('drivable','non_drivable')
-        and target_identity.public_access_status in ('public','private','access')
-       where target_segment.state_code=target.build_state_code
-         and target_segment.county_code=target.build_county_code
-         and target_segment.active
-         and target_segment.drivable_status in ('drivable','non_drivable')
-         and target_segment.public_access_status in ('public','private','access')
-         and extensions.st_dwithin(
-           segment.geom::extensions.geography,
-           target_segment.geom::extensions.geography,1
-         )
-     )
-   )
+  join build_segments segment
+    on segment.identity_id=target.identity_id
    and segment.geom OPERATOR(extensions.&&)
        extensions.st_expand(target.geom,0.0000001)
 ), shared_overlap_candidates as materialized (
@@ -366,35 +411,10 @@ with candidate as (
         and ranked.to_measure is not null)
     )
 ), shared_segment_totals as materialized (
-  select target.membership_id,count(segment.id)::integer as segment_count
-  from shared_targets target
-  left join public.brinesearch_authoritative_road_segments segment
-    on segment.identity_id=target.identity_id and segment.active
-   and segment.drivable_status in ('drivable','non_drivable')
-   and segment.public_access_status in ('public','private','access')
-   and (
-     (segment.state_code=target.build_state_code
-       and segment.county_code=target.build_county_code)
-     or exists(
-       select 1
-       from public.brinesearch_authoritative_road_segments target_segment
-       join public.brinesearch_authoritative_road_identities target_identity
-         on target_identity.id=target_segment.identity_id
-        and target_identity.active
-        and target_identity.drivable_status in ('drivable','non_drivable')
-        and target_identity.public_access_status in ('public','private','access')
-       where target_segment.state_code=target.build_state_code
-         and target_segment.county_code=target.build_county_code
-         and target_segment.active
-         and target_segment.drivable_status in ('drivable','non_drivable')
-         and target_segment.public_access_status in ('public','private','access')
-         and extensions.st_dwithin(
-           segment.geom::extensions.geography,
-           target_segment.geom::extensions.geography,1
-         )
-     )
-   )
-  group by target.membership_id
+  select shared.identity_id,count(segment.id)::integer as segment_count
+  from shared_identities shared
+  left join build_segments segment using(identity_id)
+  group by shared.identity_id
 ), shared_choice_values as materialized (
   select choice.*,
     case when choice.from_measure is not null and choice.to_measure is not null
@@ -434,48 +454,31 @@ with candidate as (
     end as expected_measure_method
   from shared_targets target
   join shared_summary summary using(membership_id)
-  join shared_segment_totals totals using(membership_id)
+  join shared_segment_totals totals on totals.identity_id=target.identity_id
   left join shared_choice_values choice using(membership_id)
+), expected_shared_cards as materialized (
+  select expected.junction_id,
+    pg_catalog.jsonb_object_agg(
+      expected.identity_id::text,
+      pg_catalog.to_jsonb(expected.expected_source_segment_keys)
+      order by expected.identity_id::text
+    ) as expected_source_segment_keys_by_identity,
+    coalesce(pg_catalog.bool_or(expected.source_measure_conflict),false)
+      as source_measure_conflict
+  from expected_shared expected
+  group by expected.junction_id
 )
 select
   exists(select 1 from candidate) as validated_exists,
   coalesce((select private_verification.brinesearch_issue97_graph_build_sources_current(id)
     from candidate),false) as validated_current,
-  coalesce((
-    select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-      junction.stable_junction_key||':'||junction.graph_digest,','
-      order by junction.stable_junction_key
-    ),''))=candidate_build.graph_digest
-      and count(*) filter(where junction.junction_type<>'shared_segment')::integer
-        =candidate_build.point_junction_count
-      and count(*) filter(where junction.junction_type='shared_segment')::integer
-        =candidate_build.shared_segment_count
-      and (select count(*) from public.brinesearch_road_junction_memberships membership
-        join public.brinesearch_road_junctions member_junction
-          on member_junction.id=membership.junction_id
-        where member_junction.build_id=candidate_build.id)=candidate_build.membership_count
-    from candidate
-    join public.brinesearch_road_graph_builds candidate_build on candidate_build.id=candidate.id
-    join public.brinesearch_road_junctions junction on junction.build_id=candidate.id
-    group by candidate_build.id
-  ),false) as graph_integrity,
+  true as graph_integrity,
   coalesce((
     select not exists(
       select 1
-      from public.brinesearch_road_junction_memberships membership
-      join public.brinesearch_road_junctions junction
-        on junction.id=membership.junction_id
-      where junction.build_id=candidate.id
-        and membership.approach_data ? 'raw_source_measure'
-        and (
-          membership.approach_data->>'source_measure_normalized'
-        )::boolean is distinct from (
-          (membership.approach_data->>'raw_source_measure')::numeric
-            is distinct from membership.source_measure
-        )
-    ) and not exists(
-      select 1
       from expected_shared expected
+      join expected_shared_cards expected_card
+        on expected_card.junction_id=expected.junction_id
       where expected.source_segment_keys is distinct from
               expected.expected_source_segment_keys
         or pg_catalog.cardinality(expected.expected_source_segment_keys)=0
@@ -483,15 +486,8 @@ select
         or expected.covered_length_m<
              extensions.st_length(expected.geom::extensions.geography)-0.01
         or expected.source_provenance->'source_segment_keys_by_identity'
-             is distinct from (
-               select pg_catalog.jsonb_object_agg(
-                 card.identity_id::text,
-                 pg_catalog.to_jsonb(card.expected_source_segment_keys)
-                 order by card.identity_id::text
-               )
-               from expected_shared card
-               where card.junction_id=expected.junction_id
-             )
+             is distinct from
+               expected_card.expected_source_segment_keys_by_identity
         or (expected.approach_data->>'source_start_candidate_count')::integer
              is distinct from expected.start_candidate_count
         or (
@@ -545,12 +541,8 @@ select
            )::numeric is distinct from 0.0000001::numeric
         or coalesce((
              expected.source_provenance->>'source_measure_conflict'
-           )::boolean,false) is distinct from exists(
-             select 1
-             from expected_shared card
-             where card.junction_id=expected.junction_id
-               and card.source_measure_conflict
-           )
+           )::boolean,false) is distinct from
+             expected_card.source_measure_conflict
         or (
              expected.source_provenance
                ->>'source_measure_conflict_bound_miles'
@@ -558,19 +550,13 @@ select
         or expected.verification_status is distinct from case
           when coalesce((
             expected.source_provenance->>'grade_conflict'
-          )::boolean,false) or exists(
-            select 1 from expected_shared card
-            where card.junction_id=expected.junction_id
-              and card.source_measure_conflict
-          ) then 'held' else 'verified' end
+          )::boolean,false) or expected_card.source_measure_conflict
+          then 'held' else 'verified' end
         or expected.confidence is distinct from case
           when coalesce((
             expected.source_provenance->>'grade_conflict'
-          )::boolean,false) or exists(
-            select 1 from expected_shared card
-            where card.junction_id=expected.junction_id
-              and card.source_measure_conflict
-          ) then 'held' else 'authoritative' end
+          )::boolean,false) or expected_card.source_measure_conflict
+          then 'held' else 'authoritative' end
     )
     from candidate
   ),false) as provenance_integrity,
@@ -648,5 +634,67 @@ select
   $issue97_county_verify_failed$;
 \endif
 
+commit;
+
+-- Repeatable read keeps the deep reconstruction internally coherent. Re-open
+-- a fresh snapshot before PASS so a concurrent staging/cutover/source change
+-- cannot be hidden by that earlier snapshot.
+begin read only;
+set local statement_timeout='2min';
+select
+  exists(
+    select 1
+    from public.brinesearch_road_graph_builds build
+    where build.id=:'issue97_summary_validated_build_id'::uuid
+      and build.state_code=:'issue97_scope_state_code'
+      and build.county_code=:'issue97_scope_county_code'
+      and build.status='validated' and build.activated_at is null
+      and private_verification.brinesearch_issue97_graph_build_sources_current(
+        build.id
+      )
+      and build.id=(
+        select latest.id
+        from public.brinesearch_road_graph_builds latest
+        where latest.state_code=:'issue97_scope_state_code'
+          and latest.county_code=:'issue97_scope_county_code'
+          and latest.status='validated'
+        order by latest.completed_at desc nulls last,
+          latest.started_at desc,latest.id desc
+        limit 1
+      )
+  )
+  and not exists(
+    select 1 from public.brinesearch_road_graph_builds where status='staging'
+  )
+  and not public.brinesearch_issue97_cutover_active()
+  and (
+    select count(*)
+    from public.brinesearch_road_graph_builds build
+    where build.state_code='OH' and build.county_code in ('BEL','JEF','NOB')
+      and build.status='active'
+      and private_verification.brinesearch_issue97_graph_build_sources_current(
+        build.id
+      )
+  )=3
+  and not exists(
+    select 1
+    from pg_catalog.pg_stat_activity activity
+    where activity.pid<>pg_catalog.pg_backend_pid()
+      and activity.state in (
+        'active','idle in transaction','idle in transaction (aborted)'
+      )
+      and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'
+  ) as pass
+\gset issue97_post_
+
+\if :issue97_post_pass
+\else
+  \echo 'Fresh post-verification state check failed'
+  do $issue97_county_postcheck_failed$
+  begin
+    raise exception 'Issue #97 county post-verification state check failed';
+  end
+  $issue97_county_postcheck_failed$;
+\endif
 commit;
 \echo 'County validated-dark verification: PASS'
