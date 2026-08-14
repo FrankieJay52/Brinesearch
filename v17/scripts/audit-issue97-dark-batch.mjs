@@ -139,3 +139,4 @@ assert.ok(
 
 console.log("Issue #97 fail-stop serial dark-batch audit passed.");
 await import("./audit-issue97-release-hardening.mjs");
+await import("./audit-issue97-ohio-release-lane.mjs");
