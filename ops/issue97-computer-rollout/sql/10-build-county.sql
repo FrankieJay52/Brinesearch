@@ -79,7 +79,10 @@ select
 \endif
 
 begin;
-set local statement_timeout='15min';
+-- The previous whole-builder limit was too small for PA/WAS and larger counties.
+-- Historical audit marker only (not executable): set local statement_timeout='15min';
+-- Keep a finite maximum while avoiding predictable rollback/retry churn on PA/ALL.
+set local statement_timeout='90min';
 set local lock_timeout='2min';
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext(
   'brinesearch:issue97:graph:'||:'issue97_scope_state_code'||':'||:'issue97_scope_county_code'

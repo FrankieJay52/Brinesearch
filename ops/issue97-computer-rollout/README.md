@@ -73,13 +73,21 @@ The batch:
   active or validated graph;
 - runs **serially**, never in parallel;
 - executes the existing `10-build-county.sql` once per pending county;
-- keeps each build in its own `BEGIN` / 15-minute transaction;
+- keeps each build in its own `BEGIN` transaction with a finite **90-minute
+  maximum for the single builder statement** and a 2-minute lock timeout;
 - runs a bounded lightweight post-build check of persisted graph digest, counts,
   source/mapping currentness, holds, and cutover/staging state;
 - waits five seconds between counties;
 - stops on the first error, inspects server state once, and **never retries**;
 - never activates a graph, never activates global cutover, never publishes
   Google routes, and never starts the directions batch.
+
+The 90-minute value is a maximum, not a target duration. It replaced the original
+15-minute whole-builder statement limit after PA/WAS reached the late
+membership-digest phase and rolled back at that outer limit. Current production
+source scale also includes PA/ALL at roughly four times the PA/WAS source-segment
+count, so repeatedly using the old limit would predictably create expensive
+rollback work rather than a safe completion path.
 
 A client disconnect or timeout is never treated as proof of success or rollback.
 The fail-stop status check remains the source of truth before any later retry.

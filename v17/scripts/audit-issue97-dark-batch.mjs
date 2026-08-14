@@ -106,6 +106,18 @@ assert.equal(
   1,
   "existing county build primitive must still call the builder exactly once"
 );
+assert.equal(
+  (build.match(/^set local statement_timeout='90min';$/gm) || []).length,
+  1,
+  "county build must have exactly one executable 90-minute builder statement timeout"
+);
+assert.equal(
+  (build.match(/^set local statement_timeout='15min';$/gm) || []).length,
+  0,
+  "county build must not retain an executable 15-minute whole-builder timeout"
+);
+need(build, "set local lock_timeout='2min'", "bounded county build lock timeout");
+need(readme, "90-minute", "documented finite county builder maximum");
 
 for (const token of [
   "does **not** need to start and approve each remaining county",
