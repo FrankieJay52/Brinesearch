@@ -45,7 +45,7 @@
     "verify:phase1-release-contract": "node v17/scripts/audit-phase1-release-contract-issue97.mjs",
     "verify:issue97-computer-rollout": "node v17/scripts/audit-issue97-computer-rollout.mjs",
     "verify:issue97-dark-batch": "node v17/scripts/audit-issue97-dark-batch.mjs",
-    "verify:issue97-saved-road-gps": "node v17/scripts/audit-issue97-saved-road-gps-binding.mjs",
+    "verify:issue97-saved-road-gps": "node v17/scripts/audit-issue97-saved-road-gps-binding.mjs && node v17/scripts/audit-issue97-production-installer.mjs",
     "verify:road-data-coverage": "node v17/scripts/audit-road-data-coverage-issue70.mjs",
     "verify:road-identity-reconciliation": "node v17/scripts/audit-road-identity-reconciliation-issue70.mjs",
     "verify:road-source-conflicts": "node v17/scripts/audit-road-source-conflicts-issue70.mjs",
