@@ -1,0 +1,58 @@
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const here = path.dirname(fileURLToPath(import.meta.url));
+const root = path.resolve(here, "../..");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
+const need = (source, token, label = token) =>
+  assert.ok(source.includes(token), `Issue #97 GPS-bound saved-road audit missing ${label}`);
+const forbid = (source, token, label = token) =>
+  assert.ok(!source.includes(token), `Issue #97 GPS-bound saved-road audit forbids ${label}`);
+
+const baseline = read("supabase/migrations/20260814160000_issue97_saved_road_release_baseline_current.sql");
+const gps = read("supabase/migrations/20260814160050_issue97_saved_road_pad_gps_binding.sql");
+const google = read("supabase/migrations/20260811242000_issue97_transition_google_manifests.sql");
+
+for (const token of [
+  "ebcacb4b049483fdc48cfcf04dc97dad",
+  "cb49d2f5912019abfefe553337860b61",
+  "16111",
+  "4825b5291ea682af7f659130cd735838",
+]) need(baseline, token, `reviewed route-semantic-v2 predecessor ${token}`);
+
+for (const token of [
+  "927896ee5fd992bfe18eb21774559101",
+  "2ad7b559ddd3394265643abd8a5a01a7",
+  "6cb07ec60d0e84fbc3f443721eefa242",
+  "issue97_saved_road_semantic_source_v3_gps_bound",
+  "route-semantic-v3-gps-bound",
+  "pg_catalog.round(p.latitude::numeric,7)",
+  "pg_catalog.round(p.longitude::numeric,7)",
+  "pad_destination_gps_precision_decimals",
+  "prior_route_semantic_v2_digest",
+  "expected_occurrence_count<>16111",
+  "expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'",
+  "source_digest_function_md5",
+  "v_effective_owner is distinct from v_owner",
+  "v_effective_acl is distinct from v_acl",
+  "v_effective_security_definer is distinct from v_security_definer",
+  "v_effective_volatility is distinct from v_volatility",
+  "v_effective_config is distinct from v_config",
+  "alternate_locations is not a navigation destination",
+]) need(gps, token, `GPS-bound currentness ${token}`);
+
+forbid(gps, "p.updated_at::text", "timestamp metadata in GPS-bound saved-road token");
+forbid(gps, "similarity(", "fuzzy matching");
+forbid(gps, "<->", "nearest-road matching");
+
+for (const token of [
+  "pg_catalog.round(v_pad.latitude::numeric,7)::text",
+  "pg_catalog.round(v_pad.longitude::numeric,7)::text",
+  "extensions.st_makepoint(v_pad.longitude,v_pad.latitude)",
+  "'kind','pad_destination'",
+  "'source_kind','saved_pad_gps'",
+]) need(google, token, `existing Google destination GPS binding ${token}`);
+
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded, and the Google dependency uses the same saved pad GPS.");
