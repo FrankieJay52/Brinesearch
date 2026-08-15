@@ -89,9 +89,9 @@ begin
      or v_effective_volatility is distinct from v_volatility
      or v_effective_config is distinct from v_config
      or v_effective_definition not like
-       '%coalesce(pg_catalog.round(p.latitude::numeric, 7)::text, '''')%'
+       '%coalesce(pg_catalog.round(p.latitude::numeric,7)::text,'''')%'
      or v_effective_definition not like
-       '%coalesce(pg_catalog.round(p.longitude::numeric, 7)::text, '''')%'
+       '%coalesce(pg_catalog.round(p.longitude::numeric,7)::text,'''')%'
      or v_effective_definition like
        '%p.driver_safety_context::text,p.updated_at::text%' then
     raise exception 'Issue #97 GPS-bound saved-road source digest did not install exactly';
@@ -188,13 +188,13 @@ begin
      or private_verification.brinesearch_issue97_saved_road_source_digest()
           <>'2ad7b559ddd3394265643abd8a5a01a7'
      or v_source_definition not like
-       '%pg_catalog.round(p.latitude::numeric, 7)%'
+       '%pg_catalog.round(p.latitude::numeric,7)%'
      or v_source_definition not like
-       '%pg_catalog.round(p.longitude::numeric, 7)%'
+       '%pg_catalog.round(p.longitude::numeric,7)%'
      or v_google_dependency not like
-       '%pg_catalog.round(v_pad.latitude::numeric, 7)::text%'
+       '%pg_catalog.round(v_pad.latitude::numeric,7)::text%'
      or v_google_dependency not like
-       '%pg_catalog.round(v_pad.longitude::numeric, 7)::text%' then
+       '%pg_catalog.round(v_pad.longitude::numeric,7)::text%' then
     raise exception 'Issue #97 GPS-bound saved-road currentness verification failed';
   end if;
 end
