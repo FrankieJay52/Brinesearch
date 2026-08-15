@@ -73,8 +73,8 @@ verify_files() {
   local file previous=""
   [[ "${#migration_files[@]}" -eq 22 ]] || die "expected exactly 22 final release migrations"
   [[ "${#release_versions[@]}" -eq 22 ]] || die "expected exactly 22 final release migration versions"
-  [[ "${migration_files[1]}" == *"20260814160000_issue97_saved_road_release_baseline_current.sql" ]] || die "16,111 baseline must be migration 2"
-  [[ "${migration_files[2]}" == *"20260814160050_issue97_saved_road_pad_gps_binding.sql" ]] || die "GPS binding must immediately follow the 16,111 baseline"
+  [[ "${migration_files[1]}" == *"20260814160000_issue97_saved_road_release_baseline_current.sql" ]] || die "16,118 baseline must be migration 2"
+  [[ "${migration_files[2]}" == *"20260814160050_issue97_saved_road_pad_gps_binding.sql" ]] || die "GPS binding must immediately follow the 16,118 baseline"
   for file in "${migration_files[@]}"; do
     [[ -f "${repo_root}/${file}" ]] || die "missing migration file ${file}"
     if [[ -n "${previous}" && "${file}" < "${previous}" ]]; then
@@ -213,15 +213,15 @@ begin
   from private_verification.brinesearch_issue97_saved_road_release_baseline
   where singleton;
   if v_source_md5<>'927896ee5fd992bfe18eb21774559101'
-     or v_source_digest<>'2ad7b559ddd3394265643abd8a5a01a7'
+     or v_source_digest<>'1b002ec1a7efc112b437db7331cd1117'
      or v_definition not like '%pg_catalog.round(p.latitude::numeric,7)%'
      or v_definition not like '%pg_catalog.round(p.longitude::numeric,7)%'
      or v_definition like '%p.driver_safety_context::text,p.updated_at::text%'
-     or v_baseline.expected_occurrence_count<>16111
-     or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
-     or v_baseline.review_details->>'source_digest'<>'2ad7b559ddd3394265643abd8a5a01a7'
+     or v_baseline.expected_occurrence_count<>16118
+     or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'
+     or v_baseline.review_details->>'source_digest'<>'1b002ec1a7efc112b437db7331cd1117'
      or v_baseline.review_details->>'source_digest_function_md5'<>'927896ee5fd992bfe18eb21774559101'
-     or v_baseline.review_details->>'verification_report_digest'<>'6cb07ec60d0e84fbc3f443721eefa242' then
+     or v_baseline.review_details->>'verification_report_digest'<>'a271e00fe0128830bf0959611f1aa22d' then
     raise exception 'Issue #97 final rehearsal GPS-bound saved-road contract mismatch';
   end if;
 
