@@ -78,14 +78,14 @@ with required_scopes as (
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_release_manifests','SELECT')
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_verification_reports','SELECT')
       as release_evidence_infrastructure_ready,
-    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='793ed8985252b00d52f46da497484029'
+    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='e0528f257f3c1b6d40341b735f284f1d'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%independent_ogrip_endpoint_corroboration%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%create index tmp_issue97_segments_geog_idx%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%analyze tmp_issue97_segments;%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%odot_authoritative_overlap_pairs%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%PRIMARY_OVERLAP_ID%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%issue97_persistent_secondary_geometry_unchanged%' as builder_exact,
-    (select builder_definition_md5='793ed8985252b00d52f46da497484029'
+    (select builder_definition_md5='e0528f257f3c1b6d40341b735f284f1d'
       and review_details->>'persistent_odot_geometry_rewritten'='false'
       and review_details->>'name_or_nearest_matching_used'='false'
       from private_verification.brinesearch_issue97_graph_release_generations where active)
