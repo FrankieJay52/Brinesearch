@@ -40,14 +40,18 @@ const preCutover = read("supabase/tests/issue97_pre_cutover_release.sql");
 const postCutover = read("supabase/tests/issue97_post_cutover_smoke.sql");
 
 for (const token of [
-  "16111",
-  "4825b5291ea682af7f659130cd735838",
-  "cb49d2f5912019abfefe553337860b61",
+  "16118",
+  "420725ad5d8c93a60f13c5ddb3b4f1c1",
+  "800fbdc0a51daec11c1f1bd1ddb512b0",
   "d3c545529f508f5f4ee8876ee1807ce4",
   "ebcacb4b049483fdc48cfcf04dc97dad",
-  "4668be7f41b420225c0ae7261ac19b71",
+  "4133362a5205c8c4e36621ce8d2d486d",
   "route-semantic-v2",
   "unchanged_route_semantic_pads",
+  "current_production_change_set",
+  "gulfport--harvey",
+  "direction_intelligence_refresh",
+  "measured_road_refresh",
   "p.structured_route_steps::text,p.driver_safety_context::text))",
   "v_effective_definition like",
   "p.driver_safety_context::text,p.updated_at::text",
@@ -60,6 +64,11 @@ forbid(
   saved,
   "'source_digest','d28ca2b6fe5cd9610937df0d27362357'",
   "obsolete timestamp-sensitive digest as the active saved-road baseline",
+);
+forbid(
+  saved,
+  "'source_digest','cb49d2f5912019abfefe553337860b61'",
+  "stale pre-Harvey semantic digest as the active saved-road baseline",
 );
 forbid(
   saved,
@@ -237,8 +246,8 @@ for (const token of [
 for (const token of [
   "7abd11f432c3e7b475b10d0817f5e8fc",
   "4dd8a572b153d795163cf38a41ea9d1f",
-  "16111",
-  "4825b5291ea682af7f659130cd735838",
+  "16118",
+  "420725ad5d8c93a60f13c5ddb3b4f1c1",
   "old_frozen_not_grandfathered",
   "inner_bypasses_closed",
   "transition_schema_current",
@@ -270,7 +279,8 @@ for (const current of ["OH','MEG", "OH','VIN", "WV','LEW"]) need(preCutover, cur
 for (const token of [
   "cutover OFF",
   "exact 39-county active release-current manifest",
-  "16111",
+  "16118",
+  "420725ad5d8c93a60f13c5ddb3b4f1c1",
   "route_critical_held_count",
   "brinesearch_issue97_release_manifest_current",
 ]) need(preCutover, token, `pre-cutover suite ${token}`);
@@ -283,4 +293,4 @@ for (const token of [
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
 forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-console.log("Issue #97 release-generation, complete input currentness, semantic saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
+console.log("Issue #97 release-generation, complete input currentness, current 16,118 semantic saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
