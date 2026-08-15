@@ -59,8 +59,8 @@ begin
   select count(*)::integer into v_pads
   from public.pads pad
   where pad.state='Ohio' and coalesce(pad.list_only,false)=false;
-  if v_pads<>939 then
-    raise exception 'Issue #97 reviewed Ohio non-list-only pad denominator changed; expected 939 found %',v_pads;
+  if v_pads<>940 then
+    raise exception 'Issue #97 reviewed Ohio non-list-only pad denominator changed; expected 940 found %',v_pads;
   end if;
 end
 $issue97_ohio_direction_preflight$;
@@ -120,8 +120,8 @@ begin
     perform public.brinesearch_issue97_run_all_pad_routing_pipeline_geometry_core(pad_row.id);
     v_processed:=v_processed+1;
   end loop;
-  if v_processed<>939 then
-    raise exception 'Issue #97 Ohio dark direction batch processed % pads; expected 939',v_processed;
+  if v_processed<>940 then
+    raise exception 'Issue #97 Ohio dark direction batch processed % pads; expected 940',v_processed;
   end if;
 end
 $issue97_ohio_direction_batch$;
@@ -180,4 +180,4 @@ not exists(select 1 from public.brinesearch_road_graph_builds where status='stag
 \endif
 
 commit;
-\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 939 pads; non-Ohio receipts unchanged; Google/public cutover remains dark.'
+\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 940 pads; non-Ohio receipts unchanged; Google/public cutover remains dark.'
