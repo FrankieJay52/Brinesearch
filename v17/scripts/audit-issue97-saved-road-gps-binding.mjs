@@ -83,6 +83,10 @@ for (const token of [
   "4825b5291ea682af7f659130cd735838",
   "c5d54a4d839df79eff99f4dfd4b0b780",
   "d3c545529f508f5f4ee8876ee1807ce4",
+  "private_verification.brinesearch_google_route_receipts_issue97",
+  "public.brinesearch_driver_google_routes_public",
+  "'google_receipt_count'",
+  "'public_google_count'",
   "set local statement_timeout='15min'",
   "set local lock_timeout='2min'",
   "sed 's/\\r$//'",
@@ -92,6 +96,12 @@ for (const token of [
   "The older issue97-release-rehearsal.sh is retained only as historical evidence",
   "Do not use it for the final release gate",
 ]) need(finalRehearsal, token, `canonical final rehearsal ${token}`);
+
+forbid(
+  finalRehearsal,
+  "public.brinesearch_pad_google_routes",
+  "stale nonexistent Google snapshot relation",
+);
 
 assert.equal(
   count(finalRehearsal, '"supabase/migrations/20260814'),
@@ -117,4 +127,4 @@ for (const forbidden of [
   "refresh_google_routes(",
 ]) forbid(finalRehearsal, forbidden, `canonical final rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, and the superseding final PC lane includes the GPS migration before all later release migrations.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only real Google receipt/public relations, and the superseding final PC lane includes the GPS migration before all later release migrations.");
