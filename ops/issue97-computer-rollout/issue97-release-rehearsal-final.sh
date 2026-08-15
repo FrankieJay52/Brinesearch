@@ -229,9 +229,14 @@ begin
     'private_verification.brinesearch_issue97_transition_google_dependency(uuid)'::pg_catalog.regprocedure
   );
   if v_definition not like '%pg_catalog.round(v_pad.latitude::numeric,7)::text%'
-     or v_definition not like '%pg_catalog.round(v_pad.longitude::numeric,7)::text%'
-     or v_definition not like '%saved_pad_gps%' then
-    raise exception 'Issue #97 final rehearsal Google destination GPS binding mismatch';
+     or v_definition not like '%pg_catalog.round(v_pad.longitude::numeric,7)::text%' then
+    raise exception 'Issue #97 final rehearsal Google destination dependency GPS binding mismatch';
+  end if;
+  v_definition:=pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)'::pg_catalog.regprocedure
+  );
+  if v_definition not like '%saved_pad_gps%' then
+    raise exception 'Issue #97 final rehearsal Google destination saved-pad provenance mismatch';
   end if;
 
   v_definition:=pg_catalog.pg_get_functiondef(

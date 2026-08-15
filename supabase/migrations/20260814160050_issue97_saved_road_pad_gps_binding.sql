@@ -165,6 +165,7 @@ declare
   v_baseline record;
   v_source_definition text;
   v_google_dependency text;
+  v_google_refresh text;
 begin
   select * into strict v_baseline
   from private_verification.brinesearch_issue97_saved_road_release_baseline
@@ -177,6 +178,10 @@ begin
     'private_verification.brinesearch_issue97_transition_google_dependency(uuid)'
       ::pg_catalog.regprocedure
   ) into strict v_google_dependency;
+  select pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)'
+      ::pg_catalog.regprocedure
+  ) into strict v_google_refresh;
 
   if v_baseline.expected_occurrence_count<>16118
      or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'
@@ -200,7 +205,8 @@ begin
      or v_google_dependency not like
        '%pg_catalog.round(v_pad.latitude::numeric,7)::text%'
      or v_google_dependency not like
-       '%pg_catalog.round(v_pad.longitude::numeric,7)::text%' then
+       '%pg_catalog.round(v_pad.longitude::numeric,7)::text%'
+     or v_google_refresh not like '%saved_pad_gps%' then
     raise exception 'Issue #97 GPS-bound saved-road currentness verification failed';
   end if;
 end

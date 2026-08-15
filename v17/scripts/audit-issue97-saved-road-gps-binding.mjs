@@ -15,7 +15,8 @@ const count = (source, token) => source.split(token).length - 1;
 
 const baseline = read("supabase/migrations/20260814160000_issue97_saved_road_release_baseline_current.sql");
 const gps = read("supabase/migrations/20260814160050_issue97_saved_road_pad_gps_binding.sql");
-const google = read("supabase/migrations/20260811242000_issue97_transition_google_manifests.sql");
+const googleDependency = read("supabase/migrations/20260812037300_issue97_verified_run_provenance_hardening.sql");
+const googleRefresh = read("supabase/migrations/20260812037400_issue97_transition_google_current_schema.sql");
 const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const finalRehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
 const finalRehearsal = fs.readFileSync(finalRehearsalPath, "utf8");
@@ -56,6 +57,8 @@ for (const token of [
   "v_effective_security_definer is distinct from v_security_definer",
   "v_effective_volatility is distinct from v_volatility",
   "v_effective_config is distinct from v_config",
+  "private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)",
+  "v_google_refresh not like '%saved_pad_gps%'",
   "alternate_locations is not a navigation destination",
   "gulfport--harvey",
   "eog--harvey",
@@ -84,9 +87,12 @@ for (const token of [
   "pg_catalog.round(v_pad.latitude::numeric,7)::text",
   "pg_catalog.round(v_pad.longitude::numeric,7)::text",
   "extensions.st_makepoint(v_pad.longitude,v_pad.latitude)",
+]) need(googleDependency, token, `current Google dependency GPS binding ${token}`);
+
+for (const token of [
   "'kind','pad_destination'",
   "'source_kind','saved_pad_gps'",
-]) need(google, token, `existing Google destination GPS binding ${token}`);
+]) need(googleRefresh, token, `current Google refresh destination GPS binding ${token}`);
 
 for (const token of [
   "e0528f257f3c1b6d40341b735f284f1d",
@@ -129,6 +135,29 @@ for (const token of [
   "The older issue97-release-rehearsal.sh is retained only as historical evidence",
   "Do not use it for the final release gate",
 ]) need(finalRehearsal, token, `canonical final rehearsal ${token}`);
+
+assert.match(
+  finalRehearsal,
+  /pg_get_functiondef\(\s*'private_verification\.brinesearch_issue97_refresh_google_route_transition\(uuid\)'::pg_catalog\.regprocedure\s*\);\s*if v_definition not like '%saved_pad_gps%'/s,
+  "Issue #97 final rehearsal must verify saved_pad_gps on the Google refresh function",
+);
+const dependencyCheckStart = finalRehearsal.indexOf(
+  "'private_verification.brinesearch_issue97_transition_google_dependency(uuid)'::pg_catalog.regprocedure",
+  finalRehearsal.indexOf('in_transaction_verify="$(cat'),
+);
+const refreshCheckStart = finalRehearsal.indexOf(
+  "'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)'::pg_catalog.regprocedure",
+  dependencyCheckStart,
+);
+assert.ok(
+  dependencyCheckStart >= 0 && refreshCheckStart > dependencyCheckStart,
+  "Issue #97 final rehearsal Google dependency/refresh checks must remain ordered and identifiable",
+);
+forbid(
+  finalRehearsal.slice(dependencyCheckStart, refreshCheckStart),
+  "saved_pad_gps",
+  "saved-pad provenance marker on the dependency digest function instead of the refresh function",
+);
 
 forbid(
   finalRehearsal,
