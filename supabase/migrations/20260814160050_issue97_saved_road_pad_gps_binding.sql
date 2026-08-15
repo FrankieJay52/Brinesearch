@@ -1,7 +1,7 @@
 -- GitHub #97 — bind the reviewed saved-road source generation to pad destination GPS.
 --
--- 20260814160000 deliberately removed pads.updated_at because unrelated pad
--- metadata edits made that timestamp-sensitive source digest unstable. Independent
+-- 20260814160000 deliberately removes pads.updated_at because unrelated pad
+-- metadata edits make that timestamp-sensitive source digest unstable. Independent
 -- Grok review correctly identified the remaining blind spot: latitude/longitude
 -- are routing-critical and must not be allowed to change without invalidating the
 -- reviewed saved-road source generation. The transition-Google dependency already
@@ -10,6 +10,12 @@
 -- adds that same rounded destination GPS to the saved-road pad token itself.
 -- alternate_locations is not a navigation destination in the #97 route pipeline
 -- and is therefore intentionally not part of this source token.
+--
+-- The current reviewed generation includes the 2026-08-15 Gulfport HARVEY pad in
+-- Monroe County (legacy_id gulfport--harvey). The older EOG HARVEY in Carroll
+-- County (legacy_id eog--harvey) is a separate pad and is intentionally preserved.
+-- The same refresh also regenerated the direction-intelligence/measured-road
+-- evidence captured by 20260814160000, moving the reviewed inventory to 16,118.
 
 select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
@@ -50,7 +56,7 @@ begin
     raise exception 'Issue #97 route-semantic v2 source digest changed before GPS binding';
   end if;
   if private_verification.brinesearch_issue97_saved_road_source_digest()
-       <>'cb49d2f5912019abfefe553337860b61' then
+       <>'800fbdc0a51daec11c1f1bd1ddb512b0' then
     raise exception 'Issue #97 route-semantic v2 source generation changed before GPS binding';
   end if;
 
@@ -82,7 +88,7 @@ begin
 
   if pg_catalog.md5(v_effective_definition)<>'927896ee5fd992bfe18eb21774559101'
      or private_verification.brinesearch_issue97_saved_road_source_digest()
-          <>'2ad7b559ddd3394265643abd8a5a01a7'
+          <>'1b002ec1a7efc112b437db7331cd1117'
      or v_effective_owner is distinct from v_owner
      or v_effective_acl is distinct from v_acl
      or v_effective_security_definer is distinct from v_security_definer
@@ -100,7 +106,7 @@ end
 $issue97_saved_source_gps_runtime$;
 
 -- 20260814160000 must already have persisted the exact independently reviewed
--- 16,111 occurrence-key baseline. This migration changes only source-generation
+-- 16,118 occurrence-key baseline. This migration changes only source-generation
 -- currentness, never the occurrence count or immutable inventory digest.
 do $issue97_saved_gps_baseline_precheck$
 declare
@@ -109,16 +115,16 @@ begin
   select * into strict v_baseline
   from private_verification.brinesearch_issue97_saved_road_release_baseline
   where singleton;
-  if v_baseline.expected_occurrence_count<>16111
-     or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
-     or v_baseline.review_details->>'source_digest'<>'cb49d2f5912019abfefe553337860b61'
+  if v_baseline.expected_occurrence_count<>16118
+     or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'
+     or v_baseline.review_details->>'source_digest'<>'800fbdc0a51daec11c1f1bd1ddb512b0'
      or v_baseline.review_details->>'source_digest_function_md5'
           <>'ebcacb4b049483fdc48cfcf04dc97dad'
      or v_baseline.review_details->>'verification_report_digest'
-          <>'4668be7f41b420225c0ae7261ac19b71'
+          <>'4133362a5205c8c4e36621ce8d2d486d'
      or pg_catalog.md5((v_baseline.review_details->'verification_report')::text)
-          <>'4668be7f41b420225c0ae7261ac19b71' then
-    raise exception 'Issue #97 reviewed 16,111 route-semantic v2 baseline changed before GPS binding';
+          <>'4133362a5205c8c4e36621ce8d2d486d' then
+    raise exception 'Issue #97 reviewed 16,118 route-semantic v2 baseline changed before GPS binding';
   end if;
   if (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>0 then
     raise exception 'Issue #97 saved-road reconciliation history appeared before GPS-bound baseline migration';
@@ -131,21 +137,21 @@ set review_details =
   (review_details
     || pg_catalog.jsonb_build_object(
       'reviewed_by','ChatGPT independent current-production reconciliation plus Grok GPS-currentness challenge',
-      'reviewed_at','2026-08-15T02:33:00Z',
-      'verification_report_digest','6cb07ec60d0e84fbc3f443721eefa242',
-      'source_digest','2ad7b559ddd3394265643abd8a5a01a7',
+      'reviewed_at','2026-08-15T04:58:07Z',
+      'verification_report_digest','a271e00fe0128830bf0959611f1aa22d',
+      'source_digest','1b002ec1a7efc112b437db7331cd1117',
       'source_digest_algorithm','route-semantic-v3-gps-bound: ordered saved-road source tokens; pad token includes structured_road_sequence, written_directions, directions_clear, structured_route_steps, driver_safety_context, and saved pad latitude/longitude rounded to 7 decimals; pads.updated_at excluded',
       'source_digest_function_md5','927896ee5fd992bfe18eb21774559101',
-      'prior_route_semantic_v2_source_digest','cb49d2f5912019abfefe553337860b61'
+      'prior_route_semantic_v2_source_digest','800fbdc0a51daec11c1f1bd1ddb512b0'
     ))
   || pg_catalog.jsonb_build_object(
     'verification_report',
     (review_details->'verification_report')
       || pg_catalog.jsonb_build_object(
         'review','issue97_saved_road_semantic_source_v3_gps_bound',
-        'reviewed_at','2026-08-15T02:33:00Z',
-        'prior_route_semantic_v2_digest','cb49d2f5912019abfefe553337860b61',
-        'semantic_source_digest','2ad7b559ddd3394265643abd8a5a01a7',
+        'reviewed_at','2026-08-15T04:58:07Z',
+        'prior_route_semantic_v2_digest','800fbdc0a51daec11c1f1bd1ddb512b0',
+        'semantic_source_digest','1b002ec1a7efc112b437db7331cd1117',
         'pad_destination_gps_precision_decimals',7
       )
   ),
@@ -172,21 +178,21 @@ begin
       ::pg_catalog.regprocedure
   ) into strict v_google_dependency;
 
-  if v_baseline.expected_occurrence_count<>16111
-     or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
-     or v_baseline.review_details->>'source_digest'<>'2ad7b559ddd3394265643abd8a5a01a7'
+  if v_baseline.expected_occurrence_count<>16118
+     or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'
+     or v_baseline.review_details->>'source_digest'<>'1b002ec1a7efc112b437db7331cd1117'
      or v_baseline.review_details->>'source_digest_function_md5'
           <>'927896ee5fd992bfe18eb21774559101'
      or v_baseline.review_details->>'verification_report_digest'
-          <>'6cb07ec60d0e84fbc3f443721eefa242'
+          <>'a271e00fe0128830bf0959611f1aa22d'
      or pg_catalog.md5((v_baseline.review_details->'verification_report')::text)
-          <>'6cb07ec60d0e84fbc3f443721eefa242'
+          <>'a271e00fe0128830bf0959611f1aa22d'
      or v_baseline.review_details->'verification_report'->>'review'
           <>'issue97_saved_road_semantic_source_v3_gps_bound'
      or (v_baseline.review_details->'verification_report'->>'pad_destination_gps_precision_decimals')::integer<>7
      or pg_catalog.md5(v_source_definition)<>'927896ee5fd992bfe18eb21774559101'
      or private_verification.brinesearch_issue97_saved_road_source_digest()
-          <>'2ad7b559ddd3394265643abd8a5a01a7'
+          <>'1b002ec1a7efc112b437db7331cd1117'
      or v_source_definition not like
        '%pg_catalog.round(p.latitude::numeric,7)%'
      or v_source_definition not like
