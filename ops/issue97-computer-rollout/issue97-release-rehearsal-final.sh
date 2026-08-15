@@ -214,8 +214,8 @@ begin
   where singleton;
   if v_source_md5<>'927896ee5fd992bfe18eb21774559101'
      or v_source_digest<>'2ad7b559ddd3394265643abd8a5a01a7'
-     or v_definition not like '%pg_catalog.round(p.latitude::numeric, 7)%'
-     or v_definition not like '%pg_catalog.round(p.longitude::numeric, 7)%'
+     or v_definition not like '%pg_catalog.round(p.latitude::numeric,7)%'
+     or v_definition not like '%pg_catalog.round(p.longitude::numeric,7)%'
      or v_definition like '%p.driver_safety_context::text,p.updated_at::text%'
      or v_baseline.expected_occurrence_count<>16111
      or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
@@ -228,8 +228,8 @@ begin
   v_definition:=pg_catalog.pg_get_functiondef(
     'private_verification.brinesearch_issue97_transition_google_dependency(uuid)'::pg_catalog.regprocedure
   );
-  if v_definition not like '%pg_catalog.round(v_pad.latitude::numeric, 7)::text%'
-     or v_definition not like '%pg_catalog.round(v_pad.longitude::numeric, 7)::text%'
+  if v_definition not like '%pg_catalog.round(v_pad.latitude::numeric,7)::text%'
+     or v_definition not like '%pg_catalog.round(v_pad.longitude::numeric,7)::text%'
      or v_definition not like '%saved_pad_gps%' then
     raise exception 'Issue #97 final rehearsal Google destination GPS binding mismatch';
   end if;
