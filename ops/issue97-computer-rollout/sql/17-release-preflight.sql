@@ -97,8 +97,8 @@ with required_scopes as (
     (select count(*) from public.brinesearch_road_graph_builds b where b.state_code='WV' and b.county_code='OHI' and b.status='active' and private_verification.brinesearch_issue97_graph_build_release_current(b.id))=1 as ohi_release_current,
     (select count(*) from public.brinesearch_road_graph_builds b where b.state_code='OH' and b.county_code in ('BEL','JEF','NOB') and b.status='active' and private_verification.brinesearch_issue97_graph_build_release_current(b.id))=0 as old_frozen_not_grandfathered,
     (select fixture_count from possum)=2 as possum_ready,
-    (select expected_occurrence_count from baseline)=16111
-      and (select expected_inventory_digest from baseline)='4825b5291ea682af7f659130cd735838' as saved_road_baseline_exact,
+    (select expected_occurrence_count from baseline)=16118
+      and (select expected_inventory_digest from baseline)='420725ad5d8c93a60f13c5ddb3b4f1c1' as saved_road_baseline_exact,
     not pg_catalog.has_function_privilege('service_role','public.brinesearch_issue97_activate_cutover_without_google_routes(jsonb)','EXECUTE')
       and not pg_catalog.has_function_privilege('service_role','public.brinesearch_publish_structured_route_issue97_without_google(uuid,uuid,jsonb,bigint)','EXECUTE') as inner_bypasses_closed,
     (select definition not like '%public.brinesearch_issue97_road_mapping_fingerprint%'
@@ -185,7 +185,7 @@ select * from checks
 \endif
 \if :issue97_release_saved_road_baseline_exact
 \else
-  do $fail$ begin raise exception 'Issue #97 release preflight: saved-road baseline is not the reviewed 16,111 manifest'; end $fail$;
+  do $fail$ begin raise exception 'Issue #97 release preflight: saved-road baseline is not the reviewed 16,118 manifest'; end $fail$;
 \endif
 \if :issue97_release_inner_bypasses_closed
 \else
