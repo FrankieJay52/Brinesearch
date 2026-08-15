@@ -245,6 +245,7 @@ for (const token of [
 
 for (const token of [
   "7abd11f432c3e7b475b10d0817f5e8fc",
+  "e0528f257f3c1b6d40341b735f284f1d",
   "4dd8a572b153d795163cf38a41ea9d1f",
   "16118",
   "420725ad5d8c93a60f13c5ddb3b4f1c1",
@@ -257,7 +258,8 @@ for (const token of [
 need(build, "set local statement_timeout='90min'", "finite release county builder timeout");
 need(build, "brinesearch_issue97_graph_build_release_current", "release-current build duplicate guard");
 need(verify, "release_generation_key'='issue97-release-20260814-r1", "release receipt verification");
-need(verify, "release_builder_md5'='7abd11f432c3e7b475b10d0817f5e8fc", "final builder receipt");
+need(verify, "details->>'release_builder_md5'='e0528f257f3c1b6d40341b735f284f1d'", "current executable final builder receipt");
+forbid(verify, "details->>'release_builder_md5'='793ed8985252b00d52f46da497484029'", "stale executable ODOT builder receipt");
 need(plan, "private_verification.brinesearch_issue97_graph_build_release_current", "release-current pending plan");
 need(plan, "state_code='OH' and c.county_code='NOB'", "NOB first canary order");
 need(plan, "state_code='PA' and c.county_code='WAS'", "PA/WAS second canary order");
@@ -293,4 +295,4 @@ for (const token of [
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
 forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-console.log("Issue #97 release-generation, complete input currentness, current 16,118 semantic saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
+console.log("Issue #97 release-generation, complete input currentness, current 16,118 semantic saved baseline, exact e0528f ODOT builder receipt, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
