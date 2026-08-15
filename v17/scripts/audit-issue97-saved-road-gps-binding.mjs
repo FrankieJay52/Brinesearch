@@ -16,6 +16,7 @@ const count = (source, token) => source.split(token).length - 1;
 const baseline = read("supabase/migrations/20260814160000_issue97_saved_road_release_baseline_current.sql");
 const gps = read("supabase/migrations/20260814160050_issue97_saved_road_pad_gps_binding.sql");
 const google = read("supabase/migrations/20260811242000_issue97_transition_google_manifests.sql");
+const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const finalRehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
 const finalRehearsal = fs.readFileSync(finalRehearsalPath, "utf8");
 execFileSync("bash", ["-n", finalRehearsalPath], { stdio: "pipe" });
@@ -88,6 +89,16 @@ for (const token of [
 ]) need(google, token, `existing Google destination GPS binding ${token}`);
 
 for (const token of [
+  "e0528f257f3c1b6d40341b735f284f1d",
+  "ODOT overlap generated builder hash changed before install",
+  "PRIMARY_OVERLAP_ID",
+  "OVERLAP_INVERSE_IND",
+  "odot_authoritative_overlap_pairs",
+  "issue97_persistent_secondary_geometry_unchanged",
+]) need(overlap, token, `exact ODOT builder contract ${token}`);
+forbid(overlap, "builder_definition_md5='793ed8985252b00d52f46da497484029'", "stale active ODOT builder generation hash");
+
+for (const token of [
   "CANONICAL FINAL #97 RELEASE REHEARSAL",
   "expected exactly 22 final release migrations",
   "20260814160000_issue97_saved_road_release_baseline_current.sql",
@@ -98,6 +109,7 @@ for (const token of [
   "a271e00fe0128830bf0959611f1aa22d",
   "420725ad5d8c93a60f13c5ddb3b4f1c1",
   "16118",
+  "e0528f257f3c1b6d40341b735f284f1d",
   "c5d54a4d839df79eff99f4dfd4b0b780",
   "d3c545529f508f5f4ee8876ee1807ce4",
   "v_definition not like '%pg_catalog.round(p.latitude::numeric,7)%'",
@@ -125,6 +137,7 @@ forbid(
 );
 forbid(finalRehearsal, "2ad7b559ddd3394265643abd8a5a01a7", "stale pre-Harvey GPS-bound digest");
 forbid(finalRehearsal, "4825b5291ea682af7f659130cd735838", "stale pre-Harvey inventory digest");
+forbid(finalRehearsal, "793ed8985252b00d52f46da497484029", "stale pre-reconstruction ODOT builder hash in canonical final rehearsal");
 
 // Keep byte-for-byte equality limited to durable release state. pg_stat_activity
 // is intentionally checked only by preflight because session presence can change
@@ -183,4 +196,4 @@ for (const forbidden of [
   "refresh_google_routes(",
 ]) forbid(finalRehearsal, forbidden, `canonical final rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: the independently reviewed 16,118 inventory includes Gulfport HARVEY as distinct from the older Carroll EOG HARVEY, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded from the pad token outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only durable release state, pg_stat_activity remains preflight-only, and the superseding final PC lane includes the GPS migration before all later release migrations.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: the independently reviewed 16,118 inventory includes Gulfport HARVEY as distinct from the older Carroll EOG HARVEY, the exact ODOT overlap builder is pinned to its reconstructed e0528f definition, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded from the pad token outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only durable release state, pg_stat_activity remains preflight-only, and the superseding final PC lane includes the GPS migration before all later release migrations.");
