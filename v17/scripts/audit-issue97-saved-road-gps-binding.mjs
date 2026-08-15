@@ -41,9 +41,18 @@ for (const token of [
   "v_effective_volatility is distinct from v_volatility",
   "v_effective_config is distinct from v_config",
   "alternate_locations is not a navigation destination",
+  "p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))",
+  "v_effective_definition like\n       '%p.driver_safety_context::text,p.updated_at::text%'",
 ]) need(gps, token, `GPS-bound currentness ${token}`);
 
-forbid(gps, "p.updated_at::text", "timestamp metadata in GPS-bound saved-road token");
+// The old updated_at token must exist exactly as the predecessor replacement
+// anchor, and the effective-definition guard must explicitly reject it. Strip
+// those two fail-closed references before proving the GPS-bound migration does
+// not otherwise reintroduce timestamp metadata into the generated function.
+const gpsWithoutUpdatedAtGuards = gps
+  .replaceAll("p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))", "")
+  .replaceAll("%p.driver_safety_context::text,p.updated_at::text%", "");
+forbid(gpsWithoutUpdatedAtGuards, "p.updated_at::text", "timestamp metadata outside predecessor/rejection guards");
 forbid(gps, "similarity(", "fuzzy matching");
 forbid(gps, "<->", "nearest-road matching");
 
@@ -55,4 +64,4 @@ for (const token of [
   "'source_kind','saved_pad_gps'",
 ]) need(google, token, `existing Google destination GPS binding ${token}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded, and the Google dependency uses the same saved pad GPS.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside predecessor/rejection guards, and the Google dependency uses the same saved pad GPS.");
