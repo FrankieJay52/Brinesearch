@@ -7,6 +7,18 @@
 begin read only;
 set local statement_timeout='2min';
 
+select pg_catalog.upper(:'issue97_state')='OH'
+  and pg_catalog.upper(:'issue97_county')='BEL' as scope_ok
+\gset issue97_bel_
+\if :issue97_bel_scope_ok
+\else
+  do $scope$
+  begin
+    raise exception 'Issue #97 Belmont concurrency canary must run only for OH/BEL';
+  end
+  $scope$;
+\endif
+
 do $gate$
 declare
   v_build uuid;
@@ -16,9 +28,6 @@ declare
   v_observed integer;
   v_offset_pair integer;
 begin
-  if pg_catalog.upper(:'issue97_state')<>'OH' or pg_catalog.upper(:'issue97_county')<>'BEL' then
-    raise exception 'Issue #97 Belmont concurrency canary must run only for OH/BEL';
-  end if;
   select b.id into strict v_build
   from public.brinesearch_road_graph_builds b
   where b.state_code='OH' and b.county_code='BEL'

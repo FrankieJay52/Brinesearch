@@ -13,6 +13,22 @@ const forbid = (source, token, label = token) =>
   assert.ok(!source.includes(token), `Issue #97 Ohio release audit forbids ${label}`);
 const count = (source, token) => source.split(token).length - 1;
 const bash = process.env.BRINESEARCH_BASH ?? "bash";
+const assertNoPsqlVariablesInDollarQuotes = (source, label) => {
+  const opener = /\$([A-Za-z_][A-Za-z0-9_]*)?\$/g;
+  let match;
+  while ((match = opener.exec(source)) !== null) {
+    const tag = match[0];
+    const bodyStart = opener.lastIndex;
+    const bodyEnd = source.indexOf(tag, bodyStart);
+    assert.notEqual(bodyEnd, -1, `Issue #97 Ohio release audit found unterminated ${tag} block in ${label}`);
+    forbid(
+      source.slice(bodyStart, bodyEnd),
+      ":'issue97_",
+      `psql variable inside dollar-quoted server block in ${label}`,
+    );
+    opener.lastIndex = bodyEnd + tag.length;
+  }
+};
 
 const shellPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rollout.sh");
 const rehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal.sh");
@@ -82,6 +98,10 @@ for (const source of [plan,gate,belCanary,starkCanary]) {
     "brinesearch_issue97_refresh_google_routes",
   ]) forbid(source.toLowerCase(), forbidden, `Ohio release SQL mutation ${forbidden}`);
 }
+for (const [source,label] of [
+  [belCanary,"Belmont concurrency canary"],
+  [starkCanary,"Stark scale canary"],
+]) assertNoPsqlVariablesInDollarQuotes(source, label);
 
 for (const token of [
   "state_code='OH'",
@@ -104,6 +124,8 @@ for (const token of [
 ]) need(gate, token, `three-canary gate ${token}`);
 
 for (const token of [
+  "as scope_ok\n\\gset issue97_bel_",
+  "\\if :issue97_bel_scope_ok",
   "OH:ODOT:NLF:SBELUS00040**C",
   "OH:ODOT:NLF:SBELIR00070**C",
   "v_expected<>10",
@@ -113,6 +135,8 @@ for (const token of [
   "persistent_secondary_geometry_unchanged",
 ]) need(belCanary, token, `Belmont US-40/I-70 canary ${token}`);
 for (const token of [
+  "as scope_ok\n\\gset issue97_sta_",
+  "\\if :issue97_sta_scope_ok",
   "v_expected<>623",
   "state_code='OH' and b.county_code='STA'",
   "brinesearch_issue97_graph_build_release_current",

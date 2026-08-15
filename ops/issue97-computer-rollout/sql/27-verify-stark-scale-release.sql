@@ -7,6 +7,18 @@
 begin read only;
 set local statement_timeout='2min';
 
+select pg_catalog.upper(:'issue97_state')='OH'
+  and pg_catalog.upper(:'issue97_county')='STA' as scope_ok
+\gset issue97_sta_
+\if :issue97_sta_scope_ok
+\else
+  do $scope$
+  begin
+    raise exception 'Issue #97 Stark scale canary must run only for OH/STA';
+  end
+  $scope$;
+\endif
+
 do $gate$
 declare
   v_build uuid;
@@ -14,9 +26,6 @@ declare
   v_shared integer;
   v_memberships integer;
 begin
-  if pg_catalog.upper(:'issue97_state')<>'OH' or pg_catalog.upper(:'issue97_county')<>'STA' then
-    raise exception 'Issue #97 Stark scale canary must run only for OH/STA';
-  end if;
   select b.id,b.shared_segment_count,b.membership_count
     into strict v_build,v_shared,v_memberships
   from public.brinesearch_road_graph_builds b
