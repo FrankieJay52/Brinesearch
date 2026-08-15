@@ -119,7 +119,8 @@ select pg_catalog.jsonb_build_object(
   'anchor_count',(select count(*) from public.brinesearch_road_junction_anchors),
   'membership_count',(select count(*) from public.brinesearch_road_junction_memberships),
   'release_state',(select pg_catalog.to_jsonb(s) from public.brinesearch_issue97_release_state s where singleton),
-  'public_google_count',(select count(*) from public.brinesearch_pad_google_routes),
+  'google_receipt_count',(select count(*) from private_verification.brinesearch_google_route_receipts_issue97),
+  'public_google_count',(select count(*) from public.brinesearch_driver_google_routes_public),
   'schema_migration_digest',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     version||':'||coalesce(name,''),'|' order by version
   ),'')) from supabase_migrations.schema_migrations),
