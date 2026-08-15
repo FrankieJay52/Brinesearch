@@ -2,17 +2,18 @@
 --
 -- The 2026-08-11 baseline captured 16,109 stable source-kind/occurrence keys.
 -- Two later exact Ohio canonical adoptions (Derry Rd and CR-61 / Egger Ridge Rd)
--- legitimately expanded that same inventory to 16,111.  This forward migration
--- does not delete or hide either road.  Instead it updates the independent
--- reviewed baseline and removes duplicated magic occurrence counts from the
--- reconciliation and cutover runtime.
+-- legitimately expanded that same inventory to 16,111.
+--
+-- On 2026-08-15 the Owner added Gulfport HARVEY in Monroe County. That pad is
+-- distinct from the existing EOG HARVEY in Carroll County. The same deterministic
+-- refresh regenerated direction intelligence and measured-road evidence. The new
+-- pad contributes five saved containers, and the measured-road generation has a
+-- net two additional occurrences, moving the reviewed inventory to 16,118.
 --
 -- The earlier source digest also included pads.updated_at even though that
 -- timestamp changes for unrelated field-sign, well, address, and audit metadata.
--- Four independently reviewed 2026-08-14 pad metadata updates changed only that
--- timestamp-sensitive digest while every route-bearing pad field and the exact
--- 16,111-key inventory stayed unchanged.  This migration first narrows the pad
--- token to the five route-semantic fields before binding the reviewed baseline.
+-- This migration narrows only the pad token to the five route-semantic fields,
+-- while independently binding the complete current 16,118-key inventory.
 
 select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
@@ -22,7 +23,7 @@ select pg_catalog.pg_advisory_xact_lock(
 );
 
 -- Exact, metadata-preserving patch: pads.updated_at is global pad metadata, not
--- saved-road route content.  All route-bearing pad fields remain in the digest.
+-- saved-road route content. All route-bearing pad fields remain in the digest.
 do $issue97_saved_source_semantic_runtime$
 declare
   v_definition text;
@@ -97,9 +98,8 @@ begin
 end
 $issue97_saved_source_semantic_runtime$;
 
--- Fail closed unless this is the exact previously reviewed baseline and exact
--- route-semantic saved-road source generation independently recounted against
--- current production on 2026-08-15.
+-- Fail closed unless this is the exact previously reviewed predecessor baseline
+-- and the current route-semantic generation independently recounted on 2026-08-15.
 do $issue97_saved_baseline_precheck$
 declare
   v_baseline record;
@@ -111,11 +111,11 @@ begin
 
   if v_baseline.expected_occurrence_count<>16109
      or v_baseline.expected_inventory_digest<>'9b4e608fc8ec32042a06b5fcba1b34d8' then
-    raise exception 'Issue #97 saved-road baseline changed before the 16,111 review migration';
+    raise exception 'Issue #97 saved-road predecessor baseline changed before current-generation review migration';
   end if;
 
   v_source_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
-  if v_source_digest<>'cb49d2f5912019abfefe553337860b61' then
+  if v_source_digest<>'800fbdc0a51daec11c1f1bd1ddb512b0' then
     raise exception 'Issue #97 route-semantic saved-road source inventory changed after independent review: %',
       v_source_digest using errcode='40001';
   end if;
@@ -139,21 +139,21 @@ alter table private_verification.brinesearch_issue97_saved_road_release_baseline
   check(expected_occurrence_count>0);
 
 update private_verification.brinesearch_issue97_saved_road_release_baseline
-set expected_occurrence_count=16111,
-    expected_inventory_digest='4825b5291ea682af7f659130cd735838',
+set expected_occurrence_count=16118,
+    expected_inventory_digest='420725ad5d8c93a60f13c5ddb3b4f1c1',
     review_details=pg_catalog.jsonb_build_object(
       'reviewed_by','ChatGPT independent current-production semantic source reconciliation',
-      'reviewed_at','2026-08-15T01:18:36Z',
-      'verification_report_digest','4668be7f41b420225c0ae7261ac19b71',
+      'reviewed_at','2026-08-15T04:58:07Z',
+      'verification_report_digest','4133362a5205c8c4e36621ce8d2d486d',
       'verification_report',pg_catalog.jsonb_build_object(
         'review','issue97_saved_road_semantic_source_v2',
-        'reviewed_at','2026-08-15T01:18:36Z',
+        'reviewed_at','2026-08-15T04:58:07Z',
         'prior_source_digest','d28ca2b6fe5cd9610937df0d27362357',
         'rehearsal_failure_source_digest','bbac3e7070ad8c491e8d6b9445d80d58',
-        'current_timestamp_sensitive_source_digest','e0235aeddf0fa361dd463b7e90c4441a',
-        'semantic_source_digest','cb49d2f5912019abfefe553337860b61',
-        'occurrence_count',16111,
-        'inventory_digest','4825b5291ea682af7f659130cd735838',
+        'current_timestamp_sensitive_source_digest','a455deb14b6ec44c4f8e6295fb09abb6',
+        'semantic_source_digest','800fbdc0a51daec11c1f1bd1ddb512b0',
+        'occurrence_count',16118,
+        'inventory_digest','420725ad5d8c93a60f13c5ddb3b4f1c1',
         'duplicate_key_groups',0,
         'unchanged_route_semantic_pads',pg_catalog.jsonb_build_array(
           pg_catalog.jsonb_build_object(
@@ -172,17 +172,49 @@ set expected_occurrence_count=16111,
             'legacy_id','ascent--shutway',
             'digest','dab8a4adefc84e7e41aa759632170093'
           )
+        ),
+        'current_production_change_set',pg_catalog.jsonb_build_array(
+          pg_catalog.jsonb_build_object(
+            'kind','new_pad',
+            'legacy_id','gulfport--harvey',
+            'created_at','2026-08-15T04:49:54.49438Z',
+            'updated_at','2026-08-15T04:54:20.231088Z',
+            'latitude',39.8377,
+            'longitude',-80.993995,
+            'saved_occurrence_delta',5,
+            'normalized_direction_steps',0
+          ),
+          pg_catalog.jsonb_build_object(
+            'kind','direction_intelligence_refresh',
+            'refreshed_at','2026-08-15T04:52:25.859101Z',
+            'row_count',5468,
+            'duplicate_groups',0,
+            'suspicious_distance_count',0
+          ),
+          pg_catalog.jsonb_build_object(
+            'kind','measured_road_refresh',
+            'created_at','2026-08-15T04:52:25.859101Z',
+            'row_count',39,
+            'resulting_measured_count',76,
+            'net_occurrence_delta',2,
+            'usable_count',39,
+            'rejected_count',0,
+            'unexpected_method_count',0,
+            'source','Ohio DOT Road Inventory centerlines',
+            'max_connector_gap_miles',0.186,
+            'max_geometry_gap_m',86.9
+          )
         )
       ),
-      'source_digest','cb49d2f5912019abfefe553337860b61',
+      'source_digest','800fbdc0a51daec11c1f1bd1ddb512b0',
       'source_digest_algorithm','route-semantic-v2: ordered saved-road source tokens; pad token includes structured_road_sequence, written_directions, directions_clear, structured_route_steps, and driver_safety_context; pads.updated_at excluded',
       'source_digest_function_md5','ebcacb4b049483fdc48cfcf04dc97dad',
       'pre_semantic_source_digest_function_md5','d3c545529f508f5f4ee8876ee1807ce4',
       'inventory_digest_algorithm','md5 ordered JSONB source_kind + occurrence_key with newline separator',
       'duplicate_key_groups',0,
-      'occurrence_count',16111,
-      'exact_count',3077,
-      'held_count',13034,
+      'occurrence_count',16118,
+      'exact_count',3078,
+      'held_count',13040,
       'route_critical_held_count',38,
       'forbidden_resolution_count',0,
       'source_kind_counts',pg_catalog.jsonb_build_object(
@@ -191,13 +223,13 @@ set expected_occurrence_count=16111,
         'published_pad_road',23,
         'route_review_segment',4,
         'direction_step',5468,
-        'measured_segment',74,
+        'measured_segment',76,
         'published_route_boundary',15,
-        'structured_sequence_container',1068,
-        'written_directions_container',1080,
-        'clear_directions_container',1065,
-        'driver_safety_container',1173,
-        'driver_card_input',1065,
+        'structured_sequence_container',1069,
+        'written_directions_container',1081,
+        'clear_directions_container',1066,
+        'driver_safety_container',1174,
+        'driver_card_input',1066,
         'saved_alias_issue70',147
       ),
       'legitimate_post_baseline_canonical_adoptions',pg_catalog.jsonb_build_array(
@@ -229,7 +261,7 @@ alter table private_verification.brinesearch_issue97_saved_road_reconciliation_r
     or (status='failed' and completed_at is not null)
   );
 
--- Patch the reconciliation function at exact current definition.  It must read
+-- Patch the reconciliation function at exact current definition. It must read
 -- the baseline before building rows and validate both the count and immutable
 -- occurrence-key digest; observing a new inventory can never bless itself.
 do $issue97_saved_reconciliation_baseline_runtime$
@@ -400,14 +432,14 @@ begin
   select * into strict v_baseline
   from private_verification.brinesearch_issue97_saved_road_release_baseline
   where singleton;
-  if v_baseline.expected_occurrence_count<>16111
-     or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
-     or v_baseline.review_details->>'source_digest'<>'cb49d2f5912019abfefe553337860b61'
-     or v_baseline.review_details->>'verification_report_digest'<>'4668be7f41b420225c0ae7261ac19b71'
+  if v_baseline.expected_occurrence_count<>16118
+     or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'
+     or v_baseline.review_details->>'source_digest'<>'800fbdc0a51daec11c1f1bd1ddb512b0'
+     or v_baseline.review_details->>'verification_report_digest'<>'4133362a5205c8c4e36621ce8d2d486d'
      or pg_catalog.md5((v_baseline.review_details->'verification_report')::text)
-          <>'4668be7f41b420225c0ae7261ac19b71'
+          <>'4133362a5205c8c4e36621ce8d2d486d'
      or (v_baseline.review_details->>'duplicate_key_groups')::integer<>0 then
-    raise exception 'Issue #97 reviewed 16,111 semantic saved-road baseline did not persist exactly';
+    raise exception 'Issue #97 reviewed 16,118 semantic saved-road baseline did not persist exactly';
   end if;
 
   select pg_catalog.pg_get_functiondef(
@@ -416,7 +448,7 @@ begin
   ) into strict v_source_definition;
   v_source_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
   if pg_catalog.md5(v_source_definition)<>'ebcacb4b049483fdc48cfcf04dc97dad'
-     or v_source_digest<>'cb49d2f5912019abfefe553337860b61'
+     or v_source_digest<>'800fbdc0a51daec11c1f1bd1ddb512b0'
      or v_source_definition not like
        '%p.structured_route_steps::text,p.driver_safety_context::text))%'
      or v_source_definition like
