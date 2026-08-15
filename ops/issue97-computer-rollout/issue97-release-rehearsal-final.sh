@@ -105,10 +105,6 @@ select pg_catalog.jsonb_build_object(
   'cutover_active',public.brinesearch_issue97_cutover_active(),
   'build_count',(select count(*) from public.brinesearch_road_graph_builds),
   'staging_count',(select count(*) from public.brinesearch_road_graph_builds where status='staging'),
-  'builder_sessions',(select count(*) from pg_catalog.pg_stat_activity activity
-    where activity.pid<>pg_catalog.pg_backend_pid()
-      and activity.state in ('active','idle in transaction','idle in transaction (aborted)')
-      and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'),
   'build_state_digest',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     b.id::text||':'||b.state_code||':'||b.county_code||':'||b.status||':'||
     coalesce(b.activated_at::text,'')||':'||coalesce(b.graph_digest,'')||':'||
