@@ -56,7 +56,12 @@ for (const token of [
   "ARRAY[\\$%s\\$",
   "Record the exact normalized SQL that was just executed",
   "same transaction as the migration itself",
+  "printf 'do $verify$ declare v_generation integer; begin\\n'",
+  "printf 'end $verify$;\\n'",
   "printf 'commit;\\n'",
+  'run_psql --file="${sql_file}" > "${log_file}" 2>&1',
+  '[[ -r "${log_file}" ]]',
+  'done < "${log_file}"',
   "protected_before",
   "protected_after",
   "protected graph/route/cutover state changed during final release install",
@@ -93,6 +98,9 @@ for (const forbidden of [
   "build-pending-ohio-dark",
   "ohio-canary",
 ]) forbid(installer, forbidden, `unsafe installer surface ${forbidden}`);
+
+forbid(installer, "\\$verify", "psql backslash command in the final verification delimiter");
+forbid(installer, "| tee", "external tee dependency in the Windows path-with-spaces installer lane");
 
 // The installer records history only by executing the exact migration and then
 // inserting its matching version/name/full normalized SQL in the same outer

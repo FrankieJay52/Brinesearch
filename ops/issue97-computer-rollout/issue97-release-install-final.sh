@@ -339,22 +339,33 @@ main() {
       printf "\$%s\$]::text[],'%s');\n" "${tag}" "${name}"
     done
 
-    printf "do \\\$verify\\\$ declare v_generation integer; begin\n"
+    printf 'do $verify$ declare v_generation integer; begin\n'
     printf "  if (select count(*) from supabase_migrations.schema_migrations where version in (%s))<>22 then raise exception 'Issue #97 exact installer did not record 22/22 migration rows'; end if;\n" "${version_sql_list}"
     printf "  if pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))<>'e0528f257f3c1b6d40341b735f284f1d' then raise exception 'Issue #97 exact installer builder fingerprint mismatch'; end if;\n"
     printf "  select count(*)::integer into v_generation from private_verification.brinesearch_issue97_graph_release_generations where active and generation_key='issue97-release-20260814-r1' and builder_definition_md5='e0528f257f3c1b6d40341b735f284f1d';\n"
     printf "  if v_generation<>1 then raise exception 'Issue #97 exact installer release generation mismatch'; end if;\n"
     printf "  if public.brinesearch_issue97_cutover_active() or exists(select 1 from public.brinesearch_road_graph_builds where status='staging') then raise exception 'Issue #97 exact installer changed cutover/staging state'; end if;\n"
     printf "  if (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>0 then raise exception 'Issue #97 exact installer started reconciliation'; end if;\n"
-    printf "end \\\$verify\\\$;\n"
+    printf 'end $verify$;\n'
     printf 'commit;\n'
   } > "${sql_file}"
 
   printf 'Final production install log: %s\n' "${log_file}"
   set +e
-  run_psql --file="${sql_file}" 2>&1 | tee "${log_file}"
-  install_rc=${PIPESTATUS[0]}
+  run_psql --file="${sql_file}" > "${log_file}" 2>&1
+  install_rc=$?
   set -e
+
+  # Emit the completed log without depending on an external tee binary. The
+  # quoted redirection and builtin read loop are safe when the repo path has
+  # spaces, including the standard Windows PC rollout checkout.
+  if [[ -r "${log_file}" ]]; then
+    while IFS= read -r line || [[ -n "${line}" ]]; do
+      printf '%s\n' "${line}"
+    done < "${log_file}"
+  else
+    printf 'WARNING: installer log could not be read at %s\n' "${log_file}" >&2
+  fi
 
   if [[ "${install_rc}" -ne 0 ]]; then
     printf 'Installer client returned rc=%s. This is not proof of rollback or success.\n' "${install_rc}" >&2
