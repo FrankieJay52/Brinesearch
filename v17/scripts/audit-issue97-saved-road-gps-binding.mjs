@@ -62,6 +62,10 @@ const gpsWithoutUpdatedAtGuard = gps.replaceAll(
 forbid(gpsWithoutUpdatedAtGuard, "p.updated_at::text", "timestamp metadata outside the explicit rejection guard");
 forbid(gps, "similarity(", "fuzzy matching");
 forbid(gps, "<->", "nearest-road matching");
+forbid(gps, "pg_catalog.round(p.latitude::numeric, 7)", "whitespace-sensitive saved-source latitude verification");
+forbid(gps, "pg_catalog.round(p.longitude::numeric, 7)", "whitespace-sensitive saved-source longitude verification");
+forbid(gps, "pg_catalog.round(v_pad.latitude::numeric, 7)::text", "whitespace-sensitive Google latitude verification");
+forbid(gps, "pg_catalog.round(v_pad.longitude::numeric, 7)::text", "whitespace-sensitive Google longitude verification");
 
 for (const token of [
   "pg_catalog.round(v_pad.latitude::numeric,7)::text",
@@ -83,6 +87,10 @@ for (const token of [
   "4825b5291ea682af7f659130cd735838",
   "c5d54a4d839df79eff99f4dfd4b0b780",
   "d3c545529f508f5f4ee8876ee1807ce4",
+  "v_definition not like '%pg_catalog.round(p.latitude::numeric,7)%'",
+  "v_definition not like '%pg_catalog.round(p.longitude::numeric,7)%'",
+  "v_definition not like '%pg_catalog.round(v_pad.latitude::numeric,7)::text%'",
+  "v_definition not like '%pg_catalog.round(v_pad.longitude::numeric,7)::text%'",
   "private_verification.brinesearch_google_route_receipts_issue97",
   "public.brinesearch_driver_google_routes_public",
   "'google_receipt_count'",
