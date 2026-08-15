@@ -131,6 +131,8 @@ for (const token of [
   "sed 's/\\r$//'",
   "FINAL 22-MIGRATION RELEASE CHAIN COMPILED AND VERIFIED INSIDE TRANSACTION",
   "printf 'rollback;\\n'",
+  "trap 'if [[ -n \"${sql_file:-}\" ]]; then rm -f -- \"${sql_file}\"; fi' EXIT",
+  "trap - EXIT",
   "fresh production after-snapshot is byte-for-byte unchanged",
   "The older issue97-release-rehearsal.sh is retained only as historical evidence",
   "Do not use it for the final release gate",

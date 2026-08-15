@@ -334,7 +334,7 @@ main() {
   mkdir -p "${log_dir}"
   sql_file="$(mktemp "${TMPDIR:-/tmp}/issue97-final-release-rehearsal.XXXXXX.sql")"
   log_file="${log_dir}/$(date -u +%Y%m%dT%H%M%SZ)-final-release-migration-rollback-rehearsal.log"
-  trap 'rm -f "${sql_file}"' EXIT
+  trap 'if [[ -n "${sql_file:-}" ]]; then rm -f -- "${sql_file}"; fi' EXIT
 
   {
     printf '\\set ON_ERROR_STOP on\n'
@@ -373,6 +373,8 @@ main() {
     die "final release rollback rehearsal returned rc=${rehearsal_rc}; fresh production snapshot is unchanged, but the rehearsal failed and must not be retried without root-cause review"
   fi
 
+  rm -f -- "${sql_file}"
+  trap - EXIT
   printf 'PASS: all 22 final #97 release migrations compiled/verified in one transaction, GPS-bound saved-road currentness passed, ROLLBACK completed, and fresh production after-snapshot is byte-for-byte unchanged.\n'
 }
 
