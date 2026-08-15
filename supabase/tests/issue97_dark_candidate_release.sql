@@ -12,6 +12,7 @@ declare
   v_registered integer;
   v_candidates integer;
   v_missing integer;
+  v_extra integer;
   v_bad integer;
   v_generation text;
 begin
@@ -79,6 +80,77 @@ begin
               ((m.approach_data->>'raw_source_measure')::numeric is distinct from m.source_measure));
   if v_bad<>0 then
     raise exception '#97 % active-release validated dark candidates failed release/digest/provenance verification',v_bad;
+  end if;
+
+  -- Every current Ohio candidate must carry the exact full source pair tuple.
+  -- This duplicates the builder's fail-closed postcondition at release scope so
+  -- a future builder patch cannot silently remove the invariant.
+  with latest as (
+    select distinct on(state_code,county_code) b.*
+    from public.brinesearch_road_graph_builds b
+    where b.state_code='OH' and b.status='validated'
+      and b.details->>'release_generation_key'=v_generation
+    order by state_code,county_code,completed_at desc nulls last,started_at desc,id desc
+  ), expected as (
+    select distinct build.id as build_id,
+      secondary.source_record_id as secondary_source_record_id,
+      primary_segment.source_record_id as primary_source_record_id,
+      secondary.source_segment_key as secondary_source_segment_key,
+      primary_segment.source_segment_key as primary_source_segment_key,
+      secondary.attributes->>'OVERLAP_INVERSE_IND' as overlap_inverse_ind
+    from latest build
+    join public.brinesearch_authoritative_road_segments secondary
+      on secondary.state_code='OH' and secondary.county_code=build.county_code
+     and secondary.active
+     and secondary.drivable_status in ('drivable','non_drivable')
+     and secondary.public_access_status in ('public','private','access')
+     and secondary.attributes->>'OVERLAP_INDICATOR'='S'
+     and secondary.attributes->>'PRIMARY_IND'='N'
+     and secondary.attributes->>'OVERLAP_INVERSE_IND' in ('N','Y')
+    join public.brinesearch_authoritative_road_identities secondary_identity
+      on secondary_identity.id=secondary.identity_id and secondary_identity.active
+     and secondary_identity.drivable_status in ('drivable','non_drivable')
+     and secondary_identity.public_access_status in ('public','private','access')
+    join public.brinesearch_authoritative_road_segments primary_segment
+      on primary_segment.state_code='OH'
+     and primary_segment.county_code=secondary.county_code
+     and primary_segment.source_record_id=secondary.attributes->>'PRIMARY_OVERLAP_ID'
+     and primary_segment.active
+     and primary_segment.drivable_status in ('drivable','non_drivable')
+     and primary_segment.public_access_status in ('public','private','access')
+     and primary_segment.attributes->>'OVERLAP_INDICATOR'='P'
+     and primary_segment.attributes->>'PRIMARY_IND'='Y'
+    join public.brinesearch_authoritative_road_identities primary_identity
+      on primary_identity.id=primary_segment.identity_id and primary_identity.active
+     and primary_identity.drivable_status in ('drivable','non_drivable')
+     and primary_identity.public_access_status in ('public','private','access')
+    where secondary.identity_id<>primary_segment.identity_id
+  ), observed as (
+    select distinct build.id as build_id,
+      pair.value->>'secondary_source_record_id' as secondary_source_record_id,
+      pair.value->>'primary_source_record_id' as primary_source_record_id,
+      pair.value->>'secondary_source_segment_key' as secondary_source_segment_key,
+      pair.value->>'primary_source_segment_key' as primary_source_segment_key,
+      pair.value->>'overlap_inverse_ind' as overlap_inverse_ind
+    from latest build
+    join public.brinesearch_road_junctions junction on junction.build_id=build.id
+    cross join lateral pg_catalog.jsonb_array_elements(
+      coalesce(junction.source_provenance->'odot_authoritative_overlap_pairs','[]'::jsonb)
+    ) pair(value)
+    where junction.junction_type='shared_segment'
+      and junction.verification_status='verified'
+      and pair.value->>'topology_geometry_source'='odot_primary_overlap'
+      and pair.value->>'persistent_secondary_geometry_unchanged'='true'
+  ), missing as (
+    select * from expected except select * from observed
+  ), extra as (
+    select * from observed except select * from expected
+  )
+  select (select count(*) from missing)::integer,(select count(*) from extra)::integer
+  into v_missing,v_extra;
+  if v_missing<>0 or v_extra<>0 then
+    raise exception '#97 current Ohio candidates have ODOT pair-set mismatch: missing %, extra %',
+      v_missing,v_extra;
   end if;
 
   with latest as (

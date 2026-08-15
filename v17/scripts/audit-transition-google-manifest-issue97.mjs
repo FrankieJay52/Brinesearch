@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const sql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260811242000_issue97_transition_google_manifests.sql"), "utf8");
-const cutoverHelperSql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812035100_issue97_cutover_active_helper.sql"), "utf8");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8")
+  .replace(/\r\n?/g, "\n");
+const sql = read("supabase/migrations/20260811242000_issue97_transition_google_manifests.sql");
+const cutoverHelperSql = read("supabase/migrations/20260812035100_issue97_cutover_active_helper.sql");
 
 for (const token of [
   "brinesearch_issue97_refresh_google_route_published_core",

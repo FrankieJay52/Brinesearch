@@ -12,22 +12,27 @@ const need = (source, token, label = token) =>
 const forbid = (source, token, label = token) =>
   assert.ok(!source.includes(token), `Issue #97 Ohio release audit forbids ${label}`);
 const count = (source, token) => source.split(token).length - 1;
+const bash = process.env.BRINESEARCH_BASH ?? "bash";
 
 const shellPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rollout.sh");
 const rehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal.sh");
-for (const scriptPath of [shellPath,rehearsalPath]) {
-  execFileSync("bash", ["-n", scriptPath], { stdio: "pipe" });
+const canonicalRehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-odot-canonical-rehearsal.sh");
+const canonicalInstallerPath = path.join(root, "ops/issue97-computer-rollout/issue97-odot-canonical-install.sh");
+for (const scriptPath of [shellPath,rehearsalPath,canonicalRehearsalPath,canonicalInstallerPath]) {
+  execFileSync(bash, ["-n", scriptPath], { stdio: "pipe" });
 }
 
 const shell = fs.readFileSync(shellPath, "utf8");
 const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
 const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
+const canonicalOverlap = read("supabase/migrations/20260815090000_issue97_odot_overlap_canonical_provenance.sql");
 const sharedRoute = read("supabase/migrations/20260814163250_issue97_shared_route_right_continuation_context.sql");
 const fixtureReceipts = read("supabase/migrations/20260814164250_issue97_database_bound_fixture_receipts.sql");
 const stateActivation = read("supabase/migrations/20260814164300_issue97_state_scoped_activation_manifests.sql");
 const plan = read("ops/issue97-computer-rollout/sql/24-ohio-release-dark-plan.sql");
 const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate.sql");
 const belCanary = read("ops/issue97-computer-rollout/sql/26-verify-bel-concurrency-release.sql");
+const nobCanary = read("ops/issue97-computer-rollout/sql/21-verify-nob-leonard-release.sql");
 const starkCanary = read("ops/issue97-computer-rollout/sql/27-verify-stark-scale-release.sql");
 const ohioDirections = read("ops/issue97-computer-rollout/sql/32-ohio-directions-dark-batch.sql");
 const ohioReport = read("ops/issue97-computer-rollout/sql/33-ohio-directions-report.sql");
@@ -169,6 +174,22 @@ need(overlap, "v_patched like '%similarity(%'", "ODOT no-fuzzy generated-builder
 need(overlap, "v_patched like '%<->%'", "ODOT no-nearest generated-builder guard");
 
 for (const token of [
+  "issue97-release-20260815-r2",
+  "06705f5b35a6d37151bb2c0dc5ade9bd",
+  "tmp_issue97_shared_segment_coverage coverage",
+  "coverage.source_segment_id=pair.secondary_segment_id",
+  "coverage.source_segment_id=pair.primary_segment_id",
+  "ODOT overlap provenance set mismatch",
+  "primary key(build_id,generation_key)",
+  "historical_build_rows_rewritten',false",
+]) need(canonicalOverlap, token, `canonical ODOT hotfix ${token}`);
+const canonicalReplacement = [...canonicalOverlap.matchAll(/v_new:=\$new\$([\s\S]*?)\$new\$;/g)]
+  .map(match => match[1]).join("\n");
+forbid(canonicalReplacement, "extensions.st_intersects(pair.topology_geom,s.geom)", "raw pair/card intersection in canonical replacement");
+forbid(canonicalReplacement, "extensions.st_intersection(pair.topology_geom,s.geom)", "raw pair/card overlap in canonical replacement");
+need(nobCanary, "\\ir 19-verify-county-release.sql", "NOB universal ODOT verifier");
+
+for (const token of [
   "8b37717bede32c6f20dc3dff347cabdb",
   "726a3f20e3da280b59c311f3cdb6b254",
   "shared_segment_right_continuation_context",
@@ -283,4 +304,4 @@ for (const forbidden of [
   "DATABASE_URL=",
 ]) forbid(rehearsal, forbidden, `historical rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement with exact current e0528f builder hash, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 940-pad dark reconciliation isolation, and historical 21-migration rollback evidence audit passed.");
+console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, canonical-grid authoritative ODOT shared-pavement with exact r2 builder receipt and fail-closed pair equality, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 940-pad dark reconciliation isolation, and historical 21-migration rollback evidence audit passed.");

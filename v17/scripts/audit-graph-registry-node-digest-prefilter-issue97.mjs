@@ -8,7 +8,7 @@ const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812045500_issue97_graph_registry_node_digest_prefilter.sql"),
   "utf8"
-);
+).replace(/\r\n?/g, "\n");
 
 for (const token of [
   "OPERATOR(extensions.&&) extensions.st_expand(s.geom,0.00005)",

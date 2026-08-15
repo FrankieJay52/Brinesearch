@@ -5,18 +5,14 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const migration = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812043600_issue97_oh_structured_route_candidate_cleanup.sql"), "utf8");
-const adoption = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812043800_issue97_oh_route_used_canonical_adoption.sql"), "utf8");
-const graphRefresh = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812043900_issue97_oh_exact_mapping_refresh_for_graphs.sql"), "utf8");
-const us40 = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812044000_issue97_oh_us40_canonical_adoption.sql"), "utf8");
-const countyRefresh = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812044100_issue97_oh_county_scoped_mapping_refresh.sql"), "utf8");
-const stableRefresh = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260813101140_issue97_oh_exact_adoption_refresh_stability.sql"), "utf8");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8")
+  .replace(/\r\n?/g, "\n");
+const migration = read("supabase/migrations/20260812043600_issue97_oh_structured_route_candidate_cleanup.sql");
+const adoption = read("supabase/migrations/20260812043800_issue97_oh_route_used_canonical_adoption.sql");
+const graphRefresh = read("supabase/migrations/20260812043900_issue97_oh_exact_mapping_refresh_for_graphs.sql");
+const us40 = read("supabase/migrations/20260812044000_issue97_oh_us40_canonical_adoption.sql");
+const countyRefresh = read("supabase/migrations/20260812044100_issue97_oh_county_scoped_mapping_refresh.sql");
+const stableRefresh = read("supabase/migrations/20260813101140_issue97_oh_exact_adoption_refresh_stability.sql");
 
 for (const token of [
   "This migration adds candidate evidence only. Neither lane is strong proof.",

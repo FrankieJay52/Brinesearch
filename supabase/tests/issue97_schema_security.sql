@@ -350,10 +350,14 @@ begin
 
   if not exists(select 1 from pg_catalog.pg_trigger t
       where t.tgrelid='private_verification.brinesearch_issue97_graph_release_generations'::pg_catalog.regclass
-        and t.tgname='brinesearch_issue97_graph_release_generation_immutable' and t.tgenabled<>'D')
+        and t.tgname='brinesearch_issue97_graph_release_generation_immutable' and t.tgenabled='O'
+        and t.tgfoid=
+          'private_verification.brinesearch_issue97_reject_release_receipt_mutation()'::pg_catalog.regprocedure)
      or not exists(select 1 from pg_catalog.pg_trigger t
       where t.tgrelid='private_verification.brinesearch_issue97_graph_release_qualifications'::pg_catalog.regclass
-        and t.tgname='brinesearch_issue97_graph_release_qualification_immutable' and t.tgenabled<>'D')
+        and t.tgname='brinesearch_issue97_graph_release_qualification_immutable' and t.tgenabled='O'
+        and t.tgfoid=
+          'private_verification.brinesearch_issue97_reject_release_receipt_mutation()'::pg_catalog.regprocedure)
      or not exists(select 1 from pg_catalog.pg_trigger t
       where t.tgrelid='private_verification.brinesearch_issue97_release_manifests'::pg_catalog.regclass
         and t.tgname='brinesearch_issue97_release_manifest_immutable' and t.tgenabled<>'D')
@@ -361,6 +365,20 @@ begin
       where t.tgrelid='private_verification.brinesearch_issue97_verification_reports'::pg_catalog.regclass
         and t.tgname='brinesearch_issue97_verification_report_immutable' and t.tgenabled<>'D') then
     raise exception '#97 reviewed release receipt immutability triggers are incomplete';
+  end if;
+  if (select pg_catalog.pg_get_constraintdef(c.oid)
+      from pg_catalog.pg_constraint c
+      where c.conrelid=
+          'private_verification.brinesearch_issue97_graph_release_qualifications'::pg_catalog.regclass
+        and c.contype='p')<>'PRIMARY KEY (build_id, generation_key)' then
+    raise exception '#97 release qualification primary key is not generation-scoped';
+  end if;
+  if (select count(*) from private_verification.brinesearch_issue97_graph_release_generations
+      where active and generation_key='issue97-release-20260815-r2'
+        and builder_definition_md5='06705f5b35a6d37151bb2c0dc5ade9bd')<>1
+     or (select count(*) from private_verification.brinesearch_issue97_graph_release_generations
+         where active)<>1 then
+    raise exception '#97 exact r2 canonical ODOT release generation is not uniquely active';
   end if;
 end
 $issue97_schema_security$;

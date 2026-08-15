@@ -8,15 +8,15 @@ const root = path.resolve(here, "../..");
 const migration = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812045900_issue97_graph_name_change_endpoint_materialization.sql"),
   "utf8"
-);
+).replace(/\r\n?/g, "\n");
 const keysetMigration = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812046000_issue97_graph_name_change_preferred_name_keyset.sql"),
   "utf8"
-);
+).replace(/\r\n?/g, "\n");
 const leastMigration = fs.readFileSync(
   path.join(root, "supabase/migrations/20260812046100_issue97_graph_name_change_least_qualification.sql"),
   "utf8"
-);
+).replace(/\r\n?/g, "\n");
 
 for (const token of [
   "tmp_issue97_segment_endpoints",

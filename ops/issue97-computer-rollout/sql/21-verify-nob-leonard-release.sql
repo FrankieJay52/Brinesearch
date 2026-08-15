@@ -3,7 +3,7 @@
 \timing on
 \set issue97_state OH
 \set issue97_county NOB
-\ir 11-verify-county.sql
+\ir 19-verify-county-release.sql
 
 begin read only;
 set local statement_timeout='2min';

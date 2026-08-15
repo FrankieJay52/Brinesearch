@@ -5,10 +5,10 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const sql = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812032000_issue97_oh_supplemental_mapping_candidate_cache.sql"), "utf8");
-const idOnly = fs.readFileSync(path.join(root,
-  "supabase/migrations/20260812037200_issue97_oh_bbox_candidate_id_cache.sql"), "utf8");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8")
+  .replace(/\r\n?/g, "\n");
+const sql = read("supabase/migrations/20260812032000_issue97_oh_supplemental_mapping_candidate_cache.sql");
+const idOnly = read("supabase/migrations/20260812037200_issue97_oh_bbox_candidate_id_cache.sql");
 
 for (const token of [
   "Ohio OGRIP exact-mapping candidate cache hardening",

@@ -27,6 +27,7 @@ const consumers = read("supabase/migrations/20260814163300_issue97_release_curre
 const releaseInputs = read("supabase/migrations/20260814163400_issue97_graph_release_input_digests.sql");
 const releaseManifests = read("supabase/migrations/20260814164000_issue97_release_manifests_and_verification_reports.sql");
 const irreversibleGates = read("supabase/migrations/20260814164100_issue97_manifest_bound_activation_cutover.sql");
+const odotCanonical = read("supabase/migrations/20260815090000_issue97_odot_overlap_canonical_provenance.sql");
 const shell = read("ops/issue97-computer-rollout/issue97-release-rollout.sh");
 const preflight = read("ops/issue97-computer-rollout/sql/17-release-preflight.sql");
 const build = read("ops/issue97-computer-rollout/sql/18-build-county-release.sql");
@@ -159,6 +160,17 @@ for (const token of [
   "brinesearch_issue97_release_manifest_current",
 ]) need(generation, token, `release generation ${token}`);
 for (const token of [
+  "e0528f257f3c1b6d40341b735f284f1d",
+  "06705f5b35a6d37151bb2c0dc5ade9bd",
+  "issue97-release-20260815-r2",
+  "tmp_issue97_shared_segment_coverage coverage",
+  "coverage.source_segment_id=pair.secondary_segment_id",
+  "coverage.source_segment_id=pair.primary_segment_id",
+  "ODOT overlap provenance set mismatch",
+  "primary key(build_id,generation_key)",
+  "historical_build_rows_rewritten',false",
+]) need(odotCanonical, token, `canonical ODOT hotfix ${token}`);
+for (const token of [
   "brinesearch_issue97_stamp_graph_release_receipt",
   "pre-generation graph cannot be stamped",
   "brinesearch_issue97_graph_build_release_current",
@@ -245,7 +257,11 @@ for (const token of [
 
 for (const token of [
   "7abd11f432c3e7b475b10d0817f5e8fc",
-  "e0528f257f3c1b6d40341b735f284f1d",
+  "06705f5b35a6d37151bb2c0dc5ade9bd",
+  "issue97-release-20260815-r2",
+  "20260815090000",
+  "coverage.source_segment_id=pair.secondary_segment_id",
+  "ODOT overlap provenance set mismatch",
   "4dd8a572b153d795163cf38a41ea9d1f",
   "16118",
   "420725ad5d8c93a60f13c5ddb3b4f1c1",
@@ -257,14 +273,15 @@ for (const token of [
 ]) need(preflight, token, `release preflight ${token}`);
 need(build, "set local statement_timeout='90min'", "finite release county builder timeout");
 need(build, "brinesearch_issue97_graph_build_release_current", "release-current build duplicate guard");
-need(verify, "release_generation_key'='issue97-release-20260814-r1", "release receipt verification");
-need(verify, "details->>'release_builder_md5'='e0528f257f3c1b6d40341b735f284f1d'", "current executable final builder receipt");
+need(verify, "release_generation_key'='issue97-release-20260815-r2", "release receipt verification");
+need(verify, "details->>'release_builder_md5'='06705f5b35a6d37151bb2c0dc5ade9bd'", "current canonical builder receipt");
 forbid(verify, "details->>'release_builder_md5'='793ed8985252b00d52f46da497484029'", "stale executable ODOT builder receipt");
 need(plan, "private_verification.brinesearch_issue97_graph_build_release_current", "release-current pending plan");
 need(plan, "state_code='OH' and c.county_code='NOB'", "NOB first canary order");
 need(plan, "state_code='PA' and c.county_code='WAS'", "PA/WAS second canary order");
 need(nob, "TNOBTR00055**C", "Leonard three-member multiway");
 need(nob, "j.junction_type='multiway'", "Leonard multiway fixture");
+need(nob, "\\ir 19-verify-county-release.sql", "NOB universal release verifier");
 need(possum, "exact_source_subsegment_boundary_pair", "Possum release fixture");
 need(possum, "-80.4327636867076", "Possum exact PennDOT boundary coordinate");
 need(canaryGate, "OH','NOB", "NOB canary completion gate");
@@ -295,4 +312,4 @@ for (const token of [
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
 forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-console.log("Issue #97 release-generation, complete input currentness, current 16,118 semantic saved baseline, exact e0528f ODOT builder receipt, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
+console.log("Issue #97 r2 release-generation, canonical-grid ODOT provenance with fail-closed pair equality, complete input currentness, current 16,118 semantic saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");

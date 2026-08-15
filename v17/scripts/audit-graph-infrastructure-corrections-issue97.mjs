@@ -25,6 +25,9 @@ const wvdotProvenance = read(
 const wvdotJsonReceipts = read(
   "supabase/migrations/20260814010300_issue97_wvdot_json_numeric_receipts.sql"
 );
+const odotCanonical = read(
+  "supabase/migrations/20260815090000_issue97_odot_overlap_canonical_provenance.sql"
+);
 const noble = read(
   "supabase/migrations/20260813101230_issue97_noble_graph_mapping_semantic_upgrade.sql"
 );
@@ -41,6 +44,14 @@ const need = (source, token, message = token) =>
   assert.ok(source.includes(token), `Issue #97 infrastructure audit missing ${message}`);
 const forbid = (source, token, message = token) =>
   assert.ok(!source.includes(token), `Issue #97 infrastructure audit forbids ${message}`);
+
+for (const token of [
+  "tmp_issue97_shared_segment_coverage coverage",
+  "coverage.source_segment_id=pair.secondary_segment_id",
+  "coverage.source_segment_id=pair.primary_segment_id",
+  "ODOT overlap provenance set mismatch",
+  "06705f5b35a6d37151bb2c0dc5ade9bd",
+]) need(odotCanonical, token, `canonical ODOT provenance ${token}`);
 
 for (const token of [
   "brinesearch_issue97_graph_mapping_evidence",

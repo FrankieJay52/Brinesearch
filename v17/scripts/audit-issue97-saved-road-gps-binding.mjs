@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8")
+  .replace(/\r\n?/g, "\n");
 const need = (source, token, label = token) =>
   assert.ok(source.includes(token), `Issue #97 GPS-bound saved-road audit missing ${label}`);
 const forbid = (source, token, label = token) =>
@@ -19,8 +20,8 @@ const googleDependency = read("supabase/migrations/20260812037300_issue97_verifi
 const googleRefresh = read("supabase/migrations/20260812037400_issue97_transition_google_current_schema.sql");
 const overlap = read("supabase/migrations/20260814163050_issue97_odot_authoritative_overlap_shared_pavement.sql");
 const finalRehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
-const finalRehearsal = fs.readFileSync(finalRehearsalPath, "utf8");
-execFileSync("bash", ["-n", finalRehearsalPath], { stdio: "pipe" });
+const finalRehearsal = read("ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
+execFileSync(process.env.BRINESEARCH_BASH ?? "bash", ["-n", finalRehearsalPath], { stdio: "pipe" });
 
 for (const token of [
   "ebcacb4b049483fdc48cfcf04dc97dad",

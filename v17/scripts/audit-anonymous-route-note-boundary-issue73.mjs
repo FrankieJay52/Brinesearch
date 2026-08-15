@@ -25,12 +25,13 @@ const issue69Path = path.join(
   '20260811031420_issue69_route_geometry_draft_helpers.sql'
 );
 
-const [geometryMigration, performanceMigration, fixMigration, issue69Migration] = await Promise.all([
+const normalize = value => value.replace(/\r\n?/g, '\n');
+const [geometryMigration, performanceMigration, fixMigration, issue69Migration] = (await Promise.all([
   fs.readFile(geometryPath, 'utf8'),
   fs.readFile(performancePath, 'utf8'),
   fs.readFile(fixPath, 'utf8'),
   fs.readFile(issue69Path, 'utf8')
-]);
+])).map(normalize);
 
 const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
 assert.equal(

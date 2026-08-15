@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const v17Root = path.resolve(scriptDir, '..');
 const projectRoot = path.resolve(v17Root, '..');
-const read = file => fs.readFile(file, 'utf8');
+const read = async file => (await fs.readFile(file, 'utf8')).replace(/\r\n?/g, '\n');
 
 const [
   source, boundaryEditor, spatialRoadSelection, publishLockdown,

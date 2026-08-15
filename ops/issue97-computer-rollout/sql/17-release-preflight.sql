@@ -62,7 +62,7 @@ with required_scopes as (
       and a.state in ('active','idle in transaction','idle in transaction (aborted)')
       and a.query ilike '%brinesearch_issue97_rebuild_county_graph%') as no_builder,
     (select count(*) from private_verification.brinesearch_issue97_graph_release_generations where active)=1 as one_release_generation,
-    private_verification.brinesearch_issue97_active_graph_release_generation()='issue97-release-20260814-r1' as release_generation_exact,
+    private_verification.brinesearch_issue97_active_graph_release_generation()='issue97-release-20260815-r2' as release_generation_exact,
     private_verification.brinesearch_issue97_release_manifest_current() as exact_release_manifest_current,
     (select source_content_contract='captured-run-content+authoritative-name+supplemental-map-v2'
       from private_verification.brinesearch_issue97_graph_release_generations where active)
@@ -78,18 +78,32 @@ with required_scopes as (
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_release_manifests','SELECT')
       and not pg_catalog.has_table_privilege('service_role','private_verification.brinesearch_issue97_verification_reports','SELECT')
       as release_evidence_infrastructure_ready,
-    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='e0528f257f3c1b6d40341b735f284f1d'
+    pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure))='06705f5b35a6d37151bb2c0dc5ade9bd'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%independent_ogrip_endpoint_corroboration%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%create index tmp_issue97_segments_geog_idx%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%analyze tmp_issue97_segments;%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%odot_authoritative_overlap_pairs%'
       and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%PRIMARY_OVERLAP_ID%'
-      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%issue97_persistent_secondary_geometry_unchanged%' as builder_exact,
-    (select builder_definition_md5='e0528f257f3c1b6d40341b735f284f1d'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%issue97_persistent_secondary_geometry_unchanged%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%coverage.source_segment_id=pair.secondary_segment_id%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%coverage.source_segment_id=pair.primary_segment_id%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) like '%ODOT overlap provenance set mismatch%'
+      and pg_catalog.pg_get_functiondef('public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure) not like '%extensions.st_intersects(pair.topology_geom,s.geom)%' as builder_exact,
+    (select builder_definition_md5='06705f5b35a6d37151bb2c0dc5ade9bd'
       and review_details->>'persistent_odot_geometry_rewritten'='false'
       and review_details->>'name_or_nearest_matching_used'='false'
+      and review_details->>'predecessor_generation'='issue97-release-20260814-r1'
       from private_verification.brinesearch_issue97_graph_release_generations where active)
       as odot_overlap_release_bound,
+    (select count(*) from supabase_migrations.schema_migrations where version in (
+      '20260814074500','20260814160000','20260814160050','20260814161000',
+      '20260814161100','20260814161200','20260814161300','20260814161400',
+      '20260814161500','20260814162000','20260814163000','20260814163050',
+      '20260814163100','20260814163200','20260814163250','20260814163300',
+      '20260814163400','20260814164000','20260814164100','20260814164200',
+      '20260814164250','20260814164300'
+    ))=22 and (select count(*) from supabase_migrations.schema_migrations
+      where version='20260815090000')=1 as hotfix_history_exact,
     pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is not null
       and pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is not null
       as ogrip_endpoint_indexes_ready,
@@ -162,6 +176,10 @@ select * from checks
 \if :issue97_release_odot_overlap_release_bound
 \else
   do $fail$ begin raise exception 'Issue #97 release preflight: authoritative ODOT overlap builder is not bound to the release generation'; end $fail$;
+\endif
+\if :issue97_release_hotfix_history_exact
+\else
+  do $fail$ begin raise exception 'Issue #97 release preflight: exact base-22 plus canonical ODOT hotfix migration history is missing'; end $fail$;
 \endif
 \if :issue97_release_ogrip_endpoint_indexes_ready
 \else

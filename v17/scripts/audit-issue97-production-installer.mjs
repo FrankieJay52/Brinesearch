@@ -6,7 +6,8 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../..");
-const read = relative => fs.readFileSync(path.join(root, relative), "utf8");
+const read = relative => fs.readFileSync(path.join(root, relative), "utf8")
+  .replace(/\r\n?/g, "\n");
 const need = (source, token, label = token) =>
   assert.ok(source.includes(token), `Issue #97 production installer audit missing ${label}`);
 const forbid = (source, token, label = token) =>
@@ -15,10 +16,10 @@ const count = (source, token) => source.split(token).length - 1;
 
 const installerPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-install-final.sh");
 const rehearsalPath = path.join(root, "ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
-const installer = fs.readFileSync(installerPath, "utf8");
-const rehearsal = fs.readFileSync(rehearsalPath, "utf8");
+const installer = read("ops/issue97-computer-rollout/issue97-release-install-final.sh");
+const rehearsal = read("ops/issue97-computer-rollout/issue97-release-rehearsal-final.sh");
 
-execFileSync("bash", ["-n", installerPath], { stdio: "pipe" });
+execFileSync(process.env.BRINESEARCH_BASH ?? "bash", ["-n", installerPath], { stdio: "pipe" });
 
 const migrationPattern = /"(supabase\/migrations\/20260814[^"\n]+\.sql)"/g;
 const installerMigrations = [...installer.matchAll(migrationPattern)].map(match => match[1]);
