@@ -197,7 +197,7 @@ begin
     'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
   );
   v_builder_md5:=pg_catalog.md5(v_definition);
-  if v_builder_md5<>'793ed8985252b00d52f46da497484029'
+  if v_builder_md5<>'e0528f257f3c1b6d40341b735f284f1d'
      or v_definition not like '%odot_authoritative_overlap_pairs%'
      or v_definition not like '%PRIMARY_OVERLAP_ID%'
      or v_definition not like '%issue97_persistent_secondary_geometry_unchanged%' then
@@ -283,7 +283,7 @@ begin
   select count(*)::integer into v_generation
   from private_verification.brinesearch_issue97_graph_release_generations
   where active and generation_key='issue97-release-20260814-r1'
-    and builder_definition_md5='793ed8985252b00d52f46da497484029'
+    and builder_definition_md5='e0528f257f3c1b6d40341b735f284f1d'
     and review_details->>'persistent_odot_geometry_rewritten'='false'
     and review_details->>'name_or_nearest_matching_used'='false'
     and source_content_contract='captured-run-content+authoritative-name+supplemental-map-v2';
