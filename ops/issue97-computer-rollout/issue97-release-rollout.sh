@@ -14,6 +14,7 @@ usage() {
 Usage:
   issue97-release-rollout.sh preflight
   issue97-release-rollout.sh status STATE COUNTY
+  issue97-release-rollout.sh verify-sta-existing
   issue97-release-rollout.sh ohio-canary
   issue97-release-rollout.sh plan-ohio-dark
   issue97-release-rollout.sh build-pending-ohio-dark
@@ -155,6 +156,15 @@ main() {
       validate_scope "$1" "$2"
       run_logged_sql "status-$1-$2" "${sql_dir}/12-county-status.sql" \
         --set="issue97_state=$1" --set="issue97_county=$2"
+      ;;
+    verify-sta-existing)
+      [[ $# -eq 0 ]] || die "verify-sta-existing accepts no arguments"
+      run_sql "${sql_dir}/17-release-preflight.sql"
+      if ! run_logged_sql "verify-existing-OH-STA" "${sql_dir}/27-verify-stark-scale-release.sql"; then
+        inspect_after_error OH STA "Existing STA release verification"
+        return 1
+      fi
+      printf 'Existing OH STA canary PASS: pinned build/digest, complete ODOT pair equality, and 623-pair scale gate verified read-only.\n'
       ;;
     ohio-canary)
       [[ $# -eq 0 ]] || die "ohio-canary accepts no arguments"

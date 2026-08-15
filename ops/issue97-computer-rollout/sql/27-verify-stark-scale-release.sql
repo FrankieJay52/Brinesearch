@@ -2,6 +2,10 @@
 \pset pager off
 \timing on
 
+\set issue97_state OH
+\set issue97_county STA
+\set issue97_expected_build_id 67541fad-5cf2-4483-b0f6-f4060197fda9
+
 \ir 19-verify-county-release.sql
 
 begin read only;
@@ -22,14 +26,16 @@ select pg_catalog.upper(:'issue97_state')='OH'
 do $gate$
 declare
   v_build uuid;
+  v_digest text;
   v_expected integer;
   v_shared integer;
   v_memberships integer;
 begin
-  select b.id,b.shared_segment_count,b.membership_count
-    into strict v_build,v_shared,v_memberships
+  select b.id,b.graph_digest,b.shared_segment_count,b.membership_count
+    into strict v_build,v_digest,v_shared,v_memberships
   from public.brinesearch_road_graph_builds b
-  where b.state_code='OH' and b.county_code='STA'
+  where b.id='67541fad-5cf2-4483-b0f6-f4060197fda9'::uuid
+    and b.state_code='OH' and b.county_code='STA'
     and b.status='validated' and b.activated_at is null
     and private_verification.brinesearch_issue97_graph_build_release_current(b.id)
   order by b.completed_at desc nulls last,b.started_at desc,b.id desc limit 1;
@@ -49,9 +55,10 @@ begin
     and secondary.attributes->>'OVERLAP_INVERSE_IND' in ('N','Y')
     and nullif(secondary.attributes->>'PRIMARY_OVERLAP_ID','') is not null;
 
-  if v_expected<>623 or v_shared<=0 or v_memberships<=0 then
-    raise exception 'Issue #97 Stark scale canary failed: expected overlap pairs %, shared %, memberships %',
-      v_expected,v_shared,v_memberships;
+  if v_digest<>'67be9ebece47e78c4c7ccf29ea92786e'
+     or v_expected<>623 or v_shared<=0 or v_memberships<=0 then
+    raise exception 'Issue #97 Stark scale canary failed: build %, digest %, expected overlap pairs %, shared %, memberships %',
+      v_build,v_digest,v_expected,v_shared,v_memberships;
   end if;
 end
 $gate$;

@@ -13,6 +13,7 @@ with latest as (
   where b.state_code=pg_catalog.upper(:'issue97_state')
     and b.county_code=pg_catalog.upper(:'issue97_county')
     and b.status='validated' and b.activated_at is null
+    and b.id=coalesce(nullif(:'issue97_expected_build_id','')::uuid,b.id)
   order by b.completed_at desc nulls last,b.started_at desc,b.id desc limit 1
 )
 select count(*)=1
@@ -29,6 +30,13 @@ from latest
   do $fail$ begin raise exception 'Issue #97 validated graph lacks the approved release-generation receipt'; end $fail$;
 \endif
 
+-- The authoritative-segment relation is a view whose ODOT branch is grossly
+-- underestimated at one row for STA (14,948 observed). A nested-loop self-join
+-- consequently rescans 14,325 eligible primary rows for each of 623 secondary
+-- rows. Keep the exact equality proof and finite timeout, but require a
+-- hash/merge plan for this verifier-only source-key join.
+set local enable_nestloop=off;
+
 -- Ohio shared/concurrent-pavement completeness is a source relationship gate,
 -- not a sample fixture. Every eligible current ODOT secondary-overlap segment in
 -- the county must appear in the just-built graph as a VERIFIED shared section
@@ -41,6 +49,7 @@ with latest as (
   where b.state_code=pg_catalog.upper(:'issue97_state')
     and b.county_code=pg_catalog.upper(:'issue97_county')
     and b.status='validated' and b.activated_at is null
+    and b.id=coalesce(nullif(:'issue97_expected_build_id','')::uuid,b.id)
   order by b.completed_at desc nulls last,b.started_at desc,b.id desc limit 1
 ), expected as (
   select distinct

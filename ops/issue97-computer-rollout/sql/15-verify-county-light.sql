@@ -2,6 +2,11 @@
 \pset pager off
 \timing on
 
+\if :{?issue97_expected_build_id}
+\else
+  \set issue97_expected_build_id ''
+\endif
+
 begin read only;
 set transaction isolation level repeatable read;
 set local statement_timeout='2min';
@@ -19,6 +24,7 @@ with candidate as (
     and build.county_code=:'issue97_scope_county_code'
     and build.status='validated'
     and build.activated_at is null
+    and build.id=coalesce(nullif(:'issue97_expected_build_id','')::uuid,build.id)
   order by build.completed_at desc nulls last,build.started_at desc,build.id desc
   limit 1
 ), recomputed as (

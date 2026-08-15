@@ -50,11 +50,14 @@ const gate = read("ops/issue97-computer-rollout/sql/25-ohio-canary-complete-gate
 const belCanary = read("ops/issue97-computer-rollout/sql/26-verify-bel-concurrency-release.sql");
 const nobCanary = read("ops/issue97-computer-rollout/sql/21-verify-nob-leonard-release.sql");
 const starkCanary = read("ops/issue97-computer-rollout/sql/27-verify-stark-scale-release.sql");
+const lightVerifier = read("ops/issue97-computer-rollout/sql/15-verify-county-light.sql");
+const releaseVerifier = read("ops/issue97-computer-rollout/sql/19-verify-county-release.sql");
 const ohioDirections = read("ops/issue97-computer-rollout/sql/32-ohio-directions-dark-batch.sql");
 const ohioReport = read("ops/issue97-computer-rollout/sql/33-ohio-directions-report.sql");
 
 for (const token of [
   "ohio-canary",
+  "verify-sta-existing",
   "plan-ohio-dark",
   "build-pending-ohio-dark",
   "Ohio canary 1/3: OH NOB semantic topology canary",
@@ -74,6 +77,17 @@ for (const token of [
   "mixed-state release command disabled during Ohio-first phase",
   "PA WAS Possum/performance canary is deferred",
 ]) need(shell, token, `Ohio-first shell ${token}`);
+
+const staVerifyCase = shell.match(/verify-sta-existing\)([\s\S]*?)\n      ;;/)?.[1] ?? "";
+for (const token of [
+  "verify-sta-existing accepts no arguments",
+  'run_sql "${sql_dir}/17-release-preflight.sql"',
+  'run_logged_sql "verify-existing-OH-STA" "${sql_dir}/27-verify-stark-scale-release.sql"',
+  "inspect_after_error OH STA",
+]) need(staVerifyCase, token, `fixed STA verifier path ${token}`);
+for (const forbidden of ["build_release_scope","18-build-county-release.sql","ohio-canary"]) {
+  forbid(staVerifyCase, forbidden, `fixed STA verifier mutation path ${forbidden}`);
+}
 
 for (const forbidden of [
   "build_release_scope PA WAS",
@@ -102,6 +116,19 @@ for (const [source,label] of [
   [belCanary,"Belmont concurrency canary"],
   [starkCanary,"Stark scale canary"],
 ]) assertNoPsqlVariablesInDollarQuotes(source, label);
+
+for (const [source,label] of [
+  [lightVerifier,"light county verifier"],
+  [releaseVerifier,"release county verifier"],
+  [starkCanary,"Stark scale verifier"],
+]) {
+  need(source, "set local statement_timeout='2min'", `${label} finite two-minute statement timeout`);
+  forbid(source, "statement_timeout='0'", `${label} unlimited statement timeout`);
+}
+need(releaseVerifier, "set local enable_nestloop=off;", "ODOT equality verifier hash/merge plan guard");
+need(lightVerifier, "issue97_expected_build_id", "light verifier expected-build pin");
+assert.equal(count(releaseVerifier, "issue97_expected_build_id"), 2,
+  "release verifier must pin both release-current and ODOT equality queries to the expected build");
 
 for (const token of [
   "state_code='OH'",
@@ -135,6 +162,11 @@ for (const token of [
   "persistent_secondary_geometry_unchanged",
 ]) need(belCanary, token, `Belmont US-40/I-70 canary ${token}`);
 for (const token of [
+  "\\set issue97_state OH",
+  "\\set issue97_county STA",
+  "\\set issue97_expected_build_id 67541fad-5cf2-4483-b0f6-f4060197fda9",
+  "b.id='67541fad-5cf2-4483-b0f6-f4060197fda9'::uuid",
+  "67be9ebece47e78c4c7ccf29ea92786e",
   "as scope_ok\n\\gset issue97_sta_",
   "\\if :issue97_sta_scope_ok",
   "v_expected<>623",
