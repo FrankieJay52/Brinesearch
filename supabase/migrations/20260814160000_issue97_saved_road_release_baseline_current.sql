@@ -6,6 +6,13 @@
 -- does not delete or hide either road.  Instead it updates the independent
 -- reviewed baseline and removes duplicated magic occurrence counts from the
 -- reconciliation and cutover runtime.
+--
+-- The earlier source digest also included pads.updated_at even though that
+-- timestamp changes for unrelated field-sign, well, address, and audit metadata.
+-- Four independently reviewed 2026-08-14 pad metadata updates changed only that
+-- timestamp-sensitive digest while every route-bearing pad field and the exact
+-- 16,111-key inventory stayed unchanged.  This migration first narrows the pad
+-- token to the five route-semantic fields before binding the reviewed baseline.
 
 select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
@@ -14,9 +21,85 @@ select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtext('brinesearch:issue97:saved-road-reconciliation')
 );
 
+-- Exact, metadata-preserving patch: pads.updated_at is global pad metadata, not
+-- saved-road route content.  All route-bearing pad fields remain in the digest.
+do $issue97_saved_source_semantic_runtime$
+declare
+  v_definition text;
+  v_patched text;
+  v_effective_definition text;
+  v_old text;
+  v_new text;
+  v_owner oid;
+  v_acl pg_catalog.aclitem[];
+  v_security_definer boolean;
+  v_volatility text;
+  v_config text[];
+  v_effective_owner oid;
+  v_effective_acl pg_catalog.aclitem[];
+  v_effective_security_definer boolean;
+  v_effective_volatility text;
+  v_effective_config text[];
+begin
+  select pg_catalog.pg_get_functiondef(p.oid),p.proowner,p.proacl,p.prosecdef,
+         p.provolatile::text,p.proconfig
+  into strict v_definition,v_owner,v_acl,v_security_definer,v_volatility,v_config
+  from pg_catalog.pg_proc p
+  join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='private_verification'
+    and p.proname='brinesearch_issue97_saved_road_source_digest'
+    and p.oid='private_verification.brinesearch_issue97_saved_road_source_digest()'
+      ::pg_catalog.regprocedure;
+
+  if pg_catalog.md5(v_definition)<>'d3c545529f508f5f4ee8876ee1807ce4' then
+    raise exception 'Issue #97 saved-road source digest definition changed before semantic stabilization';
+  end if;
+
+  v_old:=$old$      p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))$old$;
+  v_new:=$new$      p.structured_route_steps::text,p.driver_safety_context::text))$new$;
+  if (pg_catalog.length(v_definition)-pg_catalog.length(pg_catalog.replace(v_definition,v_old,'')))
+       /pg_catalog.length(v_old)<>1 then
+    raise exception 'Issue #97 pad route-semantic source digest anchor changed';
+  end if;
+  v_patched:=pg_catalog.replace(v_definition,v_old,v_new);
+
+  if pg_catalog.md5(v_patched)<>'ebcacb4b049483fdc48cfcf04dc97dad' then
+    raise exception 'Issue #97 semantic saved-road source digest patch is not the reviewed definition';
+  end if;
+
+  execute v_patched;
+
+  select pg_catalog.pg_get_functiondef(p.oid),p.proowner,p.proacl,p.prosecdef,
+         p.provolatile::text,p.proconfig
+  into strict v_effective_definition,v_effective_owner,v_effective_acl,
+       v_effective_security_definer,v_effective_volatility,v_effective_config
+  from pg_catalog.pg_proc p
+  join pg_catalog.pg_namespace n on n.oid=p.pronamespace
+  where n.nspname='private_verification'
+    and p.proname='brinesearch_issue97_saved_road_source_digest'
+    and p.oid='private_verification.brinesearch_issue97_saved_road_source_digest()'
+      ::pg_catalog.regprocedure;
+
+  if pg_catalog.md5(v_effective_definition)<>'ebcacb4b049483fdc48cfcf04dc97dad'
+     or v_effective_owner is distinct from v_owner
+     or v_effective_acl is distinct from v_acl
+     or v_effective_security_definer is distinct from v_security_definer
+     or v_effective_volatility is distinct from v_volatility
+     or v_effective_config is distinct from v_config
+     or v_effective_definition not like
+       '%p.structured_road_sequence,p.written_directions,p.directions_clear,%'
+     or v_effective_definition not like
+       '%p.structured_route_steps::text,p.driver_safety_context::text))%'
+     or v_effective_definition like
+       '%p.driver_safety_context::text,p.updated_at::text%' then
+    raise exception 'Issue #97 semantic saved-road source digest did not install exactly';
+  end if;
+end
+$issue97_saved_source_semantic_runtime$;
+
 -- Fail closed unless this is the exact previously reviewed baseline and exact
--- current saved-road source generation that was independently reconciled inside
--- a rollback-only production transaction on 2026-08-14.
+-- route-semantic saved-road source generation independently recounted against
+-- current production on 2026-08-15.
 do $issue97_saved_baseline_precheck$
 declare
   v_baseline record;
@@ -32,8 +115,8 @@ begin
   end if;
 
   v_source_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
-  if v_source_digest<>'d28ca2b6fe5cd9610937df0d27362357' then
-    raise exception 'Issue #97 saved-road source inventory changed after the reviewed 16,111 reconciliation: %',
+  if v_source_digest<>'cb49d2f5912019abfefe553337860b61' then
+    raise exception 'Issue #97 route-semantic saved-road source inventory changed after independent review: %',
       v_source_digest using errcode='40001';
   end if;
 
@@ -59,11 +142,43 @@ update private_verification.brinesearch_issue97_saved_road_release_baseline
 set expected_occurrence_count=16111,
     expected_inventory_digest='4825b5291ea682af7f659130cd735838',
     review_details=pg_catalog.jsonb_build_object(
-      'reviewed_by','ChatGPT independent current-production rollback reconciliation',
-      'reviewed_at','2026-08-14T15:59:42Z',
-      'verification_report_digest','3c739164aff564a337e6d3d69e3d928b',
-      'source_digest','d28ca2b6fe5cd9610937df0d27362357',
-      'inventory_digest_algorithm','md5 ordered JSONB source_kind + occurrence_key with literal backslash-n separator',
+      'reviewed_by','ChatGPT independent current-production semantic source reconciliation',
+      'reviewed_at','2026-08-15T01:18:36Z',
+      'verification_report_digest','4668be7f41b420225c0ae7261ac19b71',
+      'verification_report',pg_catalog.jsonb_build_object(
+        'review','issue97_saved_road_semantic_source_v2',
+        'reviewed_at','2026-08-15T01:18:36Z',
+        'prior_source_digest','d28ca2b6fe5cd9610937df0d27362357',
+        'rehearsal_failure_source_digest','bbac3e7070ad8c491e8d6b9445d80d58',
+        'current_timestamp_sensitive_source_digest','e0235aeddf0fa361dd463b7e90c4441a',
+        'semantic_source_digest','cb49d2f5912019abfefe553337860b61',
+        'occurrence_count',16111,
+        'inventory_digest','4825b5291ea682af7f659130cd735838',
+        'duplicate_key_groups',0,
+        'unchanged_route_semantic_pads',pg_catalog.jsonb_build_array(
+          pg_catalog.jsonb_build_object(
+            'legacy_id','ascent--bannock',
+            'digest','2a068b46053c98b9ea85984266ed238c'
+          ),
+          pg_catalog.jsonb_build_object(
+            'legacy_id','ascent--pickens',
+            'digest','ffef39b4c9c41fc9d760f174697c39a8'
+          ),
+          pg_catalog.jsonb_build_object(
+            'legacy_id','ascent--robinson',
+            'digest','d207127bb05e8df43d4f8fc542ab6bae'
+          ),
+          pg_catalog.jsonb_build_object(
+            'legacy_id','ascent--shutway',
+            'digest','dab8a4adefc84e7e41aa759632170093'
+          )
+        )
+      ),
+      'source_digest','cb49d2f5912019abfefe553337860b61',
+      'source_digest_algorithm','route-semantic-v2: ordered saved-road source tokens; pad token includes structured_road_sequence, written_directions, directions_clear, structured_route_steps, and driver_safety_context; pads.updated_at excluded',
+      'source_digest_function_md5','ebcacb4b049483fdc48cfcf04dc97dad',
+      'pre_semantic_source_digest_function_md5','d3c545529f508f5f4ee8876ee1807ce4',
+      'inventory_digest_algorithm','md5 ordered JSONB source_kind + occurrence_key with newline separator',
       'duplicate_key_groups',0,
       'occurrence_count',16111,
       'exact_count',3077,
@@ -272,21 +387,41 @@ begin
 end
 $issue97_cutover_saved_baseline_runtime$;
 
--- Verify the exact reviewed singleton and effective runtime definitions.
+-- Verify the exact reviewed singleton, semantic source digest and effective
+-- runtime definitions.
 do $issue97_saved_baseline_verify$
 declare
   v_baseline record;
   v_reconcile text;
   v_cutover text;
+  v_source_definition text;
+  v_source_digest text;
 begin
   select * into strict v_baseline
   from private_verification.brinesearch_issue97_saved_road_release_baseline
   where singleton;
   if v_baseline.expected_occurrence_count<>16111
      or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'
-     or v_baseline.review_details->>'source_digest'<>'d28ca2b6fe5cd9610937df0d27362357'
+     or v_baseline.review_details->>'source_digest'<>'cb49d2f5912019abfefe553337860b61'
+     or v_baseline.review_details->>'verification_report_digest'<>'4668be7f41b420225c0ae7261ac19b71'
+     or pg_catalog.md5((v_baseline.review_details->'verification_report')::text)
+          <>'4668be7f41b420225c0ae7261ac19b71'
      or (v_baseline.review_details->>'duplicate_key_groups')::integer<>0 then
-    raise exception 'Issue #97 reviewed 16,111 saved-road baseline did not persist exactly';
+    raise exception 'Issue #97 reviewed 16,111 semantic saved-road baseline did not persist exactly';
+  end if;
+
+  select pg_catalog.pg_get_functiondef(
+    'private_verification.brinesearch_issue97_saved_road_source_digest()'
+      ::pg_catalog.regprocedure
+  ) into strict v_source_definition;
+  v_source_digest:=private_verification.brinesearch_issue97_saved_road_source_digest();
+  if pg_catalog.md5(v_source_definition)<>'ebcacb4b049483fdc48cfcf04dc97dad'
+     or v_source_digest<>'cb49d2f5912019abfefe553337860b61'
+     or v_source_definition not like
+       '%p.structured_route_steps::text,p.driver_safety_context::text))%'
+     or v_source_definition like
+       '%p.driver_safety_context::text,p.updated_at::text%' then
+    raise exception 'Issue #97 route-semantic saved-road source digest verification failed';
   end if;
 
   select pg_catalog.pg_get_functiondef(
