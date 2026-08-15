@@ -114,6 +114,9 @@ for (const token of [
   "623 eligible ODOT overlap pairs",
 ]) need(starkCanary, token, `Stark scale canary ${token}`);
 
+// This file intentionally keeps the old 21-file rehearsal as historical evidence.
+// The superseding 22-file PC gate is audited separately by the saved-road/final
+// rehearsal audit. Historical 793ed... text here is not a current builder gate.
 for (const token of [
   "expected exactly 21 final release migrations",
   "20260814074500_issue97_graph_builder_temp_geography_index.sql",
@@ -141,7 +144,7 @@ for (const token of [
   "has_function_privilege",
   "OH'",
   "v_required<>38 or v_current<>38",
-]) need(rehearsal, token, `rollback rehearsal ${token}`);
+]) need(rehearsal, token, `historical rollback rehearsal ${token}`);
 
 for (const token of [
   "PRIMARY_OVERLAP_ID",
@@ -149,8 +152,10 @@ for (const token of [
   "issue97_topology_geometry_source",
   "odot_authoritative_overlap_pairs",
   "persistent_secondary_geometry_unchanged",
-  "793ed8985252b00d52f46da497484029",
+  "e0528f257f3c1b6d40341b735f284f1d",
+  "ODOT overlap generated builder hash changed before install",
 ]) need(overlap, token, `ODOT shared-pavement contract ${token}`);
+forbid(overlap, "builder_definition_md5='793ed8985252b00d52f46da497484029'", "stale active ODOT builder hash");
 
 const overlapWithoutNoGuessGuards = overlap
   .replaceAll("v_patched like '%similarity(%'", "")
@@ -267,7 +272,7 @@ for (const token of [
 assert.equal(
   count(rehearsal, "supabase/migrations/20260814"),
   21,
-  "rollback rehearsal must list exactly the 21 final release migration paths"
+  "historical rollback rehearsal must list exactly the 21 final release migration paths"
 );
 for (const forbidden of [
   "supabase db push",
@@ -276,6 +281,6 @@ for (const forbidden of [
   "commit;",
   "PGPASSWORD=",
   "DATABASE_URL=",
-]) forbid(rehearsal, forbidden, `rollback rehearsal unsafe action ${forbidden}`);
+]) forbid(rehearsal, forbidden, `historical rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 940-pad dark reconciliation isolation, and exact 21-migration rollback rehearsal audit passed.");
+console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement with exact current e0528f builder hash, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 940-pad dark reconciliation isolation, and historical 21-migration rollback evidence audit passed.");
