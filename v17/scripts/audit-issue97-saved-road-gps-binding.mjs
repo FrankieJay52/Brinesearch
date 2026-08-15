@@ -22,23 +22,33 @@ execFileSync("bash", ["-n", finalRehearsalPath], { stdio: "pipe" });
 
 for (const token of [
   "ebcacb4b049483fdc48cfcf04dc97dad",
-  "cb49d2f5912019abfefe553337860b61",
-  "16111",
-  "4825b5291ea682af7f659130cd735838",
-]) need(baseline, token, `reviewed route-semantic-v2 predecessor ${token}`);
+  "800fbdc0a51daec11c1f1bd1ddb512b0",
+  "16118",
+  "420725ad5d8c93a60f13c5ddb3b4f1c1",
+  "4133362a5205c8c4e36621ce8d2d486d",
+  "gulfport--harvey",
+  "current_production_change_set",
+  "direction_intelligence_refresh",
+  "measured_road_refresh",
+  "resulting_measured_count',76",
+  "net_occurrence_delta',2",
+]) need(baseline, token, `reviewed route-semantic-v2 current generation ${token}`);
+forbid(baseline, "'source_digest','cb49d2f5912019abfefe553337860b61'", "stale pre-Harvey semantic-v2 digest as active baseline");
+forbid(baseline, "expected_occurrence_count=16111", "stale pre-Harvey 16,111 active baseline");
+forbid(baseline, "expected_inventory_digest='4825b5291ea682af7f659130cd735838'", "stale pre-Harvey inventory digest");
 
 for (const token of [
   "927896ee5fd992bfe18eb21774559101",
-  "2ad7b559ddd3394265643abd8a5a01a7",
-  "6cb07ec60d0e84fbc3f443721eefa242",
+  "1b002ec1a7efc112b437db7331cd1117",
+  "a271e00fe0128830bf0959611f1aa22d",
   "issue97_saved_road_semantic_source_v3_gps_bound",
   "route-semantic-v3-gps-bound",
   "pg_catalog.round(p.latitude::numeric,7)",
   "pg_catalog.round(p.longitude::numeric,7)",
   "pad_destination_gps_precision_decimals",
   "prior_route_semantic_v2_digest",
-  "expected_occurrence_count<>16111",
-  "expected_inventory_digest<>'4825b5291ea682af7f659130cd735838'",
+  "expected_occurrence_count<>16118",
+  "expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1'",
   "source_digest_function_md5",
   "v_effective_owner is distinct from v_owner",
   "v_effective_acl is distinct from v_acl",
@@ -46,11 +56,13 @@ for (const token of [
   "v_effective_volatility is distinct from v_volatility",
   "v_effective_config is distinct from v_config",
   "alternate_locations is not a navigation destination",
+  "gulfport--harvey",
+  "eog--harvey",
   "p.structured_route_steps::text,p.driver_safety_context::text))",
   "%p.driver_safety_context::text,p.updated_at::text%",
 ]) need(gps, token, `GPS-bound currentness ${token}`);
 
-// 16000 already removed updated_at before this migration runs. 160050 must use
+// 160000 already removes updated_at before this migration runs. 160050 must use
 // that exact route-semantic-v2 function as its predecessor and explicitly reject
 // any effective generated definition that somehow restores updated_at. Strip the
 // rejection guard text before proving the migration does not otherwise contain a
@@ -80,11 +92,12 @@ for (const token of [
   "expected exactly 22 final release migrations",
   "20260814160000_issue97_saved_road_release_baseline_current.sql",
   "20260814160050_issue97_saved_road_pad_gps_binding.sql",
-  "GPS binding must immediately follow the 16,111 baseline",
+  "GPS binding must immediately follow the 16,118 baseline",
   "927896ee5fd992bfe18eb21774559101",
-  "2ad7b559ddd3394265643abd8a5a01a7",
-  "6cb07ec60d0e84fbc3f443721eefa242",
-  "4825b5291ea682af7f659130cd735838",
+  "1b002ec1a7efc112b437db7331cd1117",
+  "a271e00fe0128830bf0959611f1aa22d",
+  "420725ad5d8c93a60f13c5ddb3b4f1c1",
+  "16118",
   "c5d54a4d839df79eff99f4dfd4b0b780",
   "d3c545529f508f5f4ee8876ee1807ce4",
   "v_definition not like '%pg_catalog.round(p.latitude::numeric,7)%'",
@@ -110,6 +123,8 @@ forbid(
   "public.brinesearch_pad_google_routes",
   "stale nonexistent Google snapshot relation",
 );
+forbid(finalRehearsal, "2ad7b559ddd3394265643abd8a5a01a7", "stale pre-Harvey GPS-bound digest");
+forbid(finalRehearsal, "4825b5291ea682af7f659130cd735838", "stale pre-Harvey inventory digest");
 
 // Keep byte-for-byte equality limited to durable release state. pg_stat_activity
 // is intentionally checked only by preflight because session presence can change
@@ -154,7 +169,7 @@ assert.ok(
     finalRehearsal.indexOf("20260814160050_issue97_saved_road_pad_gps_binding.sql") &&
   finalRehearsal.indexOf("20260814160050_issue97_saved_road_pad_gps_binding.sql") <
     finalRehearsal.indexOf("20260814161000_issue97_possum_reviewed_subsegment_bridge_registry.sql"),
-  "GPS-bound migration must execute immediately after the reviewed 16,111 baseline and before later release migrations",
+  "GPS-bound migration must execute immediately after the reviewed 16,118 baseline and before later release migrations",
 );
 for (const forbidden of [
   "supabase db push",
@@ -168,4 +183,4 @@ for (const forbidden of [
   "refresh_google_routes(",
 ]) forbid(finalRehearsal, forbidden, `canonical final rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only real Google receipt/public relations, pg_stat_activity remains preflight-only, and the superseding final PC lane includes the GPS migration before all later release migrations.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: the independently reviewed 16,118 inventory includes Gulfport HARVEY as distinct from the older Carroll EOG HARVEY, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded from the pad token outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only durable release state, pg_stat_activity remains preflight-only, and the superseding final PC lane includes the GPS migration before all later release migrations.");
