@@ -42,12 +42,30 @@ const postCutover = read("supabase/tests/issue97_post_cutover_smoke.sql");
 for (const token of [
   "16111",
   "4825b5291ea682af7f659130cd735838",
-  "d28ca2b6fe5cd9610937df0d27362357",
+  "cb49d2f5912019abfefe553337860b61",
+  "d3c545529f508f5f4ee8876ee1807ce4",
+  "ebcacb4b049483fdc48cfcf04dc97dad",
+  "4668be7f41b420225c0ae7261ac19b71",
+  "route-semantic-v2",
+  "unchanged_route_semantic_pads",
+  "p.structured_route_steps::text,p.driver_safety_context::text))",
+  "v_effective_definition like",
+  "p.driver_safety_context::text,p.updated_at::text",
   "v_inventory_digest is distinct from v_baseline.expected_inventory_digest",
   "v_child_occurrences<>v_baseline.expected_occurrence_count",
   "if v_patched like '%v_occurrences<>16109%'",
   "if v_patched like '%expected_occurrence_count<>16109%'",
 ]) need(saved, token, `saved-road reviewed baseline ${token}`);
+forbid(
+  saved,
+  "'source_digest','d28ca2b6fe5cd9610937df0d27362357'",
+  "obsolete timestamp-sensitive digest as the active saved-road baseline",
+);
+forbid(
+  saved,
+  "literal backslash-n separator",
+  "incorrect saved-road inventory delimiter description",
+);
 
 for (const source of [bridgeRegistry, bridgeProof, bridgeApply, bridgeRuntime]) {
   forbid(source, "similarity(", "fuzzy Possum matching");
@@ -265,4 +283,4 @@ for (const token of [
 ]) need(postCutover, token, `post-cutover smoke ${token}`);
 forbid(postCutover, "coalesce(p.record_type,'pad')<>'list_only'", "wrong Google pad denominator");
 
-console.log("Issue #97 release-generation, complete input currentness, saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
+console.log("Issue #97 release-generation, complete input currentness, semantic saved baseline, Possum, transition ACL, OGRIP performance, persisted release evidence and canary rollout static audit passed.");
