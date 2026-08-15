@@ -203,11 +203,15 @@ begin
      or v_patched like '%<->%' then
     raise exception 'Issue #97 ODOT overlap patch did not preserve source-only no-guess semantics';
   end if;
+  if pg_catalog.md5(v_patched)<>'e0528f257f3c1b6d40341b735f284f1d' then
+    raise exception 'Issue #97 ODOT overlap generated builder hash changed before install: %',
+      pg_catalog.md5(v_patched);
+  end if;
 
   execute v_patched;
 
   update private_verification.brinesearch_issue97_graph_release_generations
-  set builder_definition_md5='793ed8985252b00d52f46da497484029',
+  set builder_definition_md5='e0528f257f3c1b6d40341b735f284f1d',
       review_details=review_details||pg_catalog.jsonb_build_object(
         'odot_overlap_contract','exact TIMS PRIMARY_OVERLAP_ID shared-pavement linkage; temporary topology geometry only',
         'odot_overlap_inverse_semantics','OVERLAP_INVERSE_IND reverses primary pavement geometry only for the secondary topology occurrence',
@@ -242,17 +246,26 @@ begin
   from private_verification.brinesearch_issue97_graph_release_generations
   where active and generation_key='issue97-release-20260814-r1';
 
-  if pg_catalog.md5(v_definition)<>'793ed8985252b00d52f46da497484029'
-     or v_generation.builder_definition_md5<>'793ed8985252b00d52f46da497484029'
-     or v_generation.review_details->>'persistent_odot_geometry_rewritten'<>'false'
-     or v_generation.review_details->>'name_or_nearest_matching_used'<>'false'
-     or v_definition not like '%issue97_topology_geometry_source%'
+  if pg_catalog.md5(v_definition)<>'e0528f257f3c1b6d40341b735f284f1d' then
+    raise exception 'Issue #97 authoritative ODOT overlap builder definition hash mismatch: %',
+      pg_catalog.md5(v_definition);
+  end if;
+  if v_generation.builder_definition_md5<>'e0528f257f3c1b6d40341b735f284f1d' then
+    raise exception 'Issue #97 authoritative ODOT overlap release-generation hash mismatch: %',
+      v_generation.builder_definition_md5;
+  end if;
+  if v_generation.review_details->>'persistent_odot_geometry_rewritten'<>'false'
+     or v_generation.review_details->>'name_or_nearest_matching_used'<>'false' then
+    raise exception 'Issue #97 authoritative ODOT overlap release-generation review flags mismatch';
+  end if;
+  if v_definition not like '%issue97_topology_geometry_source%'
      or v_definition not like '%odot_authoritative_overlap_pairs%'
      or v_definition not like '%PRIMARY_OVERLAP_ID%'
-     or v_definition not like '%OVERLAP_INVERSE_IND%'
-     or v_definition like '%similarity(%'
-     or v_definition like '%<->%' then
-    raise exception 'Issue #97 authoritative ODOT overlap builder/generation did not install exactly';
+     or v_definition not like '%OVERLAP_INVERSE_IND%' then
+    raise exception 'Issue #97 authoritative ODOT overlap builder required source tokens are missing';
+  end if;
+  if v_definition like '%similarity(%' or v_definition like '%<->%' then
+    raise exception 'Issue #97 authoritative ODOT overlap builder introduced fuzzy/nearest-road selection';
   end if;
 
   if v_proc.proowner is distinct from v_before.builder_owner
