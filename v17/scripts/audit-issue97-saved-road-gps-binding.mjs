@@ -103,6 +103,39 @@ forbid(
   "stale nonexistent Google snapshot relation",
 );
 
+// Keep byte-for-byte equality limited to durable release state. pg_stat_activity
+// is intentionally checked only by preflight because session presence can change
+// without any durable database write between the before and after snapshots.
+const snapshotStart = finalRehearsal.indexOf('snapshot_sql="$(cat <<SQL');
+const preflightStart = finalRehearsal.indexOf('preflight_sql="$(cat <<SQL');
+const verifyStart = finalRehearsal.indexOf('in_transaction_verify="$(cat <<\'SQL\'');
+assert.ok(
+  snapshotStart >= 0 && preflightStart > snapshotStart && verifyStart > preflightStart,
+  "Issue #97 final rehearsal snapshot/preflight blocks must remain structurally identifiable",
+);
+const snapshotBlock = finalRehearsal.slice(snapshotStart, preflightStart);
+const preflightBlock = finalRehearsal.slice(preflightStart, verifyStart);
+forbid(
+  snapshotBlock,
+  "pg_catalog.pg_stat_activity",
+  "nondeterministic pg_stat_activity in before/after snapshot equality material",
+);
+forbid(
+  snapshotBlock,
+  "'builder_sessions'",
+  "nondeterministic builder_sessions key in before/after snapshot equality material",
+);
+need(
+  preflightBlock,
+  "from pg_catalog.pg_stat_activity activity",
+  "preflight concurrent-builder activity source",
+);
+need(
+  preflightBlock,
+  "activity.query ilike '%brinesearch_issue97_rebuild_county_graph%'",
+  "preflight concurrent-builder rejection predicate",
+);
+
 assert.equal(
   count(finalRehearsal, '"supabase/migrations/20260814'),
   22,
@@ -127,4 +160,4 @@ for (const forbidden of [
   "refresh_google_routes(",
 ]) forbid(finalRehearsal, forbidden, `canonical final rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only real Google receipt/public relations, and the superseding final PC lane includes the GPS migration before all later release migrations.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, the snapshot uses only real Google receipt/public relations, pg_stat_activity remains preflight-only, and the superseding final PC lane includes the GPS migration before all later release migrations.");
