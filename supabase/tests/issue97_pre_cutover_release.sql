@@ -71,9 +71,9 @@ begin
   select * into strict v_baseline
   from private_verification.brinesearch_issue97_saved_road_release_baseline
   where singleton;
-  if v_baseline.expected_occurrence_count<>16111
-     or v_baseline.expected_inventory_digest<>'4825b5291ea682af7f659130cd735838' then
-    raise exception '#97 reviewed saved-road baseline is not the approved 16,111 manifest';
+  if v_baseline.expected_occurrence_count<>16118
+     or v_baseline.expected_inventory_digest<>'420725ad5d8c93a60f13c5ddb3b4f1c1' then
+    raise exception '#97 reviewed saved-road baseline is not the approved 16,118 manifest';
   end if;
 
   select * into v_reconcile
