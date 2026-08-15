@@ -236,7 +236,7 @@ for (const forbidden of [
 
 for (const token of [
   "pad.state='Ohio'",
-  "v_pads<>939",
+  "v_pads<>940",
   "v_counties<>19",
   "v_sources<>38 or v_current_sources<>38",
   "brinesearch_issue97_graph_build_release_current",
@@ -278,4 +278,4 @@ for (const forbidden of [
   "DATABASE_URL=",
 ]) forbid(rehearsal, forbidden, `rollback rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 939-pad dark reconciliation isolation, and exact 21-migration rollback rehearsal audit passed.");
+console.log("Issue #97 Ohio-first NOB semantic + BEL concurrency + STA scale canaries, authoritative ODOT shared-pavement, generic fail-closed A-to-B shared-route context, database-bound fixture receipts, state-scoped audited activation manifests, Ohio-only 940-pad dark reconciliation isolation, and exact 21-migration rollback rehearsal audit passed.");
