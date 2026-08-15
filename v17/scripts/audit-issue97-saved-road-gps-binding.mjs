@@ -46,18 +46,20 @@ for (const token of [
   "v_effective_volatility is distinct from v_volatility",
   "v_effective_config is distinct from v_config",
   "alternate_locations is not a navigation destination",
-  "p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))",
-  "v_effective_definition like\n       '%p.driver_safety_context::text,p.updated_at::text%'",
+  "p.structured_route_steps::text,p.driver_safety_context::text))",
+  "%p.driver_safety_context::text,p.updated_at::text%",
 ]) need(gps, token, `GPS-bound currentness ${token}`);
 
-// The old updated_at token must exist exactly as the predecessor replacement
-// anchor, and the effective-definition guard must explicitly reject it. Strip
-// those two fail-closed references before proving the GPS-bound migration does
-// not otherwise reintroduce timestamp metadata into the generated function.
-const gpsWithoutUpdatedAtGuards = gps
-  .replaceAll("p.structured_route_steps::text,p.driver_safety_context::text,p.updated_at::text))", "")
-  .replaceAll("%p.driver_safety_context::text,p.updated_at::text%", "");
-forbid(gpsWithoutUpdatedAtGuards, "p.updated_at::text", "timestamp metadata outside predecessor/rejection guards");
+// 16000 already removed updated_at before this migration runs. 160050 must use
+// that exact route-semantic-v2 function as its predecessor and explicitly reject
+// any effective generated definition that somehow restores updated_at. Strip the
+// rejection guard text before proving the migration does not otherwise contain a
+// timestamp-bearing generated pad token.
+const gpsWithoutUpdatedAtGuard = gps.replaceAll(
+  "%p.driver_safety_context::text,p.updated_at::text%",
+  "",
+);
+forbid(gpsWithoutUpdatedAtGuard, "p.updated_at::text", "timestamp metadata outside the explicit rejection guard");
 forbid(gps, "similarity(", "fuzzy matching");
 forbid(gps, "<->", "nearest-road matching");
 
@@ -115,4 +117,4 @@ for (const forbidden of [
   "refresh_google_routes(",
 ]) forbid(finalRehearsal, forbidden, `canonical final rehearsal unsafe action ${forbidden}`);
 
-console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside predecessor/rejection guards, the Google dependency uses the same saved pad GPS, and the superseding final PC lane includes the GPS migration before all later release migrations.");
+console.log("Issue #97 saved-road route-semantic-v3 GPS currentness + canonical 22-migration rollback rehearsal audit passed: 16,111 inventory remains independently pinned, pad destination latitude/longitude are bound at 7 decimals, updated_at metadata remains excluded outside the explicit rejection guard, the Google dependency uses the same saved pad GPS, and the superseding final PC lane includes the GPS migration before all later release migrations.");
