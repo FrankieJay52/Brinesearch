@@ -44,7 +44,7 @@ select private_verification.brinesearch_issue97_persist_state_candidate_manifest
   'issue97-ohio-r2-final-candidate',
   :'issue97_git_sha',
   pg_catalog.jsonb_build_object(
-    'reviewed_by','Grok whole-Ohio audit + Codex independent current-state verification',
+    'reviewed_by','Codex independent current-state verification under repository-owner authorization',
     'reviewed_at',pg_catalog.clock_timestamp(),
     'evidence','GitHub Issue #97 durable whole-Ohio candidate/lane checkpoint at exact PR Git SHA '||:'issue97_git_sha',
     'whole_ohio_gate','28-verify-ohio-release-complete.sql',

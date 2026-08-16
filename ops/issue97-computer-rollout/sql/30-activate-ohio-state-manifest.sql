@@ -203,7 +203,7 @@ begin
       pin.build_id,null,
       pg_catalog.jsonb_build_object(
         'candidate_manifest_digest',v_manifest.manifest_digest,
-        'reviewed_by','Grok whole-Ohio audit + Codex independent current-state verification',
+        'reviewed_by','Codex independent current-state verification under repository-owner authorization',
         'reviewed_at',pg_catalog.clock_timestamp(),
         'evidence','Exact immutable Ohio state manifest '||v_manifest.id::text||
           ' at Git SHA '||v_manifest.git_sha||'; audited activation impact count 0'

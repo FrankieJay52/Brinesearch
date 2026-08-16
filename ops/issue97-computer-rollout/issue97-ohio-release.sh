@@ -28,7 +28,8 @@ token, manifest digest or review JSON. It can never enable global cutover,
 publish Google routes, invoke a graph builder, or touch a WV/PA release graph.
 
 persist-manifest, activate, and reconcile-dark are one-attempt, fail-stop writes.
-They are authorized only after the required whole-Ohio external audit. On a
+They are authorized only after the durable whole-Ohio checkpoint and explicit
+repository-owner release instruction. On a
 client error/disconnect the script performs exactly one fixed read-only status
 inspection and never retries the write.
 USAGE
