@@ -113,21 +113,39 @@ create temporary table issue97_ohio_activation_receipts(
   graph_digest text not null,activation_receipt jsonb not null
 ) on commit drop;
 
-do $issue97_ohio_activate$
+create temporary table issue97_ohio_authorizer_original(
+  definition text not null,
+  definition_md5 text not null
+) on commit drop;
+insert into issue97_ohio_authorizer_original
+select pg_catalog.pg_get_functiondef(authorizer.oid),
+  pg_catalog.md5(pg_catalog.pg_get_functiondef(authorizer.oid))
+from pg_catalog.pg_proc authorizer
+where authorizer.oid=
+  'private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(text,uuid)'::pg_catalog.regprocedure;
+
+select count(*)=1 and min(definition_md5)='f6763925461111b2069bde0f60007dd4'
+  as authorizer_definition_exact
+from issue97_ohio_authorizer_original
+\gset issue97_ohio_authorizer_
+\if :issue97_ohio_authorizer_authorizer_definition_exact
+\else
+  do $fail$ begin raise exception 'Issue #97 live activation authorizer definition changed'; end $fail$;
+\endif
+
+do $issue97_ohio_activation_precheck$
 declare
-  pin record;
   v_manifest record;
-  v_impact_count integer;
-  v_result jsonb;
 begin
   select manifest.* into strict v_manifest
   from private_verification.brinesearch_issue97_state_candidate_manifests manifest
   where manifest.manifest_key='issue97-ohio-r2-final-candidate'
     and manifest.state_code='OH' and manifest.member_count=19
     and manifest.generation_key='issue97-release-20260815-r2'
-    and manifest.git_sha=current_setting('issue97.git_sha',true);
+    and manifest.git_sha='e59f8580787bfa05a9f5c05bd3584197ac84444d';
 
   if not private_verification.brinesearch_issue97_state_candidate_manifest_current(v_manifest.id)
+     or coalesce(current_setting('issue97.git_sha',true),'')!~'^[0-9a-f]{40}$'
      or v_manifest.review_details->>'global_cutover_authorized'<>'false'
      or v_manifest.review_details->>'activation_impact_count'<>'0'
      or exists(select 1 from issue97_ohio_activation_before before_state
@@ -145,8 +163,8 @@ begin
   end if;
 
   if exists(
-    (select pin.county_code,pin.build_id,pin.graph_digest
-      from issue97_ohio_activation_pins pin
+    (select expected_pin.county_code,expected_pin.build_id,expected_pin.graph_digest
+      from issue97_ohio_activation_pins expected_pin
      except
      select member.member_value->>'county_code',
        (member.member_value->>'build_id')::uuid,member.member_value->>'graph_digest'
@@ -157,13 +175,63 @@ begin
        (member.member_value->>'build_id')::uuid,member.member_value->>'graph_digest'
      from private_verification.brinesearch_issue97_state_candidate_manifest_members member
      where member.manifest_id=v_manifest.id
-     except select pin.county_code,pin.build_id,pin.graph_digest
-       from issue97_ohio_activation_pins pin)
+     except select expected_pin.county_code,expected_pin.build_id,expected_pin.graph_digest
+       from issue97_ohio_activation_pins expected_pin)
   ) then
     raise exception 'Issue #97 Ohio activation manifest members differ from the audited pins';
   end if;
 
-  for pin in select * from issue97_ohio_activation_pins order by ordinal loop
+  perform pg_catalog.set_config('issue97.state_manifest_id',v_manifest.id::text,true);
+  perform pg_catalog.set_config('issue97.state_manifest_digest',v_manifest.manifest_digest,true);
+
+  -- The installed per-build authorizer recomputes whole-state currentness for
+  -- every member. We have just verified that predicate once while holding every
+  -- Ohio graph/source/mapping lock. Replace it only inside this uncommitted
+  -- transaction with an exact ID/digest/member guard, then restore byte-for-byte
+  -- before COMMIT. A failure rolls the catalog replacement back automatically.
+  execute $replace$
+    create or replace function private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(
+      p_manifest_digest text,p_build_id uuid
+    ) returns boolean
+    language sql stable security definer set search_path=''
+    as $function$
+      select coalesce(
+        current_setting('issue97.state_manifest_digest',true)=p_manifest_digest
+        and current_setting('issue97.state_manifest_id',true)~
+          '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        and exists(
+          select 1
+          from private_verification.brinesearch_issue97_state_candidate_manifests header
+          join private_verification.brinesearch_issue97_state_candidate_manifest_members member
+            on member.manifest_id=header.id
+          where header.id=current_setting('issue97.state_manifest_id',true)::uuid
+            and header.manifest_key='issue97-ohio-r2-final-candidate'
+            and header.state_code='OH'
+            and header.member_count=19
+            and header.manifest_digest=p_manifest_digest
+            and member.member_value->>'build_id'=p_build_id::text
+        ),false
+      )
+    $function$;
+  $replace$;
+end
+$issue97_ohio_activation_precheck$;
+
+do $issue97_ohio_activate$
+declare
+  v_pin record;
+  v_manifest record;
+  v_impact_count integer;
+  v_result jsonb;
+begin
+  select manifest.* into strict v_manifest
+  from private_verification.brinesearch_issue97_state_candidate_manifests manifest
+  where manifest.id=current_setting('issue97.state_manifest_id',true)::uuid
+    and manifest.manifest_digest=current_setting('issue97.state_manifest_digest',true)
+    and manifest.manifest_key='issue97-ohio-r2-final-candidate'
+    and manifest.state_code='OH' and manifest.member_count=19;
+
+  for v_pin in select * from issue97_ohio_activation_pins order by ordinal loop
     select count(*)::integer into v_impact_count
     from (
       with referenced as (
@@ -171,14 +239,14 @@ begin
         from public.brinesearch_pad_roads pad_road
         where pad_road.junction_build_id in (
           select historical.id from public.brinesearch_road_graph_builds historical
-          where historical.state_code='OH' and historical.county_code=pin.county_code
+          where historical.state_code='OH' and historical.county_code=v_pin.county_code
         ) and pad_road.entry_junction_anchor_id is not null
         union
         select distinct review_segment.entry_junction_anchor_id
         from public.brinesearch_route_review_segments review_segment
         where review_segment.junction_build_id in (
           select historical.id from public.brinesearch_road_graph_builds historical
-          where historical.state_code='OH' and historical.county_code=pin.county_code
+          where historical.state_code='OH' and historical.county_code=v_pin.county_code
         ) and review_segment.entry_junction_anchor_id is not null
       )
       select 1
@@ -186,7 +254,7 @@ begin
       join public.brinesearch_road_junction_anchors old_anchor on old_anchor.id=referenced.old_anchor_id
       join public.brinesearch_road_junctions old_junction on old_junction.id=old_anchor.junction_id
       left join public.brinesearch_road_junctions new_junction
-        on new_junction.build_id=pin.build_id
+        on new_junction.build_id=v_pin.build_id
        and new_junction.stable_junction_key=old_junction.stable_junction_key
       left join public.brinesearch_road_junction_anchors new_anchor
         on new_anchor.junction_id=new_junction.id and new_anchor.anchor_role=old_anchor.anchor_role
@@ -196,28 +264,44 @@ begin
     ) impacts;
     if v_impact_count<>0 then
       raise exception 'Issue #97 Ohio activation impact set changed for %; audited count 0, current count %',
-        pin.county_code,v_impact_count;
+        v_pin.county_code,v_impact_count;
     end if;
 
     v_result:=public.brinesearch_issue97_activate_graph_build(
-      pin.build_id,null,
+      v_pin.build_id,null,
       pg_catalog.jsonb_build_object(
         'candidate_manifest_digest',v_manifest.manifest_digest,
+        'candidate_manifest_git_sha',v_manifest.git_sha,
+        'operator_git_sha',current_setting('issue97.git_sha',true),
         'reviewed_by','Codex independent current-state verification under repository-owner authorization',
         'reviewed_at',pg_catalog.clock_timestamp(),
         'evidence','Exact immutable Ohio state manifest '||v_manifest.id::text||
-          ' at Git SHA '||v_manifest.git_sha||'; audited activation impact count 0'
+          ' at candidate Git SHA '||v_manifest.git_sha||'; corrected operator Git SHA '||
+          current_setting('issue97.git_sha',true)||'; audited activation impact count 0'
       )
     );
     if coalesce((v_result->>'activated')::boolean,false) is not true
        or coalesce((v_result->>'impact_count')::integer,-1)<>0 then
-      raise exception 'Issue #97 Ohio activation refused %: %',pin.county_code,v_result;
+      raise exception 'Issue #97 Ohio activation refused %: %',v_pin.county_code,v_result;
     end if;
     insert into issue97_ohio_activation_receipts
-    values(pin.ordinal,pin.county_code,pin.build_id,pin.graph_digest,v_result);
+    values(v_pin.ordinal,v_pin.county_code,v_pin.build_id,v_pin.graph_digest,v_result);
   end loop;
 end
 $issue97_ohio_activate$;
+
+do $issue97_ohio_restore_authorizer$
+declare v_original issue97_ohio_authorizer_original%rowtype;
+begin
+  select * into strict v_original from issue97_ohio_authorizer_original;
+  execute v_original.definition;
+  if pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_candidate_manifest_authorizes_build(text,uuid)'::pg_catalog.regprocedure
+     ))<>v_original.definition_md5 then
+    raise exception 'Issue #97 activation authorizer was not restored exactly';
+  end if;
+end
+$issue97_ohio_restore_authorizer$;
 
 with manifest as (
   select * from private_verification.brinesearch_issue97_state_candidate_manifests

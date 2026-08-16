@@ -120,7 +120,16 @@ for (const token of [
   "brinesearch_issue97_state_candidate_manifest_current",
   "candidate_manifest_digest",
   "v_impact_count<>0",
-  "for pin in select * from issue97_ohio_activation_pins order by ordinal loop",
+  "for v_pin in select * from issue97_ohio_activation_pins order by ordinal loop",
+  "manifest.git_sha='e59f8580787bfa05a9f5c05bd3584197ac84444d'",
+  "'candidate_manifest_git_sha',v_manifest.git_sha",
+  "'operator_git_sha',current_setting('issue97.git_sha',true)",
+  "issue97_ohio_authorizer_original",
+  "f6763925461111b2069bde0f60007dd4",
+  "issue97_ohio_activation_precheck",
+  "current_setting('issue97.state_manifest_digest',true)=p_manifest_digest",
+  "issue97_ohio_restore_authorizer",
+  "activation authorizer was not restored exactly",
   "brinesearch_issue97_activate_graph_build(",
   "coalesce((v_result->>'impact_count')::integer,-1)<>0",
   "non_ohio_graph_digest",
@@ -129,10 +138,15 @@ for (const token of [
   "saved_road_reconciliation_runs)=0",
   "commit;",
 ]) need(activate, token, `activation lane ${token}`);
+need(status, "set local statement_timeout='15min'",
+  "post-manifest recovery must retain a finite bound long enough for canonical currentness");
 assert.equal(count(activate, "v_result:=public.brinesearch_issue97_activate_graph_build("), 1,
   "activation lane must have one serial manifest-bound call site");
 assert.equal(count(activate, "insert into issue97_ohio_activation_pins values"), 1,
   "activation pins must be populated once");
+assert.equal(count(activate,
+  "create or replace function private_verification.brinesearch_issue97_candidate_manifest_authorizes_build("), 1,
+  "activation may install exactly one transaction-local manifest authorizer replacement");
 for (const token of [
   "brinesearch_issue97_activate_cutover(",
   "brinesearch_issue97_refresh_google_routes(",

@@ -4,7 +4,7 @@
 
 -- Fixed-scope recovery/status only. Safe after an error or client disconnect.
 begin isolation level repeatable read read only;
-set local statement_timeout='5min';
+set local statement_timeout='15min';
 
 with manifest as (
   select * from private_verification.brinesearch_issue97_state_candidate_manifests
