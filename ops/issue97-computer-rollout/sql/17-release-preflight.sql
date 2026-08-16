@@ -103,9 +103,37 @@ with required_scopes as (
       '20260814163400','20260814164000','20260814164100','20260814164200',
       '20260814164250','20260814164300'
     ))=22 and (select count(*) from supabase_migrations.schema_migrations
-      where version='20260815090000')=1 as hotfix_history_exact,
+      where version='20260815090000')=1
+      and (select count(*) from supabase_migrations.schema_migrations
+        where version='20260816090000')=1 as hotfix_history_exact,
     pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_start_geog_issue97_idx') is not null
       and pg_catalog.to_regclass('public.brinesearch_supp_centerline_oh_active_end_geog_issue97_idx') is not null
+      and exists(
+        select 1
+        from pg_catalog.pg_index index_row
+        join pg_catalog.pg_class index_class on index_class.oid=index_row.indexrelid
+        join pg_catalog.pg_am access_method on access_method.oid=index_class.relam
+        where index_class.relname='brinesearch_supp_vin_start_geog_issue97_idx'
+          and index_row.indrelid='public.brinesearch_authoritative_supplemental_centerlines'::pg_catalog.regclass
+          and access_method.amname='gist' and index_row.indisvalid and index_row.indisready
+          and pg_catalog.pg_get_expr(index_row.indexprs,index_row.indrelid)=
+            '(st_startpoint(st_linemerge(geom)))::geography'
+          and pg_catalog.pg_get_expr(index_row.indpred,index_row.indrelid)=
+            '(active AND (state_code = ''OH''::text) AND (county_code = ''VIN''::text))'
+      )
+      and exists(
+        select 1
+        from pg_catalog.pg_index index_row
+        join pg_catalog.pg_class index_class on index_class.oid=index_row.indexrelid
+        join pg_catalog.pg_am access_method on access_method.oid=index_class.relam
+        where index_class.relname='brinesearch_supp_vin_end_geog_issue97_idx'
+          and index_row.indrelid='public.brinesearch_authoritative_supplemental_centerlines'::pg_catalog.regclass
+          and access_method.amname='gist' and index_row.indisvalid and index_row.indisready
+          and pg_catalog.pg_get_expr(index_row.indexprs,index_row.indrelid)=
+            '(st_endpoint(st_linemerge(geom)))::geography'
+          and pg_catalog.pg_get_expr(index_row.indpred,index_row.indrelid)=
+            '(active AND (state_code = ''OH''::text) AND (county_code = ''VIN''::text))'
+      )
       as ogrip_endpoint_indexes_ready,
     pg_catalog.md5(pg_catalog.pg_get_functiondef('public.brinesearch_issue97_refresh_supplemental_aliases_issue97_core(uuid)'::pg_catalog.regprocedure))='4dd8a572b153d795163cf38a41ea9d1f' as supplemental_mapper_exact,
     (select count(*) from public.brinesearch_road_graph_builds b where b.state_code='WV' and b.county_code='OHI' and b.status='active' and private_verification.brinesearch_issue97_graph_build_release_current(b.id))=1 as ohi_release_current,
@@ -179,11 +207,11 @@ select * from checks
 \endif
 \if :issue97_release_hotfix_history_exact
 \else
-  do $fail$ begin raise exception 'Issue #97 release preflight: exact base-22 plus canonical ODOT hotfix migration history is missing'; end $fail$;
+  do $fail$ begin raise exception 'Issue #97 release preflight: exact base-22 plus canonical ODOT and VIN-index hotfix migration history is missing'; end $fail$;
 \endif
 \if :issue97_release_ogrip_endpoint_indexes_ready
 \else
-  do $fail$ begin raise exception 'Issue #97 release preflight: OGRIP endpoint geography indexes are missing'; end $fail$;
+  do $fail$ begin raise exception 'Issue #97 release preflight: exact Ohio-wide and VIN-scoped OGRIP endpoint geography indexes are missing'; end $fail$;
 \endif
 \if :issue97_release_supplemental_mapper_exact
 \else

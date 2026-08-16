@@ -31,6 +31,48 @@ The script rejects `PGPASSWORD`, rejects a dirty or unpushed checkout, and uses
 SSL. Runtime logs are private local files under `.issue97-runs/`, which Git
 ignores.
 
+## VIN endpoint-index prerequisite (independent review required)
+
+The first `OH/VIN` r2 attempt reached the unchanged
+`tmp_issue97_point_corroboration` statement and rolled back at the finite
+90-minute builder timeout. Bounded production profiling showed that PostgreSQL
+did not select the Ohio-wide endpoint expression indexes for VIN's exact
+county-scoped start/end predicate. It repeatedly scanned all active VIN OGRIP
+centerlines in both the main join and the conflicting-extra-identity anti-join.
+
+Migration `20260816090000_issue97_vin_endpoint_index_performance.sql` adds only
+two VIN-scoped partial GiST expression indexes for those existing start/end
+predicates. It does not replace the builder, change the exact 0.03 m contract,
+alter topology or ODOT pair equality, restamp a build, or build a county. The
+production builder MD5 remains `06705f5b35a6d37151bb2c0dc5ade9bd`.
+
+Run the exact-one rollback rehearsal only from the reviewed, clean, pushed PR
+head and the private long-lived `PGSERVICE=brinesearch_issue97_prod` lane:
+
+```sh
+./ops/issue97-computer-rollout/issue97-vin-endpoint-index-rehearsal.sh
+```
+
+After that checkpoint receives the required independent audit and explicit
+installation authorization, the reviewed exact-one installer is:
+
+```sh
+./ops/issue97-computer-rollout/issue97-vin-endpoint-index-install.sh
+```
+
+Neither script accepts arguments, builder input, arbitrary SQL, credentials, or
+retries. The rehearsal explicitly rolls back and proves a fresh before/after
+snapshot match. The installer is present for review but must not be run merely
+because it exists on a branch.
+
+CAR remains deliberately fail-closed. Its r2 build captured mapping digest
+`00c7ac96038083e8765439bcf1c034b2`; later exact COL/HAS/JEF mapping refreshes
+produced current digest `a2a49ac4f11baa703f05a493cf331c35` without changing
+CAR membership source digests or mapped road IDs. That is real mapping-evidence
+drift under the existing graph-mapping-v2 contract, not an excuse to normalize
+or restamp the candidate. The controlled dark plan therefore keeps CAR pending
+for a clean rebuild after this checkpoint is independently approved.
+
 ## Start-of-session checks
 
 From the repository root:
