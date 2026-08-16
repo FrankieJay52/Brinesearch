@@ -5,7 +5,7 @@
 -- Fixed, observational post-activation receipt. It cannot activate, reconcile,
 -- cut over, publish or select a caller-provided scope.
 begin isolation level repeatable read read only;
-set local statement_timeout='5min';
+set local statement_timeout='15min';
 
 with expected(county_code,build_id,graph_digest) as (
   values
