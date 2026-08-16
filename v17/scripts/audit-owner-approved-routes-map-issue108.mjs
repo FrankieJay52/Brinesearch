@@ -4,11 +4,13 @@ import path from "node:path";
 const root = path.resolve(process.cwd());
 const migration = path.join(root, "supabase/migrations/20260816170000_owner_approved_routes_map.sql");
 const viewportFix = path.join(root, "supabase/migrations/20260816170100_owner_approved_routes_map_viewport_fix.sql");
+const viewportPerf = path.join(root, "supabase/migrations/20260816170200_owner_approved_routes_map_viewport_performance.sql");
 const moduleFile = path.join(root, "v17/src/parts/21p-owner-approved-routes-map-issue108.js");
 const styleFile = path.join(root, "v17/src/styles/46-owner-approved-routes-map-issue108.css");
-for (const file of [migration,viewportFix,moduleFile,styleFile]) if (!fs.existsSync(file)) throw new Error(`Missing ${path.relative(root,file)}`);
+for (const file of [migration,viewportFix,viewportPerf,moduleFile,styleFile]) if (!fs.existsSync(file)) throw new Error(`Missing ${path.relative(root,file)}`);
 const sql=fs.readFileSync(migration,"utf8");
 const fixSql=fs.readFileSync(viewportFix,"utf8");
+const perfSql=fs.readFileSync(viewportPerf,"utf8");
 const js=fs.readFileSync(moduleFile,"utf8");
 
 function requireMatch(text,re,label){ if(!re.test(text)) throw new Error(`Issue #108 audit failed: ${label}`); }
@@ -33,6 +35,10 @@ forbid(sql,/brinesearch_issue97_rebuild_county_graph|activate_.*graph|global.*cu
 requireMatch(fixSql,/p\.latitude.*p\.longitude/s,"viewport correction must use production pad coordinates");
 requireMatch(fixSql,/operator\(extensions\.&&\)/,"viewport correction must preserve spatial index prefilter");
 forbid(fixSql,/\.lat\b|\.lng\b/,"viewport correction must not use nonexistent pad lat/lng columns");
+requireMatch(perfSql,/brinesearch_odot_road_catalog/,"performance path must use indexed ODOT geometry store");
+requireMatch(perfSql,/brinesearch_authoritative_external_road_segments/,"performance path must use indexed external geometry store");
+requireMatch(perfSql,/scopes as materialized[\s\S]+dataset_scope_current/,"currentness checks must be scope-batched");
+forbid(perfSql,/from public\.brinesearch_authoritative_road_segments s/i,"routine viewport must not expand global authoritative segment union view");
 
 requireMatch(js,/editorIsOwner\(\)/,"UI must enforce owner access");
 requireMatch(js,/owner_approved_routes_map_viewport/,"map must use owner-only bounded viewport RPC");
