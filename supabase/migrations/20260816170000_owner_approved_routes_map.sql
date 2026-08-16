@@ -145,7 +145,7 @@ begin
     group by b.id,b.road_id,b.display_name,b.canonical_name,b.route_system,b.route_number,b.road_class,b.state_code,b.county_code,b.county_name,b.township,b.municipality,
       b.approval_status,b.occurrence_count,b.pad_count,b.source_identity_key,b.source_agency,b.source_dataset,b.source_version
   ), pad_markers as (
-    select pg_catalog.coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('pad_id',p.id,'pad_name',p.pad_name,'company',p.company,'lat',p.lat,'lng',p.lng) order by p.company,p.pad_name),'[]'::jsonb) as rows
+    select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('pad_id',p.id,'pad_name',p.pad_name,'company',p.company,'lat',p.lat,'lng',p.lng) order by p.company,p.pad_name),'[]'::jsonb) as rows
     from public.pads p where p_pad_id is not null and p.id=p_pad_id
   )
   select pg_catalog.jsonb_build_object(
@@ -162,31 +162,62 @@ language plpgsql
 security definer
 set search_path = ''
 as $$
-declare v_result jsonb;
+declare
+  v_result jsonb;
 begin
-  if not public.is_brinesearch_owner(auth.uid()) then raise exception 'owner access required' using errcode='42501'; end if;
-  if p_identity_id is null then raise exception 'identity required' using errcode='22023'; end if;
+  if not public.is_brinesearch_owner(auth.uid()) then
+    raise exception 'owner access required' using errcode='42501';
+  end if;
+  if p_identity_id is null then
+    raise exception 'identity required' using errcode='22023';
+  end if;
 
   with base as materialized (
-    select i.*,d.source_agency,d.source_dataset,d.source_version,d.source_timestamp as dataset_source_timestamp,d.fetched_at as dataset_fetched_at,
+    select i.*,d.source_agency,d.source_dataset,d.source_version,
+      d.source_timestamp as dataset_source_timestamp,d.fetched_at as dataset_fetched_at,
       private_verification.brinesearch_issue97_dataset_scope_current(i.dataset_id,i.state_code,i.county_code) as source_current
     from public.brinesearch_authoritative_road_identities i
     join public.brinesearch_road_source_datasets d on d.id=i.dataset_id and d.active
     where i.id=p_identity_id and i.active
   ), canonical as materialized (
     select distinct on (m.identity_id) m.identity_id,r.*
-    from public.brinesearch_road_identity_mappings m join public.brinesearch_roads r on r.id=m.road_id
+    from public.brinesearch_road_identity_mappings m
+    join public.brinesearch_roads r on r.id=m.road_id
     where m.identity_id=p_identity_id and m.mapping_status='verified'
     order by m.identity_id,m.verified_at desc nulls last,m.updated_at desc,m.id
+  ), mapping_count as materialized (
+    select count(distinct m.road_id)::integer verified_road_count
+    from public.brinesearch_road_identity_mappings m
+    where m.identity_id=p_identity_id and m.mapping_status='verified'
+  ), geom_segments as materialized (
+    select c.geom
+    from public.brinesearch_authoritative_segment_identity_assignments a
+    join public.brinesearch_odot_road_catalog c
+      on a.source_segment_key='OH:ODOT:SEGMENT:'||c.roadway_inventory_id
+     and c.source_active and c.geom is not null
+    where a.identity_id=p_identity_id and a.active
+    union all
+    select s.geom
+    from public.brinesearch_authoritative_external_road_segments s
+    where s.identity_id=p_identity_id and s.active and s.geom is not null
   ), geom as materialized (
     select extensions.st_extent(s.geom) as extent,count(*)::integer as segment_count
-    from public.brinesearch_authoritative_road_segments s where s.identity_id=p_identity_id and s.active and s.geom is not null
+    from geom_segments s
   ), aliases as materialized (
     select coalesce(pg_catalog.jsonb_agg(distinct n.road_name order by n.road_name),'[]'::jsonb) rows
     from public.brinesearch_authoritative_road_names n
-    where n.identity_id=p_identity_id and n.active and (n.valid_from is null or n.valid_from<=now()) and (n.valid_to is null or n.valid_to>now())
+    where n.identity_id=p_identity_id and n.active
+      and (n.valid_from is null or n.valid_from<=pg_catalog.now())
+      and (n.valid_to is null or n.valid_to>pg_catalog.now())
   ), pads_used as materialized (
-    select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('pad_id',x.pad_id,'pad_name',x.pad_name,'company',x.company,'occurrence_count',x.occurrence_count) order by x.company,x.pad_name),'[]'::jsonb) rows,
+    select coalesce(
+      pg_catalog.jsonb_agg(
+        pg_catalog.jsonb_build_object(
+          'pad_id',x.pad_id,'pad_name',x.pad_name,'company',x.company,
+          'occurrence_count',x.occurrence_count
+        ) order by x.company,x.pad_name
+      ),'[]'::jsonb
+    ) rows,
       coalesce(sum(x.occurrence_count),0)::integer occurrence_count
     from (
       select rp.pad_id,rp.pad_name,rp.company,count(*)::integer occurrence_count
@@ -197,54 +228,162 @@ begin
       group by rp.pad_id,rp.pad_name,rp.company
     ) x
   ), current_build as materialized (
-    select gb.* from base b join public.brinesearch_road_graph_builds gb on gb.state_code=b.state_code and gb.county_code=b.county_code and gb.status='active'
+    select gb.*
+    from base b
+    join public.brinesearch_road_graph_builds gb
+      on gb.state_code=b.state_code and gb.county_code=b.county_code and gb.status='active'
     where private_verification.brinesearch_issue97_graph_build_release_current(gb.id)
-    order by gb.activated_at desc nulls last limit 1
+    order by gb.activated_at desc nulls last
+    limit 1
+  ), junction_base as materialized (
+    select distinct j.id,j.display_id,j.geom
+    from current_build gb
+    join public.brinesearch_road_junctions j on j.build_id=gb.id
+    join public.brinesearch_road_junction_memberships mine
+      on mine.junction_id=j.id and mine.identity_id=p_identity_id
+  ), junction_count as materialized (
+    select count(*)::integer total from junction_base
   ), junction_rows as materialized (
-    select j.id,j.display_id,extensions.st_y(j.geom)::double precision lat,extensions.st_x(j.geom)::double precision lng,
-      array_agg(distinct coalesce(other.road_name_at_junction,oi.display_name) order by coalesce(other.road_name_at_junction,oi.display_name)) filter(where other.identity_id<>p_identity_id) as connected_roads
-    from current_build gb join public.brinesearch_road_junctions j on j.build_id=gb.id
-    join public.brinesearch_road_junction_memberships mine on mine.junction_id=j.id and mine.identity_id=p_identity_id
-    left join public.brinesearch_road_junction_memberships other on other.junction_id=j.id and other.identity_id<>p_identity_id
-    left join public.brinesearch_authoritative_road_identities oi on oi.id=other.identity_id
-    group by j.id,j.display_id,j.geom order by j.display_id limit 100
+    select jb.id,jb.display_id,
+      extensions.st_y(jb.geom)::double precision lat,
+      extensions.st_x(jb.geom)::double precision lng,
+      coalesce(connected.rows,'[]'::jsonb) connected_roads
+    from (
+      select * from junction_base order by display_id,id limit 100
+    ) jb
+    left join lateral (
+      select pg_catalog.jsonb_agg(
+        pg_catalog.jsonb_build_object(
+          'identity_id',x.identity_id,
+          'display_name',x.display_name,
+          'road_name_at_junction',x.road_name_at_junction,
+          'route_system',x.route_system,
+          'route_number',x.route_number,
+          'route_designation',nullif(pg_catalog.concat_ws(' ',x.route_system,x.route_number),''),
+          'road_class',x.road_class,
+          'state_code',x.state_code,
+          'county_code',x.county_code,
+          'county_name',x.county_name,
+          'township',x.township,
+          'municipality',x.municipality,
+          'source_identity_key',x.source_identity_key
+        ) order by x.display_name,x.state_code,x.county_code,x.identity_id
+      ) rows
+      from (
+        select distinct other.identity_id,
+          oi.display_name,other.road_name_at_junction,
+          oi.route_system,oi.route_number,oi.road_class,
+          oi.state_code,oi.county_code,oi.county_name,oi.township,oi.municipality,
+          oi.source_identity_key
+        from public.brinesearch_road_junction_memberships other
+        join public.brinesearch_authoritative_road_identities oi
+          on oi.id=other.identity_id and oi.active
+        where other.junction_id=jb.id and other.identity_id<>p_identity_id
+      ) x
+    ) connected on true
   ), junctions as materialized (
-    select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('junction_id',id,'display_id',display_id,'lat',lat,'lng',lng,'connected_roads',coalesce(connected_roads,'{}'::text[])) order by display_id),'[]'::jsonb) rows,
-      count(*)::integer junction_count from junction_rows
+    select coalesce(
+      pg_catalog.jsonb_agg(
+        pg_catalog.jsonb_build_object(
+          'junction_id',id,'display_id',display_id,'lat',lat,'lng',lng,
+          'connected_roads',connected_roads
+        ) order by display_id,id
+      ),'[]'::jsonb
+    ) rows
+    from junction_rows
   ), classified as materialized (
-    select b.*,c.id as road_id,c.canonical_name,c.low_bridge,c.weight_limit,c.construction,c.gate,c.narrow,c.steep_grade,c.one_lane,c.seasonal,
+    select b.*,c.id as road_id,c.canonical_name,mc.verified_road_count,
+      c.low_bridge,c.weight_limit,c.construction,c.gate,
+      c.narrow,c.steep_grade,c.one_lane,c.seasonal,
       coalesce(pu.occurrence_count,0) occurrence_count,
       case
-        when not b.source_current then 'held'
-        when lower(coalesce(b.public_access_status,'held')) in ('private','nonpublic','non_public','blocked','restricted','prohibited') then 'restricted'
-        when lower(coalesce(b.drivable_status,'held')) in ('non_drivable','nondrivable','blocked','restricted','prohibited') then 'restricted'
-        when coalesce(c.low_bridge,false) or coalesce(c.weight_limit,false) or coalesce(c.construction,false) or coalesce(c.gate,false) then 'restricted'
-        when lower(coalesce(b.public_access_status,'held')) <> 'public' then 'held'
-        when lower(coalesce(b.drivable_status,'held')) <> 'drivable' then 'held'
-        when coalesce(c.narrow,false) or coalesce(c.steep_grade,false) or coalesce(c.one_lane,false) or coalesce(c.seasonal,false) then 'held'
-        when b.road_class in ('interstate','us_route','state_route') then 'approved_by_policy'
-        when b.truck_status='official_truck_route' then 'explicitly_approved'
-        when coalesce(pu.occurrence_count,0)>0 then 'candidate' else 'reference_only' end approval_status
-    from base b left join canonical c on c.identity_id=b.id cross join pads_used pu
+        when pg_catalog.lower(coalesce(b.public_access_status,'held')) in ('private','nonpublic','non_public','blocked','restricted','prohibited') then 'restricted'
+        when pg_catalog.lower(coalesce(b.drivable_status,'held')) in ('non_drivable','nondrivable','blocked','restricted','prohibited') then 'restricted'
+        when coalesce(c.low_bridge,false) or coalesce(c.weight_limit,false)
+          or coalesce(c.construction,false) or coalesce(c.gate,false) then 'restricted'
+        when not b.source_current or g.segment_count=0 or mc.verified_road_count>1 then 'held'
+        when pg_catalog.lower(coalesce(b.public_access_status,'held'))<>'public'
+          or pg_catalog.lower(coalesce(b.drivable_status,'held'))<>'drivable' then 'held'
+        when coalesce(c.narrow,false) or coalesce(c.steep_grade,false)
+          or coalesce(c.one_lane,false) or coalesce(c.seasonal,false) then 'held'
+        when b.road_class in ('interstate','us_route','state_route') and not (
+          nullif(pg_catalog.btrim(b.route_number),'') is not null and (
+            (b.road_class='interstate' and b.route_system in ('1','IR'))
+            or (b.road_class='us_route' and b.route_system in ('2','US'))
+            or (b.road_class='state_route' and b.route_system in ('3','SR','PennDOT NLF'))
+          )
+        ) then 'held'
+        when nullif(pg_catalog.btrim(b.route_number),'') is not null and (
+          (b.road_class='interstate' and b.route_system in ('1','IR'))
+          or (b.road_class='us_route' and b.route_system in ('2','US'))
+          or (b.road_class='state_route' and b.route_system in ('3','SR','PennDOT NLF'))
+        ) then 'approved_by_policy'
+        when b.road_class in ('county','township','municipal','local')
+          and b.truck_status='official_truck_route' then 'explicitly_approved'
+        when coalesce(pu.occurrence_count,0)>0 then 'candidate'
+        else 'reference_only'
+      end approval_status
+    from base b
+    left join canonical c on c.identity_id=b.id
+    cross join pads_used pu
+    cross join geom g
+    cross join mapping_count mc
   )
   select pg_catalog.jsonb_build_object(
     'identity_id',c.id,'canonical_road_id',c.road_id,'display_name',c.display_name,'canonical_name',c.canonical_name,
     'source_identity_key',c.source_identity_key,'aliases',(select rows from aliases),
+    'route_system',c.route_system,'route_number',c.route_number,
     'route_designation',nullif(pg_catalog.concat_ws(' ',c.route_system,c.route_number),''),'road_class',c.road_class,
     'state_code',c.state_code,'county_code',c.county_code,'county_name',c.county_name,'township',c.township,'municipality',c.municipality,
     'source_agency',c.source_agency,'source_dataset',c.source_dataset,'source_version',c.source_version,'source_record_ids',c.source_record_ids,
-    'approval_status',c.approval_status,
-    'approval_basis',case c.approval_status when 'approved_by_policy' then 'Interstate/U.S./state route standing policy; exact restrictions override.' when 'explicitly_approved' then 'Exact current authoritative identity has official_truck_route evidence.' when 'candidate' then 'Current saved route use exists, but exact positive truck approval is absent.' when 'restricted' then 'Exact current access/drivable or canonical restriction evidence overrides approval.' when 'held' then 'Exact identity/currentness/safety state is unresolved or held.' else 'Context only; not approved.' end,
+    'source_current',c.source_current,'approval_status',c.approval_status,
+    'mapping_conflict',c.verified_road_count>1,
+    'approval_basis',case c.approval_status
+      when 'approved_by_policy' then 'Exact current structured Interstate/U.S./state route identity is approved by standing policy; exact restrictions override.'
+      when 'explicitly_approved' then 'Exact current local identity has official_truck_route evidence.'
+      when 'candidate' then 'Current saved route use exists, but exact positive truck approval is absent.'
+      when 'restricted' then 'Exact access, drivable, or verified canonical restriction evidence overrides approval.'
+      when 'held' then 'Exact identity, currentness, structured route identity, geometry, or safety state is unresolved or held.'
+      else 'Controlled-source context only; this road is not approved.'
+    end,
     'public_access_status',c.public_access_status,'drivable_status',c.drivable_status,'truck_status',c.truck_status,
-    'restriction_summary',nullif(pg_catalog.concat_ws(', ',case when c.public_access_status='private' then 'private/nonpublic' end,case when c.drivable_status='non_drivable' then 'non-drivable' end,case when c.low_bridge then 'low bridge' end,case when c.weight_limit then 'weight restriction' end,case when c.construction then 'construction/closure' end,case when c.gate then 'gate/blocked' end,case when c.narrow then 'narrow road hold' end,case when c.steep_grade then 'steep grade hold' end,case when c.one_lane then 'one lane hold' end,case when c.seasonal then 'seasonal hold' end),''),
-    'geometry_status',case when g.segment_count>0 then 'exact current authoritative geometry' else 'approved — geometry incomplete' end,
+    'restriction_summary',nullif(pg_catalog.concat_ws(', ',
+      case when pg_catalog.lower(coalesce(c.public_access_status,'')) in ('private','nonpublic','non_public','blocked','restricted','prohibited') then 'private/nonpublic or prohibited' end,
+      case when pg_catalog.lower(coalesce(c.drivable_status,'')) in ('non_drivable','nondrivable','blocked','restricted','prohibited') then 'non-drivable or prohibited' end,
+      case when c.low_bridge then 'low bridge' end,case when c.weight_limit then 'weight restriction' end,
+      case when c.construction then 'construction/closure' end,case when c.gate then 'gate/blocked' end,
+      case when c.narrow then 'narrow road hold' end,case when c.steep_grade then 'steep grade hold' end,
+      case when c.one_lane then 'one lane hold' end,case when c.seasonal then 'seasonal hold' end
+    ),''),
+    'hold_summary',nullif(pg_catalog.concat_ws(', ',
+      case when not c.source_current then 'source scope is stale' end,
+      case when g.segment_count=0 then 'exact geometry is unavailable' end,
+      case when c.verified_road_count>1 then 'conflicting verified canonical mappings' end,
+      case when c.road_class in ('interstate','us_route','state_route') and not (
+        nullif(pg_catalog.btrim(c.route_number),'') is not null and (
+          (c.road_class='interstate' and c.route_system in ('1','IR'))
+          or (c.road_class='us_route' and c.route_system in ('2','US'))
+          or (c.road_class='state_route' and c.route_system in ('3','SR','PennDOT NLF'))
+        )
+      ) then 'structured policy-route identity is incomplete or conflicting' end
+    ),''),
+    'geometry_status',case
+      when g.segment_count=0 then 'held — exact geometry unavailable'
+      when not c.source_current then 'held — source scope stale'
+      else 'exact current authoritative geometry'
+    end,
     'geometry_segment_count',g.segment_count,
     'bounds',case when g.extent is null then null else pg_catalog.jsonb_build_object('west',extensions.st_xmin(extensions.box3d(g.extent)),'south',extensions.st_ymin(extensions.box3d(g.extent)),'east',extensions.st_xmax(extensions.box3d(g.extent)),'north',extensions.st_ymax(extensions.box3d(g.extent))) end,
-    'pads',(select rows from pads_used),'known_physical_junctions',(select junction_count from junctions),'junctions',(select rows from junctions),
+    'pads',(select rows from pads_used),
+    'known_physical_junctions',(select total from junction_count),
+    'junctions_truncated',(select total>100 from junction_count),
+    'junctions',(select rows from junctions),
     'graph_summary',(select case when id is null then null else pg_catalog.concat('build ',id,' · ',algorithm_version,' · activated ',activated_at) end from current_build),
     'verification_date',greatest(c.updated_at,c.dataset_fetched_at,c.dataset_source_timestamp)
   ) into v_result from classified c cross join geom g;
-  if v_result is null then raise exception 'road identity not found or not current' using errcode='P0002'; end if;
+  if v_result is null then
+    raise exception 'road identity not found' using errcode='P0002';
+  end if;
   return v_result;
 end
 $$;
@@ -258,7 +397,10 @@ as $$
 declare v_result jsonb;
 begin
   if not public.is_brinesearch_owner(auth.uid()) then raise exception 'owner access required' using errcode='42501'; end if;
-  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object('pad_id',p.id,'pad_name',p.pad_name,'company',p.company,'state',p.state) order by p.company,p.pad_name),'[]'::jsonb)
+  select coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+    'pad_id',p.id,'pad_name',p.pad_name,'company',p.company,'state',p.state,
+    'lat',p.latitude,'lng',p.longitude
+  ) order by p.company,p.pad_name),'[]'::jsonb)
   into v_result from public.pads p where exists(select 1 from public.brinesearch_route_prep rp where rp.pad_id=p.id and rp.active);
   return v_result;
 end
