@@ -180,6 +180,8 @@ for (const token of [
   "global_reconciliation_dark",
   "public_google_dark",
 ]) need(reconcile, token, `dark reconciliation ${token}`);
+need(reconcile, "set local statement_timeout='15min'",
+  "dark reconciliation preflight must retain a finite bound above the observed five-minute runtime");
 assert.equal(count(reconcile.toLowerCase(), "commit;"), 1,
   "Ohio dark reconciliation must commit exactly once after all postchecks");
 assert.ok(reconcile.indexOf("non_ohio_graph_unchanged") < reconcile.toLowerCase().lastIndexOf("commit;"),

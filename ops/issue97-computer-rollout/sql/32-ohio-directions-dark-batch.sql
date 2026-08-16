@@ -8,7 +8,7 @@
 -- one active release-current graph in each of the 19 registered Ohio counties.
 
 begin read only;
-set local statement_timeout='5min';
+set local statement_timeout='15min';
 
 do $issue97_ohio_direction_preflight$
 declare
