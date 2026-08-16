@@ -3,10 +3,12 @@ import path from "node:path";
 
 const root = path.resolve(process.cwd());
 const migration = path.join(root, "supabase/migrations/20260816170000_owner_approved_routes_map.sql");
+const viewportFix = path.join(root, "supabase/migrations/20260816170100_owner_approved_routes_map_viewport_fix.sql");
 const moduleFile = path.join(root, "v17/src/parts/21p-owner-approved-routes-map-issue108.js");
 const styleFile = path.join(root, "v17/src/styles/46-owner-approved-routes-map-issue108.css");
-for (const file of [migration,moduleFile,styleFile]) if (!fs.existsSync(file)) throw new Error(`Missing ${path.relative(root,file)}`);
+for (const file of [migration,viewportFix,moduleFile,styleFile]) if (!fs.existsSync(file)) throw new Error(`Missing ${path.relative(root,file)}`);
 const sql=fs.readFileSync(migration,"utf8");
+const fixSql=fs.readFileSync(viewportFix,"utf8");
 const js=fs.readFileSync(moduleFile,"utf8");
 
 function requireMatch(text,re,label){ if(!re.test(text)) throw new Error(`Issue #108 audit failed: ${label}`); }
@@ -28,6 +30,9 @@ requireMatch(sql,/occurrence_count,0\)>0 then 'candidate'/i,"route-use evidence 
 requireMatch(sql,/graph_build_release_current/i,"junctions must use release-current graph builds only");
 forbid(sql,/insert\s+into\s+public\.|update\s+public\.|delete\s+from\s+public\./i,"first release must not write road/route production data");
 forbid(sql,/brinesearch_issue97_rebuild_county_graph|activate_.*graph|global.*cutover/i,"Issue #108 must not execute Issue #97 build/activation/cutover work");
+requireMatch(fixSql,/p\.latitude.*p\.longitude/s,"viewport correction must use production pad coordinates");
+requireMatch(fixSql,/operator\(extensions\.&&\)/,"viewport correction must preserve spatial index prefilter");
+forbid(fixSql,/\.lat\b|\.lng\b/,"viewport correction must not use nonexistent pad lat/lng columns");
 
 requireMatch(js,/editorIsOwner\(\)/,"UI must enforce owner access");
 requireMatch(js,/owner_approved_routes_map_viewport/,"map must use owner-only bounded viewport RPC");
