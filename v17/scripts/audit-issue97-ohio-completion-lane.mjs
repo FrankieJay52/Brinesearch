@@ -164,6 +164,8 @@ for (const token of [
   "saved_road_reconciliation_runs)=0",
   "brinesearch_driver_google_routes_public)=0",
 ]) need(verifyActive, token, `activation verifier ${token}`);
+need(verifyActive, "set local statement_timeout='15min'",
+  "post-activation verifier must retain a finite bound above the observed five-minute runtime");
 
 for (const token of [
   "issue97-ohio-r2-final-candidate",
