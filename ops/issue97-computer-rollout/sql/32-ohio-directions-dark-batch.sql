@@ -34,7 +34,8 @@ begin
 
   select manifest.* into strict v_manifest
   from private_verification.brinesearch_issue97_state_candidate_manifests manifest
-  where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+  where manifest.id='c41f5320-1273-470c-a316-28b42211d697'::uuid
+    and manifest.manifest_key='issue97-ohio-r2-final-candidate'
     and manifest.state_code='OH' and manifest.member_count=19
     and manifest.generation_key='issue97-release-20260815-r2'
     and manifest.manifest_digest='9763dc5bb626da71881b7381ed28a436';
@@ -138,7 +139,11 @@ select manifest.review_details->>'non_ohio_graph_digest'=:'issue97_before_non_oh
     and manifest.review_details->>'non_ohio_route_digest'=:'issue97_before_non_ohio_route_digest'
     as matches_manifest_baseline
 from private_verification.brinesearch_issue97_state_candidate_manifests manifest
-where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+where manifest.id='c41f5320-1273-470c-a316-28b42211d697'::uuid
+  and manifest.manifest_key='issue97-ohio-r2-final-candidate'
+  and manifest.state_code='OH' and manifest.member_count=19
+  and manifest.generation_key='issue97-release-20260815-r2'
+  and manifest.manifest_digest='9763dc5bb626da71881b7381ed28a436'
 \gset issue97_before_manifest_
 
 \if :issue97_before_manifest_matches_manifest_baseline
@@ -179,7 +184,8 @@ begin
 
   select manifest.* into strict v_manifest
   from private_verification.brinesearch_issue97_state_candidate_manifests manifest
-  where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+  where manifest.id='c41f5320-1273-470c-a316-28b42211d697'::uuid
+    and manifest.manifest_key='issue97-ohio-r2-final-candidate'
     and manifest.state_code='OH' and manifest.member_count=19
     and manifest.generation_key='issue97-release-20260815-r2'
     and manifest.manifest_digest='9763dc5bb626da71881b7381ed28a436';
@@ -201,8 +207,24 @@ begin
   -- Prepare one immutable, exact-manifest release-current snapshot before the
   -- 940-pad loop. Corpus/solver/transition consumers reuse it; an unknown build
   -- is false and cannot become route truth mid-transaction.
+  perform pg_catalog.set_config(
+    'brinesearch.issue97_expected_state_manifest_id',v_manifest.id::text,true
+  );
+  perform pg_catalog.set_config(
+    'brinesearch.issue97_expected_state_manifest_digest',v_manifest.manifest_digest,true
+  );
+  perform pg_catalog.set_config(
+    'brinesearch.issue97_expected_state_code',v_manifest.state_code,true
+  );
+  perform pg_catalog.set_config(
+    'brinesearch.issue97_expected_generation_key',v_manifest.generation_key,true
+  );
+  perform pg_catalog.set_config(
+    'brinesearch.issue97_expected_member_count',v_manifest.member_count::text,true
+  );
   v_cache:=private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(
-    v_manifest.id
+    v_manifest.id,v_manifest.manifest_digest,v_manifest.state_code,
+    v_manifest.generation_key,v_manifest.member_count
   );
   if v_cache->>'manifest_id'<>v_manifest.id::text
      or v_cache->>'manifest_digest'<>'9763dc5bb626da71881b7381ed28a436'
@@ -214,6 +236,10 @@ begin
      or v_cache->>'cache_scope'<>'exact_state_manifest'
      or v_cache->>'cache_miss_policy'<>'fail_closed'
      or v_cache->>'global_cutover_authorized'<>'false'
+     or v_cache->>'reused'<>'false'
+     or coalesce(v_cache->>'manifest_member_digest','') !~ '^[0-9a-f]{32}$'
+     or coalesce(v_cache->>'cache_member_digest','') !~ '^[0-9a-f]{32}$'
+     or v_cache->>'full_predicate_evaluation_count'<>'19'
      or (select count(*)
        from pg_temp.tmp_issue97_graph_release_current_cache_context context
        where context.manifest_id=v_manifest.id
@@ -221,7 +247,12 @@ begin
          and context.state_code='OH'
          and context.generation_key='issue97-release-20260815-r2'
          and context.member_count=19
-         and context.source_scope_count=38)<>1
+         and context.source_scope_count=38
+         and context.manifest_member_digest=v_cache->>'manifest_member_digest'
+         and context.cache_member_digest=v_cache->>'cache_member_digest'
+         and context.full_predicate_evaluation_count=19
+         and context.cache_scope='exact_state_manifest'
+         and context.cache_miss_policy='fail_closed')<>1
      or (select count(*) from pg_temp.tmp_issue97_graph_release_current_cache)<>19
      or exists(
        select 1 from pg_temp.tmp_issue97_graph_release_current_cache cache
@@ -248,7 +279,11 @@ $issue97_ohio_direction_batch$;
 -- Verify all isolation and dark-state invariants before committing the batch.
 with manifest as (
   select * from private_verification.brinesearch_issue97_state_candidate_manifests
-  where manifest_key='issue97-ohio-r2-final-candidate'
+  where id='c41f5320-1273-470c-a316-28b42211d697'::uuid
+    and manifest_key='issue97-ohio-r2-final-candidate'
+    and state_code='OH' and member_count=19
+    and generation_key='issue97-release-20260815-r2'
+    and manifest_digest='9763dc5bb626da71881b7381ed28a436'
 ), current_non_ohio as (
   select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     build.id::text||':'||build.state_code||':'||build.county_code||':'||build.status||':'||

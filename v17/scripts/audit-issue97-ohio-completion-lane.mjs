@@ -28,6 +28,10 @@ const status = read("ops/issue97-computer-rollout/sql/34-ohio-release-status.sql
 const manifestCache = read(
   "supabase/migrations/20260816160000_issue97_manifest_bound_release_current_cache.sql",
 );
+const manifestCacheRegression = read(
+  "supabase/tests/issue97_manifest_bound_cache_context.sql",
+);
+const packageJson = read("package.json");
 
 for (const token of [
   'expected_service="brinesearch_issue97_prod"',
@@ -172,6 +176,9 @@ need(verifyActive, "set local statement_timeout='15min'",
 
 for (const token of [
   "brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest",
+  "brinesearch_issue97_assert_expected_state_manifest_cache_context",
+  "brinesearch_issue97_validate_graph_release_current_cache_for_state_manifest",
+  "brinesearch_issue97_ensure_graph_release_current_cache_for_state_manifest",
   "brinesearch_issue97_state_candidate_manifest_integrity",
   "brinesearch_issue97_active_graph_release_generation",
   "brinesearch_issue97_dataset_scope_current",
@@ -179,8 +186,15 @@ for (const token of [
   "build.graph_digest=member.member_value->>'graph_digest'",
   "build.source_revision_digest=member.member_value->>'source_revision_digest'",
   "build.status='active'",
-  "cache_scope','exact_state_manifest'",
-  "cache_miss_policy','fail_closed'",
+  "v_expected_count,'exact_state_manifest','fail_closed'",
+  "manifest_member_digest",
+  "cache_member_digest",
+  "full_predicate_evaluation_count",
+  "jsonb_build_object('reused',true)",
+  "jsonb_build_object('reused',false)",
+  "expected transaction state-manifest context is partial",
+  "state-manifest cache/context pair is partial or missing",
+  "state-manifest cache context differs from expected context",
   "brinesearch_issue97_ensure_graph_release_current_cache",
   "brinesearch_issue97_graph_build_release_current_contextual",
   "cbfcec5e9f814399f1ec69ee4974cb4b",
@@ -189,28 +203,101 @@ for (const token of [
   "v_matches<>7",
   "from public,anon,authenticated,service_role",
 ]) need(manifestCache, token, `manifest-bound cache migration ${token}`);
-assert.equal(
-  count(
-    manifestCache,
-    "perform private_verification.brinesearch_issue97_ensure_graph_release_current_cache();",
-  ),
-  3,
-  "manifest-bound migration must define one ensure call and patch exactly two hot-path callers",
+const statePrepareStart = manifestCache.indexOf(
+  "create or replace function private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
 );
-assert.equal(
-  count(
-    manifestCache,
-    "private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
-  ),
-  3,
-  "manifest-bound helper must be defined, revoked and privilege-verified exactly",
+const statePrepareEnd = manifestCache.indexOf(
+  "-- Once an exact transaction snapshot exists",
+  statePrepareStart,
 );
+assert.ok(statePrepareStart >= 0 && statePrepareEnd > statePrepareStart,
+  "manifest-bound state prepare definition must be statically isolatable");
+const statePrepare = manifestCache.slice(statePrepareStart, statePrepareEnd);
+for (const token of [
+  "brinesearch_issue97_assert_expected_state_manifest_cache_context(",
+  "brinesearch_issue97_validate_graph_release_current_cache_for_state_manifest(",
+  "jsonb_build_object('reused',true)",
+  "jsonb_build_object('reused',false)",
+  "brinesearch_issue97_graph_build_release_current(",
+  "where member.manifest_id=p_manifest_id",
+]) need(statePrepare, token, `strict state prepare ${token}`);
+for (const token of [
+  "drop table",
+  "status in ('active','validated')",
+  "brinesearch_issue97_prepare_graph_release_current_cache();",
+]) forbid(statePrepare, token, `strict state prepare forbidden fallback ${token}`);
+
+const strictEnsureStart = manifestCache.indexOf(
+  "create or replace function private_verification.brinesearch_issue97_ensure_graph_release_current_cache_for_state_manifest(",
+);
+const strictEnsureEnd = manifestCache.indexOf(
+  "-- Patched corpus/solver callers",
+  strictEnsureStart,
+);
+const strictEnsure = manifestCache.slice(strictEnsureStart, strictEnsureEnd);
+need(strictEnsure, "brinesearch_issue97_validate_graph_release_current_cache_for_state_manifest(",
+  "strict state ensure validates exact context and set");
+forbid(strictEnsure, "brinesearch_issue97_prepare_graph_release_current_cache();",
+  "strict state ensure global fallback");
+
+const compatibilityEnsureStart = manifestCache.indexOf(
+  "create or replace function private_verification.brinesearch_issue97_ensure_graph_release_current_cache()\n",
+);
+const compatibilityEnsureEnd = manifestCache.indexOf(
+  "-- A declared or present state cache",
+  compatibilityEnsureStart,
+);
+const compatibilityEnsure = manifestCache.slice(
+  compatibilityEnsureStart,
+  compatibilityEnsureEnd,
+);
+need(compatibilityEnsure,
+  "brinesearch_issue97_ensure_graph_release_current_cache_for_state_manifest(",
+  "compatibility ensure strict state route");
+need(compatibilityEnsure, "if v_context_values=5 then",
+  "compatibility ensure complete state context gate");
+need(compatibilityEnsure, "if v_context_values not in (0,5) then",
+  "compatibility ensure partial context failure");
+need(compatibilityEnsure, "brinesearch_issue97_prepare_graph_release_current_cache();",
+  "separate legacy generic diagnostic fallback");
 for (const token of [
   "set local statement_timeout='91min'",
   "set local statement_timeout='120min'",
 ]) forbid(manifestCache, token, `manifest-cache timeout workaround ${token}`);
 
 for (const token of [
+  "\\set ON_ERROR_STOP on",
+  "begin;",
+  "set local statement_timeout='15min'",
+  "set local lock_timeout='2min'",
+  "\\ir ../migrations/20260816160000_issue97_manifest_bound_release_current_cache.sql",
+  "tmp_issue97_manifest_cache_test_baseline",
+  "historical/nonmember cache exclusion failed",
+  "reused=false",
+  "reused=true",
+  "cache_relfilenode",
+  "preparation_token",
+  "full predicate was recomputed",
+  "savepoint issue97_no_recompute",
+  "11111111-1111-4111-8111-111111111111",
+  "expected transaction state-manifest context is partial",
+  "drop table pg_temp.tmp_issue97_graph_release_current_cache_context",
+  "drop table pg_temp.tmp_issue97_graph_release_current_cache",
+  "set manifest_digest='00000000000000000000000000000000'",
+  "set member_count=18",
+  "set current=false",
+  "cache context requires exactly one row",
+  "generic contextual full-live predicate compatibility failed",
+  "rollback;",
+]) need(manifestCacheRegression, token, `manifest cache executable regression ${token}`);
+assert.equal(count(manifestCacheRegression, "rollback;"), 1,
+  "manifest cache executable regression must finish with one outer rollback");
+need(packageJson,
+  '"verify:issue97-ohio-completion": "node v17/scripts/audit-issue97-ohio-completion-lane.mjs"',
+  "manifest cache regression must be wired through the required Ohio audit/build path");
+
+for (const token of [
+  "c41f5320-1273-470c-a316-28b42211d697",
   "issue97-ohio-r2-final-candidate",
   "brinesearch_issue97_state_candidate_manifest_current",
   "9867f2352ac1b7276d057a83edd95d5f",
@@ -231,7 +318,19 @@ for (const token of [
   "cache_miss_policy",
   "fail_closed",
   "release_current_count",
+  "brinesearch.issue97_expected_state_manifest_id",
+  "brinesearch.issue97_expected_state_manifest_digest",
+  "brinesearch.issue97_expected_state_code",
+  "brinesearch.issue97_expected_generation_key",
+  "brinesearch.issue97_expected_member_count",
+  "v_manifest.id,v_manifest.manifest_digest,v_manifest.state_code",
+  "v_manifest.generation_key,v_manifest.member_count",
+  "v_cache->>'reused'<>'false'",
 ]) need(reconcile, token, `dark reconciliation ${token}`);
+assert.equal(count(reconcile, "c41f5320-1273-470c-a316-28b42211d697"), 4,
+  "every one of the four Ohio manifest lookups must pin the exact manifest UUID");
+assert.equal(count(reconcile, "issue97-ohio-r2-final-candidate"), 4,
+  "every one of the four Ohio manifest lookups must retain the exact key pin");
 need(reconcile, "set local statement_timeout='15min'",
   "dark reconciliation preflight must retain a finite bound above the observed five-minute runtime");
 need(reconcile, "set local statement_timeout='90min'",
