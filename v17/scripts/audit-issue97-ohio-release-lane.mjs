@@ -323,8 +323,10 @@ for (const token of [
   "v_sources<>38 or v_current_sources<>38",
   "brinesearch_issue97_graph_build_release_current",
   "brinesearch_issue97_run_all_pad_routing_pipeline_geometry_core",
-  "non_ohio_receipt_digest",
-  "non_ohio_receipts_unchanged",
+  "non_ohio_graph_digest",
+  "non_ohio_route_digest",
+  "non_ohio_graph_unchanged",
+  "non_ohio_routes_unchanged",
   "public_google_dark",
   "set local statement_timeout='90min'",
 ]) need(ohioDirections, token, `Ohio dark direction batch ${token}`);

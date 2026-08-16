@@ -12,10 +12,12 @@ set local statement_timeout='5min';
 
 do $issue97_ohio_direction_preflight$
 declare
+  v_manifest record;
   v_counties integer;
   v_sources integer;
   v_current_sources integer;
   v_pads integer;
+  v_pad_digest text;
 begin
   if public.brinesearch_issue97_cutover_active() then
     raise exception 'Issue #97 Ohio dark directions require global cutover OFF';
@@ -28,6 +30,27 @@ begin
         and activity.state in ('active','idle in transaction','idle in transaction (aborted)')
         and activity.query ilike '%brinesearch_issue97_rebuild_county_graph%') then
     raise exception 'Issue #97 Ohio dark directions refuse an active graph builder';
+  end if;
+
+  select manifest.* into strict v_manifest
+  from private_verification.brinesearch_issue97_state_candidate_manifests manifest
+  where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+    and manifest.state_code='OH' and manifest.member_count=19
+    and manifest.generation_key='issue97-release-20260815-r2';
+  if not private_verification.brinesearch_issue97_state_candidate_manifest_current(v_manifest.id)
+     or v_manifest.review_details->>'global_cutover_authorized'<>'false'
+     or v_manifest.review_details->>'ohio_non_list_only_pad_count'<>'940'
+     or v_manifest.review_details->>'ohio_pad_scope_digest'<>'9867f2352ac1b7276d057a83edd95d5f'
+     or (select count(*)
+       from private_verification.brinesearch_issue97_state_candidate_manifest_members member
+       join public.brinesearch_road_graph_builds build
+         on build.id=(member.member_value->>'build_id')::uuid
+        and build.state_code='OH' and build.county_code=member.member_value->>'county_code'
+        and build.graph_digest=member.member_value->>'graph_digest'
+        and build.status='active'
+        and private_verification.brinesearch_issue97_graph_build_release_current(build.id)
+       where member.manifest_id=v_manifest.id)<>19 then
+    raise exception 'Issue #97 Ohio dark directions require the exact current 19-member audited Ohio activation manifest';
   end if;
 
   select count(*)::integer into v_counties
@@ -56,44 +79,71 @@ begin
       v_current_sources,v_sources;
   end if;
 
-  select count(*)::integer into v_pads
+  select count(*)::integer,pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pad.id::text||':'||pad.legacy_id,'|' order by pad.id
+  ),'')) into v_pads,v_pad_digest
   from public.pads pad
   where pad.state='Ohio' and coalesce(pad.list_only,false)=false;
-  if v_pads<>940 then
-    raise exception 'Issue #97 reviewed Ohio non-list-only pad denominator changed; expected 940 found %',v_pads;
+  if v_pads<>940 or v_pad_digest<>'9867f2352ac1b7276d057a83edd95d5f' then
+    raise exception 'Issue #97 reviewed Ohio pad scope changed; expected 940 / 9867f2352ac1b7276d057a83edd95d5f found % / %',
+      v_pads,v_pad_digest;
+  end if;
+  if (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>0
+     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0 then
+    raise exception 'Issue #97 Ohio dark directions require global saved-road reconciliation and public Google projection still dark';
   end if;
 end
 $issue97_ohio_direction_preflight$;
 
--- Exact non-Ohio receipt snapshot. The postcheck recomputes this digest rather
--- than relying on timestamps, so unrelated old rows cannot create a false alarm.
-select pg_catalog.md5(pg_catalog.concat_ws('|',
+-- Exact non-Ohio graph/receipt snapshot. The postcheck recomputes these digests
+-- rather than relying on timestamps, and also compares them to the manifest's
+-- immutable pre-activation baseline.
+select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+  build.id::text||':'||build.state_code||':'||build.county_code||':'||build.status||':'||
+    coalesce(build.activated_at::text,'')||':'||coalesce(build.graph_digest,'')||':'||build.details::text,
+  '|' order by build.id
+),'')) as non_ohio_graph_digest,
+(select pg_catalog.md5(pg_catalog.concat_ws('|',
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.occurrence_index
     ),''))
    from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.boundary_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.boundary_index
     ),''))
    from private_verification.brinesearch_route_transition_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.occurrence_index
     ),''))
    from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id
     ),''))
    from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio')
-)) as non_ohio_receipt_digest
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania'))
+))) as non_ohio_route_digest
+from public.brinesearch_road_graph_builds build
+where build.state_code in ('WV','PA')
 \gset issue97_before_
+
+select manifest.review_details->>'non_ohio_graph_digest'=:'issue97_before_non_ohio_graph_digest'
+    and manifest.review_details->>'non_ohio_route_digest'=:'issue97_before_non_ohio_route_digest'
+    as matches_manifest_baseline
+from private_verification.brinesearch_issue97_state_candidate_manifests manifest
+where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+\gset issue97_before_manifest_
+
+\if :issue97_before_manifest_matches_manifest_baseline
+\else
+  do $fail$ begin raise exception 'Issue #97 non-Ohio state changed after the audited Ohio manifest'; end $fail$;
+\endif
 
 rollback;
 
@@ -104,9 +154,50 @@ set local lock_timeout='2min';
 do $issue97_ohio_direction_batch$
 declare
   pad_row record;
+  v_manifest record;
   v_processed integer:=0;
+  v_pads integer;
+  v_pad_digest text;
 begin
-  if public.brinesearch_issue97_cutover_active()
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:ohio-state-release')
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('brinesearch:issue97:all-pad-routing-pipeline',97)
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtextextended('brinesearch:issue97:route-corpus',97)
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:saved-road-reconciliation')
+  );
+  perform pg_catalog.pg_advisory_xact_lock(
+    pg_catalog.hashtext('brinesearch:issue97:mapping-refresh')
+  );
+
+  select manifest.* into strict v_manifest
+  from private_verification.brinesearch_issue97_state_candidate_manifests manifest
+  where manifest.manifest_key='issue97-ohio-r2-final-candidate'
+    and manifest.state_code='OH' and manifest.member_count=19;
+  select count(*)::integer,pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pad.id::text||':'||pad.legacy_id,'|' order by pad.id
+  ),'')) into v_pads,v_pad_digest
+  from public.pads pad
+  where pad.state='Ohio' and coalesce(pad.list_only,false)=false;
+
+  if not private_verification.brinesearch_issue97_state_candidate_manifest_current(v_manifest.id)
+     or v_pads<>940 or v_pad_digest<>'9867f2352ac1b7276d057a83edd95d5f'
+     or (select count(*)
+       from private_verification.brinesearch_issue97_state_candidate_manifest_members member
+       join public.brinesearch_road_graph_builds build
+         on build.id=(member.member_value->>'build_id')::uuid
+        and build.state_code='OH'
+        and build.county_code=member.member_value->>'county_code'
+        and build.graph_digest=member.member_value->>'graph_digest'
+        and build.status='active'
+        and private_verification.brinesearch_issue97_graph_build_release_current(build.id)
+       where member.manifest_id=v_manifest.id)<>19
+     or public.brinesearch_issue97_cutover_active()
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging') then
     raise exception 'Issue #97 Ohio dark direction execution guard failed';
   end if;
@@ -126,45 +217,84 @@ begin
 end
 $issue97_ohio_direction_batch$;
 
-commit;
-
-begin read only;
-set local statement_timeout='5min';
-
-select pg_catalog.md5(pg_catalog.concat_ws('|',
+-- Verify all isolation and dark-state invariants before committing the batch.
+with manifest as (
+  select * from private_verification.brinesearch_issue97_state_candidate_manifests
+  where manifest_key='issue97-ohio-r2-final-candidate'
+), current_non_ohio as (
+  select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    build.id::text||':'||build.state_code||':'||build.county_code||':'||build.status||':'||
+      coalesce(build.activated_at::text,'')||':'||coalesce(build.graph_digest,'')||':'||build.details::text,
+    '|' order by build.id
+  ),'')) as graph_digest,
+  (select pg_catalog.md5(pg_catalog.concat_ws('|',
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.occurrence_index
     ),''))
    from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.boundary_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.boundary_index
     ),''))
    from private_verification.brinesearch_route_transition_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id,receipt.occurrence_index
     ),''))
    from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio'),
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania')),
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.receipt_digest,
       '|' order by receipt.route_prep_id
     ),''))
    from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
-   join public.pads pad on pad.id=receipt.pad_id where pad.state<>'Ohio')
-))=:'issue97_before_non_ohio_receipt_digest' as non_ohio_receipts_unchanged,
-not public.brinesearch_issue97_cutover_active() as cutover_off,
-not exists(select 1 from public.brinesearch_road_graph_builds where status='staging') as no_staging,
-(select count(*) from public.brinesearch_driver_google_routes_public)=0 as public_google_dark
+   join public.pads pad on pad.id=receipt.pad_id where pad.state in ('West Virginia','Pennsylvania'))
+  ))) as route_digest
+  from public.brinesearch_road_graph_builds build where build.state_code in ('WV','PA')
+), ohio_receipts as (
+  select count(distinct receipt.pad_id)::integer as receipt_pads,
+    count(*) filter(where receipt.route_status='route_ready')::integer as route_ready,
+    count(*) filter(where receipt.route_status='needs_review')::integer as needs_review,
+    count(*) filter(where receipt.route_status='stale')::integer as stale
+  from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
+  join public.brinesearch_route_prep route on route.id=receipt.route_prep_id
+    and route.active and route.route_group='primary'
+  join public.pads pad on pad.id=receipt.pad_id
+  where pad.state='Ohio' and coalesce(pad.list_only,false)=false
+)
+select current_non_ohio.graph_digest=:'issue97_before_non_ohio_graph_digest'
+    and current_non_ohio.graph_digest=manifest.review_details->>'non_ohio_graph_digest'
+    as non_ohio_graph_unchanged,
+  current_non_ohio.route_digest=:'issue97_before_non_ohio_route_digest'
+    and current_non_ohio.route_digest=manifest.review_details->>'non_ohio_route_digest'
+    as non_ohio_routes_unchanged,
+  private_verification.brinesearch_issue97_state_candidate_manifest_current(manifest.id)
+    as manifest_current,
+  not public.brinesearch_issue97_cutover_active() as cutover_off,
+  not exists(select 1 from public.brinesearch_road_graph_builds where status='staging') as no_staging,
+  (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)=0
+    as global_reconciliation_dark,
+  (select count(*) from public.brinesearch_driver_google_routes_public)=0 as public_google_dark,
+  pg_catalog.jsonb_build_object('active_primary_receipt_pads',ohio_receipts.receipt_pads,
+    'route_ready',ohio_receipts.route_ready,'needs_review',ohio_receipts.needs_review,
+    'stale',ohio_receipts.stale) as ohio_receipt_summary
+from current_non_ohio cross join manifest cross join ohio_receipts
 \gset issue97_after_
 
-\if :issue97_after_non_ohio_receipts_unchanged
+\if :issue97_after_non_ohio_graph_unchanged
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch changed non-Ohio graph state'; end $fail$;
+\endif
+\if :issue97_after_non_ohio_routes_unchanged
 \else
   do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch changed non-Ohio route receipts'; end $fail$;
+\endif
+\if :issue97_after_manifest_current
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch invalidated the Ohio state manifest'; end $fail$;
 \endif
 \if :issue97_after_cutover_off
 \else
@@ -174,10 +304,15 @@ not exists(select 1 from public.brinesearch_road_graph_builds where status='stag
 \else
   do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch left a staging graph'; end $fail$;
 \endif
+\if :issue97_after_global_reconciliation_dark
+\else
+  do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch ran global saved-road reconciliation'; end $fail$;
+\endif
 \if :issue97_after_public_google_dark
 \else
   do $fail$ begin raise exception 'Issue #97 Ohio dark direction batch populated public Google routes before cutover'; end $fail$;
 \endif
 
 commit;
-\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 940 pads; non-Ohio receipts unchanged; Google/public cutover remains dark.'
+\echo :issue97_after_ohio_receipt_summary
+\echo 'Issue #97 Ohio-only dark direction reconciliation completed for 940 pads; exact state manifest remains current; non-Ohio graph/routes unchanged; global reconciliation, Google publication and cutover remain dark.'
