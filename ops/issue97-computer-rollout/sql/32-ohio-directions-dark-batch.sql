@@ -36,7 +36,8 @@ begin
   from private_verification.brinesearch_issue97_state_candidate_manifests manifest
   where manifest.manifest_key='issue97-ohio-r2-final-candidate'
     and manifest.state_code='OH' and manifest.member_count=19
-    and manifest.generation_key='issue97-release-20260815-r2';
+    and manifest.generation_key='issue97-release-20260815-r2'
+    and manifest.manifest_digest='9763dc5bb626da71881b7381ed28a436';
   if not private_verification.brinesearch_issue97_state_candidate_manifest_current(v_manifest.id)
      or v_manifest.review_details->>'global_cutover_authorized'<>'false'
      or v_manifest.review_details->>'ohio_non_list_only_pad_count'<>'940'
@@ -155,6 +156,7 @@ do $issue97_ohio_direction_batch$
 declare
   pad_row record;
   v_manifest record;
+  v_cache jsonb;
   v_processed integer:=0;
   v_pads integer;
   v_pad_digest text;
@@ -178,28 +180,54 @@ begin
   select manifest.* into strict v_manifest
   from private_verification.brinesearch_issue97_state_candidate_manifests manifest
   where manifest.manifest_key='issue97-ohio-r2-final-candidate'
-    and manifest.state_code='OH' and manifest.member_count=19;
+    and manifest.state_code='OH' and manifest.member_count=19
+    and manifest.generation_key='issue97-release-20260815-r2'
+    and manifest.manifest_digest='9763dc5bb626da71881b7381ed28a436';
   select count(*)::integer,pg_catalog.md5(coalesce(pg_catalog.string_agg(
     pad.id::text||':'||pad.legacy_id,'|' order by pad.id
   ),'')) into v_pads,v_pad_digest
   from public.pads pad
   where pad.state='Ohio' and coalesce(pad.list_only,false)=false;
 
-  if not private_verification.brinesearch_issue97_state_candidate_manifest_current(v_manifest.id)
+  if v_manifest.review_details->>'global_cutover_authorized'<>'false'
+     or v_manifest.review_details->>'ohio_non_list_only_pad_count'<>'940'
+     or v_manifest.review_details->>'ohio_pad_scope_digest'<>'9867f2352ac1b7276d057a83edd95d5f'
      or v_pads<>940 or v_pad_digest<>'9867f2352ac1b7276d057a83edd95d5f'
-     or (select count(*)
-       from private_verification.brinesearch_issue97_state_candidate_manifest_members member
-       join public.brinesearch_road_graph_builds build
-         on build.id=(member.member_value->>'build_id')::uuid
-        and build.state_code='OH'
-        and build.county_code=member.member_value->>'county_code'
-        and build.graph_digest=member.member_value->>'graph_digest'
-        and build.status='active'
-        and private_verification.brinesearch_issue97_graph_build_release_current(build.id)
-       where member.manifest_id=v_manifest.id)<>19
      or public.brinesearch_issue97_cutover_active()
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging') then
     raise exception 'Issue #97 Ohio dark direction execution guard failed';
+  end if;
+
+  -- Prepare one immutable, exact-manifest release-current snapshot before the
+  -- 940-pad loop. Corpus/solver/transition consumers reuse it; an unknown build
+  -- is false and cannot become route truth mid-transaction.
+  v_cache:=private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(
+    v_manifest.id
+  );
+  if v_cache->>'manifest_id'<>v_manifest.id::text
+     or v_cache->>'manifest_digest'<>'9763dc5bb626da71881b7381ed28a436'
+     or v_cache->>'state_code'<>'OH'
+     or v_cache->>'generation_key'<>'issue97-release-20260815-r2'
+     or v_cache->>'member_count'<>'19'
+     or v_cache->>'release_current_count'<>'19'
+     or v_cache->>'source_scope_count'<>'38'
+     or v_cache->>'cache_scope'<>'exact_state_manifest'
+     or v_cache->>'cache_miss_policy'<>'fail_closed'
+     or v_cache->>'global_cutover_authorized'<>'false'
+     or (select count(*)
+       from pg_temp.tmp_issue97_graph_release_current_cache_context context
+       where context.manifest_id=v_manifest.id
+         and context.manifest_digest='9763dc5bb626da71881b7381ed28a436'
+         and context.state_code='OH'
+         and context.generation_key='issue97-release-20260815-r2'
+         and context.member_count=19
+         and context.source_scope_count=38)<>1
+     or (select count(*) from pg_temp.tmp_issue97_graph_release_current_cache)<>19
+     or exists(
+       select 1 from pg_temp.tmp_issue97_graph_release_current_cache cache
+       where not cache.current
+     ) then
+    raise exception 'Issue #97 Ohio exact manifest-bound cache preparation failed';
   end if;
 
   for pad_row in

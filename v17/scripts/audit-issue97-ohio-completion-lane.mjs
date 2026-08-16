@@ -25,6 +25,9 @@ const verifyActive = read("ops/issue97-computer-rollout/sql/31-verify-ohio-state
 const reconcile = read("ops/issue97-computer-rollout/sql/32-ohio-directions-dark-batch.sql");
 const report = read("ops/issue97-computer-rollout/sql/33-ohio-directions-report.sql");
 const status = read("ops/issue97-computer-rollout/sql/34-ohio-release-status.sql");
+const manifestCache = read(
+  "supabase/migrations/20260816160000_issue97_manifest_bound_release_current_cache.sql",
+);
 
 for (const token of [
   'expected_service="brinesearch_issue97_prod"',
@@ -168,6 +171,46 @@ need(verifyActive, "set local statement_timeout='15min'",
   "post-activation verifier must retain a finite bound above the observed five-minute runtime");
 
 for (const token of [
+  "brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest",
+  "brinesearch_issue97_state_candidate_manifest_integrity",
+  "brinesearch_issue97_active_graph_release_generation",
+  "brinesearch_issue97_dataset_scope_current",
+  "member.member_value->>'build_id'",
+  "build.graph_digest=member.member_value->>'graph_digest'",
+  "build.source_revision_digest=member.member_value->>'source_revision_digest'",
+  "build.status='active'",
+  "cache_scope','exact_state_manifest'",
+  "cache_miss_policy','fail_closed'",
+  "brinesearch_issue97_ensure_graph_release_current_cache",
+  "brinesearch_issue97_graph_build_release_current_contextual",
+  "cbfcec5e9f814399f1ec69ee4974cb4b",
+  "e9e0b2d7000c21595ef102fb99f4cb6c",
+  "9e381ce3e36b4c05483992d11e642b01",
+  "v_matches<>7",
+  "from public,anon,authenticated,service_role",
+]) need(manifestCache, token, `manifest-bound cache migration ${token}`);
+assert.equal(
+  count(
+    manifestCache,
+    "perform private_verification.brinesearch_issue97_ensure_graph_release_current_cache();",
+  ),
+  3,
+  "manifest-bound migration must define one ensure call and patch exactly two hot-path callers",
+);
+assert.equal(
+  count(
+    manifestCache,
+    "private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
+  ),
+  3,
+  "manifest-bound helper must be defined, revoked and privilege-verified exactly",
+);
+for (const token of [
+  "set local statement_timeout='91min'",
+  "set local statement_timeout='120min'",
+]) forbid(manifestCache, token, `manifest-cache timeout workaround ${token}`);
+
+for (const token of [
   "issue97-ohio-r2-final-candidate",
   "brinesearch_issue97_state_candidate_manifest_current",
   "9867f2352ac1b7276d057a83edd95d5f",
@@ -179,9 +222,39 @@ for (const token of [
   "non_ohio_routes_unchanged",
   "global_reconciliation_dark",
   "public_google_dark",
+  "9763dc5bb626da71881b7381ed28a436",
+  "brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest",
+  "tmp_issue97_graph_release_current_cache_context",
+  "tmp_issue97_graph_release_current_cache",
+  "cache_scope",
+  "exact_state_manifest",
+  "cache_miss_policy",
+  "fail_closed",
+  "release_current_count",
 ]) need(reconcile, token, `dark reconciliation ${token}`);
 need(reconcile, "set local statement_timeout='15min'",
   "dark reconciliation preflight must retain a finite bound above the observed five-minute runtime");
+need(reconcile, "set local statement_timeout='90min'",
+  "dark reconciliation write must retain the reviewed finite 90-minute bound");
+assert.equal(
+  count(
+    reconcile,
+    "private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
+  ),
+  1,
+  "Ohio dark reconciliation must prepare the exact state-manifest cache once",
+);
+assert.ok(
+  reconcile.indexOf(
+    "private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
+  ) < reconcile.indexOf("for pad_row in"),
+  "Ohio exact manifest cache must be prepared before the 940-pad loop",
+);
+assert.equal(
+  count(reconcile, "private_verification.brinesearch_issue97_prepare_graph_release_current_cache();"),
+  0,
+  "Ohio dark reconciliation must never invoke the global all-build cache",
+);
 assert.equal(count(reconcile.toLowerCase(), "commit;"), 1,
   "Ohio dark reconciliation must commit exactly once after all postchecks");
 assert.ok(reconcile.indexOf("non_ohio_graph_unchanged") < reconcile.toLowerCase().lastIndexOf("commit;"),
@@ -219,4 +292,4 @@ for (const token of [
 need(report, "join primary_routes route on route.id=receipt.route_prep_id", "Ohio readiness report current active-primary receipt scope");
 assert(!/\blimit\s+\d+\s*;/i.test(report), "Ohio readiness report must emit the complete exception queue without a row cap");
 
-console.log("Issue #97 fixed whole-Ohio 19/19 completion gate, immutable exact state manifest, zero-impact serial manifest activation, pre-commit Ohio-only dark reconciliation isolation, durable recovery status, and readiness/fixture reporting audit passed.");
+console.log("Issue #97 fixed whole-Ohio 19/19 completion gate, immutable exact state manifest, one-time fail-closed manifest-bound release-current snapshot, zero-impact serial manifest activation, pre-commit Ohio-only dark reconciliation isolation, durable recovery status, and readiness/fixture reporting audit passed.");
