@@ -32,10 +32,11 @@ forbid(sql,/brinesearch_issue97_rebuild_county_graph|activate_.*graph|global.*cu
 requireMatch(js,/editorIsOwner\(\)/,"UI must enforce owner access");
 requireMatch(js,/owner_approved_routes_map_viewport/,"map must use owner-only bounded viewport RPC");
 requireMatch(js,/owner_approved_routes_map_road_detail/,"road details must use owner-only RPC");
+requireMatch(js,/owner_approved_routes_map_pad_options/,"pad selector must use owner-only RPC");
 requireMatch(js,/tile\.openstreetmap\.org/,"feature must reuse existing OSM raster slippy-map approach");
 requireMatch(js,/Reference-only roads are not approved\./,"legend must explicitly state reference roads are not approved");
 forbid(js,/service_role|SUPABASE_SERVICE|database password|connection string/i,"frontend must not contain privileged credentials");
 forbid(js,/method:\s*["'](?:PUT|PATCH|DELETE)["']/i,"read-only map module must not issue mutations");
-forbid(js,/\/rest\/v1\/(?!rpc\/owner_approved_routes_map_)/i,"feature data must stay behind dedicated owner RPCs");
+forbid(js,/\/rest\/v1\/(?:pads|brinesearch_roads|brinesearch_authoritative|editor_accounts)/i,"feature must not query underlying tables directly");
 
 console.log("Issue #108 static owner-map audit passed.");
