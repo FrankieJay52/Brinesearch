@@ -411,7 +411,7 @@ for (const token of [
 
 assert.equal(
   pkg.scripts["verify:issue97-computer-rollout"],
-  "node v17/scripts/audit-issue97-computer-rollout.mjs && node v17/scripts/audit-issue97-terminal-private-installer.mjs",
+  "node v17/scripts/audit-issue97-computer-rollout.mjs && node v17/scripts/audit-issue97-terminal-private-installer.mjs && node v17/scripts/audit-issue97-directional-highway-installer.mjs",
   "Issue #97 computer rollout audit must be directly runnable"
 );
 assert.ok(
