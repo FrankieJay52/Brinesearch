@@ -38,7 +38,7 @@ revoke all on function private_verification.brinesearch_issue97_current_verified
 comment on function private_verification.brinesearch_issue97_current_verified_run_id(
   uuid,text,text
 ) is
-  'Issue #97 current source-generation selector: newest verified-complete run only when the exact dataset scope remains current.';
+  'Issue #97 current source-generation selector: newest verified-complete run only when the exact dataset/state/county scope remains current. This follows dataset_scope_current and intentionally does not depend on an obsolete saved-run pointer schema contract.';
 
 create or replace function private_verification.brinesearch_issue97_transition_google_dependency(
   p_pad_id uuid
@@ -942,10 +942,28 @@ begin
     );
   end if;
 
-  select r.* into strict v_route
-  from public.brinesearch_route_prep r
-  where r.id=(v_receipt.manifest->>'route_prep_id')::uuid
-    and r.pad_id=p_pad_id and r.active and r.route_group='primary';
+  -- A stale/tampered private receipt must hold this pad without aborting a
+  -- multi-pad public projection. The exact route id is only a projection
+  -- receipt lookup; it never becomes a fallback route-selection input.
+  if coalesce(v_receipt.manifest->>'route_prep_id','') ~
+       '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' then
+    select r.* into v_route
+    from public.brinesearch_route_prep r
+    where r.id=(v_receipt.manifest->>'route_prep_id')::uuid
+      and r.pad_id=p_pad_id and r.active and r.route_group='primary';
+  end if;
+  if not found or v_route.id is null then
+    delete from public.brinesearch_driver_google_routes_public where pad_id=p_pad_id;
+    update public.pads set
+      brinesearch_google_route_status_issue97='held',
+      brinesearch_google_route_revision_issue97=v_revision
+    where id=p_pad_id;
+    return pg_catalog.jsonb_build_object(
+      'pad_id',p_pad_id,'route_revision',v_revision,'status','held',
+      'hold_reason','private_dark_google_manifest_route_not_current',
+      'public_projected',false,'private_manifest_status',v_receipt.status
+    );
+  end if;
 
   insert into public.brinesearch_driver_google_routes_public(
     pad_id,legacy_id,route_revision,source_revision,manifest

@@ -14,6 +14,13 @@ const migration = read(
 const regression = read(
   "supabase/tests/issue97_dark_google_readiness_stage_semantics.sql"
 );
+const publicLoader = read("v17/src/parts/00ac-authoritative-google-routes-issue97.js");
+const publicPolicy = read(
+  "supabase/migrations/20260813174828_issue97_google_route_dispatcher_policy_readiness.sql"
+);
+const originalGoogleSchema = read(
+  "supabase/migrations/20260811233500_issue97_automatic_google_routes.sql"
+);
 
 const functionBody = name => {
   const start = migration.toLowerCase().indexOf(`create or replace function ${name}`.toLowerCase());
@@ -24,6 +31,9 @@ const functionBody = name => {
 
 const dependency = functionBody(
   "private_verification.brinesearch_issue97_transition_google_dependency("
+);
+const currentVerifiedRun = functionBody(
+  "private_verification.brinesearch_issue97_current_verified_run_id("
 );
 const darkHold = functionBody(
   "private_verification.brinesearch_issue97_hold_google_route_dark("
@@ -49,6 +59,22 @@ const pipeline = functionBody(
 const routeReceipt = functionBody(
   "private_verification.brinesearch_issue97_refresh_route_receipt("
 );
+
+for (const token of [
+  "brinesearch_issue97_dataset_scope_current(",
+  "brinesearch_issue97_ingest_run_verified(r.id)",
+  "r.dataset_id=p_dataset_id",
+  "r.state_code=p_state_code",
+  "r.county_code=p_county_code",
+  "order by r.started_at desc,r.id desc",
+  "else null",
+]) assert.ok(currentVerifiedRun.includes(token),
+  `Issue #97 newest-verified exact-scope helper missing: ${token}`);
+assert.ok(!migration.includes("last_success_run_id"),
+  "Issue #97 migration must not revive the nonexistent last_success_run_id contract");
+assert.ok(currentVerifiedRun.indexOf("brinesearch_issue97_dataset_scope_current(") <
+  currentVerifiedRun.indexOf("brinesearch_issue97_ingest_run_verified(r.id)"),
+  "Issue #97 source helper must gate newest-verified selection on current scope");
 
 for (const token of [
   "brinesearch_issue97_current_verified_run_id",
@@ -110,6 +136,9 @@ for (const token of [
   "v_receipt.manifest",
   "brinesearch_driver_google_routes_public",
   "brinesearch_google_route_status_issue97='ready'",
+  "private_dark_google_manifest_route_not_current",
+  "source_revision,manifest",
+  "v_route.updated_at,v_receipt.manifest",
 ]) assert.ok(projection.includes(token), `Issue #97 public projection gate missing: ${token}`);
 for (const forbidden of [
   "tmp_issue97_transition_google_",
@@ -117,8 +146,19 @@ for (const forbidden of [
   "brinesearch_authoritative_road_identities",
   "generate_series",
 ]) assert.ok(!projection.includes(forbidden), `Issue #97 public projection reconstructs route evidence: ${forbidden}`);
+assert.ok(!projection.includes("into strict v_route"),
+  "Issue #97 one stale route reference must not abort the whole projection batch");
 assert.ok(publicCurrent.includes("transition_google_dark_current(p_pad_id)"));
 assert.ok(publicCurrent.includes("brinesearch_issue97_cutover_active"));
+assert.match(originalGoogleSchema, /source_revision\s+timestamptz\s+not null/i,
+  "Issue #97 public source_revision must remain timestamptz");
+
+// route_ready is private exact/dark readiness. Driver UI consumes only the RLS-
+// gated public projection, whose policy invokes complete cutover/currentness.
+assert.ok(publicLoader.includes("brinesearch_driver_google_routes_public"));
+assert.ok(!publicLoader.includes("brinesearch_route_reconciliation_receipts_issue97"));
+assert.ok(publicPolicy.includes("public.brinesearch_issue97_google_route_current(pad_id)"));
+assert.ok(routeReceipt.includes("public_google_projection_required_separately"));
 
 assert.ok(darkBatch.includes("refresh_google_route_transition_dark"));
 assert.ok(!darkBatch.includes("refresh_google_route_transition("));
@@ -152,6 +192,16 @@ for (const token of [
   "\\ir ../migrations/20260817010000_issue97_dark_google_readiness_stage_semantics.sql",
   "issue97_dark_google_acl_assertions",
   "has_function_privilege",
+  "tmp_issue97_active_source_run_semantics",
+  "graph_run_id=newest_verified_run_id",
+  "helper_run_id=newest_verified_run_id",
+  "verified_run_count>1",
+  "issue97_source_scope_not_current",
+  "brinesearch_issue97_current_verified_run_id(",
+  "last_success_run_id",
+  "issue97_no_external_side_effects",
+  "pg_notify",
+  "extensions[.]http",
   "ascent--cologie",
   "ascent--bakos",
   "ascent--liggett",
@@ -164,15 +214,47 @@ for (const token of [
   "issue97_stale_source",
   "issue97_stale_mapping",
   "issue97_stale_geometry",
+  "issue97_projection_cutover_on",
+  "update public.brinesearch_issue97_release_state set",
+  "tmp_issue97_projection_insert_result",
+  "tmp_issue97_projection_update_result",
+  "issue97_projection_stale_private",
+  "issue97_assert_projection_route_hold",
+  "'missing','00000000-0000-0000-0000-000000000097'::uuid",
+  "'inactive'",
+  "'wrong_pad'",
+  "'non_primary'",
+  "issue97_public_current_private_manifest_digest",
+  "issue97_public_current_dependency_digest",
+  "issue97_public_current_route_revision",
+  "issue97_public_current_manifest",
+  "issue97_public_current_private_dependency",
+  "CUTOVER_ON_COLOGIE_PROJECTION",
   "identity_reconciliation",
   "canonical_mapping",
   "exact_geometry",
   "google_manifest",
   "rollback;",
 ]) assert.ok(regression.includes(token), `Issue #97 executable regression missing: ${token}`);
+assert.ok(regression.includes("pub.manifest=receipt.manifest"));
+assert.ok(regression.includes("pub.source_revision=route.updated_at"));
+assert.ok(regression.includes("public.brinesearch_issue97_google_route_current(p.id)"));
+assert.ok(regression.includes("rollback to savepoint issue97_projection_cutover_on"));
 assert.equal((regression.match(/\brollback;\s*$/gim) || []).length, 1,
   "Issue #97 executable regression must have one terminal outer ROLLBACK");
 assert.ok(!/\bcommit\s*;/i.test(regression), "Issue #97 regression must never commit");
+for (const unsafe of [
+  /pg_notify/i,
+  /\bnotify\b/i,
+  /pg_net/i,
+  /net\.http/i,
+  /extensions\.http/i,
+  /http_(get|post)/i,
+  /webhook/i,
+  /dblink/i,
+  /lo_export/i,
+]) assert.ok(!unsafe.test(migration),
+  `Issue #97 proposed migration contains an external side-effect marker: ${unsafe}`);
 assert.ok(!migration.includes("activate_graph_build"));
 assert.ok(!migration.includes("activate_cutover_without_google_routes"));
 assert.ok(!migration.includes("refresh_saved_road_reconciliation"));
