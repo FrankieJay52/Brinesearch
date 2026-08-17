@@ -43,7 +43,7 @@
     "verify:route-transitions": "node v17/scripts/audit-route-transition-receipts-issue97.mjs && node v17/scripts/audit-authoritative-occurrence-geometry-issue97.mjs && node v17/scripts/audit-saved-turn-geometry-ambiguity-issue97.mjs",
     "verify:transition-google-manifest": "node v17/scripts/audit-transition-google-manifest-issue97.mjs && node v17/scripts/audit-verified-run-transition-google-hardening-issue97.mjs && node v17/scripts/audit-issue97-dark-google-readiness.mjs",
     "verify:phase1-release-contract": "node v17/scripts/audit-phase1-release-contract-issue97.mjs",
-    "verify:issue97-computer-rollout": "node v17/scripts/audit-issue97-computer-rollout.mjs",
+    "verify:issue97-computer-rollout": "node v17/scripts/audit-issue97-computer-rollout.mjs && node v17/scripts/audit-issue97-terminal-private-installer.mjs",
     "verify:issue97-dark-batch": "node v17/scripts/audit-issue97-dark-batch.mjs",
     "verify:issue97-saved-road-gps": "node v17/scripts/audit-issue97-saved-road-gps-binding.mjs && node v17/scripts/audit-issue97-production-installer.mjs",
     "verify:issue97-odot-canonical-provenance": "node v17/scripts/audit-issue97-odot-canonical-provenance.mjs",
