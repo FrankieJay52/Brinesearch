@@ -31,6 +31,7 @@ includesAll(installer, [
   "PGPASSWORD must not be set",
   "DATABASE_URL SUPABASE_DB_URL SUPABASE_DATABASE_URL",
   "local HEAD ${local_head} does not equal fetched origin head ${remote_head}",
+  'attempt_file="${log_dir}/issue97-terminal-private-access-install.${current_head}.attempted"',
   "the one install attempt was already consumed",
   "begin read only; set local statement_timeout='15min'; set local lock_timeout='2min'",
   "brinesearch:issue97:ohio-state-release",

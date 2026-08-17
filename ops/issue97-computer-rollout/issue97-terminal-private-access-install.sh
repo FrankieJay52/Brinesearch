@@ -11,7 +11,7 @@ migration_md5="6bf6791912a3423ba28379efe681ba47"
 history_tag="issue97_migration_20260817020000"
 psql_bin="${repo_root}/.tools/postgresql17/bin/psql.exe"
 log_dir="${repo_root}/.issue97-runs"
-attempt_file="${log_dir}/20260817-terminal-private-access-reviewed-install.attempted"
+attempt_file=""
 current_head=""
 
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 2; }
@@ -30,6 +30,7 @@ require_checkpoint() {
   [[ "${local_head}" == "${remote_head}" ]] ||
     die "local HEAD ${local_head} does not equal fetched origin head ${remote_head}"
   current_head="${local_head}"
+  attempt_file="${log_dir}/issue97-terminal-private-access-install.${current_head}.attempted"
   printf 'Repository checkpoint: %s @ %s\n' "${expected_branch}" "${current_head}"
   [[ -x "${psql_bin}" ]] || die "reviewed PostgreSQL client is missing"
   [[ "${PGSERVICE:-}" == "brinesearch_issue97_prod" ]] ||
