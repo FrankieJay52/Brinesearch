@@ -39,7 +39,7 @@
     "verify:road-junction-browser": "node v17/scripts/browser-road-junction-issue97.mjs",
     "verify:google-route-plan": "node v17/scripts/verify-google-route-plan-issue97.mjs",
     "verify:all-pad-google-route-accounting": "node v17/scripts/verify-all-pad-google-route-accounting-issue97.mjs",
-    "verify:route-corpus-reconciliation": "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs && node v17/scripts/audit-oh-structured-route-candidates-issue97.mjs && node v17/scripts/audit-issue97-terminal-private-access.mjs",
+    "verify:route-corpus-reconciliation": "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs && node v17/scripts/audit-oh-structured-route-candidates-issue97.mjs && node v17/scripts/audit-issue97-terminal-private-access.mjs && node v17/scripts/audit-issue97-directional-highway-designations.mjs",
     "verify:route-transitions": "node v17/scripts/audit-route-transition-receipts-issue97.mjs && node v17/scripts/audit-authoritative-occurrence-geometry-issue97.mjs && node v17/scripts/audit-saved-turn-geometry-ambiguity-issue97.mjs",
     "verify:transition-google-manifest": "node v17/scripts/audit-transition-google-manifest-issue97.mjs && node v17/scripts/audit-verified-run-transition-google-hardening-issue97.mjs && node v17/scripts/audit-issue97-dark-google-readiness.mjs",
     "verify:phase1-release-contract": "node v17/scripts/audit-phase1-release-contract-issue97.mjs",
