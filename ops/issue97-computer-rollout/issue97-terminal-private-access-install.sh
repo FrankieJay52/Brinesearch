@@ -225,6 +225,18 @@ select pg_catalog.jsonb_build_object(
 SQL
 )"
 
+render_install_sql() {
+  printf '\\set ON_ERROR_STOP on\n'
+  printf 'begin;\nset local statement_timeout='\''15min'\'';\nset local lock_timeout='\''2min'\'';\n'
+  printf '%s\n%s\n' "${lock_sql}" "${guard_sql}"
+  sed 's/\r$//' "${repo_root}/${migration_file}"
+  printf '\ninsert into supabase_migrations.schema_migrations(version,statements,name) values ('\''%s'\'',ARRAY[$%s$' \
+    "${migration_version}" "${history_tag}"
+  sed 's/\r$//' "${repo_root}/${migration_file}"
+  printf '$%s$]::text[],'\''%s'\'');\n' "${history_tag}" "${migration_name}"
+  printf '%s\ncommit;\n' "${postflight_sql}"
+}
+
 main() {
   local before after sql_file log_file rc after_rc start_utc end_utc
   require_checkpoint "$@"
@@ -237,17 +249,7 @@ main() {
   sql_file="$(mktemp "${TMPDIR:-/tmp}/issue97-terminal-private-install.XXXXXX.sql")"
   log_file="${log_dir}/$(date -u +%Y%m%dT%H%M%SZ)-terminal-private-access-install.log"
   trap 'if [[ -n "${sql_file:-}" ]]; then rm -f -- "${sql_file}"; fi' EXIT
-  {
-    printf '\\set ON_ERROR_STOP on\n'
-    printf 'begin;\nset local statement_timeout='\''15min'\'';\nset local lock_timeout='\''2min'\'';\n'
-    printf '%s\n%s\n' "${lock_sql}" "${guard_sql}"
-    sed 's/\r$//' "${repo_root}/${migration_file}"
-    printf '\ninsert into supabase_migrations.schema_migrations(version,statements,name) values ('\''%s'\'',ARRAY[\$%s\$' \
-      "${migration_version}" "${history_tag}"
-    sed 's/\r$//' "${repo_root}/${migration_file}"
-    printf '$%s$]::text[],'\''%s'\'');\n' "${history_tag}" "${migration_name}"
-    printf '%s\ncommit;\n' "${postflight_sql}"
-  } >"${sql_file}"
+  render_install_sql >"${sql_file}"
 
   start_utc="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf 'INSTALL_START_UTC=%s\nMIGRATION_VERSION=%s\nMIGRATION_NAME=%s\nMIGRATION_GIT_BLOB=%s\nMIGRATION_SQL_MD5=%s\n' \
@@ -283,4 +285,6 @@ main() {
   trap - EXIT
 }
 
-main "$@"
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi
