@@ -218,6 +218,23 @@ begin
     raise exception 'Issue #97 Harrison HAR provenance remains after repair';
   end if;
   if (select count(*) from (values
+      ('1a1988a9-b0d5-4414-8abf-ebeda1ac1f32'::uuid,'897492ce936fdf7f5bd6b95d68742aa2'),
+      ('639b05f2-5dc6-4678-86bf-e7a0a775663b','9e0f50fe644065db9a9d3fa6d507c2fe'),
+      ('7fe5f642-bfdc-4d5f-9f54-85f9b15af741','b78fb63f3a5411206047e1511730d137'),
+      ('8382d2bf-d427-4a91-9afa-641885c71533','1595b2691d698f4f65e88e09ba9b543b'),
+      ('8da26948-222c-46ef-ac79-9d07ccd08c31','db194d136f9ddff5ef3f4f747ebc3bc2'),
+      ('c1eefe49-fe29-44fa-84b7-2cfe29180761','1944cf77d5c09d584ea73365fa5754d1'),
+      ('ebb77f8d-ed1b-4612-ae33-a0c0e64c0ae3','223b42dc8cfcfac2595550f66d886494'),
+      ('ed00b321-3e61-4e84-bbcb-7497a1ae4b90','ccbc75b20177295ec091bda23e130385'),
+      ('f0db4fa8-3900-4350-a31e-3d61128006f8','d4aa5720d6c1db69840ba9e3c409e3d1'),
+      ('f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965','61d4abe873aa430cf9f6f9dac71c871b')
+    ) expected(id,normalized_md5)
+    join public.brinesearch_roads road on road.id=expected.id
+      and pg_catalog.md5((pg_catalog.to_jsonb(road)-'geometry_checked_at'-'updated_at')::text)=
+        expected.normalized_md5)<>10 then
+    raise exception 'Issue #97 Harrison exact normalized ten-road outcomes drifted';
+  end if;
+  if (select count(*) from (values
       ('f0db4fa8-3900-4350-a31e-3d61128006f8'::uuid,'82d4acf0-4592-3c60-732f-ef07cb42796a'::uuid,'CHASCR00014**C|route:CR:14'),
       ('ebb77f8d-ed1b-4612-ae33-a0c0e64c0ae3','b0ec2efd-e511-2e2d-c481-eaf896757bbb','CHASCR00020**C|route:CR:20'),
       ('639b05f2-5dc6-4678-86bf-e7a0a775663b','83906bd8-9c10-e948-60e6-ed78a1ca34de','CHASCR00030**C|route:CR:30'),
@@ -260,10 +277,43 @@ begin
        ]::uuid[]) and mapping_status='verified') then
     raise exception 'Issue #97 Harrison Jones/CR-64 quarantine postcondition failed';
   end if;
-  if (select details->>'mapping_snapshot_digest' from public.brinesearch_road_graph_builds
-      where id='5ee5f97b-447f-41d3-946a-68a8b28d8367')<>'e50ef5799abf04d16c2ecb79d4db0651'
-     or (select details->>'mapping_snapshot_digest' from public.brinesearch_road_graph_builds
-         where id='542c35d5-a9ba-4b43-8a64-63a66f6b29e2')<>'7d0561a0f32e7432880d4ad39e5e7109'
+  if (select count(*) from (values
+      ('5ee5f97b-447f-41d3-946a-68a8b28d8367'::uuid,
+        'e50ef5799abf04d16c2ecb79d4db0651',
+        pg_catalog.jsonb_build_object(
+          'prior_mapping_snapshot_digest','a2a49ac4f11baa703f05a493cf331c35',
+          'new_mapping_snapshot_digest','e50ef5799abf04d16c2ecb79d4db0651',
+          'topology_changed',false,'source_run_vector_unchanged',true,
+          'graph_digest_recomputed','e9f4ed56bb2b1308b8b9913a751c78f5',
+          'point_junction_count',2522,'shared_segment_count',90,
+          'membership_count',5251,'bad_anchor_count',0,
+          'membership_current_mapping_mismatch_count',0,
+          'repair_scope','ten frozen Harrison HAR-contaminated Road Manager rows')),
+      ('542c35d5-a9ba-4b43-8a64-63a66f6b29e2'::uuid,
+        '7d0561a0f32e7432880d4ad39e5e7109',
+        pg_catalog.jsonb_build_object(
+          'prior_mapping_snapshot_digest','211361b9586652be5188687de7ee9af9',
+          'new_mapping_snapshot_digest','7d0561a0f32e7432880d4ad39e5e7109',
+          'topology_changed',false,'source_run_vector_unchanged',true,
+          'graph_digest_recomputed','1d8f6a52d2541e313932906f944b2f92',
+          'point_junction_count',1746,'shared_segment_count',57,
+          'membership_count',3550,'bad_anchor_count',0,
+          'membership_current_mapping_mismatch_count',0,
+          'repair_scope','ten frozen Harrison HAR-contaminated Road Manager rows'))
+    ) expected(id,mapping_digest,upgrade_proof)
+    join public.brinesearch_road_graph_builds build on build.id=expected.id
+      and build.details->>'mapping_snapshot_digest'=expected.mapping_digest
+      and build.details->>'mapping_snapshot_upgrade_reason'=
+        'harrison_har_to_has_wrong_geometry_repair'
+      and build.details->'mapping_snapshot_upgrade_proof'=expected.upgrade_proof)<>2
+     or not exists(select 1 from public.brinesearch_road_graph_builds build
+       where build.id='5ee5f97b-447f-41d3-946a-68a8b28d8367'
+         and build.graph_digest='e9f4ed56bb2b1308b8b9913a751c78f5'
+         and build.activated_at='2026-08-16 11:08:18.355674+00'::timestamptz)
+     or not exists(select 1 from public.brinesearch_road_graph_builds build
+       where build.id='542c35d5-a9ba-4b43-8a64-63a66f6b29e2'
+         and build.graph_digest='1d8f6a52d2541e313932906f944b2f92'
+         and build.activated_at='2026-08-16 11:08:18.355674+00'::timestamptz)
      or not private_verification.brinesearch_issue97_graph_build_release_current(
        '5ee5f97b-447f-41d3-946a-68a8b28d8367')
      or not private_verification.brinesearch_issue97_graph_build_release_current(
@@ -278,34 +328,106 @@ begin
          where state_code='OH' and status='active')<>
         '2026-08-16 11:08:18.355674+00'::timestamptz
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
+     or exists(select 1 from public.brinesearch_road_graph_builds
+       where state_code in ('WV','PA')
+         and details->>'release_generation_key'='issue97-release-20260815-r2')
      or public.brinesearch_issue97_cutover_active()
      or (select count(*) from public.brinesearch_driver_google_routes_public)<>0
      or (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>0 then
     raise exception 'Issue #97 Harrison protected rollout postcondition drifted';
+  end if;
+  if (select count(*) from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
+      join public.brinesearch_route_prep route on route.id=receipt.route_prep_id
+      join public.pads pad on pad.id=route.pad_id
+      where pad.state='Ohio' and route.active
+        and route.route_group in ('primary','alternate'))<>806 then
+    raise exception 'Issue #97 Ohio route receipt postcondition drifted';
+  end if;
+  if (select count(*) from public.brinesearch_road_source_dataset_counties scope
+      join public.brinesearch_road_source_datasets dataset
+        on dataset.id=scope.dataset_id and dataset.active
+      where scope.active and scope.ingest_enabled and scope.required_for_graph
+        and scope.state_code='OH')<>38
+     or exists(select 1 from public.brinesearch_road_source_dataset_counties scope
+       join public.brinesearch_road_source_datasets dataset
+         on dataset.id=scope.dataset_id and dataset.active
+       where scope.active and scope.ingest_enabled and scope.required_for_graph
+         and scope.state_code='OH'
+         and not private_verification.brinesearch_issue97_dataset_scope_current(
+           scope.dataset_id,scope.state_code,scope.county_code)) then
+    raise exception 'Issue #97 Ohio source-scope postcondition drifted';
   end if;
 end
 $issue97_harrison_install_postflight$;
 SQL
 )"
 
-protected_snapshot_sql="$(cat <<SQL
+protected_invariants_sql="$(cat <<'SQL'
 select pg_catalog.jsonb_build_object(
-  'reviewed_base',(${snapshot_sql%\;}),
-  'roads',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+  'non_target_roads',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     pg_catalog.to_jsonb(road)::text,'|' order by road.id),''))
-    from public.brinesearch_roads road),
+    from public.brinesearch_roads road
+    where road.id<>all(array[
+      '639b05f2-5dc6-4678-86bf-e7a0a775663b','8da26948-222c-46ef-ac79-9d07ccd08c31',
+      '8382d2bf-d427-4a91-9afa-641885c71533','f0db4fa8-3900-4350-a31e-3d61128006f8',
+      'ebb77f8d-ed1b-4612-ae33-a0c0e64c0ae3','7fe5f642-bfdc-4d5f-9f54-85f9b15af741',
+      'f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965','ed00b321-3e61-4e84-bbcb-7497a1ae4b90',
+      '1a1988a9-b0d5-4414-8abf-ebeda1ac1f32','c1eefe49-fe29-44fa-84b7-2cfe29180761'
+    ]::uuid[])),
   'mappings',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     pg_catalog.to_jsonb(mapping)::text,'|' order by mapping.id),''))
     from public.brinesearch_road_identity_mappings mapping),
-  'builds',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-    pg_catalog.to_jsonb(build)::text,'|' order by build.id),''))
+  'builds_except_authorized_mapping_receipts',(select pg_catalog.md5(coalesce(
+    pg_catalog.string_agg(case when build.id=any(array[
+      '5ee5f97b-447f-41d3-946a-68a8b28d8367','542c35d5-a9ba-4b43-8a64-63a66f6b29e2'
+    ]::uuid[]) then ((pg_catalog.to_jsonb(build)
+      #- '{details,mapping_snapshot_digest}')
+      #- '{details,mapping_snapshot_upgrade_reason}')
+      #- '{details,mapping_snapshot_upgrade_proof}'
+    else pg_catalog.to_jsonb(build) end::text,'|' order by build.id),''))
     from public.brinesearch_road_graph_builds build),
-  'migration_history',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+  'migration_history_except_harrison',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.version),''))
-    from supabase_migrations.schema_migrations row_value),
+    from supabase_migrations.schema_migrations row_value
+    where row_value.version<>'20260817144432'),
   'candidates',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
     pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.route_prep_step_id,row_value.identity_id,row_value.candidate_basis),''))
-    from private_verification.brinesearch_route_occurrence_candidates_issue97 row_value)
+    from private_verification.brinesearch_route_occurrence_candidates_issue97 row_value),
+  'occurrence_receipts',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.route_prep_id,row_value.occurrence_index),''))
+    from private_verification.brinesearch_route_occurrence_receipts_issue97 row_value),
+  'route_receipts',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.route_prep_id),''))
+    from private_verification.brinesearch_route_reconciliation_receipts_issue97 row_value),
+  'transition_receipts',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.route_prep_id,row_value.boundary_index),''))
+    from private_verification.brinesearch_route_transition_receipts_issue97 row_value),
+  'geometry_receipts',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.route_prep_id,row_value.occurrence_index),''))
+    from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 row_value),
+  'private_google_receipts',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.pad_id),''))
+    from private_verification.brinesearch_google_route_receipts_issue97 row_value),
+  'public_google_routes',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.pad_id),''))
+    from public.brinesearch_driver_google_routes_public row_value),
+  'junctions',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.id),''))
+    from public.brinesearch_road_junctions row_value),
+  'memberships',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.id),''))
+    from public.brinesearch_road_junction_memberships row_value),
+  'anchors',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.id),''))
+    from public.brinesearch_road_junction_anchors row_value),
+  'source_scopes',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.dataset_id,row_value.state_code,row_value.county_code),''))
+    from public.brinesearch_road_source_dataset_counties row_value),
+  'release_state',(select pg_catalog.md5(pg_catalog.to_jsonb(row_value)::text)
+    from public.brinesearch_issue97_release_state row_value where row_value.singleton),
+  'saved_road_reconciliation_runs',(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+    pg_catalog.to_jsonb(row_value)::text,'|' order by row_value.id),''))
+    from private_verification.brinesearch_issue97_saved_road_reconciliation_runs row_value)
 )::text;
 SQL
 )"
@@ -368,8 +490,8 @@ main() {
   local before after sql_file log_file canonical_tmp rc after_rc start_utc end_utc
   require_checkpoint "$@"
   run_psql --command="begin read only; set local statement_timeout='15min'; set local lock_timeout='2min'; ${guard_sql} rollback;" >/dev/null
-  before="$(run_psql --tuples-only --no-align --quiet --command="set statement_timeout='15min'; set lock_timeout='2min'; ${protected_snapshot_sql}")"
-  [[ -n "${before}" ]] || die "protected before-snapshot is empty"
+  before="$(run_psql --tuples-only --no-align --quiet --command="set statement_timeout='15min'; set lock_timeout='2min'; ${protected_invariants_sql}")"
+  [[ -n "${before}" ]] || die "protected before-invariants snapshot is empty"
 
   umask 077
   sql_file="$(mktemp "${TMPDIR:-/tmp}/issue97-harrison-install.XXXXXX.sql")"
@@ -398,17 +520,17 @@ main() {
     die "Harrison installer failed; do not retry"
   fi
   set +e
-  after="$(run_psql --tuples-only --no-align --quiet --command="set statement_timeout='15min'; set lock_timeout='2min'; ${protected_snapshot_sql}" 2>/dev/null)"
+  after="$(run_psql --tuples-only --no-align --quiet --command="set statement_timeout='15min'; set lock_timeout='2min'; ${protected_invariants_sql}" 2>/dev/null)"
   after_rc=$?
   set -e
   if [[ "${after_rc}" -ne 0 || -z "${after}" || "${after}" != "${before}" ]]; then
     printf 'Fresh one-shot server status after commit ambiguity (NO RETRY):\n' >&2
     run_psql --tuples-only --no-align --quiet --command="${status_sql}" >&2 || true
-    die "Harrison installation may have committed but protected-state equality was not proven"
+    die "Harrison installation may have committed but expected-delta protected invariants were not proven"
   fi
   run_psql --command="begin read only; set local statement_timeout='15min'; set local lock_timeout='2min'; ${postflight_sql} rollback;" >/dev/null ||
     die "committed Harrison install failed fresh postflight; do not retry"
-  printf 'Protected before/after snapshots match exactly.\n'
+  printf 'Protected before/after invariants match after excluding only the exact authorized Harrison deltas.\n'
   printf 'PASS: exact Harrison migration installed atomically once with canonical history bytes; no route refresh occurred.\n'
   rm -f -- "${sql_file}" "${canonical_tmp}"
   trap - EXIT
