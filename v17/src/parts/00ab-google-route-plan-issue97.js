@@ -1,6 +1,8 @@
     /* GitHub #97 — deterministic Google Maps coordinate-route planner.
-       The database is the authority for ordered control points. This layer only
-       validates that receipt and splits it into conservative iOS-safe URLs. */
+       The saved approved haul route is authoritative. The physical graph proves
+       topology only, and Google Maps is only the renderer. This layer rejects a
+       manifest without an exact approved-corridor receipt before splitting its
+       ordered controls into conservative iOS-safe URLs. */
 
     const GOOGLE_ROUTE_MAX_WAYPOINTS_ISSUE97 = 3;
     const GOOGLE_ROUTE_MAX_URL_LENGTH_ISSUE97 = 2048;
@@ -127,6 +129,41 @@
       const destination = points[points.length - 1];
       if (googleRouteIdentifierIssue97(destination.pad_id, "destination pad ID") !== padId) {
         throw new Error("Google route destination pad does not match its manifest");
+      }
+
+      if (manifest.route_authority !== "saved_approved_haul_route" ||
+          manifest.google_role !== "renderer_only" ||
+          manifest.physical_graph_role !== "topology_only" ||
+          manifest.approved_corridor_status !== "verified") {
+        throw new Error("Google route is missing verified saved-route haul-corridor authority");
+      }
+      if (googleRouteIdentifierIssue97(
+        manifest.approved_terminal_pad_id,
+        "approved terminal pad ID"
+      ) !== padId || Number(manifest.approved_terminal_point_sequence) !== points.length) {
+        throw new Error("Google route extends beyond its approved terminal pad boundary");
+      }
+      googleRouteHexDigestIssue97(
+        manifest.approved_road_sequence_digest,
+        "approved road-sequence digest"
+      );
+      googleRouteHexDigestIssue97(
+        manifest.approved_corridor_digest,
+        "approved haul-corridor digest"
+      );
+      const roadSequence = Array.isArray(manifest.driver_road_sequence)
+        ? manifest.driver_road_sequence
+        : [];
+      const approvedIndexes = Array.isArray(manifest.approved_road_occurrence_indexes)
+        ? manifest.approved_road_occurrence_indexes.map(Number)
+        : [];
+      const roadIndexes = roadSequence.map(road => Number(road?.occurrence_index));
+      if (roadSequence.length === 0 ||
+          roadIndexes.some(index => !Number.isInteger(index) || index < 1) ||
+          new Set(roadIndexes).size !== roadIndexes.length ||
+          approvedIndexes.length !== roadIndexes.length ||
+          approvedIndexes.some((index, position) => index !== roadIndexes[position])) {
+        throw new Error("Google route does not preserve the exact approved road-occurrence order");
       }
 
       let openSharedJunction = null;

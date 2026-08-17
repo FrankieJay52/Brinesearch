@@ -68,7 +68,7 @@ const padPoint = (sequence, latitude, longitude, padId) => ({
   source_kind: "saved_pad_gps",
   pad_id: padId
 });
-const manifest = (padId, points) => ({
+const manifest = (padId, points, occurrenceIndexes = [1]) => ({
   manifest_version: "issue97-google-v1",
   manifest_digest: digest("d"),
   status: "ready",
@@ -76,6 +76,16 @@ const manifest = (padId, points) => ({
   pad_id: padId,
   route_revision: 7,
   pad_name: "Forbidden Named Pad",
+  route_authority: "saved_approved_haul_route",
+  google_role: "renderer_only",
+  physical_graph_role: "topology_only",
+  approved_corridor_status: "verified",
+  approved_terminal_pad_id: padId,
+  approved_terminal_point_sequence: points.length,
+  approved_road_sequence_digest: digest("e"),
+  approved_corridor_digest: digest("f"),
+  approved_road_occurrence_indexes: occurrenceIndexes,
+  driver_road_sequence: occurrenceIndexes.map(occurrence_index => ({ occurrence_index })),
   points
 });
 
@@ -92,7 +102,7 @@ const cologiePoints = [
   shapePoint(7, 40.2566006, -80.9130006, "unionvale-occurrence"),
   padPoint(8, "40.25403", "-80.913577", cologiePad)
 ];
-const cologie = planner.buildPlan(manifest(cologiePad, cologiePoints));
+const cologie = planner.buildPlan(manifest(cologiePad, cologiePoints, [1, 2, 3, 4, 5, 6]));
 assert.equal(cologie.points.length, 8);
 assert.equal(cologie.points.filter(point => point.occurrence_id?.startsWith("springdale-occurrence")).length, 2);
 assert.notEqual(cologie.points[2].occurrence_id, cologie.points[4].occurrence_id);
@@ -268,6 +278,21 @@ assert.throws(() => planner.buildPlan({
   route_ready: false,
   status: "held"
 }), /not route-ready/i);
+
+const corridorFixture = manifest(sharedPad, [
+  ingressPoint(1, 40.4, -80.4, "corridor-ingress"),
+  padPoint(2, 40.5, -80.5, sharedPad)
+], [2, 5]);
+assert.throws(() => planner.buildPlan({ ...corridorFixture, route_authority: "physical_graph" }),
+  /haul-corridor authority/i);
+assert.throws(() => planner.buildPlan({
+  ...corridorFixture,
+  approved_terminal_point_sequence: 3
+}), /beyond its approved terminal pad boundary/i);
+assert.throws(() => planner.buildPlan({
+  ...corridorFixture,
+  approved_road_occurrence_indexes: [5, 2]
+}), /approved road-occurrence order/i);
 
 // Quick navigation may deep-link only a single URL. Multi-part plans must hand
 // off to the pad page, while the typed assistant response renders every part.

@@ -76,6 +76,93 @@ for (const [source, label] of [[installer, "installer"], [rehearsal, "rehearsal"
 
 assert.ok(installer.includes("render_transaction_sql commit"),
   "installer must render the fixed commit transaction");
+for (const token of [
+  "protected_invariants_sql",
+  "non_target_roads",
+  "builds_except_authorized_mapping_receipts",
+  "migration_history_except_harrison",
+  "#- '{details,mapping_snapshot_digest}'",
+  "#- '{details,mapping_snapshot_upgrade_reason}'",
+  "#- '{details,mapping_snapshot_upgrade_proof}'",
+  "route_receipts",
+  "occurrence_receipts",
+  "transition_receipts",
+  "geometry_receipts",
+  "private_google_receipts",
+  "public_google_routes",
+  "junctions",
+  "memberships",
+  "anchors",
+  "ohio_source_scopes",
+  "release_state",
+  "saved_road_reconciliation_runs",
+  "exact normalized ten-road outcomes drifted",
+  "pg_catalog.to_jsonb(road)-'geometry_checked_at'-'updated_at'",
+  "expected-delta protected invariants",
+]) assert.ok(installer.includes(token), `installer missing expected-delta invariant: ${token}`);
+assert.ok(!installer.includes("protected_snapshot_sql"),
+  "installer must not retain the false whole-database snapshot comparison");
+
+const authorizedBuildIds = new Set([
+  "5ee5f97b-447f-41d3-946a-68a8b28d8367",
+  "542c35d5-a9ba-4b43-8a64-63a66f6b29e2",
+]);
+const normalizeBuild = value => {
+  const build = structuredClone(value);
+  if (authorizedBuildIds.has(build.id)) {
+    delete build.details.mapping_snapshot_digest;
+    delete build.details.mapping_snapshot_upgrade_reason;
+    delete build.details.mapping_snapshot_upgrade_proof;
+  }
+  return build;
+};
+const invariantDigest = builds => md5(Buffer.from(JSON.stringify(
+  builds.map(normalizeBuild).sort((a, b) => a.id.localeCompare(b.id)),
+)));
+const syntheticBefore = [
+  { id: [...authorizedBuildIds][0], graph_digest: "graph-a", details: {
+    mapping_snapshot_digest: "old", stable: "same",
+  } },
+  { id: "00000000-0000-0000-0000-000000000001", graph_digest: "graph-b",
+    details: { mapping_snapshot_digest: "non-target", stable: "same" } },
+];
+const authorizedAfter = structuredClone(syntheticBefore);
+authorizedAfter[0].details.mapping_snapshot_digest = "new";
+authorizedAfter[0].details.mapping_snapshot_upgrade_reason =
+  "harrison_har_to_has_wrong_geometry_repair";
+authorizedAfter[0].details.mapping_snapshot_upgrade_proof = { topology_changed: false };
+assert.equal(invariantDigest(authorizedAfter), invariantDigest(syntheticBefore),
+  "only the authorized CAR/HAS mapping receipt fields may be excluded");
+const topologyMutation = structuredClone(authorizedAfter);
+topologyMutation[0].graph_digest = "changed-graph";
+assert.notEqual(invariantDigest(topologyMutation), invariantDigest(syntheticBefore),
+  "an authorized build topology mutation must fail expected-delta equality");
+const unrelatedMutation = structuredClone(authorizedAfter);
+unrelatedMutation[1].details.mapping_snapshot_digest = "changed-unrelated";
+assert.notEqual(invariantDigest(unrelatedMutation), invariantDigest(syntheticBefore),
+  "an unrelated build mutation must fail expected-delta equality");
+const normalizeAuthorizedRoadOutcome = road => {
+  const normalized = structuredClone(road);
+  delete normalized.geometry_checked_at;
+  delete normalized.updated_at;
+  return md5(Buffer.from(JSON.stringify(normalized)));
+};
+const repairedRoad = {
+  id: 'f0db4fa8-3900-4350-a31e-3d61128006f8',
+  name: 'CR-14',
+  source_record_id: 'CHASCR00014**C|route:CR:14',
+  verification_status: 'verified',
+  geometry_checked_at: 'install-time',
+  updated_at: 'install-time',
+};
+const laterTimestampOnly = { ...repairedRoad,
+  geometry_checked_at: 'later-time', updated_at: 'later-time' };
+assert.equal(normalizeAuthorizedRoadOutcome(laterTimestampOnly),
+  normalizeAuthorizedRoadOutcome(repairedRoad),
+  'authorized timestamp serialization must not create a false delta');
+assert.notEqual(normalizeAuthorizedRoadOutcome({ ...repairedRoad, name: 'unexpected' }),
+  normalizeAuthorizedRoadOutcome(repairedRoad),
+  'an unrelated field mutation on an authorized target road must fail');
 assert.ok(!installer.includes("refresh_occurrence_candidate") &&
   !installer.includes("reconcile_route_corpus") &&
   !installer.includes("refresh_google_route"),
