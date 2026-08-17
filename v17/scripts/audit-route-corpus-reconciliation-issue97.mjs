@@ -147,7 +147,7 @@ includesAll(phase1Scope, [
 ], "Issue #97 Phase 1 road-occurrence scope");
 
 assert.equal(pkg.scripts["verify:route-corpus-reconciliation"],
-  "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs && node v17/scripts/audit-oh-structured-route-candidates-issue97.mjs",
+  "node v17/scripts/audit-route-corpus-reconciliation-issue97.mjs && node v17/scripts/audit-oh-structured-route-candidates-issue97.mjs && node v17/scripts/audit-issue97-terminal-private-access.mjs",
   "Issue #97 route corpus audit scripts are not wired");
 assert.ok(pkg.scripts.build.includes("npm run verify:route-corpus-reconciliation"),
   "Issue #97 route corpus audit must run in the full build");
