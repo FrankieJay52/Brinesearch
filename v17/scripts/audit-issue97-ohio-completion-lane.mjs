@@ -57,7 +57,7 @@ for (const token of ["eval ", "bash -c", "--command", "DATABASE_URL=", "PGPASSWO
   forbid(shell, token, `wrapper expansion ${token}`);
 }
 
-for (const source of [complete, verifyActive, report, status]) {
+for (const source of [complete, verifyActive, status]) {
   need(source, "begin isolation level repeatable read read only", "fixed read-only transaction");
   for (const token of [
     "insert into public.", "update public.", "delete from public.",
@@ -371,24 +371,125 @@ for (const token of [
 ]) forbid(reconcile, token, `dark reconciliation forbidden action ${token}`);
 
 for (const token of [
+  "begin isolation level repeatable read;",
+  "set local statement_timeout='15min'",
+  "set local lock_timeout='2min'",
+  "c41f5320-1273-470c-a316-28b42211d697",
   "issue97-ohio-r2-final-candidate",
+  "9763dc5bb626da71881b7381ed28a436",
+  "issue97-release-20260815-r2",
+  "member_count=19",
+  "9867f2352ac1b7276d057a83edd95d5f",
+  "brinesearch.issue97_expected_state_manifest_id",
+  "brinesearch.issue97_expected_state_manifest_digest",
+  "brinesearch.issue97_expected_state_code",
+  "brinesearch.issue97_expected_generation_key",
+  "brinesearch.issue97_expected_member_count",
+  "brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest",
+  "brinesearch_issue97_ensure_graph_release_current_cache_for_state_manifest",
+  "tmp_issue97_graph_release_current_cache_context",
+  "tmp_issue97_graph_release_current_cache",
+  "v_cache->>'reused'<>'false'",
+  "v_verified->>'reused'<>'true'",
+  "full_predicate_evaluation_count",
+  "source_scope_count=38",
+  "cache_scope='exact_state_manifest'",
+  "cache_miss_policy='fail_closed'",
+  "active_release_current_graphs",
+  "required_source_scopes",
+  "current_source_scopes",
   "non_list_only_pads",
+  "pads_with_active_primary_route",
   "pads_without_active_primary_route",
-  "'route_ready'",
-  "'held'",
-  "'unresolved'",
+  "primary_routes_missing_current_receipt",
+  "total_reconciliation_receipts",
+  "primary_reconciliation_receipts",
+  "alternate_reconciliation_receipts",
+  "alternate_receipt_pads",
+  "primary_route_ready_receipts",
+  "primary_needs_review_receipts",
+  "primary_stale_receipts",
+  "alternate_route_ready_receipts",
+  "alternate_needs_review_receipts",
+  "alternate_stale_receipts",
+  "primary_occurrences",
+  "primary_resolved_occurrences",
+  "primary_held_occurrences",
   "transition_holds_by_reason",
   "occurrence_holds_by_reason",
   "geometry_holds_by_reason",
+  "primary_stage_counts",
+  "primary_exception_reason_counts",
   "repeated_road_routes",
   "shared_segment_sequence_transitions",
   "no_guess_proof",
+  "occurrence_name_only",
+  "occurrence_fuzzy_name",
+  "occurrence_nearest_road",
+  "occurrence_route_number_only",
+  "transition_name_only",
+  "transition_fuzzy_name",
+  "transition_nearest_road",
+  "transition_closest_anchor",
+  "transition_route_number_only",
+  "geometry_name_only",
+  "geometry_fuzzy_name",
+  "geometry_nearest_road",
+  "geometry_nearest_point",
+  "geometry_route_number_only",
   "google_readiness_state",
+  "public_google_rows",
+  "global_saved_road_reconciliation_runs",
   "ascent--cologie",
   "WALKING TALL",
+  "queue_scope",
+  "route.route_group in ('primary','alternate')",
   "no_active_primary_route",
+  "rollback;",
 ]) need(report, token, `Ohio readiness report ${token}`);
+need(report, "transaction-local ON COMMIT DROP tables",
+  "Ohio readiness report must document why the exact installed cache requires rollback-only temp DDL");
+forbid(report, "begin isolation level repeatable read read only",
+  "Ohio readiness report cannot claim PostgreSQL READ ONLY while creating the installed temp cache");
+forbid(report.toLowerCase(), "commit;",
+  "Ohio readiness report must always roll back its transaction-local cache and observations");
 need(report, "join primary_routes route on route.id=receipt.route_prep_id", "Ohio readiness report current active-primary receipt scope");
+assert.equal(
+  count(
+    report,
+    "private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(",
+  ),
+  1,
+  "Ohio readiness report must prepare the exact state-manifest cache once",
+);
+assert.equal(
+  count(
+    report,
+    "private_verification.brinesearch_issue97_ensure_graph_release_current_cache_for_state_manifest(",
+  ),
+  1,
+  "Ohio readiness report must strictly revalidate the prepared cache once without recomputation",
+);
+assert.equal(
+  count(report, "private_verification.brinesearch_issue97_prepare_graph_release_current_cache();"),
+  0,
+  "Ohio readiness report must never invoke the global all-build cache",
+);
+for (const token of [
+  "private_verification.brinesearch_issue97_state_candidate_manifest_current(",
+  "private_verification.brinesearch_issue97_graph_build_release_current(",
+]) forbid(report, token, `Ohio readiness report redundant full-currentness evaluation ${token}`);
+for (const token of [
+  "insert into public.",
+  "update public.",
+  "delete from public.",
+  "brinesearch_issue97_run_all_pad_routing_pipeline_geometry_core(",
+  "brinesearch_issue97_reconcile_route_corpus(",
+  "brinesearch_issue97_activate_graph_build(",
+  "brinesearch_issue97_activate_cutover(",
+  "brinesearch_issue97_refresh_google_routes(",
+  "brinesearch_issue97_refresh_saved_road_reconciliation(",
+]) forbid(report.toLowerCase(), token, `Ohio readiness report forbidden mutation ${token}`);
 assert(!/\blimit\s+\d+\s*;/i.test(report), "Ohio readiness report must emit the complete exception queue without a row cap");
 
 console.log("Issue #97 fixed whole-Ohio 19/19 completion gate, immutable exact state manifest, one-time fail-closed manifest-bound release-current snapshot, zero-impact serial manifest activation, pre-commit Ohio-only dark reconciliation isolation, durable recovery status, and readiness/fixture reporting audit passed.");
