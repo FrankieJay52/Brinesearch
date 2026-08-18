@@ -159,6 +159,11 @@ for (const required of [
   'approved-corridor',
   'saved-occurrence',
   'new-candidate',
+  'reconciliation_manifest as (',
+  "'reconciliation_manifest_count',412",
+  "'reconciliation_manifest_digest','711b1ddd3ba6c47e7642fc700197432f'",
+  "'caller_route_ids_allowed',false",
+  "'exact_new_candidate_build_pins_required_before_activation',true",
 ]) assert.ok(sql.includes(required), `missing contract token: ${required}`);
 
 assert.doesNotMatch(sql, /transition\.graph_digest\s*=/i);
