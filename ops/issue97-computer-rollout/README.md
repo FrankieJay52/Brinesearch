@@ -1,9 +1,10 @@
 # Issue #97 computer rollout kit
 
 This kit is the controlled handoff for a computer with a genuine long-lived
-PostgreSQL direct or Supavisor **session-mode** connection. It is not a detached
-job system and it must not be run through the Supabase management connector,
-SQL Editor, transaction-mode pooler, a phone browser, or an Edge Function.
+PostgreSQL direct or Supavisor **session-mode** connection. Its rollout commands
+are not a general detached job system and must not be run through the Supabase management
+connector, SQL Editor, transaction-mode pooler, a phone browser, or an Edge Function. The
+fixed five-second Windows worker proof documented below is the sole narrow exception.
 
 It contains no credentials, database URI, arbitrary SQL input, automatic retry,
 global cutover command, or graph activation command. Every county build remains
@@ -30,6 +31,111 @@ one atomic transaction and calls the existing unchanged builder.
 The script rejects `PGPASSWORD`, rejects a dirty or unpushed checkout, and uses
 SSL. Runtime logs are private local files under `.issue97-runs/`, which Git
 ignores.
+
+## Fixed Windows worker proof (not a job runner)
+
+The only detached process in this directory is the review-gated Windows
+**worker proof**. It cannot accept a SQL file, command, migration, state, county,
+connection URI, credential, or mode. Its production launcher can execute only
+
+`BEGIN READ ONLY` → `pg_sleep(5)` → fixed PASS marker → `ROLLBACK`
+
+from `sql/35-worker-proof-read-only.sql`. The SQL also pins the BrineSearch
+production manifest/dark state, rejects competing Issue #97 backends, and takes
+the established release/pipeline/corpus/reconciliation/mapping locks plus its
+proof-specific transaction-local lock before sleeping. The short launcher
+atomically consumes one permanent `production.launch.json` claim and immediately
+uses pinned Windows PowerShell `Start-Process -PassThru` for a fixed bootstrap.
+The independently running bootstrap performs every slow hash, Git fetch, clean
+head, and PostgreSQL-runtime check before it atomically creates the database
+attempt and creates the long-lived worker through `Win32_Process.Create`. The
+short launcher returns the bootstrap PID immediately; the status poller reports
+the later worker PID/start-time. It never owns the Git or `psql` lifetime.
+
+This Windows-only proof must run from an owner-protected standalone clone of the
+exact pushed PR head. A linked worktree whose common Git metadata is writable by
+another Windows principal fails closed. It requires the reviewed PostgreSQL
+17.11 distribution copied (not junctioned) to
+`.tools/postgresql17/bin/psql.exe`; the launcher/worker verify the client and the
+complete local DLL set against `issue97-worker-proof-manifest.json`. The fixed
+`psql --version` checks in bootstrap and worker do not connect; only the worker's
+single fixed `Start-Process` invocation opens the one authorized sleep-proof
+database session.
+
+The fixed
+private receipt root is
+`C:\Users\frank\.issue97-runs\issue97-worker-proof`.
+It is outside every repository, shared across local Issue #97 worktrees, and
+must not be a junction/reparse point. Its DACL is protected from inheritance and
+contains exactly three non-inherited full-control entries: the current Windows
+owner, `NT AUTHORITY\SYSTEM`, and `BUILTIN\Administrators`. A group-writable or
+inherited receipt directory fails closed before launch. Provision this exact
+directory once with that reviewed DACL before invoking either launcher; the
+launchers deliberately refuse to create or weaken it.
+
+After the repository-only checkpoint is committed and pushed, provision or
+verify that fixed local root from the clean exact-head clone:
+
+```powershell
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-provision-log-root.ps1
+```
+
+Then atomically bind the owner-protected proof authorization to that one fetched,
+clean, exact PR SHA. The receipt authorizes only the local detachment proof and
+the production read-only sleep proof; it explicitly excludes the mapping
+rehearsal:
+
+```powershell
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-authorize.ps1
+```
+
+Run the one-shot local-only detachment proof first. The launcher returns after
+starting only the bootstrap; poll until the worker has outlived five seconds and
+reaches `CLIENT_FINISHED_SUCCESS`:
+
+```powershell
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-local-launch.ps1
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-status.ps1
+```
+
+Only after the local proof passes and the separately authorized production pins
+are reverified may the one-shot production read-only proof be launched:
+
+```powershell
+$env:PGSERVICE = 'brinesearch_issue97_prod'
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-launch.ps1
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-status.ps1
+```
+
+The status command only reads the marker, PID/process identity, logs, and atomic
+final receipt. It never launches, restarts, kills, deletes, or connects to the
+database. `CLIENT_FINISHED_SUCCESS` proves only the client-side PASS/ROLLBACK
+contract. After the worker has unquestionably exited, launch the fixed
+zero-argument detached server inspector exactly once, then poll its separate
+read-only status script:
+
+```powershell
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-server-inspect.ps1
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-server-inspect-status.ps1
+```
+
+The short inspector launcher never owns `psql`; it starts only a fixed bootstrap
+which creates the long-lived inspector through `Win32_Process.Create`. The
+detached fixed worker first requires the exact attempt-bound terminal bootstrap receipt and then requires
+the production bootstrap, worker, and reviewed original `psql` client processes
+to be absent. This prevents inspection from passing in the launch-claim to
+bootstrap-spawn window. It then uses the receipt-bound exact PGAPPNAME and a
+second fixed read-only/ROLLBACK SQL file
+to prove the worker backend is absent and all protected production pins remain
+unchanged. It can inspect using the protected launch claim when bootstrap fails
+before creating a database-attempt receipt. A missing/malformed inspection
+receipt or failed inspection remains `SERVER_INSPECTION_REQUIRED` and never
+grants a retry. Any production failure, disappearance, malformed receipt, or
+ambiguous process permanently consumes the fixed one-shot launch claim. Neither
+a new SHA nor a new artifact set grants another attempt. Any worker-artifact
+change is a new unaudited lane and requires a new explicit authorization. There
+is no automatic retry. This proof does not authorize the frozen mapping
+rehearsal or any other Issue #97 production operation.
 
 ## VIN endpoint-index prerequisite (independent review required)
 

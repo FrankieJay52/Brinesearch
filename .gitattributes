@@ -3,3 +3,5 @@
 *.sql text eol=lf
 *.sh text eol=lf
 *.mjs text eol=lf
+ops/issue97-computer-rollout/issue97-worker-proof-*.ps1 text eol=lf
+ops/issue97-computer-rollout/issue97-worker-proof-manifest.json text eol=lf
