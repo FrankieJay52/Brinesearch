@@ -86,7 +86,76 @@ for (const token of [
   'old affected graph escaped the mapping-currentness quarantine',
   'target.road_id=mapping.road_id',
   "mapping.id=private_verification.brinesearch_issue97_uuid(",
+  'tmp_issue97_frozen_mapping_expected_google_pads',
+  'with path_a as (',
+  '), path_b as (',
+  'select pad_id from path_a',
+  'select pad_id from path_b',
+  "pg_catalog.jsonb_array_elements(coalesce(receipt.manifest->'points','[]'::jsonb))",
+  "'5cd68da6e31fa7bf5b59bca9935f96f2'",
+  'road_update_hit',
+  'expected_route_revision',
+  "expected.structured_route_revision<>0",
+  "expected.road_sequence_status is not distinct from 'owner_verified'",
+  'non_target_private_google',
+  'non_target_pad_google',
+  'non_target_google_queue',
+  "receipt.hold_reason is distinct from 'road_identity_mapping_changed'",
+  "receipt.manifest->>'route_ready' is distinct from 'false'",
+  'receipt.manifest_digest is not null',
+  'receipt.dependency_digest is not null',
+  "target.identity_id::text=receipt.evidence->>'identity_id'",
+  "target.road_id::text=receipt.evidence->>'road_id'",
+  "pad.brinesearch_google_route_status_issue97 is distinct from 'stale'",
+  'pad.structured_route_revision is distinct from expected.structured_route_revision',
+  'pad.road_sequence_status is distinct from expected.road_sequence_status',
+  "queue.reason<>'road_identity_mapping_changed'",
+  'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;',
+  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
+  'tmp_issue97_frozen_mapping_google_postprocessor',
+  'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;',
+  "trigger.tgenabled<>'O'",
+  'Issue #97 frozen mapping wave broke target road/mapping contract',
+  'Issue #97 frozen mapping wave changed non-target roads or mappings',
+  'Issue #97 frozen mapping wave changed route occurrence or reconciliation receipts',
+  'Issue #97 frozen mapping wave Google invalidation pad set drifted',
+  'Issue #97 frozen mapping wave changed non-target Google state',
+  'Issue #97 frozen mapping wave target immediate Google hold is invalid',
+  'Issue #97 frozen mapping wave target pad Google state is invalid',
+  'Issue #97 frozen mapping wave immediate Google refresh queue is invalid',
+  'Issue #97 frozen mapping wave deferred Google processor produced unsafe state',
+  'Issue #97 frozen mapping wave changed release source graph or reconciliation protected state',
+  'Issue #97 frozen mapping wave public Google routes are not zero',
 ]) requireText(migration, token);
+
+const expectedPadsIndex = migration.indexOf(
+  'create temporary table tmp_issue97_frozen_mapping_expected_google_pads',
+);
+const roadWriteIndex = migration.indexOf('update public.brinesearch_roads road set');
+const mappingWriteIndex = migration.indexOf(
+  'insert into public.brinesearch_road_identity_mappings(',
+);
+const immediateQueueAssertionIndex = migration.indexOf(
+  'Issue #97 frozen mapping wave immediate Google refresh queue is invalid',
+);
+const forceDeferredEventsIndex = migration.indexOf(
+  'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;',
+);
+const restoreDeferredIndex = migration.indexOf(
+  'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;',
+);
+const cutoverOffHoldIndex = migration.indexOf(
+  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
+);
+if (expectedPadsIndex < 0 || roadWriteIndex < 0 || mappingWriteIndex < 0
+    || !(expectedPadsIndex < roadWriteIndex && expectedPadsIndex < mappingWriteIndex)) {
+  throw new Error('Google invalidation dependency set must be frozen before road/mapping writes');
+}
+if (!(immediateQueueAssertionIndex < forceDeferredEventsIndex
+    && forceDeferredEventsIndex < cutoverOffHoldIndex
+    && cutoverOffHoldIndex < restoreDeferredIndex)) {
+  throw new Error('Deferred Google processor ordering drifted');
+}
 
 forbid(migration, /brinesearch_oh_county_code\s*\(/i, 'stale Ohio county helper');
 forbid(migration, /update\s+public\.brinesearch_road_graph_builds\b/i, 'mapping receipt restamp');
@@ -94,6 +163,10 @@ forbid(migration, /brinesearch_issue97_(?:refresh|reconcile|activate)[a-z0-9_]*\
   'route refresh, reconciliation, or graph activation');
 forbid(migration, /(?:name_only|fuzzy_name|nearest_road)\s*['"]?\s*[:,=]\s*(?:true|1)/i,
   'guess resolution evidence');
+forbid(migration, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
+forbid(migration,
+  /delete\s+from\s+private_verification\.brinesearch_google_route_refresh_queue_issue97/i,
+  'manual deletion of pending deferred Google refresh events');
 
 const finalBlock = routeManifest.match(
   /-- EXACT_FINAL_412_BEGIN([\s\S]*?)-- EXACT_FINAL_412_END/,
@@ -157,6 +230,15 @@ for (const token of [
   "where evidence->>'migration'='issue97_frozen_exact_mapping_wave')<>0",
   'insert into supabase_migrations.schema_migrations(version,statements,name)',
   "'issue97_frozen_exact_mapping_wave'",
+  'tmp_issue97_frozen_mapping_expected_google_pads',
+  "'5cd68da6e31fa7bf5b59bca9935f96f2'",
+  'tmp_issue97_frozen_mapping_google_postprocessor',
+  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
+  'non_target_private_google',
+  'non_target_pad_google',
+  'brinesearch_google_route_refresh_queue_issue97',
+  'Issue #97 rollback rehearsal post-processor Google contract failed',
+  'Issue #97 rollback rehearsal Google state changed during dark builds',
 ]) requireText(rehearsal, token);
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
 requireText(normalizedRehearsal,
@@ -174,6 +256,10 @@ forbid(rehearsal, /order\s+by[\s\S]{0,120}(?:completed_at|created_at)[\s\S]{0,80
   'latest/newest graph selection');
 forbid(rehearsal, /where\s+build\.status='validated'[\s\S]{0,120}(?:select|into)\s+[^;]*build\.id/i,
   'validated-status-only graph selection');
+forbid(rehearsal, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
+forbid(rehearsal,
+  /delete\s+from\s+private_verification\.brinesearch_google_route_refresh_queue_issue97/i,
+  'manual deletion of pending deferred Google refresh events');
 
 // Static mutation checks: the package must fail its model if any frozen
 // cardinality, digest, graph footprint, or final reconciliation set drifts.

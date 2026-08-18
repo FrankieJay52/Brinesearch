@@ -129,6 +129,64 @@ where build.id=any(array[
   'ab9f4083-d572-4d9d-8e0a-28ebb77517e7','70f30495-860a-4199-9360-8e880f3b515b'
 ]::uuid[]);
 
+-- Freeze the exact Google invalidation dependency set before either the
+-- canonical-road updates or mapping inserts can replace a current manifest
+-- with its fail-closed stale stub. These are the two paths used by the live
+-- road/mapping invalidation trigger: saved pad-road dependencies and existing
+-- private-manifest identity/road points.
+create temporary table tmp_issue97_frozen_mapping_expected_google_pads on commit drop as
+with path_a as (
+  select distinct step.pad_id
+  from public.brinesearch_pad_roads step
+  join (select distinct road_id from tmp_issue97_frozen_mapping_targets) target
+    on target.road_id=step.road_id
+), path_b as (
+  select distinct receipt.pad_id
+  from private_verification.brinesearch_google_route_receipts_issue97 receipt
+  where exists(
+    select 1
+    from pg_catalog.jsonb_array_elements(coalesce(receipt.manifest->'points','[]'::jsonb)) point
+    join tmp_issue97_frozen_mapping_targets target
+      on point->>'identity_id'=target.identity_id::text
+      or point->>'road_id'=target.road_id::text
+  )
+), expected as (
+  select pad_id from path_a
+  union
+  select pad_id from path_b
+)
+select expected.pad_id,
+  exists(select 1 from path_a where path_a.pad_id=expected.pad_id) path_a_hit,
+  exists(select 1 from path_b where path_b.pad_id=expected.pad_id) path_b_hit,
+  pg_catalog.to_jsonb(receipt) pre_receipt_row,
+  receipt.route_revision pre_receipt_route_revision,
+  pad.brinesearch_google_route_status_issue97 pre_pad_google_status,
+  pad.brinesearch_google_route_revision_issue97 pre_pad_google_revision,
+  pad.structured_route_revision,
+  pad.road_sequence_status,
+  pg_catalog.to_jsonb(queue) pre_queue_row,
+  exists(
+    select 1 from public.brinesearch_pad_roads step
+    join tmp_issue97_frozen_mapping_targets target on target.road_id=step.road_id
+    where step.pad_id=expected.pad_id
+      and target.evidence_basis='exact_route_designation'
+  ) road_update_hit,
+  case when exists(
+      select 1 from public.brinesearch_pad_roads step
+      join tmp_issue97_frozen_mapping_targets target on target.road_id=step.road_id
+      where step.pad_id=expected.pad_id
+        and target.evidence_basis='exact_route_designation'
+    ) then greatest(coalesce(pad.structured_route_revision,0),0)
+    else greatest(coalesce(receipt.route_revision,0),0)
+  end expected_route_revision
+from expected
+join public.pads pad on pad.id=expected.pad_id
+left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+  on receipt.pad_id=expected.pad_id
+left join private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+  on queue.pad_id=expected.pad_id
+order by expected.pad_id;
+
 create temporary table tmp_issue97_frozen_mapping_protected_before on commit drop as
 select
   (select count(*) from public.brinesearch_roads) road_count,
@@ -150,7 +208,20 @@ select
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.occurrence_index),''))
     from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt) geometry,
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
-    from private_verification.brinesearch_google_route_receipts_issue97 receipt) private_google,
+    from private_verification.brinesearch_google_route_receipts_issue97 receipt
+    where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+      where expected.pad_id=receipt.pad_id)) non_target_private_google,
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.jsonb_build_object(
+      'pad_id',pad.id,'status',pad.brinesearch_google_route_status_issue97,
+      'revision',pad.brinesearch_google_route_revision_issue97
+    )::text,'|' order by pad.id),''))
+    from public.pads pad
+    where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+      where expected.pad_id=pad.id)) non_target_pad_google,
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(queue)::text,'|' order by queue.pad_id),''))
+    from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+    where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+      where expected.pad_id=queue.pad_id)) non_target_google_queue,
   (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(route)::text,'|' order by route.pad_id),''))
     from public.brinesearch_driver_google_routes_public route) public_google,
   (select pg_catalog.md5(pg_catalog.to_jsonb(state)::text) from public.brinesearch_issue97_release_state state where singleton) release_state,
@@ -207,6 +278,23 @@ declare
   v_road record;
   v_geom extensions.geometry;
 begin
+  if (select count(*) from tmp_issue97_frozen_mapping_expected_google_pads)<>3
+     or (select pg_catalog.md5(pg_catalog.string_agg(pad_id::text,'|' order by pad_id))
+         from tmp_issue97_frozen_mapping_expected_google_pads)
+       <>'5cd68da6e31fa7bf5b59bca9935f96f2'
+  then
+    raise exception 'Issue #97 frozen mapping wave Google invalidation pad set drifted';
+  end if;
+
+  if exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+       where expected.structured_route_revision<>0
+         or expected.road_sequence_status is not distinct from 'owner_verified'
+         or expected.pre_queue_row is not null)
+     or exists(select 1 from private_verification.brinesearch_google_route_refresh_queue_issue97)
+  then
+    raise exception 'Issue #97 frozen mapping wave Google invalidation prestate drifted';
+  end if;
+
   if (select count(*) from tmp_issue97_frozen_mapping_targets)<>46
      or (select count(distinct road_id) from tmp_issue97_frozen_mapping_targets)<>37
      or (select count(*) from tmp_issue97_frozen_mapping_targets where evidence_basis='exact_route_designation')<>28
@@ -453,15 +541,10 @@ begin
     raise exception 'Issue #97 old affected graph escaped the mapping-currentness quarantine';
   end if;
 
-  if (select count(*) from public.brinesearch_roads)<>(select road_count from tmp_issue97_frozen_mapping_protected_before)
-     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(road)::text,'|' order by road.id),''))
-       from public.brinesearch_roads road where not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.road_id=road.id))
-       <>(select non_target_roads from tmp_issue97_frozen_mapping_protected_before)
-     or (select count(*) from public.brinesearch_road_identity_mappings)<>(select mapping_count+46 from tmp_issue97_frozen_mapping_protected_before)
-     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(mapping)::text,'|' order by mapping.id),''))
-       from public.brinesearch_road_identity_mappings mapping where not exists(
-         select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=mapping.identity_id
-       ))<>(select mappings from tmp_issue97_frozen_mapping_protected_before)
+  if (select count(*) from public.brinesearch_roads)<>
+       (select road_count from tmp_issue97_frozen_mapping_protected_before)
+     or (select count(*) from public.brinesearch_road_identity_mappings)<>
+       (select mapping_count+46 from tmp_issue97_frozen_mapping_protected_before)
      or exists(select 1 from tmp_issue97_frozen_mapping_targets target
        join public.brinesearch_roads road on road.id=target.road_id
        where target.evidence_basis='exact_base_nlf_source_street_core'
@@ -477,26 +560,282 @@ begin
              private_verification.brinesearch_issue97_authoritative_identity_geometry(source.identity_id)
            )),2) from tmp_issue97_frozen_mapping_targets source where source.road_id=target.road_id
          ),7)::jsonb)<>24
-     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(candidate)::text,'|' order by candidate.route_prep_step_id,candidate.identity_id,candidate.candidate_basis),'')) from private_verification.brinesearch_route_occurrence_candidates_issue97 candidate)<>(select candidates from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave broke target road/mapping contract';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(road)::text,'|' order by road.id),''))
+       from public.brinesearch_roads road where not exists(
+         select 1 from tmp_issue97_frozen_mapping_targets target where target.road_id=road.id
+       ))<>(select non_target_roads from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(mapping)::text,'|' order by mapping.id),''))
+       from public.brinesearch_road_identity_mappings mapping where not exists(
+         select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=mapping.identity_id
+       ))<>(select mappings from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave changed non-target roads or mappings';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(candidate)::text,'|' order by candidate.route_prep_step_id,candidate.identity_id,candidate.candidate_basis),'')) from private_verification.brinesearch_route_occurrence_candidates_issue97 candidate)<>(select candidates from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.occurrence_index),'')) from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt)<>(select occurrences from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id),'')) from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt)<>(select routes from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.boundary_index),'')) from private_verification.brinesearch_route_transition_receipts_issue97 receipt)<>(select transitions from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.occurrence_index),'')) from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt)<>(select geometry from tmp_issue97_frozen_mapping_protected_before)
-     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),'')) from private_verification.brinesearch_google_route_receipts_issue97 receipt)<>(select private_google from tmp_issue97_frozen_mapping_protected_before)
-     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(route)::text,'|' order by route.pad_id),'')) from public.brinesearch_driver_google_routes_public route)<>(select public_google from tmp_issue97_frozen_mapping_protected_before)
-     or (select pg_catalog.md5(pg_catalog.to_jsonb(state)::text) from public.brinesearch_issue97_release_state state where singleton)<>(select release_state from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave changed route occurrence or reconciliation receipts';
+  end if;
+
+  if (select count(*) from tmp_issue97_frozen_mapping_expected_google_pads)<>3
+     or (select pg_catalog.md5(pg_catalog.string_agg(pad_id::text,'|' order by pad_id))
+         from tmp_issue97_frozen_mapping_expected_google_pads)
+       <>'5cd68da6e31fa7bf5b59bca9935f96f2'
+  then
+    raise exception 'Issue #97 frozen mapping wave Google invalidation pad set drifted';
+  end if;
+
+  if (select count(*) from private_verification.brinesearch_google_route_receipts_issue97 receipt
+      join tmp_issue97_frozen_mapping_expected_google_pads expected on expected.pad_id=receipt.pad_id)<>3
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_expected_google_pads expected
+       join private_verification.brinesearch_google_route_receipts_issue97 receipt
+         on receipt.pad_id=expected.pad_id
+       where receipt.status is distinct from 'stale'
+          or receipt.hold_reason is distinct from 'road_identity_mapping_changed'
+          or receipt.manifest_version is distinct from 'issue97-google-v1'
+          or receipt.manifest->>'manifest_version' is distinct from 'issue97-google-v1'
+          or receipt.manifest->>'route_ready' is distinct from 'false'
+          or receipt.manifest->>'status' is distinct from 'stale'
+          or receipt.manifest->>'pad_id' is distinct from expected.pad_id::text
+          or receipt.manifest->>'route_revision' is distinct from receipt.route_revision::text
+          or receipt.route_revision is distinct from expected.expected_route_revision
+          or receipt.manifest_digest is not null
+          or receipt.dependency_digest is not null
+          or not exists(
+            select 1 from tmp_issue97_frozen_mapping_targets target
+            where target.identity_id::text=receipt.evidence->>'identity_id'
+              and target.road_id::text=receipt.evidence->>'road_id'
+          )
+          or not (
+            exists(select 1 from public.brinesearch_pad_roads step
+              where step.pad_id=expected.pad_id
+                and step.road_id::text=receipt.evidence->>'road_id')
+            or exists(
+              select 1 from pg_catalog.jsonb_array_elements(
+                coalesce(expected.pre_receipt_row->'manifest'->'points','[]'::jsonb)
+              ) point
+              where point->>'identity_id'=receipt.evidence->>'identity_id'
+                 or point->>'road_id'=receipt.evidence->>'road_id'
+            )
+          )
+     )
+  then
+    raise exception 'Issue #97 frozen mapping wave target immediate Google hold is invalid';
+  end if;
+
+  if exists(
+    select 1
+    from tmp_issue97_frozen_mapping_expected_google_pads expected
+    join private_verification.brinesearch_google_route_receipts_issue97 receipt
+      on receipt.pad_id=expected.pad_id
+    join public.pads pad on pad.id=expected.pad_id
+    where pad.brinesearch_google_route_status_issue97 is distinct from 'stale'
+       or pad.brinesearch_google_route_revision_issue97 is distinct from receipt.route_revision
+       or pad.structured_route_revision is distinct from expected.structured_route_revision
+       or pad.road_sequence_status is distinct from expected.road_sequence_status
+  )
+  then
+    raise exception 'Issue #97 frozen mapping wave target pad Google state is invalid';
+  end if;
+
+  if (select count(*) from private_verification.brinesearch_google_route_refresh_queue_issue97)<>3
+     or (select pg_catalog.md5(pg_catalog.string_agg(queue.pad_id::text,'|' order by queue.pad_id))
+         from private_verification.brinesearch_google_route_refresh_queue_issue97 queue)
+       <>'5cd68da6e31fa7bf5b59bca9935f96f2'
+     or exists(
+       select 1 from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+       left join tmp_issue97_frozen_mapping_expected_google_pads expected on expected.pad_id=queue.pad_id
+       where expected.pad_id is null or queue.reason<>'road_identity_mapping_changed'
+     )
+  then
+    raise exception 'Issue #97 frozen mapping wave immediate Google refresh queue is invalid';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
+       from private_verification.brinesearch_google_route_receipts_issue97 receipt
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=receipt.pad_id))<>
+       (select non_target_private_google from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.jsonb_build_object(
+         'pad_id',pad.id,'status',pad.brinesearch_google_route_status_issue97,
+         'revision',pad.brinesearch_google_route_revision_issue97
+       )::text,'|' order by pad.id),''))
+       from public.pads pad
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=pad.id))<>
+       (select non_target_pad_google from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(queue)::text,'|' order by queue.pad_id),''))
+       from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=queue.pad_id))<>
+       (select non_target_google_queue from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave changed non-target Google state';
+  end if;
+
+  if (select pg_catalog.md5(pg_catalog.to_jsonb(state)::text) from public.brinesearch_issue97_release_state state where singleton)<>(select release_state from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(scope)::text,'|' order by scope.dataset_id,scope.state_code,scope.county_code),'')) from public.brinesearch_road_source_dataset_counties scope where state_code='OH')<>(select ohio_sources from tmp_issue97_frozen_mapping_protected_before)
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(build)::text,'|' order by build.id),'')) from public.brinesearch_road_graph_builds build where not exists(select 1 from tmp_issue97_frozen_mapping_graph_before affected where affected.id=build.id))<>(select non_target_builds from tmp_issue97_frozen_mapping_protected_before)
      or (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>(select global_reconciliation from tmp_issue97_frozen_mapping_protected_before)
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
      or exists(select 1 from public.brinesearch_road_graph_builds where state_code in ('WV','PA') and details->>'release_generation_key'='issue97-release-20260815-r2')
      or public.brinesearch_issue97_cutover_active()
+  then
+    raise exception 'Issue #97 frozen mapping wave changed release source graph or reconciliation protected state';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(route)::text,'|' order by route.pad_id),'')) from public.brinesearch_driver_google_routes_public route)<>(select public_google from tmp_issue97_frozen_mapping_protected_before)
      or (select count(*) from public.brinesearch_driver_google_routes_public)<>0
   then
-    raise exception 'Issue #97 frozen mapping wave changed non-target/protected state';
+    raise exception 'Issue #97 frozen mapping wave public Google routes are not zero';
   end if;
 end
 $issue97_frozen_exact_mapping_wave$;
+
+create temporary table tmp_issue97_frozen_mapping_google_immediate on commit drop as
+select expected.pad_id,pg_catalog.to_jsonb(receipt) receipt_row,
+  pad.brinesearch_google_route_status_issue97 pad_google_status,
+  pad.brinesearch_google_route_revision_issue97 pad_google_revision
+from tmp_issue97_frozen_mapping_expected_google_pads expected
+join private_verification.brinesearch_google_route_receipts_issue97 receipt
+  on receipt.pad_id=expected.pad_id
+join public.pads pad on pad.id=expected.pad_id
+order by expected.pad_id;
+
+-- Exercise the real already-pending constraint-trigger events only after the
+-- immediate stale receipts and exact queue membership have passed review.
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;
+
+do $issue97_frozen_mapping_deferred_google_assertions$
+begin
+  if (select count(*) from tmp_issue97_frozen_mapping_google_immediate)<>3
+     or exists(
+       select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+       left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+         on receipt.pad_id=expected.pad_id
+       left join public.pads pad on pad.id=expected.pad_id
+       where receipt.status is distinct from 'held'
+          or receipt.hold_reason is distinct from 'issue97_cutover_not_active'
+          or receipt.manifest_version is distinct from 'issue97-google-v1'
+          or receipt.manifest->>'manifest_version' is distinct from 'issue97-google-v1'
+          or receipt.manifest->>'route_ready' is distinct from 'false'
+          or receipt.manifest->>'status' is distinct from 'held'
+          or receipt.manifest->>'pad_id' is distinct from expected.pad_id::text
+          or receipt.manifest->>'route_revision' is distinct from
+             greatest(coalesce(expected.structured_route_revision,0),0)::text
+          or receipt.route_revision is distinct from
+             greatest(coalesce(expected.structured_route_revision,0),0)
+          or receipt.manifest_digest is not null
+          or receipt.dependency_digest is not null
+          or receipt.evidence is distinct from '{}'::jsonb
+          or pad.brinesearch_google_route_status_issue97 is distinct from 'held'
+          or pad.brinesearch_google_route_revision_issue97 is distinct from receipt.route_revision
+          or pad.structured_route_revision is distinct from expected.structured_route_revision
+          or pad.road_sequence_status is distinct from expected.road_sequence_status
+      )
+     or exists(select 1 from private_verification.brinesearch_google_route_refresh_queue_issue97)
+     or public.brinesearch_issue97_cutover_active()
+  then
+    raise exception 'Issue #97 frozen mapping wave deferred Google processor produced unsafe state';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
+       from private_verification.brinesearch_google_route_receipts_issue97 receipt
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=receipt.pad_id))<>
+       (select non_target_private_google from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.jsonb_build_object(
+         'pad_id',pad.id,'status',pad.brinesearch_google_route_status_issue97,
+         'revision',pad.brinesearch_google_route_revision_issue97
+       )::text,'|' order by pad.id),''))
+       from public.pads pad
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=pad.id))<>
+       (select non_target_pad_google from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(queue)::text,'|' order by queue.pad_id),''))
+       from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+       where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+         where expected.pad_id=queue.pad_id))<>
+       (select non_target_google_queue from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave changed non-target Google state';
+  end if;
+
+  if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(candidate)::text,'|' order by candidate.route_prep_step_id,candidate.identity_id,candidate.candidate_basis),'')) from private_verification.brinesearch_route_occurrence_candidates_issue97 candidate)<>(select candidates from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.occurrence_index),'')) from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt)<>(select occurrences from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id),'')) from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt)<>(select routes from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.boundary_index),'')) from private_verification.brinesearch_route_transition_receipts_issue97 receipt)<>(select transitions from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.route_prep_id,receipt.occurrence_index),'')) from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt)<>(select geometry from tmp_issue97_frozen_mapping_protected_before)
+  then
+    raise exception 'Issue #97 frozen mapping wave changed route occurrence or reconciliation receipts';
+  end if;
+
+  if (select pg_catalog.md5(pg_catalog.to_jsonb(state)::text) from public.brinesearch_issue97_release_state state where singleton)<>(select release_state from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(scope)::text,'|' order by scope.dataset_id,scope.state_code,scope.county_code),'')) from public.brinesearch_road_source_dataset_counties scope where state_code='OH')<>(select ohio_sources from tmp_issue97_frozen_mapping_protected_before)
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(build)::text,'|' order by build.id),'')) from public.brinesearch_road_graph_builds build where not exists(select 1 from tmp_issue97_frozen_mapping_graph_before affected where affected.id=build.id))<>(select non_target_builds from tmp_issue97_frozen_mapping_protected_before)
+     or (select count(*) from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)<>(select global_reconciliation from tmp_issue97_frozen_mapping_protected_before)
+     or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
+     or exists(select 1 from public.brinesearch_road_graph_builds where state_code in ('WV','PA') and details->>'release_generation_key'='issue97-release-20260815-r2')
+  then
+    raise exception 'Issue #97 frozen mapping wave changed release source graph or reconciliation protected state';
+  end if;
+
+  if (select count(*) from public.brinesearch_driver_google_routes_public)<>0
+  then
+    raise exception 'Issue #97 frozen mapping wave public Google routes are not zero';
+  end if;
+end
+$issue97_frozen_mapping_deferred_google_assertions$;
+
+-- Freeze the exact cutover-OFF processor result so the later dark-build
+-- rehearsal can prove that no candidate build changes target Google state.
+create temporary table tmp_issue97_frozen_mapping_google_postprocessor on commit drop as
+select expected.pad_id,pg_catalog.to_jsonb(receipt) receipt_row,
+  pad.brinesearch_google_route_status_issue97 pad_google_status,
+  pad.brinesearch_google_route_revision_issue97 pad_google_revision
+from tmp_issue97_frozen_mapping_expected_google_pads expected
+join private_verification.brinesearch_google_route_receipts_issue97 receipt
+  on receipt.pad_id=expected.pad_id
+join public.pads pad on pad.id=expected.pad_id
+order by expected.pad_id;
+
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;
+
+do $issue97_frozen_mapping_deferred_trigger_assertion$
+begin
+  if (select count(*)
+      from pg_catalog.pg_trigger trigger
+      join pg_catalog.pg_class relation on relation.oid=trigger.tgrelid
+      join pg_catalog.pg_namespace namespace on namespace.oid=relation.relnamespace
+      where namespace.nspname='private_verification'
+        and relation.relname='brinesearch_google_route_refresh_queue_issue97'
+        and trigger.tgname='brinesearch_issue97_google_route_refresh_deferred'
+        and not trigger.tgisinternal)<>1
+     or exists(
+       select 1
+       from pg_catalog.pg_trigger trigger
+       join pg_catalog.pg_class relation on relation.oid=trigger.tgrelid
+       join pg_catalog.pg_namespace namespace on namespace.oid=relation.relnamespace
+       where namespace.nspname='private_verification'
+         and relation.relname='brinesearch_google_route_refresh_queue_issue97'
+         and trigger.tgname='brinesearch_issue97_google_route_refresh_deferred'
+         and (trigger.tgenabled<>'O' or not trigger.tgdeferrable or not trigger.tginitdeferred)
+     )
+  then
+    raise exception 'Issue #97 frozen mapping wave deferred Google processor produced unsafe state';
+  end if;
+end
+$issue97_frozen_mapping_deferred_trigger_assertion$;
 
 select pg_catalog.jsonb_build_object(
   'identity_count',46,'road_count',37,'highway_identity_count',28,
