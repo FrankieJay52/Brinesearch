@@ -21,11 +21,13 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
 $claimPath = Join-Path $logRoot 'server-inspection.launch.json'
 $spawnPath = Join-Path $logRoot 'server-inspection.spawn.json'
 $pidPath = Join-Path $logRoot 'server-inspection.pid.json'
 $finalPath = Join-Path $logRoot 'server-inspection.final.json'
+$clientPath = Join-Path $logRoot 'server-inspection.client.json'
+$clientFinalPath = Join-Path $logRoot 'server-inspection.client-final.json'
 $executionSqlPath = Join-Path $logRoot 'server-inspection.reviewed.sql'
 $claim = $null
 $manifest = $null
@@ -57,25 +59,32 @@ try {
   $libLoaded = $true
   Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
   Assert-Issue97NoCredentialEnvironment
+  Assert-Issue97HistoricalEvidence -Manifest $manifest
   $env:PGSERVICE = [string]$manifest.expected_service
   Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
-  if ([int]$claim.schema_version -ne 2 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
+  if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
+      [string]$claim.generation_id -ne [string]$manifest.generation_id -or
       [string]$claim.target_pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
+      [string]$claim.inspector_pgappname -ne 'brinesearch-i97-wp-postcheck-v3' -or
       [string]$claim.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
       [string]$claim.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256) {
     throw 'server-inspection claim identity mismatch'
   }
-  $authorizationPath = Join-Path $logRoot 'authorization.json'
+  $authorizationPath = Join-Path $logRoot 'production.authorization.json'
   if (-not (Test-Issue97SamePath -Left ([string]$claim.authorization_path) -Right $authorizationPath) -or
       [string]$claim.authorization_sha256 -ne (Get-Issue97Sha256 -LiteralPath $authorizationPath)) {
     throw 'server-inspection claim authorization binding mismatch'
   }
   $authorization = Read-Issue97Json -LiteralPath $authorizationPath
-  if ([string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
+  if ([int]$authorization.schema_version -ne 3 -or
+      [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+      [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
       -not [bool]$authorization.production_read_only_proof_authorized -or
-      [bool]$authorization.mapping_rehearsal_authorized) {
+      [bool]$authorization.mapping_rehearsal_authorized -or
+      [bool]$authorization.automatic_retry_authorized) {
     throw 'server-inspection exact-SHA authorization mismatch'
   }
   $expectedPaths = @{
@@ -86,6 +95,8 @@ try {
     status_script = (Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-status.ps1')
     spawn_receipt_path = $spawnPath
     pid_receipt_path = $pidPath
+    client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     stdout_path = (Join-Path $logRoot 'server-inspection.stdout.log')
     stderr_path = (Join-Path $logRoot 'server-inspection.stderr.log')
     worker_host_stdout_path = (Join-Path $logRoot 'server-inspection.worker.stdout.log')
@@ -158,7 +169,7 @@ try {
     throw 'production proof bootstrap has no terminal receipt'
   }
   $proofBootstrapFinal = Read-Issue97Json -LiteralPath $proofBootstrapFinalPath
-  if ([int]$proofBootstrapFinal.schema_version -ne 2 -or
+  if ([int]$proofBootstrapFinal.schema_version -ne 3 -or
       [string]$proofBootstrapFinal.worker_proof_version -ne [string]$manifest.worker_proof_version -or
       [string]$proofBootstrapFinal.job_kind -ne 'production_read_only_pg_sleep_proof' -or
       [string]$proofBootstrapFinal.attempt_id -ne [string]$claim.proof_attempt_id -or
@@ -180,7 +191,7 @@ try {
   }
   if (Test-Path -LiteralPath $proofBootstrapReceiptPath -PathType Leaf) {
     $proofBootstrapReceipt = Read-Issue97Json -LiteralPath $proofBootstrapReceiptPath
-    if ([int]$proofBootstrapReceipt.schema_version -ne 2 -or
+    if ([int]$proofBootstrapReceipt.schema_version -ne 3 -or
         [string]$proofBootstrapReceipt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
         [string]$proofBootstrapReceipt.job_kind -ne 'production_read_only_pg_sleep_proof' -or
         [string]$proofBootstrapReceipt.attempt_id -ne [string]$claim.proof_attempt_id -or
@@ -247,7 +258,8 @@ try {
   Write-Issue97TextNoClobber -LiteralPath ([string]$claim.worker_host_stdout_path) -Text ''
   Write-Issue97TextNoClobber -LiteralPath ([string]$claim.worker_host_stderr_path) -Text ''
   Write-Issue97JsonAtomicNoClobber -LiteralPath $pidPath -Value ([ordered]@{
-    schema_version = 2
+    schema_version = 3
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     repo_sha = $verifiedSha
@@ -279,21 +291,73 @@ try {
   $guard = [System.IO.File]::Open($executionSqlPath, [System.IO.FileMode]::Open,
     [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
   try {
-    $env:PGSSLMODE = 'require'
-    $env:PGCONNECT_TIMEOUT = '10'
-    $env:PGAPPNAME = 'brinesearch-i97-wp-postcheck'
-    $arguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_target_pgappname=$([string]$claim.target_pgappname) --file=`"$executionSqlPath`""
+    $arguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_target_pgappname=$([string]$claim.target_pgappname) --set=issue97_inspector_pgappname=$([string]$claim.inspector_pgappname) --file=`"$executionSqlPath`""
+    $startInfo = New-Object System.Diagnostics.ProcessStartInfo
+    $startInfo.FileName = $psqlPath
+    $startInfo.Arguments = $arguments
+    $startInfo.UseShellExecute = $false
+    $startInfo.CreateNoWindow = $true
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+    $startInfo.EnvironmentVariables['PGSERVICE'] = [string]$manifest.expected_service
+    $startInfo.EnvironmentVariables['PGSSLMODE'] = 'require'
+    $startInfo.EnvironmentVariables['PGCONNECT_TIMEOUT'] = '10'
+    $startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$claim.inspector_pgappname
+    $startInfo.EnvironmentVariables.Remove('PGOPTIONS')
     $clientStarted = $true
-    $client = Start-Process -FilePath $psqlPath -ArgumentList $arguments -PassThru -NoNewWindow `
-      -RedirectStandardOutput ([string]$claim.stdout_path) -RedirectStandardError ([string]$claim.stderr_path)
+    $client = New-Object System.Diagnostics.Process
+    $client.StartInfo = $startInfo
+    if (-not $client.Start()) { throw 'server inspection psql client did not start' }
+    $stdoutTask = $client.StandardOutput.ReadToEndAsync()
+    $stderrTask = $client.StandardError.ReadToEndAsync()
+    $clientPid = [int]$client.Id
+    $clientProcessStartUtc = $client.StartTime.ToUniversalTime().ToString('o')
+    Write-Issue97JsonAtomicNoClobber -LiteralPath $clientPath -Value ([ordered]@{
+      schema_version = 3
+      worker_proof_version = [string]$claim.worker_proof_version
+      generation_id = [string]$manifest.generation_id
+      job_kind = [string]$claim.job_kind
+      attempt_id = [string]$claim.attempt_id
+      repo_sha = [string]$claim.authorized_repo_sha
+      target_pgappname = [string]$claim.target_pgappname
+      inspector_pgappname = [string]$claim.inspector_pgappname
+      child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+      pid = $clientPid
+      process_start_utc = $clientProcessStartUtc
+      executable_path = $psqlPath
+      execution_sql_path = $executionSqlPath
+    })
     $clientFinished = $client.WaitForExit(45000)
     if (-not $clientFinished) { throw 'server inspection exceeded its fixed wall-clock bound' }
+    $client.WaitForExit()
+    $client.Refresh()
     $exitCode = [int]$client.ExitCode
+    $stdout = [string]$stdoutTask.GetAwaiter().GetResult()
+    $stderr = [string]$stderrTask.GetAwaiter().GetResult()
+    Write-Issue97TextNoClobber -LiteralPath ([string]$claim.stdout_path) -Text $stdout
+    Write-Issue97TextNoClobber -LiteralPath ([string]$claim.stderr_path) -Text $stderr
+    $stdoutHash = Get-Issue97Sha256 -LiteralPath ([string]$claim.stdout_path)
+    $stderrHash = Get-Issue97Sha256 -LiteralPath ([string]$claim.stderr_path)
+    Write-Issue97JsonAtomicNoClobber -LiteralPath $clientFinalPath -Value ([ordered]@{
+      schema_version = 3
+      worker_proof_version = [string]$claim.worker_proof_version
+      generation_id = [string]$manifest.generation_id
+      job_kind = [string]$claim.job_kind
+      attempt_id = [string]$claim.attempt_id
+      repo_sha = [string]$claim.authorized_repo_sha
+      target_pgappname = [string]$claim.target_pgappname
+      inspector_pgappname = [string]$claim.inspector_pgappname
+      child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+      pid = $clientPid
+      process_start_utc = $clientProcessStartUtc
+      process_end_utc = [datetime]::UtcNow.ToString('o')
+      exit_code = $exitCode
+      stdout_sha256 = $stdoutHash
+      stderr_sha256 = $stderrHash
+    })
   } finally {
     $guard.Dispose()
   }
-  $stdout = [System.IO.File]::ReadAllText([string]$claim.stdout_path)
-  $stderr = [System.IO.File]::ReadAllText([string]$claim.stderr_path)
   $success = $exitCode -eq 0 -and $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') -and
     ([regex]::Matches($stdout, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 -and
     ([regex]::Matches($stdout + "`n" + $stderr, '(?im)^\s*COMMIT\s*$')).Count -eq 0
@@ -322,14 +386,16 @@ try {
     } else { $null }
     try {
       Write-Issue97JsonAtomicNoClobber -LiteralPath $finalPath -Value ([ordered]@{
-        schema_version = 2
+        schema_version = 3
         worker_proof_version = [string]$claim.worker_proof_version
+        generation_id = [string]$manifest.generation_id
         job_kind = [string]$claim.job_kind
         attempt_id = [string]$claim.attempt_id
         proof_attempt_id = [string]$claim.proof_attempt_id
         repo_sha = [string]$claim.authorized_repo_sha
         artifact_set_sha256 = [string]$claim.artifact_set_sha256
         target_pgappname = [string]$claim.target_pgappname
+        inspector_pgappname = [string]$claim.inspector_pgappname
         pid = $PID
         process_start_utc = if ($null -ne $spawnReceipt) { [string]$spawnReceipt.process_start_utc } else { $null }
         start_utc = $startUtc
@@ -337,6 +403,9 @@ try {
         client_started = $clientStarted
         client_confirmed_finished = $clientFinished
         exit_code = $exitCode
+        client_final_receipt_path = $clientFinalPath
+        client_final_receipt_sha256 = if ($clientFinished -and (Test-Path -LiteralPath $clientFinalPath)) { Get-Issue97Sha256 -LiteralPath $clientFinalPath } else { $null }
+        child_environment_pgappname = if ($clientFinished) { [string]$claim.inspector_pgappname } else { $null }
         final_marker_present = if ($clientFinished) { $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') } else { $false }
         rollback_present = if ($clientFinished) { ([regex]::Matches($stdout, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 } else { $false }
         commit_count = if ($clientFinished) { ([regex]::Matches($stdout + "`n" + $stderr, '(?im)^\s*COMMIT\s*$')).Count } else { -1 }
@@ -347,6 +416,7 @@ try {
         success = $success
         server_inspection_required = (-not $success)
         failure_code = $failureCode
+        worker_exit_code = if ($success) { 0 } else { 103 }
       })
     } catch { exit 102 }
   }

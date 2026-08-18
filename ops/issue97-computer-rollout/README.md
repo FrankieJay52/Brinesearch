@@ -59,12 +59,13 @@ another Windows principal fails closed. It requires the reviewed PostgreSQL
 `.tools/postgresql17/bin/psql.exe`; the launcher/worker verify the client and the
 complete local DLL set against `issue97-worker-proof-manifest.json`. The fixed
 `psql --version` checks in bootstrap and worker do not connect; only the worker's
-single fixed `Start-Process` invocation opens the one authorized sleep-proof
-database session.
+single fixed `System.Diagnostics.Process` instance can open the one authorized
+sleep-proof database session. That process is drained, unquestionably exited,
+refreshed, and sampled exactly once for its authoritative `ExitCode`; later
+hashing and receipt work cannot replace the captured result.
 
-The fixed
-private receipt root is
-`C:\Users\frank\.issue97-runs\issue97-worker-proof`.
+Generation 3 uses the fixed private receipt root
+`C:\Users\frank\.issue97-runs\issue97-worker-proof-v3`.
 It is outside every repository, shared across local Issue #97 worktrees, and
 must not be a junction/reparse point. Its DACL is protected from inheritance and
 contains exactly three non-inherited full-control entries: the current Windows
@@ -73,6 +74,12 @@ inherited receipt directory fails closed before launch. Provision this exact
 directory once with that reviewed DACL before invoking either launcher; the
 launchers deliberately refuse to create or weaken it.
 
+The failed generation-2 evidence remains permanently consumed and immutable at
+`C:\Users\frank\.issue97-runs\issue97-worker-proof`. Generation 3 pins that
+directory's exact 36-file aggregate digest, critical receipt hashes, failed
+attempt IDs, and fail-stop disposition before any authorization or launch. The
+new namespace cannot delete, overwrite, rename, or reuse generation-2 evidence.
+
 After the repository-only checkpoint is committed and pushed, provision or
 verify that fixed local root from the clean exact-head clone:
 
@@ -80,9 +87,9 @@ verify that fixed local root from the clean exact-head clone:
 & 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-provision-log-root.ps1
 ```
 
-Then atomically bind the owner-protected proof authorization to that one fetched,
-clean, exact PR SHA. The receipt authorizes only the local detachment proof and
-the production read-only sleep proof; it explicitly excludes the mapping
+Then atomically bind the owner-protected **local-only** authorization to that one
+fetched, clean, exact PR SHA. The receipt authorizes only the harmless local
+detachment proof; it explicitly excludes production, retry, and the mapping
 rehearsal:
 
 ```powershell
@@ -98,8 +105,17 @@ reaches `CLIENT_FINISHED_SUCCESS`:
 & 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-status.ps1
 ```
 
-Only after the local proof passes and the separately authorized production pins
-are reverified may the one-shot production read-only proof be launched:
+The production authorization is a second no-clobber receipt and separate
+zero-argument command. A pushed SHA or completed local proof does not create it.
+Run it only after the exact generation-3 SHA receives independent Grok and
+ChatGPT review plus a separate explicit one-shot authorization:
+
+```powershell
+& 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-authorize-production.ps1
+```
+
+Only after that separate production authorization and fresh protected-pin
+verification may the one-shot production read-only proof be launched:
 
 ```powershell
 $env:PGSERVICE = 'brinesearch_issue97_prod'
@@ -107,8 +123,10 @@ $env:PGSERVICE = 'brinesearch_issue97_prod'
 & 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\ops\issue97-computer-rollout\issue97-worker-proof-status.ps1
 ```
 
-The status command only reads the marker, PID/process identity, logs, and atomic
-final receipt. It never launches, restarts, kills, deletes, or connects to the
+The status command only reads the marker, PID/process identity, logs, atomic
+client-completion receipt, and atomic final receipt. It requires the actual
+child `ExitCode`, attempt/PGAPPNAME identity, and log hashes to agree across all
+receipts. It never launches, restarts, kills, deletes, or connects to the
 database. `CLIENT_FINISHED_SUCCESS` proves only the client-side PASS/ROLLBACK
 contract. After the worker has unquestionably exited, launch the fixed
 zero-argument detached server inspector exactly once, then poll its separate
@@ -136,6 +154,31 @@ a new SHA nor a new artifact set grants another attempt. Any worker-artifact
 change is a new unaudited lane and requires a new explicit authorization. There
 is no automatic retry. This proof does not authorize the frozen mapping
 rehearsal or any other Issue #97 production operation.
+
+### Generation-2 failure correction
+
+The consumed generation-2 production attempt expected receipt PGAPPNAME
+`brinesearch-i97-wp-20260818043030-ef613388`, but the Supavisor-backed PostgreSQL
+session exposed `application_name = Supavisor`. The launcher, bootstrap, attempt,
+worker, and client receipts retained the expected value; it was lost at the
+libpq/Supavisor-to-server session boundary. Generation 3 still sets the psql
+child's process-local `PGAPPNAME` from the immutable attempt, rejects caller
+`PGAPPNAME`/`PGOPTIONS`, passes the same value as a fixed psql variable, then
+executes `SET LOCAL application_name` and proves exact `current_setting` equality
+before `pg_sleep(5)`. Empty, generic `psql`, stale, or mismatched values fail.
+
+The same failed attempt reached an ON_ERROR_STOP SQL error but generation 2
+recorded exit code `0`. Its `Start-Process` result was sampled after the timed
+wait without the parameterless drain/refresh sequence, so that receipt was not
+authoritative. Generation 3 captures `ExitCode` immediately after a bounded
+wait, parameterless `WaitForExit()`, and `Refresh()`, then binds it into a
+separate atomic client-final receipt and the worker final receipt. PASS text,
+empty stderr, or receipt existence can never override a nonzero process result.
+
+The generation-2 inspector incorrectly schema-qualified the SQL `COALESCE`
+syntax construct. Generation 3 uses `COALESCE(...)` while retaining
+safe `pg_catalog` qualification on actual PostgreSQL functions. Both inspector
+and proof SQL remain finite, read-only, explicitly rolled back, and commit-free.
 
 ## VIN endpoint-index prerequisite (independent review required)
 

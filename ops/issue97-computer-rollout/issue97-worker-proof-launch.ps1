@@ -24,8 +24,8 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-bootstrap.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
-if ([int]$manifest.schema_version -ne 2 -or
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+if ([int]$manifest.schema_version -ne 3 -or
     [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or
     [string]$manifest.powershell.path -ne 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe') {
@@ -51,20 +51,22 @@ foreach ($entry in Get-ChildItem Env:) {
 if (-not (Test-Path -LiteralPath $logRoot -PathType Container)) {
   throw 'the reviewed owner-protected private log root must be provisioned before launch'
 }
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$authorizationPath = Join-Path $logRoot 'production.authorization.json'
 if (-not (Test-Path -LiteralPath $authorizationPath -PathType Leaf)) {
   throw 'the owner-protected exact-SHA authorization receipt is missing'
 }
 $authorization = [System.IO.File]::ReadAllText($authorizationPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 $manifestSha256 = Get-Issue97PreambleSha256 -LiteralPath $manifestPath
-if ([int]$authorization.schema_version -ne 2 -or
+if ([int]$authorization.schema_version -ne 3 -or
     [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+    [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
     [string]$authorization.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
     [string]$authorization.branch -ne [string]$manifest.expected_branch -or
     [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
     [string]$authorization.manifest_sha256 -ne $manifestSha256 -or
     -not [bool]$authorization.production_read_only_proof_authorized -or
-    [bool]$authorization.mapping_rehearsal_authorized) {
+    [bool]$authorization.mapping_rehearsal_authorized -or
+    [bool]$authorization.automatic_retry_authorized) {
   throw 'exact-SHA authorization receipt does not match this fixed production proof'
 }
 foreach ($pair in @(
@@ -91,8 +93,9 @@ $attemptPath = Join-Path $logRoot 'production.attempt.json'
 $spawnPath = Join-Path $logRoot 'production.spawn.json'
 $pidPath = Join-Path $logRoot 'production.pid.json'
 $clientPath = Join-Path $logRoot 'production.client.json'
+$clientFinalPath = Join-Path $logRoot 'production.client-final.json'
 $finalPath = Join-Path $logRoot 'production.final.json'
-foreach ($path in @($claimPath, $bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $clientPath, $finalPath)) {
+foreach ($path in @($claimPath, $bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $clientPath, $clientFinalPath, $finalPath)) {
   if (Test-Path -LiteralPath $path) {
     throw 'the one-shot production proof was already claimed; a new SHA or artifact set does not grant a retry'
   }
@@ -107,8 +110,9 @@ $stderrPath = Join-Path $logRoot "$attemptId.psql.stderr.log"
 $hostStdout = Join-Path $logRoot "$attemptId.worker.stdout.log"
 $hostStderr = Join-Path $logRoot "$attemptId.worker.stderr.log"
 $claim = [ordered]@{
-  schema_version = 2
+  schema_version = 3
   worker_proof_version = [string]$manifest.worker_proof_version
+  generation_id = [string]$manifest.generation_id
   job_kind = 'production_read_only_pg_sleep_proof'
   attempt_id = $attemptId
   utc_start = $now.ToString('o')
@@ -126,6 +130,7 @@ $claim = [ordered]@{
   worker_spawn_receipt_path = $spawnPath
   worker_pid_receipt_path = $pidPath
   client_pid_receipt_path = $clientPath
+  client_final_receipt_path = $clientFinalPath
   stdout_path = $stdoutPath
   stderr_path = $stderrPath
   worker_host_stdout_path = $hostStdout

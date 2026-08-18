@@ -6,10 +6,22 @@
   \quit 81
 \endif
 
+\if :{?issue97_inspector_pgappname}
+\else
+  \echo ISSUE97_WORKER_PROOF_INSPECTOR_NAME_MISSING
+  \quit 83
+\endif
+
 begin isolation level repeatable read read only;
 
 set local statement_timeout = '30s';
 set local lock_timeout = '2s';
+set local application_name = :'issue97_inspector_pgappname';
+
+select case
+  when pg_catalog.current_setting('application_name') = :'issue97_inspector_pgappname' then 1
+  else 1 / 0
+end as issue97_exact_inspector_pgappname_guard;
 
 with frozen_mapping_pairs(identity_id, road_id) as (
   values
@@ -101,7 +113,7 @@ select (
        join public.brinesearch_route_prep route on route.id = receipt.route_prep_id
        join public.pads pad on pad.id = route.pad_id
        where route.active and route.route_group in ('primary', 'alternate')
-         and pad.state = 'Ohio' and not pg_catalog.coalesce(pad.list_only, false)) = 806
+         and pad.state = 'Ohio' and not COALESCE(pad.list_only, false)) = 806
   and (select pg_catalog.count(*) from public.brinesearch_road_graph_builds
        where status = 'staging') = 0
   and (select pg_catalog.count(*) from public.brinesearch_road_graph_builds

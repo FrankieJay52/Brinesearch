@@ -50,6 +50,8 @@ try {
   $bootstrapFinalPath = Join-Path $logRoot 'server-inspection.bootstrap-final.json'
   $spawnPath = Join-Path $logRoot 'server-inspection.spawn.json'
   $pidPath = Join-Path $logRoot 'server-inspection.pid.json'
+  $clientPath = Join-Path $logRoot 'server-inspection.client.json'
+  $clientFinalPath = Join-Path $logRoot 'server-inspection.client-final.json'
   $finalPath = Join-Path $logRoot 'server-inspection.final.json'
   if (-not (Test-Path -LiteralPath $claimPath -PathType Leaf)) {
     Write-Issue97InspectionState -State 'NOT_STARTED'
@@ -76,16 +78,20 @@ try {
     status_script = $PSCommandPath
     spawn_receipt_path = $spawnPath
     pid_receipt_path = $pidPath
+    client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     stdout_path = (Join-Path $logRoot 'server-inspection.stdout.log')
     stderr_path = (Join-Path $logRoot 'server-inspection.stderr.log')
     worker_host_stdout_path = (Join-Path $logRoot 'server-inspection.worker.stdout.log')
     worker_host_stderr_path = (Join-Path $logRoot 'server-inspection.worker.stderr.log')
     final_status_path = $finalPath
   }
-  if ([int]$claim.schema_version -ne 2 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
+  if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
+      [string]$claim.generation_id -ne [string]$manifest.generation_id -or
       [string]$claim.attempt_id -notmatch '^issue97-inspect-[0-9]{8}T[0-9]{9}Z$' -or
       [string]$claim.proof_attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
       [string]$claim.target_pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
+      [string]$claim.inspector_pgappname -ne 'brinesearch-i97-wp-postcheck-v3' -or
       [string]$claim.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
       [string]$claim.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$claim.manifest_sha256 -ne (Get-Issue97Sha256 -LiteralPath $manifestPath)) {
@@ -96,17 +102,21 @@ try {
       Write-Issue97InspectionState -State 'RECEIPT_INVALID'
     }
   }
-  $authorizationPath = Join-Path $logRoot 'authorization.json'
+  $authorizationPath = Join-Path $logRoot 'production.authorization.json'
   if (-not (Test-Issue97SamePath -Left ([string]$claim.authorization_path) -Right $authorizationPath) -or
       [string]$claim.authorization_sha256 -ne (Get-Issue97Sha256 -LiteralPath $authorizationPath)) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
   }
   $authorization = Read-Issue97Json -LiteralPath $authorizationPath
-  if ([string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
+  if ([int]$authorization.schema_version -ne 3 -or
+      [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+      [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
       -not [bool]$authorization.production_read_only_proof_authorized -or
-      [bool]$authorization.mapping_rehearsal_authorized) {
+      [bool]$authorization.mapping_rehearsal_authorized -or
+      [bool]$authorization.automatic_retry_authorized) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
   }
   $proofAttemptPath = Join-Path $logRoot 'production.attempt.json'
@@ -168,7 +178,7 @@ try {
     }
   }
   $spawn = Read-Issue97Json -LiteralPath $spawnPath
-  if ([int]$spawn.schema_version -ne 2 -or [string]$spawn.job_kind -ne [string]$claim.job_kind -or
+  if ([int]$spawn.schema_version -ne 3 -or [string]$spawn.job_kind -ne [string]$claim.job_kind -or
       [string]$spawn.attempt_id -ne [string]$claim.attempt_id -or [int]$spawn.pid -le 0 -or
       -not (Test-Issue97SamePath -Left ([string]$spawn.executable_path) -Right ([string]$manifest.powershell.path)) -or
       -not (Test-Issue97SamePath -Left ([string]$spawn.worker_script) -Right $workerPath)) {
@@ -204,7 +214,10 @@ try {
   }
   $pidReceipt = Read-Issue97Json -LiteralPath $pidPath
   $final = Read-Issue97Json -LiteralPath $finalPath
-  if ([string]$pidReceipt.attempt_id -ne [string]$claim.attempt_id -or
+  if ([int]$pidReceipt.schema_version -ne 3 -or [int]$final.schema_version -ne 3 -or
+      [string]$pidReceipt.generation_id -ne [string]$manifest.generation_id -or
+      [string]$final.generation_id -ne [string]$manifest.generation_id -or
+      [string]$pidReceipt.attempt_id -ne [string]$claim.attempt_id -or
       [int]$pidReceipt.pid -ne [int]$spawn.pid -or
       [string]$pidReceipt.process_start_utc -ne [string]$spawn.process_start_utc -or
       [string]$pidReceipt.target_pgappname -ne [string]$claim.target_pgappname -or
@@ -214,8 +227,43 @@ try {
       [string]$final.process_start_utc -ne [string]$pidReceipt.process_start_utc -or
       [string]$final.repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$final.target_pgappname -ne [string]$claim.target_pgappname -or
+      [string]$final.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
       [string]$final.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
+  }
+  if (-not (Test-Path -LiteralPath $clientPath -PathType Leaf) -or
+      -not (Test-Path -LiteralPath $clientFinalPath -PathType Leaf)) {
+    Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
+      attempt_id = [string]$claim.attempt_id
+      target_pgappname = [string]$claim.target_pgappname
+    }
+  }
+  $clientReceipt = Read-Issue97Json -LiteralPath $clientPath
+  $clientFinal = Read-Issue97Json -LiteralPath $clientFinalPath
+  if ([int]$clientReceipt.schema_version -ne 3 -or [int]$clientFinal.schema_version -ne 3 -or
+      [string]$clientReceipt.generation_id -ne [string]$manifest.generation_id -or
+      [string]$clientFinal.generation_id -ne [string]$manifest.generation_id -or
+      [string]$clientReceipt.attempt_id -ne [string]$claim.attempt_id -or
+      [string]$clientFinal.attempt_id -ne [string]$claim.attempt_id -or
+      [string]$clientReceipt.target_pgappname -ne [string]$claim.target_pgappname -or
+      [string]$clientFinal.target_pgappname -ne [string]$claim.target_pgappname -or
+      [string]$clientReceipt.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
+      [string]$clientFinal.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
+      [string]$clientReceipt.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
+      [string]$clientFinal.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
+      [int]$clientReceipt.pid -le 0 -or [int]$clientFinal.pid -ne [int]$clientReceipt.pid -or
+      [string]$clientFinal.process_start_utc -ne [string]$clientReceipt.process_start_utc -or
+      [int]$final.exit_code -ne [int]$clientFinal.exit_code -or
+      [string]$final.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
+      [string]$final.client_final_receipt_sha256 -ne (Get-Issue97Sha256 -LiteralPath $clientFinalPath)) {
+    Write-Issue97InspectionState -State 'RECEIPT_INVALID'
+  }
+  if ($null -ne (Get-Process -Id ([int]$clientReceipt.pid) -ErrorAction SilentlyContinue)) {
+    Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
+      attempt_id = [string]$claim.attempt_id
+      target_pgappname = [string]$claim.target_pgappname
+      client_pid = [int]$clientReceipt.pid
+    }
   }
   $stdoutPath = [string]$expectedPaths.stdout_path
   $stderrPath = [string]$expectedPaths.stderr_path
@@ -232,6 +280,7 @@ try {
   })
   $success = [bool]$final.success -and [bool]$final.client_started -and
     [bool]$final.client_confirmed_finished -and [int]$final.exit_code -eq 0 -and
+    [int]$clientFinal.exit_code -eq 0 -and [int]$final.worker_exit_code -eq 0 -and
     [bool]$final.final_marker_present -and $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') -and
     [bool]$final.rollback_present -and
     ([regex]::Matches($stdout, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 -and
@@ -239,6 +288,8 @@ try {
     ([regex]::Matches($stdout + "`n" + $stderr, '(?im)^\s*COMMIT\s*$')).Count -eq 0 -and
     [string]$final.executed_sql_sha256 -eq ([string]$sqlArtifact[0].sha256).ToUpperInvariant() -and
     [string]$final.psql_sha256 -eq [string]$manifest.psql.sha256 -and
+    [string]$clientFinal.stdout_sha256 -eq [string]$final.stdout_sha256 -and
+    [string]$clientFinal.stderr_sha256 -eq [string]$final.stderr_sha256 -and
     -not [bool]$final.server_inspection_required
   if ($success) {
     Write-Issue97InspectionState -State 'CLIENT_FINISHED_SUCCESS' -Details @{

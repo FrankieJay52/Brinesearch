@@ -110,8 +110,11 @@ try {
     $bootstrapReceiptPath = Join-Path $logRoot "$claimPrefix.bootstrap.json"
     $bootstrapFinalPath = Join-Path $logRoot "$claimPrefix.bootstrap-final.json"
     $expectedBootstrap = Join-Path $PSScriptRoot $bootstrapName
-    $authorizationPath = Join-Path $logRoot 'authorization.json'
-    if ([int]$claim.schema_version -ne 2 -or [string]$claim.job_kind -ne $claimKind -or
+    $authorizationPath = Join-Path $logRoot $(if ($claimKind -eq 'production_read_only_pg_sleep_proof') {
+      'production.authorization.json'
+    } else { 'local.authorization.json' })
+    if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne $claimKind -or
+        [string]$claim.generation_id -ne [string]$manifest.generation_id -or
         [string]$claim.artifact_set_sha256 -ne $artifactSet -or
         [string]$claim.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
         -not (Test-Issue97SamePath -Left ([string]$claim.authorization_path) -Right $authorizationPath) -or
@@ -125,10 +128,15 @@ try {
     $claimAuthorized = if ($claimKind -eq 'production_read_only_pg_sleep_proof') {
       [bool]$authorization.production_read_only_proof_authorized
     } else { [bool]$authorization.local_proof_authorized }
-    if ([string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
+    if ([int]$authorization.schema_version -ne 3 -or
+        [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+        [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+        [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
         [string]$authorization.artifact_set_sha256 -ne $artifactSet -or
         [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
-        -not $claimAuthorized -or [bool]$authorization.mapping_rehearsal_authorized) {
+        -not $claimAuthorized -or [bool]$authorization.mapping_rehearsal_authorized -or
+        ($claimKind -eq 'local_detached_process_proof' -and [bool]$authorization.production_read_only_proof_authorized) -or
+        [bool]$authorization.automatic_retry_authorized) {
       Write-Issue97UnsafeReceiptState -Details @{ attempt_id = [string]$claim.attempt_id; pgappname = [string]$claim.pgappname }
     }
     if (Test-Path -LiteralPath $bootstrapReceiptPath -PathType Leaf) {
@@ -187,8 +195,9 @@ try {
   }
 
   $attempt = Read-Issue97Json -LiteralPath $markerPath
-  if ([int]$attempt.schema_version -ne 2 -or
+  if ([int]$attempt.schema_version -ne 3 -or
       [string]$attempt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$attempt.generation_id -ne [string]$manifest.generation_id -or
       [string]$attempt.artifact_set_sha256 -ne $artifactSet -or
       [string]$attempt.job_kind -ne $expectedKind -or
       [string]$attempt.attempt_id -notmatch $expectedIdPattern -or
@@ -197,7 +206,9 @@ try {
       -not (Test-Issue97SamePath -Left ([string]$attempt.worker_script) -Right $expectedWorker)) {
     Write-Issue97UnsafeReceiptState
   }
-  $authorizationPath = Join-Path $logRoot 'authorization.json'
+  $authorizationPath = Join-Path $logRoot $(if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
+    'production.authorization.json'
+  } else { 'local.authorization.json' })
   if (-not (Test-Issue97SamePath -Left ([string]$attempt.authorization_path) -Right $authorizationPath) -or
       [string]$attempt.authorization_sha256 -ne (Get-Issue97Sha256 -LiteralPath $authorizationPath)) {
     Write-Issue97UnsafeReceiptState -Details @{ attempt_id = [string]$attempt.attempt_id; pgappname = [string]$attempt.pgappname }
@@ -206,10 +217,15 @@ try {
   $authorizedForKind = if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
     [bool]$authorization.production_read_only_proof_authorized
   } else { [bool]$authorization.local_proof_authorized }
-  if ([string]$authorization.authorized_repo_sha -ne [string]$attempt.repo_sha -or
+  if ([int]$authorization.schema_version -ne 3 -or
+      [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+      [string]$authorization.authorized_repo_sha -ne [string]$attempt.repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne $artifactSet -or
       [string]$authorization.manifest_sha256 -ne [string]$attempt.manifest_sha256 -or
-      -not $authorizedForKind -or [bool]$authorization.mapping_rehearsal_authorized) {
+      -not $authorizedForKind -or [bool]$authorization.mapping_rehearsal_authorized -or
+      ($expectedKind -eq 'local_detached_process_proof' -and [bool]$authorization.production_read_only_proof_authorized) -or
+      [bool]$authorization.automatic_retry_authorized) {
     Write-Issue97UnsafeReceiptState -Details @{ attempt_id = [string]$attempt.attempt_id; pgappname = [string]$attempt.pgappname }
   }
 
@@ -221,15 +237,20 @@ try {
     $expectedStdout = Join-Path $logRoot "$attemptId.psql.stdout.log"
     $expectedStderr = Join-Path $logRoot "$attemptId.psql.stderr.log"
     $expectedClientPath = Join-Path $logRoot 'production.client.json'
+    $expectedClientFinalPath = Join-Path $logRoot 'production.client-final.json'
   } else {
     $expectedStdout = Join-Path $logRoot "$attemptId.local.stdout.log"
     $expectedStderr = Join-Path $logRoot "$attemptId.local.stderr.log"
+    $expectedClientPath = Join-Path $logRoot 'local.client.json'
+    $expectedClientFinalPath = Join-Path $logRoot 'local.client-final.json'
   }
   $expectedHostStdout = Join-Path $logRoot "$attemptId.worker.stdout.log"
   $expectedHostStderr = Join-Path $logRoot "$attemptId.worker.stderr.log"
   foreach ($pair in @(
     @([string]$attempt.worker_spawn_receipt_path, $expectedSpawnPath),
     @([string]$attempt.worker_pid_receipt_path, $expectedPidPath),
+    @([string]$attempt.client_pid_receipt_path, $expectedClientPath),
+    @([string]$attempt.client_final_receipt_path, $expectedClientFinalPath),
     @([string]$attempt.final_status_path, $expectedFinalPath),
     @([string]$attempt.stdout_path, $expectedStdout),
     @([string]$attempt.stderr_path, $expectedStderr),
@@ -240,11 +261,7 @@ try {
       Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
     }
   }
-  if ($expectedKind -eq 'production_read_only_pg_sleep_proof' -and
-      -not (Test-Issue97SamePath -Left ([string]$attempt.client_pid_receipt_path) -Right $expectedClientPath)) {
-    Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
-  }
-  foreach ($path in @($expectedSpawnPath, $expectedPidPath, $expectedFinalPath, $expectedStdout, $expectedStderr,
+  foreach ($path in @($expectedSpawnPath, $expectedPidPath, $expectedClientPath, $expectedClientFinalPath, $expectedFinalPath, $expectedStdout, $expectedStderr,
       $expectedHostStdout, $expectedHostStderr)) {
     Assert-Issue97PathUnderRoot -Candidate $path -AllowedRoot $logRoot
   }
@@ -282,7 +299,7 @@ try {
     Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
   }
   $spawnReceipt = Read-Issue97Json -LiteralPath $expectedSpawnPath
-  if ([int]$spawnReceipt.schema_version -ne 2 -or
+  if ([int]$spawnReceipt.schema_version -ne 3 -or
       [string]$spawnReceipt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
       [string]$spawnReceipt.job_kind -ne $expectedKind -or
       [string]$spawnReceipt.attempt_id -ne $attemptId -or
@@ -330,7 +347,7 @@ try {
   }
   $pidReceipt = Read-Issue97Json -LiteralPath $expectedPidPath
   if (
-      [int]$pidReceipt.schema_version -ne 2 -or
+      [int]$pidReceipt.schema_version -ne 3 -or
       [string]$pidReceipt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
       [string]$pidReceipt.attempt_id -ne $attemptId -or
       [string]$pidReceipt.repo_sha -ne [string]$attempt.repo_sha -or
@@ -374,8 +391,9 @@ try {
     }
   }
   $final = Read-Issue97Json -LiteralPath $expectedFinalPath
-  if ([int]$final.schema_version -ne 2 -or
+  if ([int]$final.schema_version -ne 3 -or
       [string]$final.worker_proof_version -ne [string]$attempt.worker_proof_version -or
+      [string]$final.generation_id -ne [string]$manifest.generation_id -or
       [string]$final.job_kind -ne $expectedKind -or
       [string]$final.attempt_id -ne $attemptId -or
       [string]$final.repo_sha -ne [string]$attempt.repo_sha -or
@@ -393,43 +411,85 @@ try {
   $stdoutText = [System.IO.File]::ReadAllText($expectedStdout)
   $stderrText = [System.IO.File]::ReadAllText($expectedStderr)
 
-  if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
-    if (-not (Test-Path -LiteralPath $expectedClientPath -PathType Leaf)) {
+  if (-not (Test-Path -LiteralPath $expectedClientPath -PathType Leaf) -or
+      -not (Test-Path -LiteralPath $expectedClientFinalPath -PathType Leaf)) {
+    if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
       Write-Issue97State -State 'SERVER_INSPECTION_REQUIRED' -Details @{
         attempt_id = $attemptId
         pgappname = [string]$attempt.pgappname
       }
     }
-    $clientReceipt = Read-Issue97Json -LiteralPath $expectedClientPath
+    Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
+  }
+  $clientReceipt = Read-Issue97Json -LiteralPath $expectedClientPath
+  $clientFinal = Read-Issue97Json -LiteralPath $expectedClientFinalPath
+  if ([int]$clientReceipt.schema_version -ne 3 -or
+      [int]$clientFinal.schema_version -ne 3 -or
+      [string]$clientReceipt.generation_id -ne [string]$manifest.generation_id -or
+      [string]$clientFinal.generation_id -ne [string]$manifest.generation_id -or
+      [string]$clientReceipt.attempt_id -ne $attemptId -or
+      [string]$clientFinal.attempt_id -ne $attemptId -or
+      [string]$clientReceipt.repo_sha -ne [string]$attempt.repo_sha -or
+      [string]$clientFinal.repo_sha -ne [string]$attempt.repo_sha -or
+      [string]$clientReceipt.pgappname -ne [string]$attempt.pgappname -or
+      [string]$clientFinal.pgappname -ne [string]$attempt.pgappname -or
+      [string]$clientReceipt.child_environment_pgappname -ne [string]$attempt.pgappname -or
+      [string]$clientFinal.child_environment_pgappname -ne [string]$attempt.pgappname -or
+      [int]$clientReceipt.pid -le 0 -or
+      [int]$clientFinal.pid -ne [int]$clientReceipt.pid -or
+      [string]$clientFinal.process_start_utc -ne [string]$clientReceipt.process_start_utc -or
+      [int]$final.client_pid -ne [int]$clientReceipt.pid -or
+      [string]$final.client_process_start_utc -ne [string]$clientReceipt.process_start_utc -or
+      [int]$final.exit_code -ne [int]$clientFinal.exit_code -or
+      [string]$final.child_environment_pgappname -ne [string]$attempt.pgappname -or
+      [string]$final.client_final_receipt_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedClientFinalPath) -or
+      [string]$clientFinal.stdout_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedStdout) -or
+      [string]$clientFinal.stderr_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedStderr)) {
+    if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
+      Write-Issue97State -State 'SERVER_INSPECTION_REQUIRED' -Details @{
+        attempt_id = $attemptId
+        pgappname = [string]$attempt.pgappname
+      }
+    }
+    Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
+  }
+  if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
     $expectedPsqlPath = Join-Path $repoRoot (([string]$manifest.psql.relative_path) -replace '/', '\')
     $expectedExecutionSql = Join-Path $logRoot "$attemptId.reviewed.sql"
-    if ([string]$clientReceipt.attempt_id -ne $attemptId -or
-        [string]$clientReceipt.repo_sha -ne [string]$attempt.repo_sha -or
-        [string]$clientReceipt.pgappname -ne [string]$attempt.pgappname -or
-        [int]$clientReceipt.pid -le 0 -or
-        -not (Test-Issue97SamePath -Left ([string]$clientReceipt.executable_path) -Right $expectedPsqlPath) -or
-        -not (Test-Issue97SamePath -Left ([string]$clientReceipt.execution_sql_path) -Right $expectedExecutionSql) -or
-        [int]$final.client_pid -ne [int]$clientReceipt.pid -or
-        [string]$final.client_process_start_utc -ne [string]$clientReceipt.process_start_utc) {
+    if (-not (Test-Issue97SamePath -Left ([string]$clientReceipt.executable_path) -Right $expectedPsqlPath) -or
+        -not (Test-Issue97SamePath -Left ([string]$clientReceipt.execution_sql_path) -Right $expectedExecutionSql)) {
       Write-Issue97State -State 'SERVER_INSPECTION_REQUIRED' -Details @{
         attempt_id = $attemptId
         pgappname = [string]$attempt.pgappname
       }
     }
-    $liveClient = Get-Process -Id ([int]$clientReceipt.pid) -ErrorAction SilentlyContinue
-    if ($null -ne $liveClient) {
+  } else {
+    $expectedChildPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-child.ps1'
+    if (-not (Test-Issue97SamePath -Left ([string]$clientReceipt.executable_path) -Right ([string]$manifest.powershell.path)) -or
+        -not (Test-Issue97SamePath -Left ([string]$clientReceipt.child_script) -Right $expectedChildPath)) {
+      Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
+    }
+  }
+  $liveClient = Get-Process -Id ([int]$clientReceipt.pid) -ErrorAction SilentlyContinue
+  if ($null -ne $liveClient) {
+    if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
       Write-Issue97State -State 'SERVER_INSPECTION_REQUIRED' -Details @{
         attempt_id = $attemptId
         pgappname = [string]$attempt.pgappname
         client_pid = [int]$clientReceipt.pid
       }
     }
+    Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
+  }
+
+  if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
     $sqlArtifact = @($manifest.artifacts | Where-Object {
       [string]$_.path -eq 'ops/issue97-computer-rollout/sql/35-worker-proof-read-only.sql'
     })
     $successContract = (
       [bool]$final.success -and [bool]$final.client_started -and [bool]$final.client_confirmed_finished -and
-      [int]$final.exit_code -eq 0 -and [double]$final.client_duration_seconds -ge 5.0 -and
+      [int]$final.exit_code -eq 0 -and [int]$clientFinal.exit_code -eq 0 -and
+      [int]$final.worker_exit_code -eq 0 -and [double]$final.client_duration_seconds -ge 5.0 -and
       [bool]$final.final_marker_present -and
       ([regex]::Matches($stdoutText, 'ISSUE97_WORKER_PROOF_PASS')).Count -eq 1 -and
       [bool]$final.rollback_present -and
@@ -442,9 +502,14 @@ try {
     )
   } else {
     $successContract = (
-      [bool]$final.success -and [int]$final.exit_code -eq 0 -and
+      [bool]$final.success -and [bool]$final.client_started -and [bool]$final.client_confirmed_finished -and
+      [int]$final.exit_code -eq 0 -and [int]$clientFinal.exit_code -eq 0 -and
+      [int]$final.worker_exit_code -eq 0 -and
       [bool]$final.final_marker_present -and [double]$final.worker_duration_seconds -ge 5.0 -and
-      $stdoutText.Contains('ISSUE97_LOCAL_WORKER_PASS') -and -not [bool]$final.server_inspection_required
+      [double]$final.client_duration_seconds -ge 5.0 -and
+      ([regex]::Matches($stdoutText, 'ISSUE97_LOCAL_WORKER_PASS')).Count -eq 1 -and
+      ([regex]::Matches($stdoutText, [regex]::Escape("ISSUE97_LOCAL_CHILD_PGAPPNAME=$([string]$attempt.pgappname)"))).Count -eq 1 -and
+      -not [bool]$final.server_inspection_required
     )
   }
   $disposition = Get-Issue97FinalReceiptDisposition `

@@ -32,8 +32,8 @@ $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bo
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
 $statusPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-status.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
-if ([int]$manifest.schema_version -ne 2 -or [string]$manifest.private_log_root -ne $logRoot -or
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+if ([int]$manifest.schema_version -ne 3 -or [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or
     [string]$manifest.powershell.path -ne 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe') {
   throw 'fixed server-inspection manifest scope mismatch'
@@ -47,14 +47,18 @@ foreach ($entry in Get-ChildItem Env:) {
   }
 }
 if (-not (Test-Path -LiteralPath $logRoot -PathType Container)) { throw 'private log root is missing' }
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$authorizationPath = Join-Path $logRoot 'production.authorization.json'
 $authorization = [System.IO.File]::ReadAllText($authorizationPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
 $manifestSha256 = Get-Issue97PreambleSha256 -LiteralPath $manifestPath
-if ([string]$authorization.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
+if ([int]$authorization.schema_version -ne 3 -or
+    [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+    [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+    [string]$authorization.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
     [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
     [string]$authorization.manifest_sha256 -ne $manifestSha256 -or
     -not [bool]$authorization.production_read_only_proof_authorized -or
-    [bool]$authorization.mapping_rehearsal_authorized) {
+    [bool]$authorization.mapping_rehearsal_authorized -or
+    [bool]$authorization.automatic_retry_authorized) {
   throw 'exact-SHA authorization receipt does not authorize the fixed inspection'
 }
 foreach ($pair in @(
@@ -92,23 +96,27 @@ $bootstrapReceiptPath = Join-Path $logRoot 'server-inspection.bootstrap.json'
 $bootstrapFinalPath = Join-Path $logRoot 'server-inspection.bootstrap-final.json'
 $spawnPath = Join-Path $logRoot 'server-inspection.spawn.json'
 $pidPath = Join-Path $logRoot 'server-inspection.pid.json'
+$clientPath = Join-Path $logRoot 'server-inspection.client.json'
+$clientFinalPath = Join-Path $logRoot 'server-inspection.client-final.json'
 $finalPath = Join-Path $logRoot 'server-inspection.final.json'
 $stdoutPath = Join-Path $logRoot 'server-inspection.stdout.log'
 $stderrPath = Join-Path $logRoot 'server-inspection.stderr.log'
 $hostStdout = Join-Path $logRoot 'server-inspection.worker.stdout.log'
 $hostStderr = Join-Path $logRoot 'server-inspection.worker.stderr.log'
-foreach ($path in @($claimPath, $bootstrapReceiptPath, $bootstrapFinalPath, $spawnPath, $pidPath, $finalPath,
+foreach ($path in @($claimPath, $bootstrapReceiptPath, $bootstrapFinalPath, $spawnPath, $pidPath, $clientPath, $clientFinalPath, $finalPath,
     $stdoutPath, $stderrPath, $hostStdout, $hostStderr)) {
   if (Test-Path -LiteralPath $path) { throw 'the one-shot server inspection was already claimed' }
 }
 $now = [datetime]::UtcNow
 $claim = [ordered]@{
-  schema_version = 2
+  schema_version = 3
   worker_proof_version = [string]$manifest.worker_proof_version
+  generation_id = [string]$manifest.generation_id
   job_kind = 'production_server_inspection'
   attempt_id = "issue97-inspect-$($now.ToString('yyyyMMddTHHmmssfffZ'))"
   proof_attempt_id = [string]$proofReceipt.attempt_id
   target_pgappname = [string]$proofReceipt.pgappname
+  inspector_pgappname = 'brinesearch-i97-wp-postcheck-v3'
   authorized_repo_sha = [string]$authorization.authorized_repo_sha
   artifact_set_sha256 = [string]$manifest.artifact_set_sha256
   manifest_sha256 = $manifestSha256
@@ -123,6 +131,8 @@ $claim = [ordered]@{
   status_script = $statusPath
   spawn_receipt_path = $spawnPath
   pid_receipt_path = $pidPath
+  client_pid_receipt_path = $clientPath
+  client_final_receipt_path = $clientFinalPath
   stdout_path = $stdoutPath
   stderr_path = $stderrPath
   worker_host_stdout_path = $hostStdout

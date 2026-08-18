@@ -37,11 +37,13 @@ Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
 Assert-Issue97NoCredentialEnvironment
 Assert-Issue97RuntimeFile -LiteralPath ([string]$manifest.powershell.path) `
   -ExpectedSha256 ([string]$manifest.powershell.sha256)
+Assert-Issue97HistoricalEvidence -Manifest $manifest
 $logRoot = [string]$manifest.private_log_root
 Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$authorizationPath = Join-Path $logRoot 'local.authorization.json'
 foreach ($path in @(
   $authorizationPath,
+  (Join-Path $logRoot 'production.authorization.json'),
   (Join-Path $logRoot 'local.launch.json'),
   (Join-Path $logRoot 'production.launch.json'),
   (Join-Path $logRoot 'server-inspection.launch.json')
@@ -52,8 +54,9 @@ foreach ($path in @(
 }
 $repoSha = Assert-Issue97RepositoryCheckpoint -RepoRoot $repoRoot -Manifest $manifest -Fetch
 $receipt = [ordered]@{
-  schema_version = 2
+  schema_version = 3
   worker_proof_version = [string]$manifest.worker_proof_version
+  generation_id = [string]$manifest.generation_id
   authorized_repo_sha = $repoSha
   branch = [string]$manifest.expected_branch
   artifact_set_sha256 = [string]$manifest.artifact_set_sha256
@@ -61,10 +64,11 @@ $receipt = [ordered]@{
   artifact_hashes = Get-Issue97ArtifactHashMap -Manifest $manifest
   authorized_utc = [datetime]::UtcNow.ToString('o')
   local_proof_authorized = $true
-  production_read_only_proof_authorized = $true
+  production_read_only_proof_authorized = $false
   mapping_rehearsal_authorized = $false
+  automatic_retry_authorized = $false
 }
 Write-Issue97JsonAtomicNoClobber -LiteralPath $authorizationPath -Value $receipt
-Write-Output 'STATE=EXACT_SHA_AUTHORIZED'
+Write-Output 'STATE=LOCAL_EXACT_SHA_AUTHORIZED'
 Write-Output "AUTHORIZED_REPO_SHA=$repoSha"
 Write-Output "ARTIFACT_SET_SHA256=$([string]$manifest.artifact_set_sha256)"

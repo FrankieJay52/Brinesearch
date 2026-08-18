@@ -20,8 +20,8 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$authorizationPath = Join-Path $logRoot 'production.authorization.json'
 $claimPath = Join-Path $logRoot 'production.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'production.bootstrap.json'
 $bootstrapFinalPath = Join-Path $logRoot 'production.bootstrap-final.json'
@@ -29,6 +29,7 @@ $attemptPath = Join-Path $logRoot 'production.attempt.json'
 $spawnPath = Join-Path $logRoot 'production.spawn.json'
 $pidPath = Join-Path $logRoot 'production.pid.json'
 $clientPath = Join-Path $logRoot 'production.client.json'
+$clientFinalPath = Join-Path $logRoot 'production.client-final.json'
 $finalPath = Join-Path $logRoot 'production.final.json'
 $stage = 'load_protected_launch_claim'
 $claim = $null
@@ -38,7 +39,7 @@ $failureCode = 'bootstrap_initialization_failed'
 
 try {
   $claim = [System.IO.File]::ReadAllText($claimPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-  if ([int]$claim.schema_version -ne 2 -or
+  if ([int]$claim.schema_version -ne 3 -or
       [string]$claim.job_kind -ne 'production_read_only_pg_sleep_proof' -or
       [string]$claim.attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
       [string]$claim.pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$') {
@@ -59,13 +60,15 @@ try {
     throw 'production launch claim does not bind the exact-SHA authorization receipt'
   }
   $authorization = [System.IO.File]::ReadAllText($authorizationPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-  if ([int]$authorization.schema_version -ne 2 -or
+  if ([int]$authorization.schema_version -ne 3 -or
       [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
       [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
       -not [bool]$authorization.production_read_only_proof_authorized -or
-      [bool]$authorization.mapping_rehearsal_authorized) {
+      [bool]$authorization.mapping_rehearsal_authorized -or
+      [bool]$authorization.automatic_retry_authorized) {
     throw 'production exact-SHA authorization receipt is invalid'
   }
   foreach ($pair in @(
@@ -88,6 +91,7 @@ try {
   $stage = 'validate_fixed_launch_scope'
   Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
   Assert-Issue97NoCredentialEnvironment
+  Assert-Issue97HistoricalEvidence -Manifest $manifest
   $env:PGSERVICE = [string]$manifest.expected_service
   Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
   Assert-Issue97RuntimeFile -LiteralPath ([string]$manifest.powershell.path) `
@@ -100,6 +104,7 @@ try {
     worker_spawn_receipt_path = $spawnPath
     worker_pid_receipt_path = $pidPath
     client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     final_status_path = $finalPath
     bootstrap_script = $bootstrapPath
     worker_script = $workerPath
@@ -109,7 +114,7 @@ try {
       throw 'production launch claim contains a noncanonical fixed path'
     }
   }
-  foreach ($path in @($bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $clientPath, $finalPath,
+  foreach ($path in @($bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $clientPath, $clientFinalPath, $finalPath,
       [string]$claim.stdout_path, [string]$claim.stderr_path, [string]$claim.worker_host_stdout_path,
       [string]$claim.worker_host_stderr_path)) {
     Assert-Issue97PathUnderRoot -Candidate $path -AllowedRoot $logRoot
@@ -127,8 +132,9 @@ try {
     throw 'bootstrap process identity mismatch'
   }
   $bootstrapReceipt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     pid = $PID
@@ -156,8 +162,9 @@ try {
 
   $stage = 'claim_database_attempt'
   $attempt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     repo_sha = $repoSha
@@ -169,6 +176,7 @@ try {
     worker_spawn_receipt_path = $spawnPath
     worker_pid_receipt_path = $pidPath
     client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     stdout_path = [string]$claim.stdout_path
     stderr_path = [string]$claim.stderr_path
     worker_host_stdout_path = [string]$claim.worker_host_stdout_path
@@ -197,7 +205,7 @@ try {
   }
   $workerProcess = Get-Process -Id ([int]$created.ProcessId) -ErrorAction Stop
   $spawnReceipt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
@@ -215,8 +223,9 @@ try {
   Remove-Item Env:PGSERVICE -ErrorAction SilentlyContinue
   if ($null -ne $claim) {
     $finalReceipt = [ordered]@{
-      schema_version = 2
+      schema_version = 3
       worker_proof_version = [string]$claim.worker_proof_version
+      generation_id = [string]$manifest.generation_id
       job_kind = [string]$claim.job_kind
       attempt_id = [string]$claim.attempt_id
       pid = $PID

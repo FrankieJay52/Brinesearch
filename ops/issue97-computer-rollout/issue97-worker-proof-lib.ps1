@@ -303,6 +303,55 @@ function Assert-Issue97PrivateLogRoot {
   }
 }
 
+function Assert-Issue97HistoricalEvidence {
+  param([Parameter(Mandatory = $true)]$Manifest)
+  $history = $Manifest.historical_evidence
+  if ($null -eq $history -or
+      [string]$history.worker_proof_version -ne 'issue97-long-lived-worker-proof-v2' -or
+      [string]$history.artifact_set_sha256 -ne '3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B' -or
+      [string]$history.production_attempt_id -ne 'issue97-wp-20260818T043030245Z-ef613388' -or
+      [string]$history.server_inspection_attempt_id -ne 'issue97-inspect-20260818T043213665Z' -or
+      [string]$history.disposition -ne 'consumed_failed_no_retry') {
+    throw 'historical worker-proof generation contract mismatch'
+  }
+  $historicalRoot = [string]$history.private_log_root
+  if ($historicalRoot -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof') {
+    throw 'historical worker-proof evidence root mismatch'
+  }
+  Assert-Issue97PrivateLogRoot -LogRoot $historicalRoot -TrustedRoot ([string]$Manifest.trusted_owner_root)
+  $actualFiles = @(Get-ChildItem -LiteralPath $historicalRoot -File -Force)
+  if ($actualFiles.Count -ne [int]$history.file_count) {
+    throw 'historical evidence file-set cardinality changed'
+  }
+  $evidenceLines = @($actualFiles | Sort-Object Name | ForEach-Object {
+    "$($_.Name)=$(Get-Issue97Sha256 -LiteralPath $_.FullName):$($_.Length)`n"
+  })
+  $computedEvidenceSet = Get-Issue97Utf8TextSha256 -Text ($evidenceLines -join '')
+  if ($computedEvidenceSet -ne [string]$history.evidence_set_sha256) {
+    throw 'historical worker-proof evidence file set or bytes changed'
+  }
+  $criticalHashes = $history.critical_hashes
+  foreach ($name in @('authorization.json', 'production.launch.json', 'production.attempt.json',
+      'production.client.json', 'production.final.json', 'server-inspection.launch.json',
+      'server-inspection.final.json')) {
+    $property = $criticalHashes.PSObject.Properties[$name]
+    if ($null -eq $property -or
+        (Get-Issue97Sha256 -LiteralPath (Join-Path $historicalRoot $name)) -ne [string]$property.Value) {
+      throw 'critical historical worker-proof receipt changed'
+    }
+  }
+  $oldProductionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'production.final.json')
+  $oldInspectionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'server-inspection.final.json')
+  if ([string]$oldProductionFinal.attempt_id -ne [string]$history.production_attempt_id -or
+      [bool]$oldProductionFinal.success -or
+      [string]$oldProductionFinal.failure_code -ne 'final_pass_marker_missing_server_inspection_required' -or
+      [string]$oldInspectionFinal.attempt_id -ne [string]$history.server_inspection_attempt_id -or
+      [bool]$oldInspectionFinal.success -or
+      [string]$oldInspectionFinal.failure_code -ne 'server_inspection_fail_stop') {
+    throw 'historical failed-attempt disposition changed'
+  }
+}
+
 function Get-Issue97ProcessIdentity {
   param([Parameter(Mandatory = $true)][int]$ProcessId)
   $process = Get-Process -Id $ProcessId -ErrorAction Stop
@@ -365,13 +414,16 @@ function Assert-Issue97ArtifactManifest {
     [Parameter(Mandatory = $true)][string]$RepoRoot,
     [Parameter(Mandatory = $true)]$Manifest
   )
-  if ([int]$Manifest.schema_version -ne 2) { throw 'artifact manifest schema mismatch' }
-  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v2') {
+  if ([int]$Manifest.schema_version -ne 3) { throw 'artifact manifest schema mismatch' }
+  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v3' -or
+      [string]$Manifest.generation_id -ne 'issue97-worker-proof-generation-3' -or
+      [string]$Manifest.private_log_root -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3') {
     throw 'worker-proof version mismatch'
   }
   $expectedPaths = @(
     'ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-authorize.ps1',
+    'ops/issue97-computer-rollout/issue97-worker-proof-authorize-production.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-bootstrap.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-worker.ps1',
@@ -384,6 +436,7 @@ function Assert-Issue97ArtifactManifest {
     'ops/issue97-computer-rollout/issue97-worker-proof-local-launch.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-local-bootstrap.ps1',
     'ops/issue97-computer-rollout/issue97-worker-proof-local-worker.ps1',
+    'ops/issue97-computer-rollout/issue97-worker-proof-local-child.ps1',
     'ops/issue97-computer-rollout/sql/35-worker-proof-read-only.sql',
     'ops/issue97-computer-rollout/sql/36-worker-proof-server-inspection.sql'
   )

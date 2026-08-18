@@ -34,6 +34,7 @@ if ($libArtifact.Count -ne 1 -or $selfArtifact.Count -ne 1 -or
 Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
 Assert-Issue97RuntimeFile -LiteralPath ([string]$manifest.powershell.path) `
   -ExpectedSha256 ([string]$manifest.powershell.sha256)
+Assert-Issue97HistoricalEvidence -Manifest $manifest
 Assert-Issue97PrivateLogRoot -LogRoot ([string]$manifest.private_log_root) `
   -TrustedRoot ([string]$manifest.trusted_owner_root) -Create
 Write-Output 'STATE=PRIVATE_LOG_ROOT_READY'

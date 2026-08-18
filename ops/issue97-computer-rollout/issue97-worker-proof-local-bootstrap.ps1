@@ -20,14 +20,16 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$authorizationPath = Join-Path $logRoot 'local.authorization.json'
 $claimPath = Join-Path $logRoot 'local.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'local.bootstrap.json'
 $bootstrapFinalPath = Join-Path $logRoot 'local.bootstrap-final.json'
 $attemptPath = Join-Path $logRoot 'local.attempt.json'
 $spawnPath = Join-Path $logRoot 'local.spawn.json'
 $pidPath = Join-Path $logRoot 'local.pid.json'
+$clientPath = Join-Path $logRoot 'local.client.json'
+$clientFinalPath = Join-Path $logRoot 'local.client-final.json'
 $finalPath = Join-Path $logRoot 'local.final.json'
 $stage = 'load_protected_local_claim'
 $claim = $null
@@ -37,7 +39,7 @@ $failureCode = 'local_bootstrap_initialization_failed'
 
 try {
   $claim = [System.IO.File]::ReadAllText($claimPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-  if ([int]$claim.schema_version -ne 2 -or [string]$claim.job_kind -ne 'local_detached_process_proof' -or
+  if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne 'local_detached_process_proof' -or
       [string]$claim.attempt_id -notmatch '^issue97-local-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
       [string]$claim.pgappname -notmatch '^local-only-no-database-[0-9a-f]{8}$') {
     throw 'local launch claim identity mismatch'
@@ -57,13 +59,16 @@ try {
     throw 'local launch claim does not bind the exact-SHA authorization receipt'
   }
   $authorization = [System.IO.File]::ReadAllText($authorizationPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-  if ([int]$authorization.schema_version -ne 2 -or
+  if ([int]$authorization.schema_version -ne 3 -or
       [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
       [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
       -not [bool]$authorization.local_proof_authorized -or
-      [bool]$authorization.mapping_rehearsal_authorized) {
+      [bool]$authorization.production_read_only_proof_authorized -or
+      [bool]$authorization.mapping_rehearsal_authorized -or
+      [bool]$authorization.automatic_retry_authorized) {
     throw 'local exact-SHA authorization receipt is invalid'
   }
   foreach ($pair in @(
@@ -85,6 +90,7 @@ try {
   $stage = 'validate_fixed_local_scope'
   Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
   Assert-Issue97NoCredentialEnvironment
+  Assert-Issue97HistoricalEvidence -Manifest $manifest
   Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
   Assert-Issue97RuntimeFile -LiteralPath ([string]$manifest.powershell.path) `
     -ExpectedSha256 ([string]$manifest.powershell.sha256)
@@ -95,16 +101,19 @@ try {
     attempt_path = $attemptPath
     worker_spawn_receipt_path = $spawnPath
     worker_pid_receipt_path = $pidPath
+    client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     final_status_path = $finalPath
     bootstrap_script = $bootstrapPath
     worker_script = $workerPath
+    local_child_script = (Join-Path $PSScriptRoot 'issue97-worker-proof-local-child.ps1')
   }
   foreach ($key in $expectedPaths.Keys) {
     if (-not (Test-Issue97SamePath -Left ([string]$claim.$key) -Right ([string]$expectedPaths[$key]))) {
       throw 'local launch claim contains a noncanonical fixed path'
     }
   }
-  foreach ($path in @($bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $finalPath,
+  foreach ($path in @($bootstrapReceiptPath, $bootstrapFinalPath, $attemptPath, $spawnPath, $pidPath, $clientPath, $clientFinalPath, $finalPath,
       [string]$claim.stdout_path, [string]$claim.stderr_path, [string]$claim.worker_host_stdout_path,
       [string]$claim.worker_host_stderr_path)) {
     Assert-Issue97PathUnderRoot -Candidate $path -AllowedRoot $logRoot
@@ -121,8 +130,9 @@ try {
     throw 'local bootstrap process identity mismatch'
   }
   $bootstrapReceipt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     pid = $PID
@@ -147,8 +157,9 @@ try {
     }
   }
   $attempt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     repo_sha = $repoSha
@@ -159,6 +170,8 @@ try {
     pgappname = [string]$claim.pgappname
     worker_spawn_receipt_path = $spawnPath
     worker_pid_receipt_path = $pidPath
+    client_pid_receipt_path = $clientPath
+    client_final_receipt_path = $clientFinalPath
     stdout_path = [string]$claim.stdout_path
     stderr_path = [string]$claim.stderr_path
     worker_host_stdout_path = [string]$claim.worker_host_stdout_path
@@ -171,6 +184,7 @@ try {
     powershell_sha256 = [string]$manifest.powershell.sha256
     bootstrap_script = $bootstrapPath
     worker_script = $workerPath
+    local_child_script = (Join-Path $PSScriptRoot 'issue97-worker-proof-local-child.ps1')
   }
   Write-Issue97JsonAtomicNoClobber -LiteralPath $attemptPath -Value $attempt
   $stage = 'spawn_detached_local_worker'
@@ -183,7 +197,7 @@ try {
   }
   $workerProcess = Get-Process -Id ([int]$created.ProcessId) -ErrorAction Stop
   $spawnReceipt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
@@ -200,8 +214,9 @@ try {
 } finally {
   if ($null -ne $claim) {
     $finalReceipt = [ordered]@{
-      schema_version = 2
+      schema_version = 3
       worker_proof_version = [string]$claim.worker_proof_version
+      generation_id = [string]$manifest.generation_id
       job_kind = [string]$claim.job_kind
       attempt_id = [string]$claim.attempt_id
       pid = $PID

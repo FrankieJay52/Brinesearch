@@ -21,8 +21,8 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
-$authorizationPath = Join-Path $logRoot 'authorization.json'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$authorizationPath = Join-Path $logRoot 'production.authorization.json'
 $claimPath = Join-Path $logRoot 'server-inspection.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'server-inspection.bootstrap.json'
 $bootstrapFinalPath = Join-Path $logRoot 'server-inspection.bootstrap-final.json'
@@ -35,7 +35,7 @@ $stage = 'load_protected_inspection_claim'
 
 try {
   $claim = [System.IO.File]::ReadAllText($claimPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-  if ([int]$claim.schema_version -ne 2 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
+  if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
       [string]$claim.manifest_sha256 -ne (Get-Issue97PreambleSha256 -LiteralPath $manifestPath)) {
     throw 'server-inspection launch claim identity mismatch'
   }
@@ -63,6 +63,7 @@ try {
   $stage = 'validate_fixed_inspection_scope'
   Assert-Issue97ArtifactManifest -RepoRoot $repoRoot -Manifest $manifest
   Assert-Issue97NoCredentialEnvironment
+  Assert-Issue97HistoricalEvidence -Manifest $manifest
   Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
   Assert-Issue97RuntimeFile -LiteralPath ([string]$manifest.powershell.path) `
     -ExpectedSha256 ([string]$manifest.powershell.sha256)
@@ -71,11 +72,15 @@ try {
     throw 'server-inspection claim authorization binding mismatch'
   }
   $authorization = Read-Issue97Json -LiteralPath $authorizationPath
-  if ([string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
+  if ([int]$authorization.schema_version -ne 3 -or
+      [string]$authorization.worker_proof_version -ne [string]$manifest.worker_proof_version -or
+      [string]$authorization.generation_id -ne [string]$manifest.generation_id -or
+      [string]$authorization.authorized_repo_sha -ne [string]$claim.authorized_repo_sha -or
       [string]$authorization.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$authorization.manifest_sha256 -ne [string]$claim.manifest_sha256 -or
       -not [bool]$authorization.production_read_only_proof_authorized -or
-      [bool]$authorization.mapping_rehearsal_authorized) {
+      [bool]$authorization.mapping_rehearsal_authorized -or
+      [bool]$authorization.automatic_retry_authorized) {
     throw 'server-inspection exact-SHA authorization mismatch'
   }
   foreach ($pair in @(
@@ -96,8 +101,9 @@ try {
     throw 'server-inspection bootstrap process identity mismatch'
   }
   $bootstrapReceipt = [ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     pid = $PID
@@ -117,8 +123,9 @@ try {
   }
   $workerProcess = Get-Process -Id ([int]$created.ProcessId) -ErrorAction Stop
   Write-Issue97JsonAtomicNoClobber -LiteralPath $spawnPath -Value ([ordered]@{
-    schema_version = 2
+    schema_version = 3
     worker_proof_version = [string]$manifest.worker_proof_version
+    generation_id = [string]$manifest.generation_id
     job_kind = [string]$claim.job_kind
     attempt_id = [string]$claim.attempt_id
     pid = [int]$created.ProcessId
@@ -134,8 +141,9 @@ try {
 } finally {
   if ($null -ne $claim) {
     $finalReceipt = [ordered]@{
-      schema_version = 2
+      schema_version = 3
       worker_proof_version = [string]$claim.worker_proof_version
+      generation_id = [string]$manifest.generation_id
       job_kind = [string]$claim.job_kind
       attempt_id = [string]$claim.attempt_id
       pid = $PID
