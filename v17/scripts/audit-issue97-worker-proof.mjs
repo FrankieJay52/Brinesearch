@@ -132,6 +132,8 @@ for (const key of ['authorize', 'authorizeProduction', 'bootstrap', 'worker', 'l
   'localWorker', 'inspectBootstrap', 'inspectWorker', 'provision']) {
   expect(source[key].includes('Assert-Issue97HistoricalEvidence'), `${key} must preserve the consumed v2 evidence`);
 }
+expect(source.lib.includes('[System.StringComparer]::Ordinal'),
+  'historical evidence digest must use runtime-independent ordinal filename ordering');
 
 expect(source.launch.includes("'production.authorization.json'"), 'production launcher must require the separate authorization');
 expect(source.localLaunch.includes("'local.authorization.json'"), 'local launcher must require only local authorization');

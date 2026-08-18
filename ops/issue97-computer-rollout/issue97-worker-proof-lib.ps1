@@ -323,8 +323,11 @@ function Assert-Issue97HistoricalEvidence {
   if ($actualFiles.Count -ne [int]$history.file_count) {
     throw 'historical evidence file-set cardinality changed'
   }
-  $evidenceLines = @($actualFiles | Sort-Object Name | ForEach-Object {
-    "$($_.Name)=$(Get-Issue97Sha256 -LiteralPath $_.FullName):$($_.Length)`n"
+  $sortedEvidenceNames = [string[]]@($actualFiles | ForEach-Object { $_.Name })
+  [System.Array]::Sort($sortedEvidenceNames, [System.StringComparer]::Ordinal)
+  $evidenceLines = @($sortedEvidenceNames | ForEach-Object {
+    $evidenceFile = Get-Item -LiteralPath (Join-Path $historicalRoot $_)
+    "$($evidenceFile.Name)=$(Get-Issue97Sha256 -LiteralPath $evidenceFile.FullName):$($evidenceFile.Length)`n"
   })
   $computedEvidenceSet = Get-Issue97Utf8TextSha256 -Text ($evidenceLines -join '')
   if ($computedEvidenceSet -ne [string]$history.evidence_set_sha256) {

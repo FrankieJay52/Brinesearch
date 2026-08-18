@@ -78,7 +78,9 @@ The failed generation-2 evidence remains permanently consumed and immutable at
 `C:\Users\frank\.issue97-runs\issue97-worker-proof`. Generation 3 pins that
 directory's exact 36-file aggregate digest, critical receipt hashes, failed
 attempt IDs, and fail-stop disposition before any authorization or launch. The
-new namespace cannot delete, overwrite, rename, or reuse generation-2 evidence.
+aggregate uses ordinal filename ordering so Windows PowerShell 5 and PowerShell
+Core derive identical bytes. The new namespace cannot delete, overwrite,
+rename, or reuse generation-2 evidence.
 
 After the repository-only checkpoint is committed and pushed, provision or
 verify that fixed local root from the clean exact-head clone:

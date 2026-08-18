@@ -26,7 +26,7 @@
       "server-inspection.final.json": "9B9C98585CAFE1F1C8814C5025B3BF3B9378AF71BF8732648BAEA5C7F7AEFE5B"
     }
   },
-  "artifact_set_sha256": "DE35ADD0CBC1643A897BEEAB1C74B421ADB94B4885AB0BAB4C80B166C40E2232",
+  "artifact_set_sha256": "9474CF2458191B0C9C0458632BCCF6EEFFB68C9A1C3E17393AD0E99C5197C0DB",
   "powershell": {
     "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
     "version": "5.1.22621.4391",
@@ -76,7 +76,7 @@
     ]
   },
   "artifacts": [
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "CF03653A08113B04CB3F43CA586A95BFCA135A4FF98A0295FF238E956D585884" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "0B2E43D7EE3636FDE72EAE9096AAD663C9BE1FF47038D7B2AD560BF1728E2C39" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize.ps1", "sha256": "1BBDE5F8ECEB4A48E6E5068E912A5F008739AF3FC3DBE1DFA9C8FBE365214A33" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize-production.ps1", "sha256": "0F238B052E3C9F8F011291622E5C21E5EBBF31DE901EE73BF6EE27CEC9363684" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1", "sha256": "572016F38852236531351A219EA77932C244AA26DD6F8ECDC1F426BAB60EE5B4" },
