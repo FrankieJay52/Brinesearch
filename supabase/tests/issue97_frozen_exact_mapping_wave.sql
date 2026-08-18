@@ -22,9 +22,12 @@ begin
          where scope.state_code='OH' and scope.active and scope.ingest_enabled
            and private_verification.brinesearch_issue97_dataset_scope_current(
              scope.dataset_id,scope.state_code,scope.county_code))<>38
-     or (select count(*) from private_verification.brinesearch_route_reconciliation_receipts_issue97
-         where route_prep_id in (select id from public.brinesearch_route_prep
-           where active and route_group in ('primary','alternate')))<>806
+     or (select count(*)
+         from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt
+         join public.brinesearch_route_prep route on route.id=receipt.route_prep_id
+         join public.pads pad on pad.id=route.pad_id
+         where route.active and route.route_group in ('primary','alternate')
+           and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
      or public.brinesearch_issue97_cutover_active()
      or (select count(*) from public.brinesearch_driver_google_routes_public)<>0

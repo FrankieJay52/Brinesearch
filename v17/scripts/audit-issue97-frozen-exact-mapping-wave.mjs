@@ -155,10 +155,13 @@ for (const token of [
   'requires_repository_pin',
   'candidate build lane activated or replaced a graph',
   "where evidence->>'migration'='issue97_frozen_exact_mapping_wave')<>0",
-  "route_group in ('primary','alternate')))<>806",
   'insert into supabase_migrations.schema_migrations(version,statements,name)',
   "'issue97_frozen_exact_mapping_wave'",
 ]) requireText(rehearsal, token);
+const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
+requireText(normalizedRehearsal,
+  "from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt join public.brinesearch_route_prep route on route.id=receipt.route_prep_id join public.pads pad on pad.id=route.pad_id where route.active and route.route_group in ('primary','alternate') and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806",
+  'Ohio-only 806 route-reconciliation receipt preflight');
 if ((rehearsal.match(/^begin;/gmi) ?? []).length !== 1
     || (rehearsal.match(/^rollback;/gmi) ?? []).length !== 1
     || (rehearsal.match(/insert into supabase_migrations\.schema_migrations/gi) ?? []).length !== 1
