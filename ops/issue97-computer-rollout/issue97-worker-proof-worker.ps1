@@ -41,9 +41,10 @@ $finalMarkerPresent = $false
 $rollbackPresent = $false
 $commitCount = -1
 $durationSeconds = 0.0
+$backendIdentity = $null
 $stage = 'load_manifest'
 $artifactSet = $null
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 $authorizationPath = Join-Path $logRoot 'production.authorization.json'
 
 try {
@@ -95,7 +96,6 @@ try {
     throw 'production attempt identity mismatch'
   }
   if ([string]$attempt.attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
-      [string]$attempt.pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
       [string]$attempt.repo_sha -notmatch '^[0-9a-f]{40}$') {
     throw 'production attempt format mismatch'
   }
@@ -252,7 +252,7 @@ try {
   $stage = 'execute_read_only_client'
   $clientStartUtc = [datetime]::UtcNow.ToString('o')
   $clientStarted = $true
-  $psqlArguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_expected_pgappname=$([string]$attempt.pgappname) --file=`"$executionSqlPath`""
+  $psqlArguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_expected_attempt_id=$attemptId --file=`"$executionSqlPath`""
   $startInfo = New-Object System.Diagnostics.ProcessStartInfo
   $startInfo.FileName = $fixedPsqlPath
   $startInfo.Arguments = $psqlArguments
@@ -263,7 +263,7 @@ try {
   $startInfo.EnvironmentVariables['PGSERVICE'] = [string]$manifest.expected_service
   $startInfo.EnvironmentVariables['PGSSLMODE'] = 'require'
   $startInfo.EnvironmentVariables['PGCONNECT_TIMEOUT'] = '10'
-  $startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$attempt.pgappname
+  $startInfo.EnvironmentVariables.Remove('PGAPPNAME')
   $startInfo.EnvironmentVariables.Remove('PGOPTIONS')
   $client = New-Object System.Diagnostics.Process
   $client.StartInfo = $startInfo
@@ -280,7 +280,7 @@ try {
     attempt_id = [string]$attempt.attempt_id
     repo_sha = [string]$attempt.repo_sha
     pgappname = [string]$attempt.pgappname
-    child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+    diagnostic_requested_pgappname = [string]$attempt.pgappname
     pid = $clientPid
     process_start_utc = $clientProcessStartUtc
     executable_path = $fixedPsqlPath
@@ -301,6 +301,8 @@ try {
   Write-Issue97TextNoClobber -LiteralPath $stderrPath -Text $stderrText
   $stdoutHash = Get-Issue97Sha256 -LiteralPath $stdoutPath
   $stderrHash = Get-Issue97Sha256 -LiteralPath $stderrPath
+  $backendIdentity = Get-Issue97BackendIdentityMarker -Text $stdoutText `
+    -ExpectedAttemptId $attemptId -ExpectedPrefix 'ISSUE97_WORKER_PROOF_BACKEND_IDENTITY'
   Write-Issue97JsonAtomicNoClobber -LiteralPath $clientFinalPath -Value ([ordered]@{
     schema_version = 3
     worker_proof_version = [string]$attempt.worker_proof_version
@@ -309,7 +311,14 @@ try {
     attempt_id = [string]$attempt.attempt_id
     repo_sha = [string]$attempt.repo_sha
     pgappname = [string]$attempt.pgappname
-    child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+    diagnostic_requested_pgappname = [string]$attempt.pgappname
+    backend_attempt_id = [string]$backendIdentity.attempt_id
+    backend_attempt_lock_key = [long]$backendIdentity.attempt_lock_key
+    backend_pid = [int]$backendIdentity.backend_pid
+    backend_start_utc = [string]$backendIdentity.backend_start_utc
+    transaction_read_only = [bool]$backendIdentity.transaction_read_only
+    backend_custom_guc = [string]$backendIdentity.custom_guc
+    observed_application_name = [string]$backendIdentity.observed_application_name
     pid = $clientPid
     process_start_utc = $clientProcessStartUtc
     process_end_utc = $clientEndUtc
@@ -327,6 +336,7 @@ try {
   elseif (-not $finalMarkerPresent) { $failureCode = 'final_pass_marker_missing_server_inspection_required' }
   elseif (-not $rollbackPresent) { $failureCode = 'rollback_marker_missing_server_inspection_required' }
   elseif ($commitCount -ne 0) { $failureCode = 'commit_marker_present_server_inspection_required' }
+  elseif ($null -eq $backendIdentity) { $failureCode = 'backend_identity_missing_server_inspection_required' }
   elseif ($durationSeconds -lt 5.0) { $failureCode = 'five_second_lifetime_not_proven' }
   else { $failureCode = $null }
 } catch {
@@ -345,7 +355,6 @@ try {
   }
 } finally {
   if ($null -ne $sqlGuardStream) { $sqlGuardStream.Dispose() }
-  Remove-Item Env:PGAPPNAME -ErrorAction SilentlyContinue
   Remove-Item Env:PGCONNECT_TIMEOUT -ErrorAction SilentlyContinue
   Remove-Item Env:PGSSLMODE -ErrorAction SilentlyContinue
   Remove-Item Env:PGSERVICE -ErrorAction SilentlyContinue
@@ -353,6 +362,7 @@ try {
     $endUtc = [datetime]::UtcNow.ToString('o')
     $success = (
       $clientStarted -and $clientConfirmedFinished -and $exitCode -eq 0 -and
+      $null -ne $backendIdentity -and
       $finalMarkerPresent -and $rollbackPresent -and $commitCount -eq 0 -and $durationSeconds -ge 5.0
     )
     $receipt = [ordered]@{
@@ -377,7 +387,14 @@ try {
       exit_code = $exitCode
       client_final_receipt_path = $clientFinalPath
       client_final_receipt_sha256 = if ($clientConfirmedFinished -and (Test-Path -LiteralPath $clientFinalPath)) { Get-Issue97Sha256 -LiteralPath $clientFinalPath } else { $null }
-      child_environment_pgappname = if ($clientConfirmedFinished) { [string]$attempt.pgappname } else { $null }
+      diagnostic_requested_pgappname = [string]$attempt.pgappname
+      backend_attempt_id = if ($null -ne $backendIdentity) { [string]$backendIdentity.attempt_id } else { $null }
+      backend_attempt_lock_key = if ($null -ne $backendIdentity) { [long]$backendIdentity.attempt_lock_key } else { $null }
+      backend_pid = if ($null -ne $backendIdentity) { [int]$backendIdentity.backend_pid } else { $null }
+      backend_start_utc = if ($null -ne $backendIdentity) { [string]$backendIdentity.backend_start_utc } else { $null }
+      transaction_read_only = if ($null -ne $backendIdentity) { [bool]$backendIdentity.transaction_read_only } else { $false }
+      backend_custom_guc = if ($null -ne $backendIdentity) { [string]$backendIdentity.custom_guc } else { $null }
+      observed_application_name = if ($null -ne $backendIdentity) { [string]$backendIdentity.observed_application_name } else { $null }
       final_marker_present = $finalMarkerPresent
       rollback_present = $rollbackPresent
       commit_count = $commitCount

@@ -1,15 +1,68 @@
 \set ON_ERROR_STOP on
 
+\if :{?issue97_expected_attempt_id}
+\else
+  \echo ISSUE97_WORKER_PROOF_ATTEMPT_ID_MISSING
+  \quit 80
+\endif
+
 begin isolation level repeatable read read only;
 
 set local statement_timeout = '30s';
 set local lock_timeout = '2s';
-set local application_name = :'issue97_expected_pgappname';
 
 select case
-  when pg_catalog.current_setting('application_name') = :'issue97_expected_pgappname' then 1
+  when :'issue97_expected_attempt_id' ~ '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' then 1
   else 1 / 0
-end as issue97_exact_pgappname_guard;
+end as issue97_exact_attempt_format_guard;
+
+select pg_catalog.set_config(
+  'brinesearch.issue97_attempt_id',
+  :'issue97_expected_attempt_id',
+  true
+) as issue97_transaction_local_attempt_id;
+
+select case
+  when pg_catalog.current_setting('brinesearch.issue97_attempt_id', true) =
+       :'issue97_expected_attempt_id' then 1
+  else 1 / 0
+end as issue97_exact_attempt_guc_guard;
+
+select pg_catalog.hashtextextended(
+  :'issue97_expected_attempt_id',
+  970035
+)::bigint as issue97_attempt_lock_key
+\gset
+
+select pg_catalog.pg_try_advisory_xact_lock(
+  :'issue97_attempt_lock_key'::bigint
+)::integer as issue97_attempt_lock_acquired
+\gset
+\if :issue97_attempt_lock_acquired
+\else
+  \echo ISSUE97_WORKER_PROOF_ATTEMPT_LOCK_NOT_ACQUIRED
+  \quit 81
+\endif
+
+select pg_catalog.pg_backend_pid()::integer as issue97_backend_pid,
+       pg_catalog.to_char(
+         activity.backend_start at time zone 'UTC',
+         'YYYY-MM-DD"T"HH24:MI:SS.US"Z"'
+       ) as issue97_backend_start,
+       pg_catalog.current_setting('transaction_read_only') as issue97_transaction_read_only,
+       pg_catalog.current_setting('brinesearch.issue97_attempt_id', true) as issue97_attempt_guc,
+       pg_catalog.replace(
+         pg_catalog.replace(
+           pg_catalog.replace(pg_catalog.current_setting('application_name'), '%', '%25'),
+           '|', '%7C'
+         ),
+         E'\n', '%0A'
+       ) as issue97_observed_application_name
+from pg_catalog.pg_stat_activity activity
+where activity.pid = pg_catalog.pg_backend_pid()
+\gset
+
+\echo ISSUE97_WORKER_PROOF_BACKEND_IDENTITY|attempt_id=:issue97_expected_attempt_id|attempt_lock_key=:issue97_attempt_lock_key|backend_pid=:issue97_backend_pid|backend_start=:issue97_backend_start|transaction_read_only=:issue97_transaction_read_only|custom_guc=:issue97_attempt_guc|application_name=:issue97_observed_application_name
 
 select (
   current_database() = 'postgres'
@@ -130,9 +183,7 @@ from pg_catalog.pg_stat_activity
 where pid <> pg_catalog.pg_backend_pid()
   and state in ('active', 'idle in transaction', 'idle in transaction (aborted)')
   and (
-    application_name ilike '%issue97%'
-    or application_name like 'brinesearch-i97-%'
-    or query ilike '%brinesearch_issue97_%'
+    query ilike '%brinesearch_issue97_%'
     or query ilike '%issue97-%'
   )
 \gset

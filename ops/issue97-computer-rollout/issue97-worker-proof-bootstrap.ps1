@@ -20,7 +20,7 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 $authorizationPath = Join-Path $logRoot 'production.authorization.json'
 $claimPath = Join-Path $logRoot 'production.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'production.bootstrap.json'
@@ -41,8 +41,7 @@ try {
   $claim = [System.IO.File]::ReadAllText($claimPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
   if ([int]$claim.schema_version -ne 3 -or
       [string]$claim.job_kind -ne 'production_read_only_pg_sleep_proof' -or
-      [string]$claim.attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
-      [string]$claim.pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$') {
+      [string]$claim.attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$') {
     throw 'production launch claim identity mismatch'
   }
   if ([string]$claim.manifest_sha256 -ne

@@ -90,11 +90,22 @@ try {
       [string]$claim.generation_id -ne [string]$manifest.generation_id -or
       [string]$claim.attempt_id -notmatch '^issue97-inspect-[0-9]{8}T[0-9]{9}Z$' -or
       [string]$claim.proof_attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
-      [string]$claim.target_pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
-      [string]$claim.inspector_pgappname -ne 'brinesearch-i97-wp-postcheck-v3' -or
       [string]$claim.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
       [string]$claim.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       [string]$claim.manifest_sha256 -ne (Get-Issue97Sha256 -LiteralPath $manifestPath)) {
+    Write-Issue97InspectionState -State 'RECEIPT_INVALID'
+  }
+  $claimHasBackendIdentity = (
+    $null -ne $claim.target_attempt_lock_key -and [long]$claim.target_attempt_lock_key -ne 0 -and
+    [int]$claim.target_backend_pid -gt 0 -and
+    [string]$claim.target_backend_start_utc -match
+      '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6,7}(Z|\+00:00)$'
+  )
+  $claimHasNoBackendIdentity = (
+    $null -eq $claim.target_attempt_lock_key -and [int]$claim.target_backend_pid -eq 0 -and
+    [string]$claim.target_backend_start_utc -eq 'not-emitted'
+  )
+  if (-not $claimHasBackendIdentity -and -not $claimHasNoBackendIdentity) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
   }
   foreach ($key in $expectedPaths.Keys) {
@@ -147,7 +158,7 @@ try {
               attempt_id = [string]$claim.attempt_id
               pid = [int]$bootstrapReceipt.pid
               process_start_utc = [string]$bootstrapReceipt.process_start_utc
-              target_pgappname = [string]$claim.target_pgappname
+              proof_attempt_id = [string]$claim.proof_attempt_id
               bootstrap_preflight = $true
             }
           }
@@ -159,7 +170,7 @@ try {
       if (-not [bool]$bootstrapFinal.success) {
         Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
           attempt_id = [string]$claim.attempt_id
-          target_pgappname = [string]$claim.target_pgappname
+          proof_attempt_id = [string]$claim.proof_attempt_id
           failure_code = [string]$bootstrapFinal.failure_code
         }
       }
@@ -168,13 +179,13 @@ try {
     if ($claimAge.TotalSeconds -le 10) {
       Write-Issue97InspectionState -State 'RUNNING' -Details @{
         attempt_id = [string]$claim.attempt_id
-        target_pgappname = [string]$claim.target_pgappname
+        proof_attempt_id = [string]$claim.proof_attempt_id
         spawn_receipt_pending = $true
       }
     }
     Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
       attempt_id = [string]$claim.attempt_id
-      target_pgappname = [string]$claim.target_pgappname
+      proof_attempt_id = [string]$claim.proof_attempt_id
     }
   }
   $spawn = Read-Issue97Json -LiteralPath $spawnPath
@@ -195,21 +206,21 @@ try {
     if (-not $identityMatches) {
       Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
         attempt_id = [string]$claim.attempt_id
-        target_pgappname = [string]$claim.target_pgappname
+        proof_attempt_id = [string]$claim.proof_attempt_id
       }
     }
     Write-Issue97InspectionState -State 'RUNNING' -Details @{
       attempt_id = [string]$claim.attempt_id
       pid = [int]$spawn.pid
       process_start_utc = [string]$spawn.process_start_utc
-      target_pgappname = [string]$claim.target_pgappname
+      proof_attempt_id = [string]$claim.proof_attempt_id
     }
   }
   if (-not (Test-Path -LiteralPath $pidPath -PathType Leaf) -or
       -not (Test-Path -LiteralPath $finalPath -PathType Leaf)) {
     Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
       attempt_id = [string]$claim.attempt_id
-      target_pgappname = [string]$claim.target_pgappname
+      proof_attempt_id = [string]$claim.proof_attempt_id
     }
   }
   $pidReceipt = Read-Issue97Json -LiteralPath $pidPath
@@ -220,14 +231,13 @@ try {
       [string]$pidReceipt.attempt_id -ne [string]$claim.attempt_id -or
       [int]$pidReceipt.pid -ne [int]$spawn.pid -or
       [string]$pidReceipt.process_start_utc -ne [string]$spawn.process_start_utc -or
-      [string]$pidReceipt.target_pgappname -ne [string]$claim.target_pgappname -or
+      [string]$pidReceipt.proof_attempt_id -ne [string]$claim.proof_attempt_id -or
       [string]$final.attempt_id -ne [string]$claim.attempt_id -or
       [string]$final.proof_attempt_id -ne [string]$claim.proof_attempt_id -or
       [int]$final.pid -ne [int]$pidReceipt.pid -or
       [string]$final.process_start_utc -ne [string]$pidReceipt.process_start_utc -or
       [string]$final.repo_sha -ne [string]$claim.authorized_repo_sha -or
-      [string]$final.target_pgappname -ne [string]$claim.target_pgappname -or
-      [string]$final.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
+      [long]$final.observed_attempt_lock_key -eq 0 -or
       [string]$final.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
   }
@@ -235,7 +245,7 @@ try {
       -not (Test-Path -LiteralPath $clientFinalPath -PathType Leaf)) {
     Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
       attempt_id = [string]$claim.attempt_id
-      target_pgappname = [string]$claim.target_pgappname
+      proof_attempt_id = [string]$claim.proof_attempt_id
     }
   }
   $clientReceipt = Read-Issue97Json -LiteralPath $clientPath
@@ -245,23 +255,20 @@ try {
       [string]$clientFinal.generation_id -ne [string]$manifest.generation_id -or
       [string]$clientReceipt.attempt_id -ne [string]$claim.attempt_id -or
       [string]$clientFinal.attempt_id -ne [string]$claim.attempt_id -or
-      [string]$clientReceipt.target_pgappname -ne [string]$claim.target_pgappname -or
-      [string]$clientFinal.target_pgappname -ne [string]$claim.target_pgappname -or
-      [string]$clientReceipt.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
-      [string]$clientFinal.inspector_pgappname -ne [string]$claim.inspector_pgappname -or
-      [string]$clientReceipt.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
-      [string]$clientFinal.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
+      [string]$clientReceipt.proof_attempt_id -ne [string]$claim.proof_attempt_id -or
+      [string]$clientFinal.proof_attempt_id -ne [string]$claim.proof_attempt_id -or
       [int]$clientReceipt.pid -le 0 -or [int]$clientFinal.pid -ne [int]$clientReceipt.pid -or
       [string]$clientFinal.process_start_utc -ne [string]$clientReceipt.process_start_utc -or
       [int]$final.exit_code -ne [int]$clientFinal.exit_code -or
-      [string]$final.child_environment_pgappname -ne [string]$claim.inspector_pgappname -or
+      [long]$clientFinal.observed_attempt_lock_key -ne [long]$final.observed_attempt_lock_key -or
+      -not [bool]$clientFinal.inspector_identity_valid -or -not [bool]$final.inspector_identity_valid -or
       [string]$final.client_final_receipt_sha256 -ne (Get-Issue97Sha256 -LiteralPath $clientFinalPath)) {
     Write-Issue97InspectionState -State 'RECEIPT_INVALID'
   }
   if ($null -ne (Get-Process -Id ([int]$clientReceipt.pid) -ErrorAction SilentlyContinue)) {
     Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
       attempt_id = [string]$claim.attempt_id
-      target_pgappname = [string]$claim.target_pgappname
+      proof_attempt_id = [string]$claim.proof_attempt_id
       client_pid = [int]$clientReceipt.pid
     }
   }
@@ -275,11 +282,19 @@ try {
   }
   $stdout = [System.IO.File]::ReadAllText($stdoutPath)
   $stderr = [System.IO.File]::ReadAllText($stderrPath)
+  $inspectionPattern = '(?m)^ISSUE97_WORKER_PROOF_INSPECTOR_IDENTITY\|proof_attempt_id=([^|\r\n]+)\|attempt_lock_key=(-?[0-9]+)\|inspector_id=([^|\r\n]+)$'
+  $inspectionMatches = [regex]::Matches($stdout, $inspectionPattern)
+  $inspectionIdentityValid = $inspectionMatches.Count -eq 1 -and
+    [string]$inspectionMatches[0].Groups[1].Value -eq [string]$claim.proof_attempt_id -and
+    [string]$inspectionMatches[0].Groups[3].Value -eq [string]$claim.attempt_id -and
+    [long]$inspectionMatches[0].Groups[2].Value -eq [long]$final.observed_attempt_lock_key -and
+    ($null -eq $claim.target_attempt_lock_key -or
+      [long]$inspectionMatches[0].Groups[2].Value -eq [long]$claim.target_attempt_lock_key)
   $sqlArtifact = @($manifest.artifacts | Where-Object {
     [string]$_.path -eq 'ops/issue97-computer-rollout/sql/36-worker-proof-server-inspection.sql'
   })
   $success = [bool]$final.success -and [bool]$final.client_started -and
-    [bool]$final.client_confirmed_finished -and [int]$final.exit_code -eq 0 -and
+    [bool]$final.client_confirmed_finished -and [int]$final.exit_code -eq 0 -and $inspectionIdentityValid -and
     [int]$clientFinal.exit_code -eq 0 -and [int]$final.worker_exit_code -eq 0 -and
     [bool]$final.final_marker_present -and $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') -and
     [bool]$final.rollback_present -and
@@ -295,13 +310,13 @@ try {
     Write-Issue97InspectionState -State 'CLIENT_FINISHED_SUCCESS' -Details @{
       attempt_id = [string]$claim.attempt_id
       proof_attempt_id = [string]$claim.proof_attempt_id
-      target_pgappname = [string]$claim.target_pgappname
+      attempt_lock_key = [long]$final.observed_attempt_lock_key
       final_status_path = $finalPath
     }
   }
   Write-Issue97InspectionState -State 'SERVER_INSPECTION_REQUIRED' -Details @{
     attempt_id = [string]$claim.attempt_id
-    target_pgappname = [string]$claim.target_pgappname
+    proof_attempt_id = [string]$claim.proof_attempt_id
     failure_code = [string]$final.failure_code
   }
 } catch {

@@ -201,7 +201,6 @@ try {
       [string]$attempt.artifact_set_sha256 -ne $artifactSet -or
       [string]$attempt.job_kind -ne $expectedKind -or
       [string]$attempt.attempt_id -notmatch $expectedIdPattern -or
-      [string]$attempt.pgappname -notmatch $expectedPgPattern -or
       [string]$attempt.repo_sha -notmatch '^[0-9a-f]{40}$' -or
       -not (Test-Issue97SamePath -Left ([string]$attempt.worker_script) -Right $expectedWorker)) {
     Write-Issue97UnsafeReceiptState
@@ -351,7 +350,6 @@ try {
       [string]$pidReceipt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
       [string]$pidReceipt.attempt_id -ne $attemptId -or
       [string]$pidReceipt.repo_sha -ne [string]$attempt.repo_sha -or
-      [string]$pidReceipt.pgappname -ne [string]$attempt.pgappname -or
       [int]$pidReceipt.pid -le 0 -or [int]$pidReceipt.pid -ne [int]$spawnReceipt.worker_pid -or
       [string]$pidReceipt.process_start_utc -ne [string]$spawnReceipt.process_start_utc -or
       -not (Test-Issue97SamePath -Left ([string]$pidReceipt.executable_path) -Right ([string]$manifest.powershell.path)) -or
@@ -398,8 +396,7 @@ try {
       [string]$final.attempt_id -ne $attemptId -or
       [string]$final.repo_sha -ne [string]$attempt.repo_sha -or
       [int]$final.pid -ne [int]$pidReceipt.pid -or
-      [string]$final.process_start_utc -ne [string]$pidReceipt.process_start_utc -or
-      [string]$final.pgappname -ne [string]$attempt.pgappname) {
+      [string]$final.process_start_utc -ne [string]$pidReceipt.process_start_utc) {
     Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; pgappname = [string]$attempt.pgappname }
   }
   if (-not (Test-Path -LiteralPath $expectedStdout -PathType Leaf) -or
@@ -410,6 +407,15 @@ try {
   }
   $stdoutText = [System.IO.File]::ReadAllText($expectedStdout)
   $stderrText = [System.IO.File]::ReadAllText($expectedStderr)
+  try {
+    $backendPrefix = if ($expectedKind -eq 'production_read_only_pg_sleep_proof') {
+      'ISSUE97_WORKER_PROOF_BACKEND_IDENTITY'
+    } else { 'ISSUE97_LOCAL_BACKEND_IDENTITY' }
+    $backendIdentity = Get-Issue97BackendIdentityMarker -Text $stdoutText `
+      -ExpectedAttemptId $attemptId -ExpectedPrefix $backendPrefix
+  } catch {
+    Write-Issue97UnsafeReceiptState -Details @{ attempt_id = $attemptId; backend_identity = 'invalid' }
+  }
 
   if (-not (Test-Path -LiteralPath $expectedClientPath -PathType Leaf) -or
       -not (Test-Path -LiteralPath $expectedClientFinalPath -PathType Leaf)) {
@@ -431,17 +437,25 @@ try {
       [string]$clientFinal.attempt_id -ne $attemptId -or
       [string]$clientReceipt.repo_sha -ne [string]$attempt.repo_sha -or
       [string]$clientFinal.repo_sha -ne [string]$attempt.repo_sha -or
-      [string]$clientReceipt.pgappname -ne [string]$attempt.pgappname -or
-      [string]$clientFinal.pgappname -ne [string]$attempt.pgappname -or
-      [string]$clientReceipt.child_environment_pgappname -ne [string]$attempt.pgappname -or
-      [string]$clientFinal.child_environment_pgappname -ne [string]$attempt.pgappname -or
       [int]$clientReceipt.pid -le 0 -or
       [int]$clientFinal.pid -ne [int]$clientReceipt.pid -or
       [string]$clientFinal.process_start_utc -ne [string]$clientReceipt.process_start_utc -or
       [int]$final.client_pid -ne [int]$clientReceipt.pid -or
       [string]$final.client_process_start_utc -ne [string]$clientReceipt.process_start_utc -or
       [int]$final.exit_code -ne [int]$clientFinal.exit_code -or
-      [string]$final.child_environment_pgappname -ne [string]$attempt.pgappname -or
+      [string]$clientFinal.backend_attempt_id -ne $attemptId -or
+      [string]$final.backend_attempt_id -ne $attemptId -or
+      [long]$clientFinal.backend_attempt_lock_key -ne [long]$backendIdentity.attempt_lock_key -or
+      [long]$final.backend_attempt_lock_key -ne [long]$backendIdentity.attempt_lock_key -or
+      [int]$clientFinal.backend_pid -ne [int]$backendIdentity.backend_pid -or
+      [int]$final.backend_pid -ne [int]$backendIdentity.backend_pid -or
+      [string]$clientFinal.backend_start_utc -ne [string]$backendIdentity.backend_start_utc -or
+      [string]$final.backend_start_utc -ne [string]$backendIdentity.backend_start_utc -or
+      -not [bool]$clientFinal.transaction_read_only -or -not [bool]$final.transaction_read_only -or
+      [string]$clientFinal.backend_custom_guc -ne $attemptId -or
+      [string]$final.backend_custom_guc -ne $attemptId -or
+      [string]$clientFinal.observed_application_name -ne [string]$backendIdentity.observed_application_name -or
+      [string]$final.observed_application_name -ne [string]$backendIdentity.observed_application_name -or
       [string]$final.client_final_receipt_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedClientFinalPath) -or
       [string]$clientFinal.stdout_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedStdout) -or
       [string]$clientFinal.stderr_sha256 -ne (Get-Issue97Sha256 -LiteralPath $expectedStderr)) {
@@ -491,6 +505,11 @@ try {
       [int]$final.exit_code -eq 0 -and [int]$clientFinal.exit_code -eq 0 -and
       [int]$final.worker_exit_code -eq 0 -and [double]$final.client_duration_seconds -ge 5.0 -and
       [bool]$final.final_marker_present -and
+      [string]$final.backend_attempt_id -eq $attemptId -and
+      [long]$final.backend_attempt_lock_key -eq [long]$backendIdentity.attempt_lock_key -and
+      [int]$final.backend_pid -eq [int]$backendIdentity.backend_pid -and
+      [string]$final.backend_start_utc -eq [string]$backendIdentity.backend_start_utc -and
+      [bool]$final.transaction_read_only -and [string]$final.backend_custom_guc -eq $attemptId -and
       ([regex]::Matches($stdoutText, 'ISSUE97_WORKER_PROOF_PASS')).Count -eq 1 -and
       [bool]$final.rollback_present -and
       ([regex]::Matches($stdoutText, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 -and
@@ -508,7 +527,12 @@ try {
       [bool]$final.final_marker_present -and [double]$final.worker_duration_seconds -ge 5.0 -and
       [double]$final.client_duration_seconds -ge 5.0 -and
       ([regex]::Matches($stdoutText, 'ISSUE97_LOCAL_WORKER_PASS')).Count -eq 1 -and
-      ([regex]::Matches($stdoutText, [regex]::Escape("ISSUE97_LOCAL_CHILD_PGAPPNAME=$([string]$attempt.pgappname)"))).Count -eq 1 -and
+      [string]$final.backend_attempt_id -eq $attemptId -and
+      [long]$final.backend_attempt_lock_key -eq -9700350004 -and
+      [int]$final.backend_pid -eq [int]$backendIdentity.backend_pid -and
+      [string]$final.backend_start_utc -eq [string]$backendIdentity.backend_start_utc -and
+      [bool]$final.transaction_read_only -and [string]$final.backend_custom_guc -eq $attemptId -and
+      [string]$final.observed_application_name -eq 'Supavisor' -and
       -not [bool]$final.server_inspection_required
     )
   }

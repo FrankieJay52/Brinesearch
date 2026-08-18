@@ -24,7 +24,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-bootstrap.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 if ([int]$manifest.schema_version -ne 3 -or
     [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or
@@ -161,7 +161,7 @@ $arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -Window
 $bootstrap = Start-Process -FilePath ([string]$manifest.powershell.path) -ArgumentList $arguments `
   -PassThru -WindowStyle Hidden
 Write-Output "BOOTSTRAP_PID=$($bootstrap.Id)"
-Write-Output "PGAPPNAME=$pgappname"
+Write-Output "DIAGNOSTIC_CLIENT_LABEL=$pgappname"
 Write-Output "ATTEMPT_ID=$attemptId"
 Write-Output "STATUS_SCRIPT=$(Join-Path $PSScriptRoot 'issue97-worker-proof-status.ps1')"
 Write-Output "STDOUT_PATH=$stdoutPath"

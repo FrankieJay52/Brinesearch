@@ -1,27 +1,82 @@
 \set ON_ERROR_STOP on
 
-\if :{?issue97_target_pgappname}
+\if :{?issue97_target_attempt_id}
 \else
   \echo ISSUE97_WORKER_PROOF_INSPECTION_TARGET_MISSING
   \quit 81
 \endif
 
-\if :{?issue97_inspector_pgappname}
+\if :{?issue97_inspector_id}
 \else
-  \echo ISSUE97_WORKER_PROOF_INSPECTOR_NAME_MISSING
+  \echo ISSUE97_WORKER_PROOF_INSPECTOR_ID_MISSING
   \quit 83
+\endif
+
+\if :{?issue97_target_backend_pid}
+\else
+  \echo ISSUE97_WORKER_PROOF_TARGET_BACKEND_PID_MISSING
+  \quit 84
+\endif
+
+\if :{?issue97_target_backend_start}
+\else
+  \echo ISSUE97_WORKER_PROOF_TARGET_BACKEND_START_MISSING
+  \quit 85
 \endif
 
 begin isolation level repeatable read read only;
 
 set local statement_timeout = '30s';
 set local lock_timeout = '2s';
-set local application_name = :'issue97_inspector_pgappname';
 
 select case
-  when pg_catalog.current_setting('application_name') = :'issue97_inspector_pgappname' then 1
+  when :'issue97_target_attempt_id' ~ '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$'
+   and :'issue97_inspector_id' ~ '^issue97-inspect-[0-9]{8}T[0-9]{9}Z$' then 1
   else 1 / 0
-end as issue97_exact_inspector_pgappname_guard;
+end as issue97_exact_inspector_identity_format_guard;
+
+select pg_catalog.set_config(
+  'brinesearch.issue97_inspector_id',
+  :'issue97_inspector_id',
+  true
+) as issue97_transaction_local_inspector_id;
+
+select case
+  when pg_catalog.current_setting('brinesearch.issue97_inspector_id', true) =
+       :'issue97_inspector_id' then 1
+  else 1 / 0
+end as issue97_exact_inspector_guc_guard;
+
+select pg_catalog.hashtextextended(
+  :'issue97_target_attempt_id',
+  970035
+)::bigint as issue97_target_attempt_lock_key
+\gset
+
+select pg_catalog.pg_try_advisory_xact_lock(
+  :'issue97_target_attempt_lock_key'::bigint
+)::integer as issue97_target_attempt_lock_released
+\gset
+\if :issue97_target_attempt_lock_released
+\else
+  \echo ISSUE97_WORKER_PROOF_TARGET_ATTEMPT_LOCK_STILL_HELD
+  \quit 86
+\endif
+
+select case
+  when :'issue97_target_backend_pid' = '0'
+   and :'issue97_target_backend_start' = 'not-emitted' then 1
+  when :'issue97_target_backend_pid' ~ '^[1-9][0-9]*$'
+   and :'issue97_target_backend_start' ~
+       '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6}Z$'
+   and not exists (
+     select 1
+     from pg_catalog.pg_stat_activity activity
+     where activity.pid = :'issue97_target_backend_pid'::integer
+       and activity.backend_start = :'issue97_target_backend_start'::timestamptz
+   ) then 1
+  else 1 / 0
+end as issue97_exact_backend_pid_start_absent_guard;
 
 with frozen_mapping_pairs(identity_id, road_id) as (
   values
@@ -87,8 +142,6 @@ where exists (
 
 select (
   current_database() = 'postgres'
-  and (select pg_catalog.count(*) from pg_catalog.pg_stat_activity
-       where application_name = :'issue97_target_pgappname') = 0
   and (select pg_catalog.count(*) from supabase_migrations.schema_migrations
        where version = '20260817193212') = 0
   and (select pg_catalog.count(*) from public.brinesearch_road_graph_builds
@@ -128,9 +181,7 @@ select (
        where pid <> pg_catalog.pg_backend_pid()
          and state in ('active', 'idle in transaction', 'idle in transaction (aborted)')
          and (
-           application_name ilike '%issue97%'
-           or application_name like 'brinesearch-i97-%'
-           or query ilike '%brinesearch_issue97_%'
+           query ilike '%brinesearch_issue97_%'
            or query ilike '%issue97-%'
          )) = 0
 )::integer as issue97_server_inspection_pass \gset
@@ -139,6 +190,8 @@ select (
   \echo ISSUE97_WORKER_PROOF_SERVER_INSPECTION_FAILED
   \quit 82
 \endif
+
+\echo ISSUE97_WORKER_PROOF_INSPECTOR_IDENTITY|proof_attempt_id=:issue97_target_attempt_id|attempt_lock_key=:issue97_target_attempt_lock_key|inspector_id=:issue97_inspector_id
 
 select 'ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS'::text
   as issue97_worker_proof_server_inspection_marker;

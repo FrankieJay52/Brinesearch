@@ -1,12 +1,12 @@
 {
   "schema_version": 3,
-  "worker_proof_version": "issue97-long-lived-worker-proof-v3",
-  "generation_id": "issue97-worker-proof-generation-3",
+  "worker_proof_version": "issue97-long-lived-worker-proof-v4",
+  "generation_id": "issue97-worker-proof-generation-4",
   "expected_branch": "data/issue-97-authoritative-road-junction-graph",
   "expected_remote_url": "https://github.com/FrankieJay52/Brinesearch.git",
   "expected_service": "brinesearch_issue97_prod",
   "trusted_owner_root": "C:\\Users\\frank",
-  "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v3",
+  "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v4",
   "historical_evidence": {
     "worker_proof_version": "issue97-long-lived-worker-proof-v2",
     "artifact_set_sha256": "3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B",
@@ -26,7 +26,29 @@
       "server-inspection.final.json": "9B9C98585CAFE1F1C8814C5025B3BF3B9378AF71BF8732648BAEA5C7F7AEFE5B"
     }
   },
-  "artifact_set_sha256": "9474CF2458191B0C9C0458632BCCF6EEFFB68C9A1C3E17393AD0E99C5197C0DB",
+  "historical_evidence_generation3": {
+    "worker_proof_version": "issue97-long-lived-worker-proof-v3",
+    "artifact_set_sha256": "9474CF2458191B0C9C0458632BCCF6EEFFB68C9A1C3E17393AD0E99C5197C0DB",
+    "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v3",
+    "production_attempt_id": "issue97-wp-20260818T065601847Z-5e0d29a5",
+    "server_inspection_attempt_id": "issue97-inspect-20260818T065824046Z",
+    "disposition": "consumed_failed_no_retry",
+    "file_count": 42,
+    "evidence_set_sha256": "83AA4256D66BAA2A30C46868FBC90A1AC875B96978B6089866BCCA3774C0CB13",
+    "critical_hashes": {
+      "production.authorization.json": "0131F80603537441CCE5136AA2109C324CD0C796E8854EA6A3993F1B13CBC9BC",
+      "production.launch.json": "FE40D9E67A3E428B7ECC729EADDCEF8816846464C237D2A94120880609597E3B",
+      "production.attempt.json": "4C6FAB6C6B80C21306AAB0781BB8D9EE94EB27B004D4385DA713A13F8FCB5F71",
+      "production.pid.json": "3D57D1F299423D6448C848C6C46A2D918ED40B946B1EB572B240191559B86200",
+      "production.client.json": "C9ACD6BCDF8408CCC283AC3E3E30978346D760389B8ABF39E0A818781D20B321",
+      "production.client-final.json": "3C9669B5B2CEA9E5AF9B28A913E986D474AC05E040B18C81EB558CC360F82A3D",
+      "production.final.json": "29927F5FD2671C7FEDE1AD97DD36025955719AD2BB888AEB5F4B5015A27BEDE3",
+      "server-inspection.launch.json": "1FA079567652051E3ED5FE2BCD16D600D1E03EFBBB6CC3CAB853297163E36085",
+      "server-inspection.client-final.json": "9AB8F530C0FD69C002E08058B1AFD52AD35E56FE8FAD72250F7AB2A9DEE4EB75",
+      "server-inspection.final.json": "0B70195B2DFF0F29A78B1965353B63380150137EF526475D298E9A8E6EE87FF9"
+    }
+  },
+  "artifact_set_sha256": "01CF7647B4E80D1B29FDE6F112474FC1559402E70279E517E13ACEDB6EA80CE2",
   "powershell": {
     "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
     "version": "5.1.22621.4391",
@@ -76,23 +98,23 @@
     ]
   },
   "artifacts": [
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "0B2E43D7EE3636FDE72EAE9096AAD663C9BE1FF47038D7B2AD560BF1728E2C39" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "34D8D557FE59AD1756F8BA5A024C703FCA90E9E024D2560502BBB314B4A7E865" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize.ps1", "sha256": "1BBDE5F8ECEB4A48E6E5068E912A5F008739AF3FC3DBE1DFA9C8FBE365214A33" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize-production.ps1", "sha256": "0F238B052E3C9F8F011291622E5C21E5EBBF31DE901EE73BF6EE27CEC9363684" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1", "sha256": "572016F38852236531351A219EA77932C244AA26DD6F8ECDC1F426BAB60EE5B4" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-bootstrap.ps1", "sha256": "521581375AC6CB302BDB49D2E27D2A48D7A621038275E87615B0C44B20E9BCD3" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-worker.ps1", "sha256": "8AECB14B40EBADAAB87FB613385A36D2447AEF97563D435303D51A905DD24140" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-status.ps1", "sha256": "8D0C69F12B08D6815457A1DDCEF10F58A8D6DFABF19D56F8930BB8E4DCBA1C51" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1", "sha256": "11A7BE77437CD6A4A8DDC8B1F24C85CFE50FDF7924AAC7B52F8873E4AE0C2371" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-bootstrap.ps1", "sha256": "CF0B6AD40748E60107790F4FA7B4B8B65D02E380556163B888E58AB67324230F" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-worker.ps1", "sha256": "7EE9CB8C1A764FACB79E52CB16D92403E36C6EBB60FE000A8B81FF7B9458674E" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-status.ps1", "sha256": "231FB17A2BD06C33A6DE3575C007CC4DE06EFC5AF289B6BF7CDB9D0EECFAC880" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-provision-log-root.ps1", "sha256": "0B29278A37C9DF44E086139D525BD7AF730F5AA6E778AB7263CA1A6FAD9134C9" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect.ps1", "sha256": "2BA6E09583522855D69DBE1BE1FC95CD5B4AF8280734890371B998FADC4406FF" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-bootstrap.ps1", "sha256": "E60345B2FF9074AD175CB59500975D756C27C28F5F904FFB79C0AB46801D7933" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-worker.ps1", "sha256": "68B23462786913E4CD40DD98EBE1CDF2DDCD012E61B2318C8BEA6A1DD4A821BE" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-status.ps1", "sha256": "091DD6C10FDC18A2C5C8D47D8F65FDEF3BB62C989F76F99A4DBDF1E21DC53748" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-launch.ps1", "sha256": "EB9C655BA546A05CCFD68EBA86D5489AEBB19EDC6AC6938B77CFD423DD6DFF04" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-bootstrap.ps1", "sha256": "2ED61214A9BB0CAFF9EF4FF4DBBC114929DCC11948DBF8AD1E9DADFF2E4C9BB0" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-worker.ps1", "sha256": "EF2DA53806401EEB164AACF38817EE7BFE19D6E784666A6F22386CE814EF36FE" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-child.ps1", "sha256": "F54C289361AFE2BE879755595CD57042E5168C9AF5503F0BAB388C54F42680A2" },
-    { "path": "ops/issue97-computer-rollout/sql/35-worker-proof-read-only.sql", "sha256": "973EBF9261DA70EB38D860DDB8AEAC910E66A50B8D16BD14B85C8AC55331E1E3" },
-    { "path": "ops/issue97-computer-rollout/sql/36-worker-proof-server-inspection.sql", "sha256": "10810C1DB0D37EC64B8B6CBDDAC22691CE5C0393185D5349D3FE970DC2756B8B" }
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect.ps1", "sha256": "EAEDDE952F5A87205DAE67CB00F57436485E49E1DD1AE8CD2601608ED6C99B53" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-bootstrap.ps1", "sha256": "8420674D03BBDE9A45463D00B7F35DE1E26A8B24538D908E63D8EDDA98ABB78A" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-worker.ps1", "sha256": "B1DFAFA748D73AAE3DBBE7D6E62B4E23854E75320A3731776B41699465A1D31C" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-status.ps1", "sha256": "AF2B69D4C73A1E59BF5B1C240AD356F224B14C38F4894398E3A4C64D36B6BE96" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-launch.ps1", "sha256": "4AA06F99F0B7DC46913720DBEC112CA539ACF6671E86BAC214028D2E195EE7F1" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-bootstrap.ps1", "sha256": "BB82634757989143083BF00BD09F74CC4BB3D17D1818D6DADF12340AFB79F3FD" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-worker.ps1", "sha256": "AC50314BBF875FD302330C2D375EBF6FC81DC6DE49475662A169C0E27331CD8E" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-child.ps1", "sha256": "9895FFE80FC508A22DB72C18535667DBB289297E47C021A8D98E9546A024E333" },
+    { "path": "ops/issue97-computer-rollout/sql/35-worker-proof-read-only.sql", "sha256": "510488AADAAFFB73EF20ED8D5D908B04A2ADB234BF013231F10A1354290E85E2" },
+    { "path": "ops/issue97-computer-rollout/sql/36-worker-proof-server-inspection.sql", "sha256": "A0759AF4F9546B50DE2F90EFC6111683910C670433B235F90FD01A1DD05D3260" }
   ]
 }

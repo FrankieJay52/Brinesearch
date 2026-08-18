@@ -19,7 +19,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-bootstrap.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 if ([int]$manifest.schema_version -ne 3 -or [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.powershell.path -ne 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe') {
   throw 'fixed local worker-proof manifest scope mismatch'

@@ -37,8 +37,9 @@ $clientEndUtc = $null
 $failureCode = 'local_worker_initialization_failed'
 $startUtc = [datetime]::UtcNow.ToString('o')
 $stage = 'load_manifest'
+$backendIdentity = $null
 $artifactSet = $null
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 $authorizationPath = Join-Path $logRoot 'local.authorization.json'
 
 try {
@@ -83,6 +84,7 @@ try {
       [string]$attempt.worker_proof_version -ne [string]$manifest.worker_proof_version -or
       [string]$attempt.generation_id -ne [string]$manifest.generation_id -or
       [string]$attempt.artifact_set_sha256 -ne $artifactSet -or
+      [long]$attempt.simulated_attempt_lock_key -ne -9700350004 -or
       [string]$attempt.attempt_id -notmatch '^issue97-local-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
       [string]$attempt.pgappname -notmatch '^local-only-no-database-[0-9a-f]{8}$') {
     throw 'local attempt identity mismatch'
@@ -212,7 +214,9 @@ try {
   $startInfo.CreateNoWindow = $true
   $startInfo.RedirectStandardOutput = $true
   $startInfo.RedirectStandardError = $true
-  $startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$attempt.pgappname
+  $startInfo.EnvironmentVariables.Remove('PGAPPNAME')
+  $startInfo.EnvironmentVariables['ISSUE97_ATTEMPT_ID'] = [string]$attempt.attempt_id
+  $startInfo.EnvironmentVariables['ISSUE97_ATTEMPT_LOCK_KEY'] = [string]$attempt.simulated_attempt_lock_key
   $client = New-Object System.Diagnostics.Process
   $client.StartInfo = $startInfo
   $clientStartUtc = [datetime]::UtcNow.ToString('o')
@@ -230,7 +234,7 @@ try {
     attempt_id = [string]$attempt.attempt_id
     repo_sha = [string]$attempt.repo_sha
     pgappname = [string]$attempt.pgappname
-    child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+    simulated_attempt_lock_key = [long]$attempt.simulated_attempt_lock_key
     pid = $clientPid
     process_start_utc = $clientProcessStartUtc
     executable_path = [string]$manifest.powershell.path
@@ -248,6 +252,12 @@ try {
   Write-Issue97TextNoClobber -LiteralPath $stderrPath -Text $stderrText
   $stdoutHash = Get-Issue97Sha256 -LiteralPath $stdoutPath
   $stderrHash = Get-Issue97Sha256 -LiteralPath $stderrPath
+  $backendIdentity = Get-Issue97BackendIdentityMarker -Text $stdoutText `
+    -ExpectedAttemptId ([string]$attempt.attempt_id) -ExpectedPrefix 'ISSUE97_LOCAL_BACKEND_IDENTITY'
+  if ([long]$backendIdentity.attempt_lock_key -ne [long]$attempt.simulated_attempt_lock_key -or
+      [string]$backendIdentity.observed_application_name -ne 'Supavisor') {
+    throw 'local simulated backend identity mismatch'
+  }
   Write-Issue97JsonAtomicNoClobber -LiteralPath $clientFinalPath -Value ([ordered]@{
     schema_version = 3
     worker_proof_version = [string]$attempt.worker_proof_version
@@ -256,7 +266,13 @@ try {
     attempt_id = [string]$attempt.attempt_id
     repo_sha = [string]$attempt.repo_sha
     pgappname = [string]$attempt.pgappname
-    child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+    backend_attempt_id = [string]$backendIdentity.attempt_id
+    backend_attempt_lock_key = [long]$backendIdentity.attempt_lock_key
+    backend_pid = [int]$backendIdentity.backend_pid
+    backend_start_utc = [string]$backendIdentity.backend_start_utc
+    transaction_read_only = [bool]$backendIdentity.transaction_read_only
+    backend_custom_guc = [string]$backendIdentity.custom_guc
+    observed_application_name = [string]$backendIdentity.observed_application_name
     pid = $clientPid
     process_start_utc = $clientProcessStartUtc
     process_end_utc = $clientEndUtc
@@ -264,9 +280,8 @@ try {
     stdout_sha256 = $stdoutHash
     stderr_sha256 = $stderrHash
   })
-  $exactEnvironmentMarker = "ISSUE97_LOCAL_CHILD_PGAPPNAME=$([string]$attempt.pgappname)"
   if ($clientExitCode -ne 0 -or
-      ([regex]::Matches($stdoutText, [regex]::Escape($exactEnvironmentMarker))).Count -ne 1 -or
+      $null -eq $backendIdentity -or
       ([regex]::Matches($stdoutText, 'ISSUE97_LOCAL_WORKER_PASS')).Count -ne 1 -or
       -not [string]::IsNullOrEmpty($stderrText)) {
     throw 'fixed local child did not satisfy the exit/environment/marker contract'
@@ -293,11 +308,10 @@ try {
     $success = (
       $null -eq $failureCode -and $durationSeconds -ge 5.0 -and
       $clientStarted -and $clientFinished -and $clientExitCode -eq 0 -and
+      $null -ne $backendIdentity -and
       (Test-Path -LiteralPath $clientFinalPath -PathType Leaf) -and
       (Test-Path -LiteralPath $stdoutPath) -and
-      ([regex]::Matches([System.IO.File]::ReadAllText($stdoutPath), 'ISSUE97_LOCAL_WORKER_PASS')).Count -eq 1 -and
-      ([regex]::Matches([System.IO.File]::ReadAllText($stdoutPath),
-        [regex]::Escape("ISSUE97_LOCAL_CHILD_PGAPPNAME=$([string]$attempt.pgappname)"))).Count -eq 1
+      ([regex]::Matches([System.IO.File]::ReadAllText($stdoutPath), 'ISSUE97_LOCAL_WORKER_PASS')).Count -eq 1
     )
     if (-not (Test-Path -LiteralPath $stderrPath)) {
       try { Write-Issue97TextNoClobber -LiteralPath $stderrPath -Text '' } catch { }
@@ -323,7 +337,13 @@ try {
       client_process_start_utc = $clientProcessStartUtc
       client_final_receipt_path = $clientFinalPath
       client_final_receipt_sha256 = if ($clientFinished -and (Test-Path -LiteralPath $clientFinalPath)) { Get-Issue97Sha256 -LiteralPath $clientFinalPath } else { $null }
-      child_environment_pgappname = if ($clientFinished) { [string]$attempt.pgappname } else { $null }
+      backend_attempt_id = if ($null -ne $backendIdentity) { [string]$backendIdentity.attempt_id } else { $null }
+      backend_attempt_lock_key = if ($null -ne $backendIdentity) { [long]$backendIdentity.attempt_lock_key } else { $null }
+      backend_pid = if ($null -ne $backendIdentity) { [int]$backendIdentity.backend_pid } else { $null }
+      backend_start_utc = if ($null -ne $backendIdentity) { [string]$backendIdentity.backend_start_utc } else { $null }
+      transaction_read_only = if ($null -ne $backendIdentity) { [bool]$backendIdentity.transaction_read_only } else { $false }
+      backend_custom_guc = if ($null -ne $backendIdentity) { [string]$backendIdentity.custom_guc } else { $null }
+      observed_application_name = if ($null -ne $backendIdentity) { [string]$backendIdentity.observed_application_name } else { $null }
       final_marker_present = $success
       rollback_present = $false
       commit_count = 0

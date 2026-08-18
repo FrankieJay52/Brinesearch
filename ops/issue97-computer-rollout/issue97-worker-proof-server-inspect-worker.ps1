@@ -21,7 +21,7 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 $claimPath = Join-Path $logRoot 'server-inspection.launch.json'
 $spawnPath = Join-Path $logRoot 'server-inspection.spawn.json'
 $pidPath = Join-Path $logRoot 'server-inspection.pid.json'
@@ -39,6 +39,8 @@ $exitCode = 101
 $success = $false
 $failureCode = 'server_inspection_worker_initialization_failed'
 $startUtc = [datetime]::UtcNow.ToString('o')
+$inspectorIdentityValid = $false
+$observedAttemptLockKey = $null
 
 try {
   $claim = [System.IO.File]::ReadAllText($claimPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
@@ -64,11 +66,24 @@ try {
   Assert-Issue97PrivateLogRoot -LogRoot $logRoot -TrustedRoot ([string]$manifest.trusted_owner_root)
   if ([int]$claim.schema_version -ne 3 -or [string]$claim.job_kind -ne 'production_server_inspection' -or
       [string]$claim.generation_id -ne [string]$manifest.generation_id -or
-      [string]$claim.target_pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
-      [string]$claim.inspector_pgappname -ne 'brinesearch-i97-wp-postcheck-v3' -or
+      [string]$claim.proof_attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
+      [string]$claim.attempt_id -notmatch '^issue97-inspect-[0-9]{8}T[0-9]{9}Z$' -or
       [string]$claim.authorized_repo_sha -notmatch '^[0-9a-f]{40}$' -or
       [string]$claim.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256) {
     throw 'server-inspection claim identity mismatch'
+  }
+  $claimHasBackendIdentity = (
+    $null -ne $claim.target_attempt_lock_key -and [long]$claim.target_attempt_lock_key -ne 0 -and
+    [int]$claim.target_backend_pid -gt 0 -and
+    [string]$claim.target_backend_start_utc -match
+      '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6,7}(Z|\+00:00)$'
+  )
+  $claimHasNoBackendIdentity = (
+    $null -eq $claim.target_attempt_lock_key -and [int]$claim.target_backend_pid -eq 0 -and
+    [string]$claim.target_backend_start_utc -eq 'not-emitted'
+  )
+  if (-not $claimHasBackendIdentity -and -not $claimHasNoBackendIdentity) {
+    throw 'server-inspection target backend identity is partial or malformed'
   }
   $authorizationPath = Join-Path $logRoot 'production.authorization.json'
   if (-not (Test-Issue97SamePath -Left ([string]$claim.authorization_path) -Right $authorizationPath) -or
@@ -154,7 +169,6 @@ try {
   }
   if ([string]$proofReceipt.job_kind -ne 'production_read_only_pg_sleep_proof' -or
       [string]$proofReceipt.attempt_id -ne [string]$claim.proof_attempt_id -or
-      [string]$proofReceipt.pgappname -ne [string]$claim.target_pgappname -or
       [string]$proofReceipt.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
       $null -eq $proofRepoShaProperty -or
       [string]$proofRepoShaProperty.Value -ne [string]$claim.authorized_repo_sha) {
@@ -225,7 +239,6 @@ try {
     $expectedOriginalSql = Join-Path $logRoot "$([string]$claim.proof_attempt_id).reviewed.sql"
     if ([string]$originalClient.attempt_id -ne [string]$claim.proof_attempt_id -or
         [string]$originalClient.repo_sha -ne [string]$claim.authorized_repo_sha -or
-        [string]$originalClient.pgappname -ne [string]$claim.target_pgappname -or
         [int]$originalClient.pid -le 0 -or
         -not (Test-Issue97SamePath -Left ([string]$originalClient.executable_path) -Right $fixedPsqlPath) -or
         -not (Test-Issue97SamePath -Left ([string]$originalClient.execution_sql_path) -Right $expectedOriginalSql)) {
@@ -267,7 +280,10 @@ try {
     process_start_utc = [string]$selfIdentity.process_start_utc
     executable_path = [string]$manifest.powershell.path
     worker_script = $workerPath
-    target_pgappname = [string]$claim.target_pgappname
+    proof_attempt_id = [string]$claim.proof_attempt_id
+    target_attempt_lock_key = $claim.target_attempt_lock_key
+    target_backend_pid = [int]$claim.target_backend_pid
+    target_backend_start_utc = [string]$claim.target_backend_start_utc
   })
   $psqlPath = Assert-Issue97PostgreSQLRuntime -RepoRoot $repoRoot -Manifest $manifest
   $liveReviewedClients = @(Get-CimInstance -ClassName Win32_Process -Filter "Name = 'psql.exe'" | Where-Object {
@@ -291,7 +307,7 @@ try {
   $guard = [System.IO.File]::Open($executionSqlPath, [System.IO.FileMode]::Open,
     [System.IO.FileAccess]::Read, [System.IO.FileShare]::Read)
   try {
-    $arguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_target_pgappname=$([string]$claim.target_pgappname) --set=issue97_inspector_pgappname=$([string]$claim.inspector_pgappname) --file=`"$executionSqlPath`""
+    $arguments = "-X --no-psqlrc --set=ON_ERROR_STOP=1 --set=issue97_target_attempt_id=$([string]$claim.proof_attempt_id) --set=issue97_inspector_id=$([string]$claim.attempt_id) --set=issue97_target_backend_pid=$([int]$claim.target_backend_pid) --set=issue97_target_backend_start=$([string]$claim.target_backend_start_utc) --file=`"$executionSqlPath`""
     $startInfo = New-Object System.Diagnostics.ProcessStartInfo
     $startInfo.FileName = $psqlPath
     $startInfo.Arguments = $arguments
@@ -302,7 +318,7 @@ try {
     $startInfo.EnvironmentVariables['PGSERVICE'] = [string]$manifest.expected_service
     $startInfo.EnvironmentVariables['PGSSLMODE'] = 'require'
     $startInfo.EnvironmentVariables['PGCONNECT_TIMEOUT'] = '10'
-    $startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$claim.inspector_pgappname
+    $startInfo.EnvironmentVariables.Remove('PGAPPNAME')
     $startInfo.EnvironmentVariables.Remove('PGOPTIONS')
     $clientStarted = $true
     $client = New-Object System.Diagnostics.Process
@@ -319,9 +335,10 @@ try {
       job_kind = [string]$claim.job_kind
       attempt_id = [string]$claim.attempt_id
       repo_sha = [string]$claim.authorized_repo_sha
-      target_pgappname = [string]$claim.target_pgappname
-      inspector_pgappname = [string]$claim.inspector_pgappname
-      child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+      proof_attempt_id = [string]$claim.proof_attempt_id
+      target_attempt_lock_key = $claim.target_attempt_lock_key
+      target_backend_pid = [int]$claim.target_backend_pid
+      target_backend_start_utc = [string]$claim.target_backend_start_utc
       pid = $clientPid
       process_start_utc = $clientProcessStartUtc
       executable_path = $psqlPath
@@ -338,6 +355,17 @@ try {
     Write-Issue97TextNoClobber -LiteralPath ([string]$claim.stderr_path) -Text $stderr
     $stdoutHash = Get-Issue97Sha256 -LiteralPath ([string]$claim.stdout_path)
     $stderrHash = Get-Issue97Sha256 -LiteralPath ([string]$claim.stderr_path)
+    $inspectionPattern = '(?m)^ISSUE97_WORKER_PROOF_INSPECTOR_IDENTITY\|proof_attempt_id=([^|\r\n]+)\|attempt_lock_key=(-?[0-9]+)\|inspector_id=([^|\r\n]+)$'
+    $inspectionMatches = [regex]::Matches($stdout, $inspectionPattern)
+    if ($inspectionMatches.Count -eq 1) {
+      $observedAttemptLockKey = [long]$inspectionMatches[0].Groups[2].Value
+      $inspectorIdentityValid = (
+        [string]$inspectionMatches[0].Groups[1].Value -eq [string]$claim.proof_attempt_id -and
+        [string]$inspectionMatches[0].Groups[3].Value -eq [string]$claim.attempt_id -and
+        ($null -eq $claim.target_attempt_lock_key -or
+          [long]$claim.target_attempt_lock_key -eq $observedAttemptLockKey)
+      )
+    }
     Write-Issue97JsonAtomicNoClobber -LiteralPath $clientFinalPath -Value ([ordered]@{
       schema_version = 3
       worker_proof_version = [string]$claim.worker_proof_version
@@ -345,9 +373,12 @@ try {
       job_kind = [string]$claim.job_kind
       attempt_id = [string]$claim.attempt_id
       repo_sha = [string]$claim.authorized_repo_sha
-      target_pgappname = [string]$claim.target_pgappname
-      inspector_pgappname = [string]$claim.inspector_pgappname
-      child_environment_pgappname = [string]$startInfo.EnvironmentVariables['PGAPPNAME']
+      proof_attempt_id = [string]$claim.proof_attempt_id
+      target_attempt_lock_key = $claim.target_attempt_lock_key
+      target_backend_pid = [int]$claim.target_backend_pid
+      target_backend_start_utc = [string]$claim.target_backend_start_utc
+      observed_attempt_lock_key = $observedAttemptLockKey
+      inspector_identity_valid = $inspectorIdentityValid
       pid = $clientPid
       process_start_utc = $clientProcessStartUtc
       process_end_utc = [datetime]::UtcNow.ToString('o')
@@ -358,7 +389,8 @@ try {
   } finally {
     $guard.Dispose()
   }
-  $success = $exitCode -eq 0 -and $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') -and
+  $success = $exitCode -eq 0 -and $inspectorIdentityValid -and
+    $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') -and
     ([regex]::Matches($stdout, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 -and
     ([regex]::Matches($stdout + "`n" + $stderr, '(?im)^\s*COMMIT\s*$')).Count -eq 0
   if (-not $success) { throw 'server-inspection SQL did not satisfy its complete success contract' }
@@ -373,7 +405,6 @@ try {
 } catch {
   $failureCode = 'server_inspection_fail_stop'
 } finally {
-  Remove-Item Env:PGAPPNAME -ErrorAction SilentlyContinue
   Remove-Item Env:PGCONNECT_TIMEOUT -ErrorAction SilentlyContinue
   Remove-Item Env:PGSSLMODE -ErrorAction SilentlyContinue
   Remove-Item Env:PGSERVICE -ErrorAction SilentlyContinue
@@ -394,8 +425,10 @@ try {
         proof_attempt_id = [string]$claim.proof_attempt_id
         repo_sha = [string]$claim.authorized_repo_sha
         artifact_set_sha256 = [string]$claim.artifact_set_sha256
-        target_pgappname = [string]$claim.target_pgappname
-        inspector_pgappname = [string]$claim.inspector_pgappname
+        target_attempt_lock_key = $claim.target_attempt_lock_key
+        observed_attempt_lock_key = $observedAttemptLockKey
+        target_backend_pid = [int]$claim.target_backend_pid
+        target_backend_start_utc = [string]$claim.target_backend_start_utc
         pid = $PID
         process_start_utc = if ($null -ne $spawnReceipt) { [string]$spawnReceipt.process_start_utc } else { $null }
         start_utc = $startUtc
@@ -405,7 +438,7 @@ try {
         exit_code = $exitCode
         client_final_receipt_path = $clientFinalPath
         client_final_receipt_sha256 = if ($clientFinished -and (Test-Path -LiteralPath $clientFinalPath)) { Get-Issue97Sha256 -LiteralPath $clientFinalPath } else { $null }
-        child_environment_pgappname = if ($clientFinished) { [string]$claim.inspector_pgappname } else { $null }
+        inspector_identity_valid = $inspectorIdentityValid
         final_marker_present = if ($clientFinished) { $stdout.Contains('ISSUE97_WORKER_PROOF_SERVER_INSPECTION_PASS') } else { $false }
         rollback_present = if ($clientFinished) { ([regex]::Matches($stdout, '(?im)^\s*ROLLBACK\s*$')).Count -eq 1 } else { $false }
         commit_count = if ($clientFinished) { ([regex]::Matches($stdout + "`n" + $stderr, '(?im)^\s*COMMIT\s*$')).Count } else { -1 }

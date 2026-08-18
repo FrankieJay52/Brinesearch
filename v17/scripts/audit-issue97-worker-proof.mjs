@@ -55,12 +55,12 @@ for (const [file, expected] of new Map([
 ])) assert.equal(gitBlob(file), expected, `audited 412-route closure artifact drifted: ${file}`);
 
 assert.equal(manifest.schema_version, 3);
-assert.equal(manifest.worker_proof_version, 'issue97-long-lived-worker-proof-v3');
-assert.equal(manifest.generation_id, 'issue97-worker-proof-generation-3');
+assert.equal(manifest.worker_proof_version, 'issue97-long-lived-worker-proof-v4');
+assert.equal(manifest.generation_id, 'issue97-worker-proof-generation-4');
 assert.equal(manifest.expected_branch, 'data/issue-97-authoritative-road-junction-graph');
 assert.equal(manifest.expected_remote_url, 'https://github.com/FrankieJay52/Brinesearch.git');
 assert.equal(manifest.expected_service, 'brinesearch_issue97_prod');
-assert.equal(manifest.private_log_root, 'C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v3');
+assert.equal(manifest.private_log_root, 'C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v4');
 assert.deepEqual(manifest.historical_evidence, {
   worker_proof_version: 'issue97-long-lived-worker-proof-v2',
   artifact_set_sha256: '3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B',
@@ -78,6 +78,28 @@ assert.deepEqual(manifest.historical_evidence, {
     'production.final.json': 'BC8B933578BBDA548697A5DF2B11CBCAA27961490C3B3B7B6F97F2EF43E17CB9',
     'server-inspection.launch.json': '6E176F9F0436EF1F912D3355F1BDEC1FD4F096CC290CC234DB811000780FC579',
     'server-inspection.final.json': '9B9C98585CAFE1F1C8814C5025B3BF3B9378AF71BF8732648BAEA5C7F7AEFE5B',
+  },
+});
+assert.deepEqual(manifest.historical_evidence_generation3, {
+  worker_proof_version: 'issue97-long-lived-worker-proof-v3',
+  artifact_set_sha256: '9474CF2458191B0C9C0458632BCCF6EEFFB68C9A1C3E17393AD0E99C5197C0DB',
+  private_log_root: 'C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v3',
+  production_attempt_id: 'issue97-wp-20260818T065601847Z-5e0d29a5',
+  server_inspection_attempt_id: 'issue97-inspect-20260818T065824046Z',
+  disposition: 'consumed_failed_no_retry',
+  file_count: 42,
+  evidence_set_sha256: '83AA4256D66BAA2A30C46868FBC90A1AC875B96978B6089866BCCA3774C0CB13',
+  critical_hashes: {
+    'production.authorization.json': '0131F80603537441CCE5136AA2109C324CD0C796E8854EA6A3993F1B13CBC9BC',
+    'production.launch.json': 'FE40D9E67A3E428B7ECC729EADDCEF8816846464C237D2A94120880609597E3B',
+    'production.attempt.json': '4C6FAB6C6B80C21306AAB0781BB8D9EE94EB27B004D4385DA713A13F8FCB5F71',
+    'production.pid.json': '3D57D1F299423D6448C848C6C46A2D918ED40B946B1EB572B240191559B86200',
+    'production.client.json': 'C9ACD6BCDF8408CCC283AC3E3E30978346D760389B8ABF39E0A818781D20B321',
+    'production.client-final.json': '3C9669B5B2CEA9E5AF9B28A913E986D474AC05E040B18C81EB558CC360F82A3D',
+    'production.final.json': '29927F5FD2671C7FEDE1AD97DD36025955719AD2BB888AEB5F4B5015A27BEDE3',
+    'server-inspection.launch.json': '1FA079567652051E3ED5FE2BCD16D600D1E03EFBBB6CC3CAB853297163E36085',
+    'server-inspection.client-final.json': '9AB8F530C0FD69C002E08058B1AFD52AD35E56FE8FAD72250F7AB2A9DEE4EB75',
+    'server-inspection.final.json': '0B70195B2DFF0F29A78B1965353B63380150137EF526475D298E9A8E6EE87FF9',
   },
 });
 assert.equal(manifest.psql.version, 'psql (PostgreSQL) 17.11');
@@ -130,7 +152,7 @@ expect(source.authorizeProduction.includes('mapping_rehearsal_authorized = $fals
 expect(source.authorizeProduction.includes('automatic_retry_authorized = $false'), 'production authorization cannot enable retry');
 for (const key of ['authorize', 'authorizeProduction', 'bootstrap', 'worker', 'localBootstrap',
   'localWorker', 'inspectBootstrap', 'inspectWorker', 'provision']) {
-  expect(source[key].includes('Assert-Issue97HistoricalEvidence'), `${key} must preserve the consumed v2 evidence`);
+  expect(source[key].includes('Assert-Issue97HistoricalEvidence'), `${key} must preserve consumed v2/v3 evidence`);
 }
 expect(source.lib.includes('[System.StringComparer]::Ordinal'),
   'historical evidence digest must use runtime-independent ordinal filename ordering');
@@ -162,22 +184,29 @@ for (const key of ['worker', 'inspectWorker', 'localWorker']) {
   expect(source[key].includes('New-Object System.Diagnostics.ProcessStartInfo'), `${key} must own one explicit child environment`);
   expect(source[key].includes('New-Object System.Diagnostics.Process'), `${key} must capture the actual child process object`);
   expect(source[key].includes('client-final.json'), `${key} must publish authoritative process completion evidence`);
-  expect(source[key].includes('child_environment_pgappname'), `${key} receipts must bind the child PGAPPNAME`);
   expect(source[key].includes('worker_exit_code'), `${key} final receipt must agree with worker disposition`);
 }
-expect(source.worker.includes("$startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$attempt.pgappname"), 'psql child must receive the receipt PGAPPNAME explicitly');
 expect(source.worker.includes("$startInfo.EnvironmentVariables.Remove('PGOPTIONS')"), 'psql child must not accept PGOPTIONS');
-expect(source.worker.includes('--set=issue97_expected_pgappname=$([string]$attempt.pgappname)'), 'SQL must receive the same receipt PGAPPNAME');
-expect(source.localWorker.includes("$startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$attempt.pgappname"), 'local child must receive exact PGAPPNAME');
-expect(source.localChild.includes('ISSUE97_LOCAL_CHILD_PGAPPNAME=') && source.localChild.includes('Start-Sleep -Seconds 7'), 'local child must prove environment and lifetime');
+expect(source.worker.includes('--set=issue97_expected_attempt_id=$attemptId'), 'SQL must receive only the immutable receipt attempt ID');
+expect(source.worker.includes("$startInfo.EnvironmentVariables.Remove('PGAPPNAME')"), 'production worker must not try to force application_name');
+expect(source.localWorker.includes("$startInfo.EnvironmentVariables['ISSUE97_ATTEMPT_ID']"), 'local child must receive the exact receipt attempt ID');
+expect(source.localChild.includes('ISSUE97_LOCAL_BACKEND_IDENTITY|') && source.localChild.includes('application_name=Supavisor') &&
+  source.localChild.includes('Start-Sleep -Seconds 7'), 'local child must simulate backend identity, Supavisor diagnostics, and lifetime');
 expect(!/psql|PGSERVICE/i.test(source.localWorker + source.localChild), 'local proof must never access PostgreSQL');
 expect(source.status.includes('[int]$final.exit_code -ne [int]$clientFinal.exit_code'), 'status must reject client/final exit disagreement');
-expect(source.status.includes("[string]$clientReceipt.child_environment_pgappname -ne [string]$attempt.pgappname"), 'status must reject child PGAPPNAME drift');
+for (const field of ['backend_attempt_id', 'backend_attempt_lock_key', 'backend_pid', 'backend_start_utc',
+  'backend_custom_guc', 'observed_application_name']) {
+  expect(source.worker.includes(field) && source.localWorker.includes(field) && source.status.includes(field),
+    `worker/local/status receipts must bind ${field}`);
+}
 expect(source.status.includes("'production.client-final.json'") && source.status.includes("'local.client-final.json'"), 'status must require authoritative completion receipts');
 expect(!/Start-Process|Stop-Process|Remove-Item/i.test(source.status), 'status must remain read-only');
 
-expect(source.inspectWorker.includes("$startInfo.EnvironmentVariables['PGAPPNAME'] = [string]$claim.inspector_pgappname"), 'inspector child must receive its exact session name');
-expect(source.inspectWorker.includes('--set=issue97_target_pgappname=') && source.inspectWorker.includes('--set=issue97_inspector_pgappname='), 'inspector SQL must receive target and inspector session identities');
+expect(source.inspectWorker.includes('--set=issue97_target_attempt_id=') && source.inspectWorker.includes('--set=issue97_inspector_id='),
+  'inspector SQL must receive target attempt and inspector receipt identities');
+expect(source.inspectWorker.includes("$startInfo.EnvironmentVariables.Remove('PGAPPNAME')"), 'inspector must not force application_name');
+expect(source.inspectWorker.includes('target_backend_pid') && source.inspectWorker.includes('target_backend_start_utc'),
+  'inspector must bind exact PID/backend_start evidence when emitted');
 expect(source.inspectWorker.includes('production.bootstrap-final.json'), 'inspector must require the production lifecycle terminal receipt');
 expect(source.inspectWorker.includes('a reviewed PostgreSQL client process from the proof lane is still active'), 'inspector must reject an orphaned proof client');
 expect(!/Start-Process|Stop-Process|Remove-Item/i.test(source.inspectStatus), 'inspector status must remain read-only');
@@ -194,11 +223,25 @@ for (const [label, sql] of [['proof', proofSql], ['inspection', inspectSql]]) {
   expect(!/\b(insert|update|delete|merge|create|alter|drop|truncate|grant|revoke|copy|call|do|vacuum|analyze|refresh|reindex|cluster)\b/i.test(executable), `${label} SQL contains write-capable syntax`);
 }
 assert.equal(count(proofSql, /pg_catalog\.pg_sleep\(5\)/g), 1, 'production proof must contain exactly one five-second sleep');
-expect(proofSql.includes("set local application_name = :'issue97_expected_pgappname';"), 'proof SQL must apply receipt PGAPPNAME before the guard');
-expect(proofSql.includes("current_setting('application_name') = :'issue97_expected_pgappname'"), 'proof SQL must prove the exact server session name');
-expect(inspectSql.includes("set local application_name = :'issue97_inspector_pgappname';"), 'inspector SQL must apply its exact session name');
-expect(inspectSql.includes("current_setting('application_name') = :'issue97_inspector_pgappname'"), 'inspector SQL must prove its exact session name');
-expect(inspectSql.includes(":'issue97_target_pgappname'"), 'inspector must query only the receipt-bound proof session');
+expect(proofSql.includes("set_config(\n  'brinesearch.issue97_attempt_id'") &&
+  proofSql.includes("current_setting('brinesearch.issue97_attempt_id', true)"),
+  'proof SQL must bind and prove the transaction-local custom GUC');
+expect(proofSql.includes("hashtextextended(\n  :'issue97_expected_attempt_id',\n  970035") &&
+  proofSql.includes('pg_try_advisory_xact_lock'), 'proof SQL must acquire the receipt-derived transaction lock');
+expect(proofSql.indexOf('ISSUE97_WORKER_PROOF_BACKEND_IDENTITY') < proofSql.indexOf('pg_catalog.pg_sleep(5)'),
+  'backend PID/start identity must be emitted before the sleep');
+expect(inspectSql.includes("set_config(\n  'brinesearch.issue97_inspector_id'") &&
+  inspectSql.includes("hashtextextended(\n  :'issue97_target_attempt_id',\n  970035"),
+  'inspector must use its custom GUC and derive the exact proof lock');
+expect(inspectSql.includes('ISSUE97_WORKER_PROOF_TARGET_ATTEMPT_LOCK_STILL_HELD'),
+  'inspector must fail closed while the proof attempt lock is held');
+expect(inspectSql.includes('activity.pid = :\'issue97_target_backend_pid\'::integer') &&
+  inspectSql.includes('activity.backend_start = :\'issue97_target_backend_start\'::timestamptz'),
+  'inspector must reject the exact PID/backend_start identity');
+expect(!/set\s+local\s+application_name|current_setting\('application_name'\)\s*=/i.test(proofSql + inspectSql),
+  'application_name must never be an identity/equality gate');
+expect(!/issue97_(expected|target|inspector)_pgappname/i.test(proofSql + inspectSql),
+  'no PGAPPNAME-derived SQL identity variable may remain');
 expect(!/pg_catalog\.coalesce\s*\(/i.test(proofSql + inspectSql), 'COALESCE is SQL syntax and must never be schema-qualified');
 expect(count(`${proofSql}\n${inspectSql}`, /\bCOALESCE\s*\(/g) >= 2, 'protected-state queries must retain corrected COALESCE');
 for (const sql of [proofSql, inspectSql]) {
@@ -216,34 +259,51 @@ assert.equal(outcome({ exitCode: 0, pass: false }), false, 'zero exit without PA
 assert.equal(outcome({ exitCode: 0, rollback: false }), false, 'zero exit without ROLLBACK must fail');
 assert.equal(outcome({ exitCode: 0, commits: 1 }), false, 'COMMIT must fail');
 assert.equal(outcome({ exitCode: 0, hashes: false }), false, 'log/receipt mismatch must fail');
-assert.equal(outcome({ exitCode: 0, identities: false }), false, 'attempt/PGAPPNAME mismatch must fail');
+assert.equal(outcome({ exitCode: 0, identities: false }), false, 'attempt/GUC/lock/PID-start mismatch must fail');
 for (const bad of [null, undefined, Number.NaN]) assert.equal(outcome({ exitCode: bad }), false, 'missing process ExitCode must fail closed');
 
 function receiptsAgree({
   attemptId = 'issue97-wp-20260818T000000000Z-deadbeef',
   receiptAttemptId = 'issue97-wp-20260818T000000000Z-deadbeef',
-  pgappname = 'brinesearch-i97-wp-20260818000000-deadbeef',
-  childPgappname = 'brinesearch-i97-wp-20260818000000-deadbeef',
-  serverPgappname = 'brinesearch-i97-wp-20260818000000-deadbeef',
+  customGuc = 'issue97-wp-20260818T000000000Z-deadbeef',
+  lockKey = -123456789n,
+  receiptLockKey = -123456789n,
+  backendPid = 4101,
+  receiptBackendPid = 4101,
+  backendStart = '2026-08-18T00:00:00.0000000Z',
+  receiptBackendStart = '2026-08-18T00:00:00.0000000Z',
+  applicationName = 'Supavisor',
   clientExit = 0,
   finalExit = 0,
   finalReceiptPresent = true,
 } = {}) {
   return finalReceiptPresent && attemptId === receiptAttemptId &&
-    /^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$/.test(pgappname) &&
-    pgappname === childPgappname && childPgappname === serverPgappname &&
+    customGuc === attemptId && lockKey === receiptLockKey &&
+    backendPid === receiptBackendPid && backendStart === receiptBackendStart &&
+    typeof applicationName === 'string' &&
     clientExit === finalExit;
 }
 assert.equal(receiptsAgree(), true);
 assert.equal(receiptsAgree({ receiptAttemptId: 'issue97-wp-20260818T000000000Z-cafebabe' }), false, 'stale/wrong attempt receipt must fail');
-assert.equal(receiptsAgree({ childPgappname: 'psql' }), false, 'generic psql child identity must fail');
-assert.equal(receiptsAgree({ serverPgappname: 'Supavisor' }), false, 'worker/server PGAPPNAME mismatch must fail');
-assert.equal(receiptsAgree({ pgappname: '' }), false, 'missing PGAPPNAME must fail');
+assert.equal(receiptsAgree({ customGuc: '' }), false, 'missing custom GUC must fail');
+assert.equal(receiptsAgree({ customGuc: 'issue97-wp-20260818T000000000Z-cafebabe' }), false, 'changed custom GUC must fail');
+assert.equal(receiptsAgree({ receiptLockKey: 99n }), false, 'wrong attempt lock key must fail');
+assert.equal(receiptsAgree({ receiptBackendPid: 4102 }), false, 'wrong backend PID must fail');
+assert.equal(receiptsAgree({ receiptBackendStart: '2026-08-18T00:00:01.0000000Z' }), false, 'PID reuse with a different backend_start must fail');
+assert.equal(receiptsAgree({ applicationName: 'Supavisor' }), true, 'Supavisor application_name is diagnostic only');
+assert.equal(receiptsAgree({ applicationName: 'psql' }), true, 'application_name cannot substitute for attempt identity');
 assert.equal(receiptsAgree({ clientExit: 17 }), false, 'client/final exit disagreement must fail');
 assert.equal(receiptsAgree({ finalReceiptPresent: false }), false, 'missing process-exit receipt must fail');
 assert.throws(() => JSON.parse('{'), SyntaxError, 'malformed receipt JSON must fail');
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'issue97-v3-no-clobber-'));
+const inspectorAccepts = ({ lockAcquired = true, pidStartAbsent = true, receiptAgreement = true } = {}) =>
+  lockAcquired && pidStartAbsent && receiptAgreement;
+assert.equal(inspectorAccepts(), true, 'released attempt lock and absent PID/start must pass inspection identity');
+assert.equal(inspectorAccepts({ lockAcquired: false }), false, 'held attempt lock must fail closed');
+assert.equal(inspectorAccepts({ pidStartAbsent: false }), false, 'live exact PID/start must fail closed');
+assert.equal(inspectorAccepts({ receiptAgreement: false }), false, 'stale/malformed inspector receipt must fail');
+
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'issue97-v4-no-clobber-'));
 try {
   const marker = path.join(temp, 'claim.json');
   fs.closeSync(fs.openSync(marker, 'wx'));
@@ -290,20 +350,42 @@ if (process.platform === 'win32') {
     assert.equal(result.status, 0, `controlled child test failed: ${result.stdout}${result.stderr}`);
     expect(result.stdout.includes(`CAPTURED=${code}`), `actual child exit ${code} was not preserved after later hashing`);
   }
-  const pgapp = 'local-only-no-database-deadbeef';
+  const localAttempt = 'issue97-local-20260818T000000000Z-deadbeef';
   const local = spawnSync(ps, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-    '-File', path.join(root, files.localChild)], { encoding: 'utf8', env: { ...process.env, PGAPPNAME: pgapp }, timeout: 15000 });
+    '-File', path.join(root, files.localChild)], {
+      encoding: 'utf8',
+      env: { ...process.env, ISSUE97_ATTEMPT_ID: localAttempt, ISSUE97_ATTEMPT_LOCK_KEY: '-9700350004', PGAPPNAME: '' },
+      timeout: 15000,
+    });
   assert.equal(local.status, 0, `fixed local child failed: ${local.stdout}${local.stderr}`);
-  assert.equal(count(local.stdout, new RegExp(`ISSUE97_LOCAL_CHILD_PGAPPNAME=${pgapp}`, 'g')), 1);
+  assert.equal(count(local.stdout, /ISSUE97_LOCAL_BACKEND_IDENTITY\|/g), 1);
+  expect(local.stdout.includes(`attempt_id=${localAttempt}`) && local.stdout.includes('application_name=Supavisor'),
+    'local child must emit exact attempt identity and Supavisor diagnostics');
   assert.equal(count(local.stdout, /ISSUE97_LOCAL_WORKER_PASS/g), 1);
   const generic = spawnSync(ps, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
-    '-File', path.join(root, files.localChild)], { encoding: 'utf8', env: { ...process.env, PGAPPNAME: 'psql' }, timeout: 5000 });
-  assert.notEqual(generic.status, 0, 'generic psql PGAPPNAME must fail');
+    '-File', path.join(root, files.localChild)], {
+      encoding: 'utf8', env: { ...process.env, ISSUE97_ATTEMPT_ID: localAttempt, ISSUE97_ATTEMPT_LOCK_KEY: '17' }, timeout: 5000,
+    });
+  assert.notEqual(generic.status, 0, 'wrong local attempt-lock identity must fail');
+
+  const markerHarness = [
+    `. '${path.join(root, files.lib).replaceAll("'", "''")}'`,
+    '$attempt="issue97-wp-20260818T000000000Z-deadbeef"',
+    '$marker="ISSUE97_WORKER_PROOF_BACKEND_IDENTITY|attempt_id=$attempt|attempt_lock_key=-123456789|backend_pid=4101|backend_start=2026-08-18T00:00:00.000000Z|transaction_read_only=on|custom_guc=$attempt|application_name=Supavisor"',
+    '$value=Get-Issue97BackendIdentityMarker -Text $marker -ExpectedAttemptId $attempt -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY',
+    'if($value.attempt_lock_key -ne -123456789 -or $value.backend_pid -ne 4101 -or $value.observed_application_name -ne "Supavisor"){exit 2}',
+    'try { Get-Issue97BackendIdentityMarker -Text $marker.Replace("custom_guc=$attempt","custom_guc=wrong") -ExpectedAttemptId $attempt -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY | Out-Null; exit 3 } catch {}',
+    'try { Get-Issue97BackendIdentityMarker -Text $marker -ExpectedAttemptId "issue97-wp-20260818T000000000Z-cafebabe" -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY | Out-Null; exit 4 } catch {}',
+    'try { Get-Issue97BackendIdentityMarker -Text ($marker+"`n"+$marker) -ExpectedAttemptId $attempt -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY | Out-Null; exit 5 } catch {}',
+    'exit 0',
+  ].join(';');
+  const markerResult = spawnSync(ps, ['-NoLogo', '-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass', '-Command', markerHarness], { encoding: 'utf8' });
+  assert.equal(markerResult.status, 0, `backend identity parser regressions failed: ${markerResult.stdout}${markerResult.stderr}`);
 }
 
 expect(source.readme.includes('Fixed Windows worker proof (not a job runner)'), 'README must retain the narrow-lane contract');
-expect(source.readme.includes('issue97-worker-proof-v3'), 'README must document the new proof namespace');
+expect(source.readme.includes('issue97-worker-proof-v4'), 'README must document the new proof namespace');
 expect(source.readme.includes('Supavisor'), 'README must document the observed PGAPPNAME root cause');
 expect(source.readme.includes('production authorization'), 'README must document the separate future authorization gate');
 
-console.log('Issue #97 corrected worker-proof v3 audit passed.');
+console.log('Issue #97 custom-GUC/advisory-lock/PID-start worker-proof v4 audit passed.');

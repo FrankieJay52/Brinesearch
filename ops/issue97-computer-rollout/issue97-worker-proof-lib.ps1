@@ -305,53 +305,107 @@ function Assert-Issue97PrivateLogRoot {
 
 function Assert-Issue97HistoricalEvidence {
   param([Parameter(Mandatory = $true)]$Manifest)
-  $history = $Manifest.historical_evidence
-  if ($null -eq $history -or
-      [string]$history.worker_proof_version -ne 'issue97-long-lived-worker-proof-v2' -or
-      [string]$history.artifact_set_sha256 -ne '3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B' -or
-      [string]$history.production_attempt_id -ne 'issue97-wp-20260818T043030245Z-ef613388' -or
-      [string]$history.server_inspection_attempt_id -ne 'issue97-inspect-20260818T043213665Z' -or
-      [string]$history.disposition -ne 'consumed_failed_no_retry') {
-    throw 'historical worker-proof generation contract mismatch'
-  }
-  $historicalRoot = [string]$history.private_log_root
-  if ($historicalRoot -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof') {
-    throw 'historical worker-proof evidence root mismatch'
-  }
-  Assert-Issue97PrivateLogRoot -LogRoot $historicalRoot -TrustedRoot ([string]$Manifest.trusted_owner_root)
-  $actualFiles = @(Get-ChildItem -LiteralPath $historicalRoot -File -Force)
-  if ($actualFiles.Count -ne [int]$history.file_count) {
-    throw 'historical evidence file-set cardinality changed'
-  }
-  $sortedEvidenceNames = [string[]]@($actualFiles | ForEach-Object { $_.Name })
-  [System.Array]::Sort($sortedEvidenceNames, [System.StringComparer]::Ordinal)
-  $evidenceLines = @($sortedEvidenceNames | ForEach-Object {
-    $evidenceFile = Get-Item -LiteralPath (Join-Path $historicalRoot $_)
-    "$($evidenceFile.Name)=$(Get-Issue97Sha256 -LiteralPath $evidenceFile.FullName):$($evidenceFile.Length)`n"
-  })
-  $computedEvidenceSet = Get-Issue97Utf8TextSha256 -Text ($evidenceLines -join '')
-  if ($computedEvidenceSet -ne [string]$history.evidence_set_sha256) {
-    throw 'historical worker-proof evidence file set or bytes changed'
-  }
-  $criticalHashes = $history.critical_hashes
-  foreach ($name in @('authorization.json', 'production.launch.json', 'production.attempt.json',
-      'production.client.json', 'production.final.json', 'server-inspection.launch.json',
-      'server-inspection.final.json')) {
-    $property = $criticalHashes.PSObject.Properties[$name]
-    if ($null -eq $property -or
-        (Get-Issue97Sha256 -LiteralPath (Join-Path $historicalRoot $name)) -ne [string]$property.Value) {
-      throw 'critical historical worker-proof receipt changed'
+  $contracts = @(
+    [ordered]@{
+      history = $Manifest.historical_evidence
+      version = 'issue97-long-lived-worker-proof-v2'
+      artifact_set = '3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B'
+      root = 'C:\Users\frank\.issue97-runs\issue97-worker-proof'
+      production_attempt = 'issue97-wp-20260818T043030245Z-ef613388'
+      inspection_attempt = 'issue97-inspect-20260818T043213665Z'
+      production_failure = 'final_pass_marker_missing_server_inspection_required'
+    },
+    [ordered]@{
+      history = $Manifest.historical_evidence_generation3
+      version = 'issue97-long-lived-worker-proof-v3'
+      artifact_set = '9474CF2458191B0C9C0458632BCCF6EEFFB68C9A1C3E17393AD0E99C5197C0DB'
+      root = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+      production_attempt = 'issue97-wp-20260818T065601847Z-5e0d29a5'
+      inspection_attempt = 'issue97-inspect-20260818T065824046Z'
+      production_failure = 'psql_nonzero_exit_server_inspection_required'
+    }
+  )
+  foreach ($contract in $contracts) {
+    $history = $contract.history
+    if ($null -eq $history -or
+        [string]$history.worker_proof_version -ne [string]$contract.version -or
+        [string]$history.artifact_set_sha256 -ne [string]$contract.artifact_set -or
+        [string]$history.private_log_root -ne [string]$contract.root -or
+        [string]$history.production_attempt_id -ne [string]$contract.production_attempt -or
+        [string]$history.server_inspection_attempt_id -ne [string]$contract.inspection_attempt -or
+        [string]$history.disposition -ne 'consumed_failed_no_retry') {
+      throw 'historical worker-proof generation contract mismatch'
+    }
+    $historicalRoot = [string]$history.private_log_root
+    Assert-Issue97PrivateLogRoot -LogRoot $historicalRoot -TrustedRoot ([string]$Manifest.trusted_owner_root)
+    $actualFiles = @(Get-ChildItem -LiteralPath $historicalRoot -File -Force)
+    if ($actualFiles.Count -ne [int]$history.file_count) {
+      throw 'historical evidence file-set cardinality changed'
+    }
+    $sortedEvidenceNames = [string[]]@($actualFiles | ForEach-Object { $_.Name })
+    [System.Array]::Sort($sortedEvidenceNames, [System.StringComparer]::Ordinal)
+    $evidenceLines = @($sortedEvidenceNames | ForEach-Object {
+      $evidenceFile = Get-Item -LiteralPath (Join-Path $historicalRoot $_)
+      "$($evidenceFile.Name)=$(Get-Issue97Sha256 -LiteralPath $evidenceFile.FullName):$($evidenceFile.Length)`n"
+    })
+    if ((Get-Issue97Utf8TextSha256 -Text ($evidenceLines -join '')) -ne
+        [string]$history.evidence_set_sha256) {
+      throw 'historical worker-proof evidence file set or bytes changed'
+    }
+    foreach ($property in @($history.critical_hashes.PSObject.Properties)) {
+      $historicalPath = Join-Path $historicalRoot ([string]$property.Name)
+      if (-not (Test-Path -LiteralPath $historicalPath -PathType Leaf) -or
+          (Get-Issue97Sha256 -LiteralPath $historicalPath) -ne [string]$property.Value) {
+        throw 'critical historical worker-proof receipt changed'
+      }
+    }
+    $oldProductionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'production.final.json')
+    $oldInspectionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'server-inspection.final.json')
+    if ([string]$oldProductionFinal.attempt_id -ne [string]$history.production_attempt_id -or
+        [bool]$oldProductionFinal.success -or
+        [string]$oldProductionFinal.failure_code -ne [string]$contract.production_failure -or
+        [string]$oldInspectionFinal.attempt_id -ne [string]$history.server_inspection_attempt_id -or
+        [bool]$oldInspectionFinal.success -or
+        [string]$oldInspectionFinal.failure_code -ne 'server_inspection_fail_stop') {
+      throw 'historical failed-attempt disposition changed'
     }
   }
-  $oldProductionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'production.final.json')
-  $oldInspectionFinal = Read-Issue97Json -LiteralPath (Join-Path $historicalRoot 'server-inspection.final.json')
-  if ([string]$oldProductionFinal.attempt_id -ne [string]$history.production_attempt_id -or
-      [bool]$oldProductionFinal.success -or
-      [string]$oldProductionFinal.failure_code -ne 'final_pass_marker_missing_server_inspection_required' -or
-      [string]$oldInspectionFinal.attempt_id -ne [string]$history.server_inspection_attempt_id -or
-      [bool]$oldInspectionFinal.success -or
-      [string]$oldInspectionFinal.failure_code -ne 'server_inspection_fail_stop') {
-    throw 'historical failed-attempt disposition changed'
+}
+
+function Get-Issue97BackendIdentityMarker {
+  param(
+    [Parameter(Mandatory = $true)][string]$Text,
+    [Parameter(Mandatory = $true)][string]$ExpectedAttemptId,
+    [Parameter(Mandatory = $true)][string]$ExpectedPrefix
+  )
+  $pattern = '(?m)^' + [regex]::Escape($ExpectedPrefix) +
+    '\|attempt_id=([^|\r\n]+)\|attempt_lock_key=(-?[0-9]+)\|backend_pid=([1-9][0-9]*)' +
+    '\|backend_start=([^|\r\n]+)\|transaction_read_only=(on|true)' +
+    '\|custom_guc=([^|\r\n]+)\|application_name=([^|\r\n]*)$'
+  $matches = [regex]::Matches($Text, $pattern)
+  if ($matches.Count -ne 1) { throw 'exact backend identity marker is missing or duplicated' }
+  $match = $matches[0]
+  if ([string]$match.Groups[1].Value -ne $ExpectedAttemptId -or
+      [string]$match.Groups[6].Value -ne $ExpectedAttemptId) {
+    throw 'backend identity marker attempt/GUC mismatch'
+  }
+  $backendStart = [datetime]::ParseExact(
+    [string]$match.Groups[4].Value,
+    'yyyy-MM-ddTHH:mm:ss.ffffffZ',
+    [System.Globalization.CultureInfo]::InvariantCulture,
+    [System.Globalization.DateTimeStyles]::AssumeUniversal -bor
+      [System.Globalization.DateTimeStyles]::AdjustToUniversal
+  ).ToString('o')
+  $observedApplicationName = [string]$match.Groups[7].Value
+  $observedApplicationName = $observedApplicationName.Replace('%0A', "`n").Replace('%7C', '|').Replace('%25', '%')
+  return [pscustomobject]@{
+    attempt_id = [string]$match.Groups[1].Value
+    attempt_lock_key = [long]$match.Groups[2].Value
+    backend_pid = [int]$match.Groups[3].Value
+    backend_start_utc = $backendStart
+    transaction_read_only = $true
+    custom_guc = [string]$match.Groups[6].Value
+    observed_application_name = $observedApplicationName
   }
 }
 
@@ -418,9 +472,9 @@ function Assert-Issue97ArtifactManifest {
     [Parameter(Mandatory = $true)]$Manifest
   )
   if ([int]$Manifest.schema_version -ne 3) { throw 'artifact manifest schema mismatch' }
-  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v3' -or
-      [string]$Manifest.generation_id -ne 'issue97-worker-proof-generation-3' -or
-      [string]$Manifest.private_log_root -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3') {
+  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v4' -or
+      [string]$Manifest.generation_id -ne 'issue97-worker-proof-generation-4' -or
+      [string]$Manifest.private_log_root -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4') {
     throw 'worker-proof version mismatch'
   }
   $expectedPaths = @(

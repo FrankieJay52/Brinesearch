@@ -32,7 +32,7 @@ $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bo
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
 $statusPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-status.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 if ([int]$manifest.schema_version -ne 3 -or [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or
     [string]$manifest.powershell.path -ne 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe') {
@@ -85,11 +85,29 @@ if ($null -eq $proofRepoShaProperty) {
   $proofRepoShaProperty = $proofReceipt.PSObject.Properties['authorized_repo_sha']
 }
 if ([string]$proofReceipt.job_kind -ne 'production_read_only_pg_sleep_proof' -or
-    [string]$proofReceipt.pgappname -notmatch '^brinesearch-i97-wp-[0-9]{14}-[0-9a-f]{8}$' -or
+    [string]$proofReceipt.attempt_id -notmatch '^issue97-wp-[0-9]{8}T[0-9]{9}Z-[0-9a-f]{8}$' -or
     [string]$proofReceipt.artifact_set_sha256 -ne [string]$manifest.artifact_set_sha256 -or
     $null -eq $proofRepoShaProperty -or
     [string]$proofRepoShaProperty.Value -ne [string]$authorization.authorized_repo_sha) {
   throw 'production proof receipt is not a fixed inspectable attempt'
+}
+$proofClientFinalPath = Join-Path $logRoot 'production.client-final.json'
+$targetAttemptLockKey = $null
+$targetBackendPid = 0
+$targetBackendStart = 'not-emitted'
+if (Test-Path -LiteralPath $proofClientFinalPath -PathType Leaf) {
+  $proofClientFinal = [System.IO.File]::ReadAllText($proofClientFinalPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
+  if ([string]$proofClientFinal.attempt_id -ne [string]$proofReceipt.attempt_id -or
+      [string]$proofClientFinal.backend_attempt_id -ne [string]$proofReceipt.attempt_id -or
+      [long]$proofClientFinal.backend_attempt_lock_key -eq 0 -or
+      [int]$proofClientFinal.backend_pid -le 0 -or
+      [string]$proofClientFinal.backend_start_utc -notmatch
+        '^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\.[0-9]{6,7}(Z|\+00:00)$') {
+    throw 'production client-final backend identity is malformed'
+  }
+  $targetAttemptLockKey = [long]$proofClientFinal.backend_attempt_lock_key
+  $targetBackendPid = [int]$proofClientFinal.backend_pid
+  $targetBackendStart = [string]$proofClientFinal.backend_start_utc
 }
 $claimPath = Join-Path $logRoot 'server-inspection.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'server-inspection.bootstrap.json'
@@ -115,8 +133,9 @@ $claim = [ordered]@{
   job_kind = 'production_server_inspection'
   attempt_id = "issue97-inspect-$($now.ToString('yyyyMMddTHHmmssfffZ'))"
   proof_attempt_id = [string]$proofReceipt.attempt_id
-  target_pgappname = [string]$proofReceipt.pgappname
-  inspector_pgappname = 'brinesearch-i97-wp-postcheck-v3'
+  target_attempt_lock_key = $targetAttemptLockKey
+  target_backend_pid = $targetBackendPid
+  target_backend_start_utc = $targetBackendStart
   authorized_repo_sha = [string]$authorization.authorized_repo_sha
   artifact_set_sha256 = [string]$manifest.artifact_set_sha256
   manifest_sha256 = $manifestSha256
@@ -147,5 +166,5 @@ Write-Issue97PreambleJsonAtomic -LiteralPath $claimPath -Value $claim
 $arguments = "-NoLogo -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$bootstrapPath`""
 $bootstrap = Start-Process -FilePath ([string]$manifest.powershell.path) -ArgumentList $arguments -PassThru -WindowStyle Hidden
 Write-Output "INSPECTION_BOOTSTRAP_PID=$($bootstrap.Id)"
-Write-Output "TARGET_PGAPPNAME=$([string]$claim.target_pgappname)"
+Write-Output "TARGET_ATTEMPT_ID=$([string]$claim.proof_attempt_id)"
 Write-Output "STATUS_SCRIPT=$statusPath"

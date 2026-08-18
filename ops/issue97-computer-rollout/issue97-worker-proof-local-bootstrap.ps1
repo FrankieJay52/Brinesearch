@@ -20,7 +20,7 @@ $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $libPath = Join-Path $PSScriptRoot 'issue97-worker-proof-lib.ps1'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-bootstrap.ps1'
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-local-worker.ps1'
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v3'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
 $authorizationPath = Join-Path $logRoot 'local.authorization.json'
 $claimPath = Join-Path $logRoot 'local.launch.json'
 $bootstrapReceiptPath = Join-Path $logRoot 'local.bootstrap.json'
@@ -168,6 +168,7 @@ try {
     branch = [string]$manifest.expected_branch
     utc_start = [string]$claim.utc_start
     pgappname = [string]$claim.pgappname
+    simulated_attempt_lock_key = -9700350004
     worker_spawn_receipt_path = $spawnPath
     worker_pid_receipt_path = $pidPath
     client_pid_receipt_path = $clientPath
