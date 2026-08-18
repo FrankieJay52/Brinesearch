@@ -702,15 +702,29 @@ begin
 end
 $issue97_frozen_exact_mapping_wave$;
 
-create temporary table tmp_issue97_frozen_mapping_google_immediate on commit drop as
-select expected.pad_id,pg_catalog.to_jsonb(receipt) receipt_row,
-  pad.brinesearch_google_route_status_issue97 pad_google_status,
-  pad.brinesearch_google_route_revision_issue97 pad_google_revision
+create temporary table tmp_issue97_frozen_mapping_google_immediate_receipts on commit drop as
+select receipt.*
 from tmp_issue97_frozen_mapping_expected_google_pads expected
 join private_verification.brinesearch_google_route_receipts_issue97 receipt
   on receipt.pad_id=expected.pad_id
+order by receipt.pad_id;
+
+create temporary table tmp_issue97_frozen_mapping_google_immediate_pads on commit drop as
+select pad.id,pad.brinesearch_google_route_status_issue97,
+  pad.brinesearch_google_route_revision_issue97
+from tmp_issue97_frozen_mapping_expected_google_pads expected
 join public.pads pad on pad.id=expected.pad_id
-order by expected.pad_id;
+order by pad.id;
+
+do $issue97_frozen_mapping_immediate_google_snapshot_assertion$
+begin
+  if (select count(*) from tmp_issue97_frozen_mapping_google_immediate_receipts)<>3
+     or (select count(*) from tmp_issue97_frozen_mapping_google_immediate_pads)<>3
+  then
+    raise exception 'Issue #97 frozen mapping wave immediate Google snapshot count drifted';
+  end if;
+end
+$issue97_frozen_mapping_immediate_google_snapshot_assertion$;
 
 -- Exercise the real already-pending constraint-trigger events only after the
 -- immediate stale receipts and exact queue membership have passed review.
@@ -718,35 +732,86 @@ set constraints private_verification.brinesearch_issue97_google_route_refresh_de
 
 do $issue97_frozen_mapping_deferred_google_assertions$
 begin
-  if (select count(*) from tmp_issue97_frozen_mapping_google_immediate)<>3
+  if (select count(*)
+      from private_verification.brinesearch_google_route_receipts_issue97 receipt
+      join tmp_issue97_frozen_mapping_expected_google_pads expected
+        on expected.pad_id=receipt.pad_id)<>3
      or exists(
-       select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+       select 1
+       from tmp_issue97_frozen_mapping_google_immediate_receipts snapshot
+       full join (
+         select receipt.*
+         from private_verification.brinesearch_google_route_receipts_issue97 receipt
+         join tmp_issue97_frozen_mapping_expected_google_pads expected
+           on expected.pad_id=receipt.pad_id
+       ) live using(pad_id)
+       where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)
+     )
+     or (select count(*)
+         from public.pads pad
+         join tmp_issue97_frozen_mapping_expected_google_pads expected
+           on expected.pad_id=pad.id)<>3
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_google_immediate_pads snapshot
+       full join (
+         select pad.id,pad.brinesearch_google_route_status_issue97,
+           pad.brinesearch_google_route_revision_issue97
+         from public.pads pad
+         join tmp_issue97_frozen_mapping_expected_google_pads expected
+           on expected.pad_id=pad.id
+       ) live using(id)
+       where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)
+     )
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_expected_google_pads expected
        left join private_verification.brinesearch_google_route_receipts_issue97 receipt
          on receipt.pad_id=expected.pad_id
        left join public.pads pad on pad.id=expected.pad_id
-       where receipt.status is distinct from 'held'
-          or receipt.hold_reason is distinct from 'issue97_cutover_not_active'
+       where receipt.status is distinct from 'stale'
+          or receipt.hold_reason is distinct from 'road_identity_mapping_changed'
           or receipt.manifest_version is distinct from 'issue97-google-v1'
           or receipt.manifest->>'manifest_version' is distinct from 'issue97-google-v1'
           or receipt.manifest->>'route_ready' is distinct from 'false'
-          or receipt.manifest->>'status' is distinct from 'held'
+          or receipt.manifest->>'status' is distinct from 'stale'
           or receipt.manifest->>'pad_id' is distinct from expected.pad_id::text
-          or receipt.manifest->>'route_revision' is distinct from
-             greatest(coalesce(expected.structured_route_revision,0),0)::text
-          or receipt.route_revision is distinct from
-             greatest(coalesce(expected.structured_route_revision,0),0)
+          or receipt.manifest->>'route_revision' is distinct from receipt.route_revision::text
+          or receipt.route_revision is distinct from expected.expected_route_revision
           or receipt.manifest_digest is not null
           or receipt.dependency_digest is not null
-          or receipt.evidence is distinct from '{}'::jsonb
-          or pad.brinesearch_google_route_status_issue97 is distinct from 'held'
+          or not exists(
+            select 1 from tmp_issue97_frozen_mapping_targets target
+            where target.identity_id::text=receipt.evidence->>'identity_id'
+              and target.road_id::text=receipt.evidence->>'road_id'
+          )
+          or not (
+            exists(select 1 from public.brinesearch_pad_roads step
+              where step.pad_id=expected.pad_id
+                and step.road_id::text=receipt.evidence->>'road_id')
+            or exists(
+              select 1 from pg_catalog.jsonb_array_elements(
+                coalesce(expected.pre_receipt_row->'manifest'->'points','[]'::jsonb)
+              ) point
+              where point->>'identity_id'=receipt.evidence->>'identity_id'
+                 or point->>'road_id'=receipt.evidence->>'road_id'
+            )
+          )
+          or pad.brinesearch_google_route_status_issue97 is distinct from 'stale'
           or pad.brinesearch_google_route_revision_issue97 is distinct from receipt.route_revision
           or pad.structured_route_revision is distinct from expected.structured_route_revision
           or pad.road_sequence_status is distinct from expected.road_sequence_status
-      )
-     or exists(select 1 from private_verification.brinesearch_google_route_refresh_queue_issue97)
+     )
+  then
+    raise exception 'Issue #97 frozen mapping wave deferred processor changed target stale state';
+  end if;
+
+  if exists(select 1 from private_verification.brinesearch_google_route_refresh_queue_issue97)
+     or (select count(*) from private_verification.brinesearch_google_route_refresh_queue_issue97)<>0
+     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0
      or public.brinesearch_issue97_cutover_active()
   then
-    raise exception 'Issue #97 frozen mapping wave deferred Google processor produced unsafe state';
+    raise exception 'Issue #97 frozen mapping wave deferred processor did not drain safely';
   end if;
 
   if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
@@ -796,18 +861,6 @@ begin
   end if;
 end
 $issue97_frozen_mapping_deferred_google_assertions$;
-
--- Freeze the exact cutover-OFF processor result so the later dark-build
--- rehearsal can prove that no candidate build changes target Google state.
-create temporary table tmp_issue97_frozen_mapping_google_postprocessor on commit drop as
-select expected.pad_id,pg_catalog.to_jsonb(receipt) receipt_row,
-  pad.brinesearch_google_route_status_issue97 pad_google_status,
-  pad.brinesearch_google_route_revision_issue97 pad_google_revision
-from tmp_issue97_frozen_mapping_expected_google_pads expected
-join private_verification.brinesearch_google_route_receipts_issue97 receipt
-  on receipt.pad_id=expected.pad_id
-join public.pads pad on pad.id=expected.pad_id
-order by expected.pad_id;
 
 set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;
 

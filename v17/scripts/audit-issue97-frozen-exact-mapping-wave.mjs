@@ -110,9 +110,13 @@ for (const token of [
   'pad.structured_route_revision is distinct from expected.structured_route_revision',
   'pad.road_sequence_status is distinct from expected.road_sequence_status',
   "queue.reason<>'road_identity_mapping_changed'",
+  'tmp_issue97_frozen_mapping_google_immediate_receipts',
+  'tmp_issue97_frozen_mapping_google_immediate_pads',
+  '(select count(*) from tmp_issue97_frozen_mapping_google_immediate_receipts)<>3',
+  '(select count(*) from tmp_issue97_frozen_mapping_google_immediate_pads)<>3',
+  'Issue #97 frozen mapping wave immediate Google snapshot count drifted',
   'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;',
-  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
-  'tmp_issue97_frozen_mapping_google_postprocessor',
+  'where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)',
   'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;',
   "trigger.tgenabled<>'O'",
   'Issue #97 frozen mapping wave broke target road/mapping contract',
@@ -123,7 +127,8 @@ for (const token of [
   'Issue #97 frozen mapping wave target immediate Google hold is invalid',
   'Issue #97 frozen mapping wave target pad Google state is invalid',
   'Issue #97 frozen mapping wave immediate Google refresh queue is invalid',
-  'Issue #97 frozen mapping wave deferred Google processor produced unsafe state',
+  'Issue #97 frozen mapping wave deferred processor changed target stale state',
+  'Issue #97 frozen mapping wave deferred processor did not drain safely',
   'Issue #97 frozen mapping wave changed release source graph or reconciliation protected state',
   'Issue #97 frozen mapping wave public Google routes are not zero',
 ]) requireText(migration, token);
@@ -144,17 +149,35 @@ const forceDeferredEventsIndex = migration.indexOf(
 const restoreDeferredIndex = migration.indexOf(
   'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;',
 );
-const cutoverOffHoldIndex = migration.indexOf(
-  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
+const immediateReceiptSnapshotIndex = migration.indexOf(
+  'create temporary table tmp_issue97_frozen_mapping_google_immediate_receipts',
+);
+const immediatePadSnapshotIndex = migration.indexOf(
+  'create temporary table tmp_issue97_frozen_mapping_google_immediate_pads',
+);
+const staleStateEqualityIndex = migration.indexOf(
+  'Issue #97 frozen mapping wave deferred processor changed target stale state',
+);
+const drainedSafelyIndex = migration.indexOf(
+  'Issue #97 frozen mapping wave deferred processor did not drain safely',
 );
 if (expectedPadsIndex < 0 || roadWriteIndex < 0 || mappingWriteIndex < 0
     || !(expectedPadsIndex < roadWriteIndex && expectedPadsIndex < mappingWriteIndex)) {
   throw new Error('Google invalidation dependency set must be frozen before road/mapping writes');
 }
-if (!(immediateQueueAssertionIndex < forceDeferredEventsIndex
-    && forceDeferredEventsIndex < cutoverOffHoldIndex
-    && cutoverOffHoldIndex < restoreDeferredIndex)) {
+if (!(immediateQueueAssertionIndex < immediateReceiptSnapshotIndex
+    && immediateQueueAssertionIndex < immediatePadSnapshotIndex
+    && immediateReceiptSnapshotIndex < forceDeferredEventsIndex
+    && immediatePadSnapshotIndex < forceDeferredEventsIndex
+    && forceDeferredEventsIndex < staleStateEqualityIndex
+    && staleStateEqualityIndex < drainedSafelyIndex
+    && drainedSafelyIndex < restoreDeferredIndex)) {
   throw new Error('Deferred Google processor ordering drifted');
+}
+if ((migration.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 2
+    || (migration.match(/receipt\.status is distinct from 'stale'/g) ?? []).length < 2
+    || (migration.match(/receipt\.hold_reason is distinct from 'road_identity_mapping_changed'/g) ?? []).length < 2) {
+  throw new Error('Deferred Google processor must preserve the exact immediate stale receipt and pad state');
 }
 
 forbid(migration, /brinesearch_oh_county_code\s*\(/i, 'stale Ohio county helper');
@@ -164,6 +187,8 @@ forbid(migration, /brinesearch_issue97_(?:refresh|reconcile|activate)[a-z0-9_]*\
 forbid(migration, /(?:name_only|fuzzy_name|nearest_road)\s*['"]?\s*[:,=]\s*(?:true|1)/i,
   'guess resolution evidence');
 forbid(migration, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
+forbid(migration, /issue97_cutover_not_active/i,
+  'stored held state substituted for the unchanged immediate stale state');
 forbid(migration,
   /delete\s+from\s+private_verification\.brinesearch_google_route_refresh_queue_issue97/i,
   'manual deletion of pending deferred Google refresh events');
@@ -232,14 +257,24 @@ for (const token of [
   "'issue97_frozen_exact_mapping_wave'",
   'tmp_issue97_frozen_mapping_expected_google_pads',
   "'5cd68da6e31fa7bf5b59bca9935f96f2'",
-  'tmp_issue97_frozen_mapping_google_postprocessor',
-  "receipt.hold_reason is distinct from 'issue97_cutover_not_active'",
+  'tmp_issue97_frozen_mapping_google_immediate_receipts',
+  'tmp_issue97_frozen_mapping_google_immediate_pads',
+  'tmp_issue97_mapping_wave_post_migration_target_receipts',
+  'tmp_issue97_mapping_wave_post_migration_target_pads',
+  '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_receipts)<>3',
+  '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_pads)<>3',
+  "receipt.status is distinct from 'stale'",
+  "receipt.hold_reason is distinct from 'road_identity_mapping_changed'",
+  'where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)',
   'non_target_private_google',
   'non_target_pad_google',
   'brinesearch_google_route_refresh_queue_issue97',
   'Issue #97 rollback rehearsal post-processor Google contract failed',
   'Issue #97 rollback rehearsal Google state changed during dark builds',
 ]) requireText(rehearsal, token);
+if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 4) {
+  throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
+}
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
 requireText(normalizedRehearsal,
   "from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt join public.brinesearch_route_prep route on route.id=receipt.route_prep_id join public.pads pad on pad.id=route.pad_id where route.active and route.route_group in ('primary','alternate') and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806",
@@ -257,6 +292,8 @@ forbid(rehearsal, /order\s+by[\s\S]{0,120}(?:completed_at|created_at)[\s\S]{0,80
 forbid(rehearsal, /where\s+build\.status='validated'[\s\S]{0,120}(?:select|into)\s+[^;]*build\.id/i,
   'validated-status-only graph selection');
 forbid(rehearsal, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
+forbid(rehearsal, /issue97_cutover_not_active/i,
+  'stored held state substituted for the unchanged immediate stale state');
 forbid(rehearsal,
   /delete\s+from\s+private_verification\.brinesearch_google_route_refresh_queue_issue97/i,
   'manual deletion of pending deferred Google refresh events');
