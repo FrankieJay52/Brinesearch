@@ -370,6 +370,48 @@ function Assert-Issue97HistoricalEvidence {
       throw 'historical failed-attempt disposition changed'
     }
   }
+  $localHistory = $Manifest.historical_evidence_generation4
+  if ($null -eq $localHistory -or
+      [string]$localHistory.worker_proof_version -ne 'issue97-long-lived-worker-proof-v4' -or
+      [string]$localHistory.artifact_set_sha256 -ne
+        '01CF7647B4E80D1B29FDE6F112474FC1559402E70279E517E13ACEDB6EA80CE2' -or
+      [string]$localHistory.private_log_root -ne
+        'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4' -or
+      [string]$localHistory.local_attempt_id -ne
+        'issue97-local-20260818T083410802Z-122e7b1c' -or
+      [string]$localHistory.disposition -ne 'consumed_failed_local_no_retry') {
+    throw 'historical generation-4 local-proof contract mismatch'
+  }
+  $localHistoricalRoot = [string]$localHistory.private_log_root
+  Assert-Issue97PrivateLogRoot -LogRoot $localHistoricalRoot `
+    -TrustedRoot ([string]$Manifest.trusted_owner_root)
+  $localActualFiles = @(Get-ChildItem -LiteralPath $localHistoricalRoot -File -Force)
+  if ($localActualFiles.Count -ne [int]$localHistory.file_count) {
+    throw 'historical generation-4 evidence file-set cardinality changed'
+  }
+  $localEvidenceNames = [string[]]@($localActualFiles | ForEach-Object { $_.Name })
+  [System.Array]::Sort($localEvidenceNames, [System.StringComparer]::Ordinal)
+  $localEvidenceLines = @($localEvidenceNames | ForEach-Object {
+    $evidenceFile = Get-Item -LiteralPath (Join-Path $localHistoricalRoot $_)
+    "$($evidenceFile.Name)=$(Get-Issue97Sha256 -LiteralPath $evidenceFile.FullName):$($evidenceFile.Length)`n"
+  })
+  if ((Get-Issue97Utf8TextSha256 -Text ($localEvidenceLines -join '')) -ne
+      [string]$localHistory.evidence_set_sha256) {
+    throw 'historical generation-4 evidence file set or bytes changed'
+  }
+  foreach ($property in @($localHistory.critical_hashes.PSObject.Properties)) {
+    $historicalPath = Join-Path $localHistoricalRoot ([string]$property.Name)
+    if (-not (Test-Path -LiteralPath $historicalPath -PathType Leaf) -or
+        (Get-Issue97Sha256 -LiteralPath $historicalPath) -ne [string]$property.Value) {
+      throw 'critical historical generation-4 receipt changed'
+    }
+  }
+  $localFinal = Read-Issue97Json -LiteralPath (Join-Path $localHistoricalRoot 'local.final.json')
+  if ([string]$localFinal.attempt_id -ne [string]$localHistory.local_attempt_id -or
+      [bool]$localFinal.success -or
+      [string]$localFinal.failure_code -ne 'local_worker_validation_or_execution_failed') {
+    throw 'historical generation-4 local fail-stop disposition changed'
+  }
 }
 
 function Get-Issue97BackendIdentityMarker {
@@ -381,7 +423,7 @@ function Get-Issue97BackendIdentityMarker {
   $pattern = '(?m)^' + [regex]::Escape($ExpectedPrefix) +
     '\|attempt_id=([^|\r\n]+)\|attempt_lock_key=(-?[0-9]+)\|backend_pid=([1-9][0-9]*)' +
     '\|backend_start=([^|\r\n]+)\|transaction_read_only=(on|true)' +
-    '\|custom_guc=([^|\r\n]+)\|application_name=([^|\r\n]*)$'
+    '\|custom_guc=([^|\r\n]+)\|application_name=([^|\r\n]*)\r?$'
   $matches = [regex]::Matches($Text, $pattern)
   if ($matches.Count -ne 1) { throw 'exact backend identity marker is missing or duplicated' }
   $match = $matches[0]
@@ -472,9 +514,9 @@ function Assert-Issue97ArtifactManifest {
     [Parameter(Mandatory = $true)]$Manifest
   )
   if ([int]$Manifest.schema_version -ne 3) { throw 'artifact manifest schema mismatch' }
-  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v4' -or
-      [string]$Manifest.generation_id -ne 'issue97-worker-proof-generation-4' -or
-      [string]$Manifest.private_log_root -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4') {
+  if ([string]$Manifest.worker_proof_version -ne 'issue97-long-lived-worker-proof-v5' -or
+      [string]$Manifest.generation_id -ne 'issue97-worker-proof-generation-5' -or
+      [string]$Manifest.private_log_root -ne 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v5') {
     throw 'worker-proof version mismatch'
   }
   $expectedPaths = @(

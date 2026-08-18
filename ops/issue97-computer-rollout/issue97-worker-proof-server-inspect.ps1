@@ -32,7 +32,7 @@ $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-bo
 $workerPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-worker.ps1'
 $statusPath = Join-Path $PSScriptRoot 'issue97-worker-proof-server-inspect-status.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v5'
 if ([int]$manifest.schema_version -ne 3 -or [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or
     [string]$manifest.powershell.path -ne 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe') {

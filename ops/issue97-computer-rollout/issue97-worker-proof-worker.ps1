@@ -44,7 +44,7 @@ $durationSeconds = 0.0
 $backendIdentity = $null
 $stage = 'load_manifest'
 $artifactSet = $null
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v5'
 $authorizationPath = Join-Path $logRoot 'production.authorization.json'
 
 try {

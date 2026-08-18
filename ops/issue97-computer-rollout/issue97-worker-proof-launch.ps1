@@ -24,7 +24,7 @@ $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $manifestPath = Join-Path $PSScriptRoot 'issue97-worker-proof-manifest.json'
 $bootstrapPath = Join-Path $PSScriptRoot 'issue97-worker-proof-bootstrap.ps1'
 $manifest = [System.IO.File]::ReadAllText($manifestPath, [System.Text.Encoding]::UTF8) | ConvertFrom-Json
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v5'
 if ([int]$manifest.schema_version -ne 3 -or
     [string]$manifest.private_log_root -ne $logRoot -or
     [string]$manifest.expected_service -ne 'brinesearch_issue97_prod' -or

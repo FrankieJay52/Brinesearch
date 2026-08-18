@@ -55,12 +55,16 @@ for (const [file, expected] of new Map([
 ])) assert.equal(gitBlob(file), expected, `audited 412-route closure artifact drifted: ${file}`);
 
 assert.equal(manifest.schema_version, 3);
-assert.equal(manifest.worker_proof_version, 'issue97-long-lived-worker-proof-v4');
-assert.equal(manifest.generation_id, 'issue97-worker-proof-generation-4');
+assert.equal(manifest.worker_proof_version, 'issue97-long-lived-worker-proof-v5');
+assert.equal(manifest.generation_id, 'issue97-worker-proof-generation-5');
 assert.equal(manifest.expected_branch, 'data/issue-97-authoritative-road-junction-graph');
 assert.equal(manifest.expected_remote_url, 'https://github.com/FrankieJay52/Brinesearch.git');
 assert.equal(manifest.expected_service, 'brinesearch_issue97_prod');
-assert.equal(manifest.private_log_root, 'C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v4');
+assert.equal(manifest.private_log_root, 'C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v5');
+assert.equal(manifest.historical_evidence_generation4.worker_proof_version, 'issue97-long-lived-worker-proof-v4');
+assert.equal(manifest.historical_evidence_generation4.disposition, 'consumed_failed_local_no_retry');
+assert.equal(manifest.historical_evidence_generation4.evidence_set_sha256,
+  'AEFCF5CE0682F23EDFEAA82070E913A8282504D3C562DF4B8B0B4F0534E6DFDA');
 assert.deepEqual(manifest.historical_evidence, {
   worker_proof_version: 'issue97-long-lived-worker-proof-v2',
   artifact_set_sha256: '3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B',
@@ -303,7 +307,7 @@ assert.equal(inspectorAccepts({ lockAcquired: false }), false, 'held attempt loc
 assert.equal(inspectorAccepts({ pidStartAbsent: false }), false, 'live exact PID/start must fail closed');
 assert.equal(inspectorAccepts({ receiptAgreement: false }), false, 'stale/malformed inspector receipt must fail');
 
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'issue97-v4-no-clobber-'));
+const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'issue97-v5-no-clobber-'));
 try {
   const marker = path.join(temp, 'claim.json');
   fs.closeSync(fs.openSync(marker, 'wx'));
@@ -371,7 +375,7 @@ if (process.platform === 'win32') {
   const markerHarness = [
     `. '${path.join(root, files.lib).replaceAll("'", "''")}'`,
     '$attempt="issue97-wp-20260818T000000000Z-deadbeef"',
-    '$marker="ISSUE97_WORKER_PROOF_BACKEND_IDENTITY|attempt_id=$attempt|attempt_lock_key=-123456789|backend_pid=4101|backend_start=2026-08-18T00:00:00.000000Z|transaction_read_only=on|custom_guc=$attempt|application_name=Supavisor"',
+    '$marker="ISSUE97_WORKER_PROOF_BACKEND_IDENTITY|attempt_id=$attempt|attempt_lock_key=-123456789|backend_pid=4101|backend_start=2026-08-18T00:00:00.000000Z|transaction_read_only=on|custom_guc=$attempt|application_name=Supavisor`r`n"',
     '$value=Get-Issue97BackendIdentityMarker -Text $marker -ExpectedAttemptId $attempt -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY',
     'if($value.attempt_lock_key -ne -123456789 -or $value.backend_pid -ne 4101 -or $value.observed_application_name -ne "Supavisor"){exit 2}',
     'try { Get-Issue97BackendIdentityMarker -Text $marker.Replace("custom_guc=$attempt","custom_guc=wrong") -ExpectedAttemptId $attempt -ExpectedPrefix ISSUE97_WORKER_PROOF_BACKEND_IDENTITY | Out-Null; exit 3 } catch {}',
@@ -384,8 +388,8 @@ if (process.platform === 'win32') {
 }
 
 expect(source.readme.includes('Fixed Windows worker proof (not a job runner)'), 'README must retain the narrow-lane contract');
-expect(source.readme.includes('issue97-worker-proof-v4'), 'README must document the new proof namespace');
+expect(source.readme.includes('issue97-worker-proof-v5'), 'README must document the new proof namespace');
 expect(source.readme.includes('Supavisor'), 'README must document the observed PGAPPNAME root cause');
 expect(source.readme.includes('production authorization'), 'README must document the separate future authorization gate');
 
-console.log('Issue #97 custom-GUC/advisory-lock/PID-start worker-proof v4 audit passed.');
+console.log('Issue #97 custom-GUC/advisory-lock/PID-start worker-proof v5 audit passed.');

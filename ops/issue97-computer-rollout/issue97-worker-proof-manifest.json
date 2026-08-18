@@ -1,12 +1,12 @@
 {
   "schema_version": 3,
-  "worker_proof_version": "issue97-long-lived-worker-proof-v4",
-  "generation_id": "issue97-worker-proof-generation-4",
+  "worker_proof_version": "issue97-long-lived-worker-proof-v5",
+  "generation_id": "issue97-worker-proof-generation-5",
   "expected_branch": "data/issue-97-authoritative-road-junction-graph",
   "expected_remote_url": "https://github.com/FrankieJay52/Brinesearch.git",
   "expected_service": "brinesearch_issue97_prod",
   "trusted_owner_root": "C:\\Users\\frank",
-  "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v4",
+  "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v5",
   "historical_evidence": {
     "worker_proof_version": "issue97-long-lived-worker-proof-v2",
     "artifact_set_sha256": "3E3D5F560E5E223A1E9CF9CB19FACB226A40DE8C31AAC7C22EA82363A2E7E68B",
@@ -48,7 +48,24 @@
       "server-inspection.final.json": "0B70195B2DFF0F29A78B1965353B63380150137EF526475D298E9A8E6EE87FF9"
     }
   },
-  "artifact_set_sha256": "01CF7647B4E80D1B29FDE6F112474FC1559402E70279E517E13ACEDB6EA80CE2",
+  "historical_evidence_generation4": {
+    "worker_proof_version": "issue97-long-lived-worker-proof-v4",
+    "artifact_set_sha256": "01CF7647B4E80D1B29FDE6F112474FC1559402E70279E517E13ACEDB6EA80CE2",
+    "private_log_root": "C:\\Users\\frank\\.issue97-runs\\issue97-worker-proof-v4",
+    "local_attempt_id": "issue97-local-20260818T083410802Z-122e7b1c",
+    "disposition": "consumed_failed_local_no_retry",
+    "file_count": 13,
+    "evidence_set_sha256": "AEFCF5CE0682F23EDFEAA82070E913A8282504D3C562DF4B8B0B4F0534E6DFDA",
+    "critical_hashes": {
+      "local.authorization.json": "FC941FEAE04BB041631F79AA26B97C4FA4525B4AF997DE5F88F51409896A5843",
+      "local.launch.json": "81592473E926140237EB885439C86E6CCBB3D3346C8AD7C586B0847921FC2290",
+      "local.attempt.json": "C88939C98420C3C64F1348BBBBE089DE41E413015CEB7B25F6ECCCC3529D0B82",
+      "local.pid.json": "449162FDB20536386D3CFC074D0980F1836D93EBC702EA144CE6F95122D7A525",
+      "local.client.json": "3FE8D5CB9BA7E0EF951A8F06FBDD6956AB37998480FA311D5B4B12854A3BB89A",
+      "local.final.json": "8BED37010F84B3336CED6F9A8F6B7330E43C03F2082CBBD7BB45CB4662600890"
+    }
+  },
+  "artifact_set_sha256": "A5D78A8DA312966ADD547FA292DC7A8A586E9BE02CDEDBF76EF11E15A4D77A2F",
   "powershell": {
     "path": "C:\\Windows\\System32\\WindowsPowerShell\\v1.0\\powershell.exe",
     "version": "5.1.22621.4391",
@@ -98,21 +115,21 @@
     ]
   },
   "artifacts": [
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "34D8D557FE59AD1756F8BA5A024C703FCA90E9E024D2560502BBB314B4A7E865" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-lib.ps1", "sha256": "952698AFDAAFC5B98C9E1E7E0972B2F94D50E86067F0C8D50196EC766A911377" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize.ps1", "sha256": "1BBDE5F8ECEB4A48E6E5068E912A5F008739AF3FC3DBE1DFA9C8FBE365214A33" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-authorize-production.ps1", "sha256": "0F238B052E3C9F8F011291622E5C21E5EBBF31DE901EE73BF6EE27CEC9363684" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1", "sha256": "11A7BE77437CD6A4A8DDC8B1F24C85CFE50FDF7924AAC7B52F8873E4AE0C2371" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-bootstrap.ps1", "sha256": "CF0B6AD40748E60107790F4FA7B4B8B65D02E380556163B888E58AB67324230F" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-worker.ps1", "sha256": "7EE9CB8C1A764FACB79E52CB16D92403E36C6EBB60FE000A8B81FF7B9458674E" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-launch.ps1", "sha256": "D0949C3E5185D5B1A64076EB23B4AD1F67578519DB8FD5DD52118B26395462DF" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-bootstrap.ps1", "sha256": "BC21D97AA7E6CF14C483F6FB9996ED5197EA812A13F79B44DC33D1C9FF781D30" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-worker.ps1", "sha256": "6714DBEAB7269447F292A2160A878EEB1815E8C15AC6B6517DDB51E3A604C018" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-status.ps1", "sha256": "231FB17A2BD06C33A6DE3575C007CC4DE06EFC5AF289B6BF7CDB9D0EECFAC880" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-provision-log-root.ps1", "sha256": "0B29278A37C9DF44E086139D525BD7AF730F5AA6E778AB7263CA1A6FAD9134C9" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect.ps1", "sha256": "EAEDDE952F5A87205DAE67CB00F57436485E49E1DD1AE8CD2601608ED6C99B53" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-bootstrap.ps1", "sha256": "8420674D03BBDE9A45463D00B7F35DE1E26A8B24538D908E63D8EDDA98ABB78A" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-worker.ps1", "sha256": "B1DFAFA748D73AAE3DBBE7D6E62B4E23854E75320A3731776B41699465A1D31C" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect.ps1", "sha256": "D5617AA6D0FD49B0F10866A2896EB678856F4A9C4566A9F647BBDEE9EDA715F6" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-bootstrap.ps1", "sha256": "A1F333FA4AD012817E853101C908D3FF99FD67D3F4F45FE9E0567846EECA81AC" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-worker.ps1", "sha256": "6C521C69165D8A64AD349F3A82A83A5D875E608374177A743D1DE0C04BE34A4F" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-server-inspect-status.ps1", "sha256": "AF2B69D4C73A1E59BF5B1C240AD356F224B14C38F4894398E3A4C64D36B6BE96" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-launch.ps1", "sha256": "4AA06F99F0B7DC46913720DBEC112CA539ACF6671E86BAC214028D2E195EE7F1" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-bootstrap.ps1", "sha256": "BB82634757989143083BF00BD09F74CC4BB3D17D1818D6DADF12340AFB79F3FD" },
-    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-worker.ps1", "sha256": "AC50314BBF875FD302330C2D375EBF6FC81DC6DE49475662A169C0E27331CD8E" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-launch.ps1", "sha256": "B49C98B8574B8734BCD1975C6AE8C1B5FCF4A8B9B9E3FC3D028D7B8B4EC6326C" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-bootstrap.ps1", "sha256": "CC92F6470C964A14F1535C6DFFA45B1EC2C73351AD30A2DA369954B9EA3A408B" },
+    { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-worker.ps1", "sha256": "E63D76E941737E4EB5750BE684A3229EA7C82AC2184B90529532A12417F56080" },
     { "path": "ops/issue97-computer-rollout/issue97-worker-proof-local-child.ps1", "sha256": "9895FFE80FC508A22DB72C18535667DBB289297E47C021A8D98E9546A024E333" },
     { "path": "ops/issue97-computer-rollout/sql/35-worker-proof-read-only.sql", "sha256": "510488AADAAFFB73EF20ED8D5D908B04A2ADB234BF013231F10A1354290E85E2" },
     { "path": "ops/issue97-computer-rollout/sql/36-worker-proof-server-inspection.sql", "sha256": "A0759AF4F9546B50DE2F90EFC6111683910C670433B235F90FD01A1DD05D3260" }

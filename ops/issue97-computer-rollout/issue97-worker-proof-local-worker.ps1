@@ -39,7 +39,7 @@ $startUtc = [datetime]::UtcNow.ToString('o')
 $stage = 'load_manifest'
 $backendIdentity = $null
 $artifactSet = $null
-$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v4'
+$logRoot = 'C:\Users\frank\.issue97-runs\issue97-worker-proof-v5'
 $authorizationPath = Join-Path $logRoot 'local.authorization.json'
 
 try {

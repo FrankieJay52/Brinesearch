@@ -66,8 +66,8 @@ sleep-proof database session. That process is drained, unquestionably exited,
 refreshed, and sampled exactly once for its authoritative `ExitCode`; later
 hashing and receipt work cannot replace the captured result.
 
-Generation 4 uses the fixed private receipt root
-`C:\Users\frank\.issue97-runs\issue97-worker-proof-v4`.
+Generation 5 uses the fixed private receipt root
+`C:\Users\frank\.issue97-runs\issue97-worker-proof-v5`.
 It is outside every repository, shared across local Issue #97 worktrees, and
 must not be a junction/reparse point. Its DACL is protected from inheritance and
 contains exactly three non-inherited full-control entries: the current Windows
@@ -76,14 +76,16 @@ inherited receipt directory fails closed before launch. Provision this exact
 directory once with that reviewed DACL before invoking either launcher; the
 launchers deliberately refuse to create or weaken it.
 
-The failed generation-2 and generation-3 evidence remains permanently consumed
-and immutable at `C:\Users\frank\.issue97-runs\issue97-worker-proof` and
-`C:\Users\frank\.issue97-runs\issue97-worker-proof-v3`. Generation 4 pins both
-directories' exact aggregate digests, critical receipt hashes, failed attempt
+The failed generation-2, generation-3, and local-only generation-4 evidence
+remains permanently consumed and immutable at
+`C:\Users\frank\.issue97-runs\issue97-worker-proof`,
+`C:\Users\frank\.issue97-runs\issue97-worker-proof-v3`, and
+`C:\Users\frank\.issue97-runs\issue97-worker-proof-v4`. Generation 5 pins all
+three directories' exact aggregate digests, critical receipt hashes, attempt
 IDs, and fail-stop dispositions before any authorization or launch. The
 aggregate uses ordinal filename ordering so Windows PowerShell 5 and PowerShell
 Core derive identical bytes. The new namespace cannot delete, overwrite,
-rename, or reuse either consumed generation.
+rename, or reuse any consumed generation.
 
 After the repository-only checkpoint is committed and pushed, provision or
 verify that fixed local root from the clean exact-head clone:
@@ -112,7 +114,7 @@ reaches `CLIENT_FINISHED_SUCCESS`:
 
 The production authorization is a second no-clobber receipt and separate
 zero-argument command. A pushed SHA or completed local proof does not create it.
-Run it only after the exact generation-4 SHA receives independent Grok and
+Run it only after the exact generation-5 SHA receives independent Grok and
 ChatGPT review plus a separate explicit one-shot authorization:
 
 ```powershell
