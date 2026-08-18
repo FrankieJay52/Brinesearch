@@ -105,11 +105,11 @@ if (routeIds.length !== 412 || new Set(routeIds).size !== 412
   throw new Error(`Frozen route manifest drifted: ${routeIds.length}`);
 }
 for (const token of [
-  'reconciliation_manifest as (',
-  "'reconciliation_manifest_count',412",
-  "'reconciliation_manifest_digest','711b1ddd3ba6c47e7642fc700197432f'",
-  "'caller_route_ids_allowed',false",
-  "'exact_new_candidate_build_pins_required_before_activation',true",
+  '-- EXACT_FINAL_412_BEGIN',
+  '-- EXACT_FINAL_412_END',
+  '(select count(*) from frozen_routes) final_count',
+  "metrics.final_digest='711b1ddd3ba6c47e7642fc700197432f'",
+  'metrics.former_379_omission_count=33 as former_379_rejected',
   'metrics.leg_a_count=379',
   "metrics.leg_a_digest='836c1f57210e4d18c0f60d4c1ea77d7d'",
   'metrics.transition_only_count=33',

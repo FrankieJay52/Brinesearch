@@ -15,9 +15,6 @@
 -- routes outside this set. Any extra or missing route requires a new audited
 -- repository-only freeze. A real approved-corridor table or unpinned current
 -- candidate build deliberately makes this version fail closed.
--- The reconciliation lane must consume reconciliation_manifest below exactly;
--- it may not accept caller-provided route IDs or substitute the historical
--- 379-route Leg A. No reconciliation is executed by this read-only manifest.
 
 with
 target_pairs(identity_id,road_id) as (
@@ -499,9 +496,6 @@ frozen_routes(route_prep_id) as (
     ('ffd98904-1e68-4208-959a-479db40a18c0'::uuid)
 ),
 -- EXACT_FINAL_412_END
-reconciliation_manifest as (
-  select route_prep_id from frozen_routes
-),
 target_roads as (
   select distinct road_id from target_pairs
 ),
@@ -625,12 +619,12 @@ metrics as (
       on route.id=leg.route_prep_id where route.route_group='primary') transition_only_primary,
     (select count(*) from transition_only_routes leg join public.brinesearch_route_prep route
       on route.id=leg.route_prep_id where route.route_group='alternate') transition_only_alternate,
-    (select count(*) from reconciliation_manifest) final_count,
+    (select count(*) from frozen_routes) final_count,
     (select pg_catalog.md5(pg_catalog.string_agg(route_prep_id::text,'|' order by route_prep_id))
-      from reconciliation_manifest) final_digest,
-    (select count(*) from reconciliation_manifest frozen join public.brinesearch_route_prep route
+      from frozen_routes) final_digest,
+    (select count(*) from frozen_routes frozen join public.brinesearch_route_prep route
       on route.id=frozen.route_prep_id where route.active and route.route_group='primary') final_primary,
-    (select count(*) from reconciliation_manifest frozen join public.brinesearch_route_prep route
+    (select count(*) from frozen_routes frozen join public.brinesearch_route_prep route
       on route.id=frozen.route_prep_id where route.active and route.route_group='alternate') final_alternate,
     exists(select route_prep_id from frozen_routes
            except select route_prep_id from derived_routes) frozen_missing_from_derived,
@@ -707,12 +701,6 @@ select
     'leg_a_routes',379,'transition_only_additions',33,
     'route_count',412,'primary_count',340,'alternate_count',72,
     'route_set_digest','711b1ddd3ba6c47e7642fc700197432f',
-    'reconciliation_manifest_count',412,
-    'reconciliation_manifest_digest','711b1ddd3ba6c47e7642fc700197432f',
-    'reconciliation_route_ids',(select pg_catalog.jsonb_agg(
-      route_prep_id order by route_prep_id) from reconciliation_manifest),
-    'caller_route_ids_allowed',false,
-    'exact_new_candidate_build_pins_required_before_activation',true,
     'old_379_final_contract_rejected',former_379_rejected,
     'bakos_included',bakos,'cologie_included',cologie,
     'walking_tall_included',walking_tall,
