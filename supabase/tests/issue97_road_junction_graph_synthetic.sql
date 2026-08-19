@@ -401,6 +401,11 @@ end
 $issue97_finalize_runs$;
 
 create temporary table issue97_build_results(result jsonb) on commit drop;
+-- issue97-point-corroboration-repeated-call-guard: the pinned builder creates
+-- tmp_issue97_point_corroboration with ON COMMIT DROP and omits it from its own
+-- repeated-call cleanup, so a later call in this same transaction would hit
+-- SQLSTATE 42P07. Clearing the session-local table changes no durable state.
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into issue97_build_results
 select public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
 
@@ -833,6 +838,8 @@ begin
     raise exception '#97 unrelated same-name roads acquired a junction';
   end if;
 
+  -- issue97-point-corroboration-repeated-call-guard: same repeated-call defect.
+  drop table if exists pg_temp.tmp_issue97_point_corroboration;
   v_second:=public.brinesearch_issue97_rebuild_county_graph('WV','DOD');
   if v_second->>'graph_digest'<>v_digest then
     raise exception '#97 graph digest is not deterministic';

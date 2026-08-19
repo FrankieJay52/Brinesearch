@@ -206,21 +206,40 @@ create temporary table tmp_issue97_mapping_wave_build_results(
   result jsonb not null
 ) on commit drop;
 
+-- Repeated-call temp-table guard. The pinned builder creates
+-- tmp_issue97_point_corroboration with ON COMMIT DROP, and its internal
+-- repeated-call cleanup drops every other builder temp table but omits that
+-- one. ON COMMIT DROP does not run when a builder call returns; it waits for
+-- the end of this single outer transaction. This rehearsal invokes the builder
+-- repeatedly inside that one transaction, so the caller clears only this
+-- session-local table before each fixed invocation; otherwise the second county
+-- fails with SQLSTATE 42P07. Dropping the table also drops its temporary index
+-- tmp_issue97_point_corroboration_key_idx. The guard changes no durable builder
+-- or production state and leaves the pinned builder definition untouched.
+-- issue97-point-corroboration-repeated-call-guard
 -- Exact serial rebuild plan. No automatic retry and no other state/county input.
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (1,'BEL',public.brinesearch_issue97_rebuild_county_graph('OH','BEL'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (2,'CAR',public.brinesearch_issue97_rebuild_county_graph('OH','CAR'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (3,'COL',public.brinesearch_issue97_rebuild_county_graph('OH','COL'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (4,'GUE',public.brinesearch_issue97_rebuild_county_graph('OH','GUE'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (5,'HAS',public.brinesearch_issue97_rebuild_county_graph('OH','HAS'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (6,'JEF',public.brinesearch_issue97_rebuild_county_graph('OH','JEF'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (7,'MOE',public.brinesearch_issue97_rebuild_county_graph('OH','MOE'));
+drop table if exists pg_temp.tmp_issue97_point_corroboration;
 insert into tmp_issue97_mapping_wave_build_results values
   (8,'NOB',public.brinesearch_issue97_rebuild_county_graph('OH','NOB'));
 

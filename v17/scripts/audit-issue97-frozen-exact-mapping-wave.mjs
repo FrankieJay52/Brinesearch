@@ -13,6 +13,10 @@ const rehearsal = fs.readFileSync(
   'supabase/tests/issue97_frozen_exact_mapping_wave.sql',
   'utf8',
 );
+const syntheticRegression = fs.readFileSync(
+  'supabase/tests/issue97_road_junction_graph_synthetic.sql',
+  'utf8',
+);
 
 const requireText = (source, token, label = token) => {
   if (!source.includes(token)) throw new Error(`Missing Issue #97 mapping-wave contract: ${label}`);
@@ -240,6 +244,63 @@ const builds = [...rehearsal.matchAll(
 if (builds.join(',') !== 'BEL,CAR,COL,GUE,HAS,JEF,MOE,NOB') {
   throw new Error(`Exact serial rebuild plan drifted: ${builds.join(',')}`);
 }
+
+// Repeated-call temp-table guard. The pinned builder creates
+// tmp_issue97_point_corroboration with ON COMMIT DROP and omits it from its own
+// repeated-call cleanup block. ON COMMIT DROP does not run when a builder call
+// returns, so any caller invoking the builder more than once inside a single
+// transaction must clear that session-local table between calls or the next
+// call fails with SQLSTATE 42P07. These assertions keep the guards paired with
+// their calls, and the rationale token keeps them from being removed later as
+// apparently unnecessary.
+const guardStatement = 'drop table if exists pg_temp.tmp_issue97_point_corroboration;';
+const guardToken = 'issue97-point-corroboration-repeated-call-guard';
+
+const offsetsOf = (source, needle) => {
+  const found = [];
+  for (let at = source.indexOf(needle); at !== -1; at = source.indexOf(needle, at + 1)) {
+    found.push(at);
+  }
+  return found;
+};
+
+// guardedFrom is the 1-based index of the first builder call that requires a
+// preceding guard; earlier calls run against a clean pg_temp and need none.
+const assertGuardedCalls = (source, label, callPattern, expectedCalls, guardedFrom) => {
+  const calls = [...source.matchAll(callPattern)].map((match) => match.index);
+  if (calls.length !== expectedCalls) {
+    throw new Error(`${label}: expected ${expectedCalls} builder calls, found ${calls.length}`);
+  }
+  const guards = offsetsOf(source, guardStatement);
+  const expectedGuards = expectedCalls - guardedFrom + 1;
+  if (guards.length !== expectedGuards) {
+    throw new Error(`${label}: expected ${expectedGuards} repeated-call guards, found ${guards.length}`);
+  }
+  for (let index = 0; index < guards.length; index += 1) {
+    const call = calls[guardedFrom - 1 + index];
+    const previousCall = index === 0 && guardedFrom === 1 ? -1 : calls[guardedFrom - 2 + index];
+    if (guards[index] <= previousCall || guards[index] >= call) {
+      throw new Error(`${label}: guard ${index + 1} is not between builder call ${guardedFrom - 1 + index} and call ${guardedFrom + index}`);
+    }
+  }
+  requireText(source, guardToken, `${label}: repeated-call guard rationale token`);
+  return guards.length;
+};
+
+const rehearsalGuards = assertGuardedCalls(
+  rehearsal,
+  'Frozen mapping rehearsal',
+  /public\.brinesearch_issue97_rebuild_county_graph\('OH','[A-Z]{3}'\)/g,
+  8,
+  1,
+);
+const syntheticGuards = assertGuardedCalls(
+  syntheticRegression,
+  'Synthetic topology regression',
+  /public\.brinesearch_issue97_rebuild_county_graph\('WV','DOD'\)/g,
+  3,
+  2,
+);
 for (const token of [
   "set local statement_timeout='90min'", "set local lock_timeout='2min'",
   "'06705f5b35a6d37151bb2c0dc5ade9bd'",
@@ -330,6 +391,7 @@ console.log('Issue #97 frozen exact mapping-wave audit passed.');
 console.log(`  frozen identities/roads: ${identities.length}/${roads.length}`);
 console.log(`  evidence split: 28 designation / 18 base-NLF street-core`);
 console.log(`  graph rebuild footprint: ${builds.join(',')}`);
+console.log(`  repeated-call temp guards: ${rehearsalGuards} rehearsal / ${syntheticGuards} synthetic`);
 console.log(`  exact final route closure: ${routeIds.length} (340 primary / 72 alternate)`);
 console.log('  closure legs: 379 mapping-dependent + 33 transition-only');
 console.log(`  route digest: ${md5([...routeIds].sort().join('|'))}`);
