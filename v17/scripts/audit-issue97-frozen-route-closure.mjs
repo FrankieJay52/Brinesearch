@@ -109,6 +109,120 @@ assert.equal(validateMappingState({ ...installedMappingState, targetIdentityMapp
 assert.equal(validateMappingState({ ...installedMappingState, targetRoadMappingCount: 47 }), false);
 assert.equal(validateMappingState({ ...installedMappingState, exactVerifiedMappingCount: 45 }), false);
 
+const validateBuildPhase = ({
+  migrationCount,
+  pinnedBuildCount,
+  releaseCurrentCount,
+  quarantinedCount,
+  unknownCount,
+}) => pinnedBuildCount === 8
+  && unknownCount === 0
+  && (
+    (
+      migrationCount === 0
+      && releaseCurrentCount === 8
+      && quarantinedCount === 0
+    )
+    || (
+      migrationCount === 1
+      && releaseCurrentCount === 0
+      && quarantinedCount === 8
+    )
+  );
+
+const preinstallBuildPhase = {
+  migrationCount: 0,
+  pinnedBuildCount: 8,
+  releaseCurrentCount: 8,
+  quarantinedCount: 0,
+  unknownCount: 0,
+};
+
+const postMappingBuildPhase = {
+  migrationCount: 1,
+  pinnedBuildCount: 8,
+  releaseCurrentCount: 0,
+  quarantinedCount: 8,
+  unknownCount: 0,
+};
+
+assert.equal(
+  validateBuildPhase(preinstallBuildPhase),
+  true,
+);
+
+assert.equal(
+  validateBuildPhase(postMappingBuildPhase),
+  true,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...postMappingBuildPhase,
+    releaseCurrentCount: 8,
+    quarantinedCount: 0,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...preinstallBuildPhase,
+    releaseCurrentCount: 0,
+    quarantinedCount: 8,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...preinstallBuildPhase,
+    pinnedBuildCount: 7,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...preinstallBuildPhase,
+    releaseCurrentCount: 7,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...postMappingBuildPhase,
+    quarantinedCount: 7,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...postMappingBuildPhase,
+    unknownCount: 1,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...postMappingBuildPhase,
+    releaseCurrentCount: 4,
+    quarantinedCount: 4,
+  }),
+  false,
+);
+
+assert.equal(
+  validateBuildPhase({
+    ...postMappingBuildPhase,
+    migrationCount: 2,
+  }),
+  false,
+);
+
 const fixtures = [
   '86d86ac5-199c-4715-be36-785a13c1cf30',
   'dfb3f204-190c-4d65-85b3-16bcd1715825',
@@ -138,6 +252,60 @@ for (const [county, id, digest] of builds) {
   assert.ok(sql.includes(`('${county}','${id}'::uuid,'${digest}')`));
 }
 
+const buildStateBlock = between(
+  sql,
+  'build_state as (',
+  '),\ndependency_layer_state as (',
+);
+
+for (const required of [
+  'pinned_build_count',
+  'pinned_release_current_count',
+  'pinned_quarantined_count',
+  'pinned_unknown_currentness_count',
+  'release_current is true',
+  'release_current is false',
+  'release_current is null',
+  'cross join lateral',
+]) {
+  assert.ok(
+    buildStateBlock.includes(required),
+    `missing phase-aware build-state token: ${required}`,
+  );
+}
+
+assert.doesNotMatch(
+  buildStateBlock,
+  /select\s+count\(\*\)\s+pinned_current_count/i,
+);
+
+assert.doesNotMatch(
+  buildStateBlock,
+  /and\s+private_verification\s*\.\s*brinesearch_issue97_graph_build_release_current\s*\(\s*build\.id\s*\)/i,
+);
+
+const checksBlock = between(
+  sql,
+  'checks as (',
+  '),\nresult as (',
+);
+
+for (const required of [
+  'build_state.pinned_build_count=8',
+  'build_state.pinned_unknown_currentness_count=0',
+  'mapping_state.migration_count=0',
+  'build_state.pinned_release_current_count=8',
+  'build_state.pinned_quarantined_count=0',
+  'mapping_state.migration_count=1',
+  'build_state.pinned_release_current_count=0',
+  'build_state.pinned_quarantined_count=8',
+]) {
+  assert.ok(
+    checksBlock.includes(required),
+    `missing phase-aware build-pin token: ${required}`,
+  );
+}
+
 for (const required of [
   "affected.build_id=transition.graph_build_id",
   "name='issue97_frozen_exact_mapping_wave'",
@@ -147,7 +315,7 @@ for (const required of [
   "build.state_code='OH'",
   "build.status='active'",
   "build.graph_digest=expected.graph_digest",
-  "build.activated_at='2026-08-16 11:08:18.355674+00'::timestamptz",
+  "build.activated_at=\n     '2026-08-16 11:08:18.355674+00'::timestamptz",
   'brinesearch_issue97_graph_build_release_current(build.id)',
   'except select route_prep_id from derived_routes',
   'except select route_prep_id from frozen_routes',

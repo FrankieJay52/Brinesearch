@@ -572,17 +572,43 @@ mapping_state as (
       where exists(select 1 from target_roads target
         where target.road_id=mapping.road_id)) target_road_mapping_count
 ),
+-- The exact eight old active graph rows remain identity/digest pinned in both
+-- supported manifest phases. Before migration installation all eight must be
+-- release-current. After the exact 46 mappings and matching migration-history
+-- row are installed, all eight must be mapping-quarantined and none may remain
+-- release-current. Mixed or NULL currentness fails closed.
 build_state as (
-  select count(*) pinned_current_count
+  select
+    count(*) as pinned_build_count,
+
+    count(*) filter (
+      where currentness.release_current is true
+    ) as pinned_release_current_count,
+
+    count(*) filter (
+      where currentness.release_current is false
+    ) as pinned_quarantined_count,
+
+    count(*) filter (
+      where currentness.release_current is null
+    ) as pinned_unknown_currentness_count
+
   from replaced_graphs expected
+
   join public.brinesearch_road_graph_builds build
     on build.id=expected.build_id
    and build.state_code='OH'
    and build.county_code=expected.county_code
    and build.status='active'
    and build.graph_digest=expected.graph_digest
-   and build.activated_at='2026-08-16 11:08:18.355674+00'::timestamptz
-   and private_verification.brinesearch_issue97_graph_build_release_current(build.id)
+   and build.activated_at=
+     '2026-08-16 11:08:18.355674+00'::timestamptz
+
+  cross join lateral (
+    select private_verification
+      .brinesearch_issue97_graph_build_release_current(build.id)
+      as release_current
+  ) currentness
 ),
 dependency_layer_state as (
   select
@@ -653,7 +679,25 @@ checks as (
       and metrics.road_digest='e512c45fa202ccf48df1ac272246ce94'
       and metrics.pair_digest='0a0f29f2c40f1d1265b498f77ab56dd7'
       as mapping_allowlist_ok,
-    build_state.pinned_current_count=8 as build_pins_ok,
+    build_state.pinned_build_count=8
+
+      and build_state.pinned_unknown_currentness_count=0
+
+      and (
+        (
+          mapping_state.migration_count=0
+          and build_state.pinned_release_current_count=8
+          and build_state.pinned_quarantined_count=0
+        )
+        or
+        (
+          mapping_state.migration_count=1
+          and build_state.pinned_release_current_count=0
+          and build_state.pinned_quarantined_count=8
+        )
+      )
+
+      as build_pins_ok,
     metrics.leg_a_count=379 and metrics.leg_a_primary=320 and metrics.leg_a_alternate=59
       and metrics.leg_a_digest='836c1f57210e4d18c0f60d4c1ea77d7d'
       as historical_leg_a_ok,
