@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
+import assert from 'node:assert/strict';
 
 const migration = fs.readFileSync(
   'supabase/migrations/20260817193212_issue97_frozen_exact_mapping_wave.sql',
@@ -305,8 +306,7 @@ for (const token of [
   "set local statement_timeout='90min'", "set local lock_timeout='2min'",
   "'06705f5b35a6d37151bb2c0dc5ade9bd'",
   "where version='20260817193212'", "build.status<>'validated'",
-  "build.activated_at is not null", "build.graph_digest=prior.graph_digest",
-  "mapping_snapshot_digest'=prior.details->>'mapping_snapshot_digest'",
+  "build.activated_at is not null",
   "where target.identity_id=membership.identity_id",
   'rebuilt graph changed source topology beyond exact mapping road IDs',
   'brinesearch_issue97_graph_build_release_current(build.id)',
@@ -337,6 +337,88 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
+requireText(
+  normalizedRehearsal,
+  'build.graph_digest is not distinct from prior.graph_digest',
+  'candidate graph digest must change',
+);
+requireText(
+  normalizedRehearsal,
+  "build.details->>'mapping_snapshot_digest' is not distinct from prior.details->>'mapping_snapshot_digest'",
+  'candidate mapping snapshot digest must change',
+);
+requireText(
+  normalizedRehearsal,
+  "build.details->>'registry_digest' is not distinct from prior.details->>'registry_digest'",
+  'candidate registry digest must change',
+);
+requireText(
+  normalizedRehearsal,
+  'build.source_revision_digest is not distinct from prior.source_revision_digest',
+  'candidate source revision digest must change',
+);
+requireText(
+  normalizedRehearsal,
+  "build.details->'source_run_vector' is distinct from prior.details->'source_run_vector'",
+  'candidate source-run vector must remain unchanged',
+);
+requireText(
+  normalizedRehearsal,
+  "build.details->>'source_vector_version' is distinct from prior.details->>'source_vector_version'",
+  'candidate source-vector version must remain unchanged',
+);
+for (const token of [
+  'build.source_segment_count is distinct from prior.source_segment_count',
+  'build.identity_count is distinct from prior.identity_count',
+  'build.point_junction_count is distinct from prior.point_junction_count',
+  'build.shared_segment_count is distinct from prior.shared_segment_count',
+  'build.membership_count is distinct from prior.membership_count',
+]) {
+  requireText(
+    normalizedRehearsal,
+    token,
+    `candidate source/topology count must remain unchanged: ${token}`,
+  );
+}
+
+const validateCandidateDigestTransition = ({
+  graphChanged,
+  mappingSnapshotChanged,
+  registryChanged,
+  sourceRevisionChanged,
+  sourceRunVectorUnchanged,
+  sourceVectorVersionUnchanged,
+  countsUnchanged,
+}) => graphChanged
+  && mappingSnapshotChanged
+  && registryChanged
+  && sourceRevisionChanged
+  && sourceRunVectorUnchanged
+  && sourceVectorVersionUnchanged
+  && countsUnchanged;
+
+const reviewedCandidateDigestTransition = {
+  graphChanged: true,
+  mappingSnapshotChanged: true,
+  registryChanged: true,
+  sourceRevisionChanged: true,
+  sourceRunVectorUnchanged: true,
+  sourceVectorVersionUnchanged: true,
+  countsUnchanged: true,
+};
+
+assert.equal(validateCandidateDigestTransition(reviewedCandidateDigestTransition), true);
+for (const property of Object.keys(reviewedCandidateDigestTransition)) {
+  assert.equal(
+    validateCandidateDigestTransition({
+      ...reviewedCandidateDigestTransition,
+      [property]: false,
+    }),
+    false,
+    `candidate digest transition mutation escaped: ${property}`,
+  );
+}
+
 requireText(normalizedRehearsal,
   "from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt join public.brinesearch_route_prep route on route.id=receipt.route_prep_id join public.pads pad on pad.id=route.pad_id where route.active and route.route_group in ('primary','alternate') and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806",
   'Ohio-only 806 route-reconciliation receipt preflight');
@@ -355,6 +437,11 @@ forbid(rehearsal, /where\s+build\.status='validated'[\s\S]{0,120}(?:select|into)
 forbid(rehearsal, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
 forbid(rehearsal, /issue97_cutover_not_active/i,
   'stored held state substituted for the unchanged immediate stale state');
+forbid(
+  rehearsal,
+  /build\.source_revision_digest\s*<>\s*prior\.source_revision_digest/i,
+  'source revision incorrectly required to remain unchanged after mapping install',
+);
 forbid(rehearsal,
   /delete\s+from\s+private_verification\.brinesearch_google_route_refresh_queue_issue97/i,
   'manual deletion of pending deferred Google refresh events');

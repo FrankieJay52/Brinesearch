@@ -269,16 +269,51 @@ begin
        where build.status<>'validated' or build.activated_at is not null
          or build.details->>'release_generation_key'<>'issue97-release-20260815-r2'
          or build.details->>'release_builder_md5'<>'06705f5b35a6d37151bb2c0dc5ade9bd')
-      or exists(select 1 from tmp_issue97_mapping_wave_new_builds build
-        join tmp_issue97_mapping_wave_active_before prior using(state_code,county_code)
-        where build.graph_digest=prior.graph_digest
-          or build.details->>'mapping_snapshot_digest'=prior.details->>'mapping_snapshot_digest'
-          or build.source_revision_digest<>prior.source_revision_digest
-          or build.source_segment_count<>prior.source_segment_count
-          or build.identity_count<>prior.identity_count
-          or build.point_junction_count<>prior.point_junction_count
-         or build.shared_segment_count<>prior.shared_segment_count
-         or build.membership_count<>prior.membership_count)
+     -- Exact identity-to-road mappings are part of the builder's registry_digest.
+     -- The frozen 46-mapping install must therefore change mapping_snapshot_digest,
+     -- registry_digest, source_revision_digest, and graph_digest. The authoritative
+     -- source_run_vector and source_vector_version must remain unchanged, as must
+     -- source/topology cardinalities and all semantic topology except the reviewed
+     -- membership road_id values.
+     or exists(select 1 from tmp_issue97_mapping_wave_new_builds build
+       join tmp_issue97_mapping_wave_active_before prior using(state_code,county_code)
+       where build.graph_digest
+               is not distinct from prior.graph_digest
+
+         or build.details->>'mapping_snapshot_digest'
+               is not distinct from
+               prior.details->>'mapping_snapshot_digest'
+
+         or build.details->>'registry_digest'
+               is not distinct from
+               prior.details->>'registry_digest'
+
+         or build.source_revision_digest
+               is not distinct from
+               prior.source_revision_digest
+
+         or build.details->'source_run_vector'
+               is distinct from
+               prior.details->'source_run_vector'
+
+         or build.details->>'source_vector_version'
+               is distinct from
+               prior.details->>'source_vector_version'
+
+         or build.source_segment_count
+               is distinct from prior.source_segment_count
+
+         or build.identity_count
+               is distinct from prior.identity_count
+
+         or build.point_junction_count
+               is distinct from prior.point_junction_count
+
+         or build.shared_segment_count
+               is distinct from prior.shared_segment_count
+
+         or build.membership_count
+               is distinct from prior.membership_count)
      or exists(select 1 from tmp_issue97_mapping_wave_active_before prior
         join public.brinesearch_road_graph_builds current on current.id=prior.id
         where pg_catalog.to_jsonb(current) is distinct from pg_catalog.to_jsonb(prior))
