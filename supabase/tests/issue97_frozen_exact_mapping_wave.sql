@@ -220,6 +220,72 @@ begin
 end
 $issue97_frozen_mapping_reviewed_snapshot_assertion$;
 
+create temporary table
+tmp_issue97_mapping_wave_refresh_expansion_before_build
+on commit drop
+as
+select
+  expansion.*,
+  (
+    select count(*)
+    from public.brinesearch_road_identity_mappings mapping
+    where mapping.identity_id=expansion.identity_id
+      and mapping.mapping_status in ('verified','candidate')
+  )::bigint as active_mapping_count,
+  (
+    select count(*)
+    from tmp_issue97_mapping_wave_active_before prior
+    join public.brinesearch_road_junctions junction
+      on junction.build_id=prior.id
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    where prior.state_code='OH'
+      and prior.county_code=expansion.county_code
+      and membership.identity_id=expansion.identity_id
+  )::bigint as observed_old_membership_occurrence_count,
+  (
+    select count(*)
+    from tmp_issue97_mapping_wave_active_before prior
+    join public.brinesearch_road_junctions junction
+      on junction.build_id=prior.id
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    where prior.state_code='OH'
+      and prior.county_code=expansion.county_code
+      and membership.identity_id=expansion.identity_id
+      and membership.road_id is not null
+  )::bigint as old_nonnull_road_id_count
+from tmp_issue97_frozen_mapping_refresh_expansion expansion
+order by expansion.county_code,expansion.identity_id;
+
+do $issue97_frozen_mapping_refresh_expansion_snapshot_assertion$
+begin
+  if (
+       select count(*)
+       from tmp_issue97_mapping_wave_refresh_expansion_before_build
+     )<>7
+     or exists(
+       select 1
+       from tmp_issue97_mapping_wave_refresh_expansion_before_build snapshot
+       join public.brinesearch_roads road on road.id=snapshot.road_id
+       where snapshot.active_mapping_count<>0
+          or snapshot.observed_old_membership_occurrence_count<>
+             snapshot.old_active_membership_occurrence_count
+          or snapshot.old_nonnull_road_id_count<>0
+          or road.verification_status<>
+             snapshot.new_road_verification_status
+     )
+     or (
+       select sum(observed_old_membership_occurrence_count)
+       from tmp_issue97_mapping_wave_refresh_expansion_before_build
+     )<>267
+  then
+    raise exception
+      'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted';
+  end if;
+end
+$issue97_frozen_mapping_refresh_expansion_snapshot_assertion$;
+
 insert into supabase_migrations.schema_migrations(version,statements,name)
 values (
   '20260817193212',
@@ -322,6 +388,99 @@ begin
   then
     raise exception
       'Issue #97 reviewed frozen mappings changed during graph rebuilds';
+  end if;
+
+  if (
+       select count(*)
+       from tmp_issue97_frozen_mapping_refresh_expansion expansion
+       join tmp_issue97_mapping_wave_new_builds build
+         on build.state_code='OH'
+        and build.county_code=expansion.county_code
+     )<>
+     (
+       select count(*)
+       from public.brinesearch_road_identity_mappings mapping
+       join tmp_issue97_frozen_mapping_refresh_expansion expansion
+         on expansion.identity_id=mapping.identity_id
+        and expansion.road_id=mapping.road_id
+       join tmp_issue97_mapping_wave_new_builds build
+         on build.state_code='OH'
+        and build.county_code=expansion.county_code
+       where mapping.mapping_status='verified'
+     )
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_refresh_expansion expansion
+       join tmp_issue97_mapping_wave_new_builds build
+         on build.state_code='OH'
+        and build.county_code=expansion.county_code
+       left join public.brinesearch_road_identity_mappings mapping
+         on mapping.identity_id=expansion.identity_id
+        and mapping.road_id=expansion.road_id
+        and mapping.mapping_status='verified'
+       left join lateral (
+         select
+           count(*)::bigint as membership_count,
+           count(*) filter(
+             where membership.road_id=expansion.road_id
+           )::bigint as exact_road_membership_count
+         from public.brinesearch_road_junctions junction
+         join public.brinesearch_road_junction_memberships membership
+           on membership.junction_id=junction.id
+         where junction.build_id=build.id
+           and membership.identity_id=expansion.identity_id
+       ) occurrence on true
+       where mapping.id is null
+          or mapping.mapping_method is distinct from expansion.mapping_method
+          or mapping.evidence->>'source_identity_key' is distinct from
+             expansion.source_identity_key
+          or mapping.evidence->>'route_class' is distinct from
+             expansion.road_class
+          or mapping.evidence->>'route_token' is distinct from
+             expansion.route_number
+          or mapping.evidence->>'designation_source' is distinct from
+             expansion.designation_source
+          or mapping.evidence->>'refresh_scope' is distinct from
+             expansion.refresh_scope
+          or (mapping.evidence->>'exact_candidate_count')::integer
+             is distinct from
+             expansion.exact_candidate_count
+          or (mapping.evidence->>'ambiguity_held')::boolean
+             is distinct from
+             expansion.ambiguity_flag
+          or occurrence.membership_count is distinct from
+             expansion.old_active_membership_occurrence_count
+          or occurrence.exact_road_membership_count is distinct from
+             expansion.old_active_membership_occurrence_count
+     )
+     or exists(
+       select 1
+       from public.brinesearch_road_identity_mappings mapping
+       join tmp_issue97_frozen_mapping_refresh_expansion expansion
+         on expansion.identity_id=mapping.identity_id
+       where mapping.mapping_status in ('verified','candidate')
+         and (
+           mapping.road_id<>expansion.road_id
+           or mapping.mapping_status<>expansion.mapping_status
+           or mapping.mapping_method<>expansion.mapping_method
+         )
+     )
+     or exists(
+       select 1
+       from public.brinesearch_road_identity_mappings mapping
+       join tmp_issue97_frozen_mapping_refresh_expansion expansion
+         on expansion.identity_id=mapping.identity_id
+       where mapping.mapping_status in ('verified','candidate')
+         and not exists(
+           select 1
+           from tmp_issue97_mapping_wave_new_builds build
+           where build.state_code='OH'
+             and build.county_code=expansion.county_code
+         )
+     )
+  then
+    raise exception
+      'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds';
   end if;
 
   if (select count(*) from tmp_issue97_mapping_wave_build_results)<>8
@@ -939,20 +1098,66 @@ begin
        select 1 from tmp_issue97_mapping_wave_active_before prior
        join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)
        where (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-           junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership)
-             -'id'-'junction_id'-'created_at'-'updated_at')::text,
+           junction.stable_junction_key||':'||(
+             (pg_catalog.to_jsonb(membership)
+               -'id'-'junction_id'-'created_at'-'updated_at')
+             ||pg_catalog.jsonb_build_object(
+               'road_id',
+               case when exists(
+                 select 1
+                 from tmp_issue97_frozen_mapping_refresh_expansion expansion
+                 where expansion.identity_id=membership.identity_id
+                   and expansion.road_id=membership.road_id
+               ) then null else membership.road_id end
+             )
+           )::text,
            '|' order by junction.stable_junction_key,
-             (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'created_at'-'updated_at')::text),''))
+             (
+               (pg_catalog.to_jsonb(membership)
+                 -'id'-'junction_id'-'created_at'-'updated_at')
+               ||pg_catalog.jsonb_build_object(
+                 'road_id',
+                 case when exists(
+                   select 1
+                   from tmp_issue97_frozen_mapping_refresh_expansion expansion
+                   where expansion.identity_id=membership.identity_id
+                     and expansion.road_id=membership.road_id
+                 ) then null else membership.road_id end
+               )
+             )::text),''))
          from public.brinesearch_road_junction_memberships membership
          join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
          where junction.build_id=prior.id
            and not exists(select 1 from tmp_issue97_frozen_mapping_targets target
              where target.identity_id=membership.identity_id))
        <>(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-           junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership)
-             -'id'-'junction_id'-'created_at'-'updated_at')::text,
+           junction.stable_junction_key||':'||(
+             (pg_catalog.to_jsonb(membership)
+               -'id'-'junction_id'-'created_at'-'updated_at')
+             ||pg_catalog.jsonb_build_object(
+               'road_id',
+               case when exists(
+                 select 1
+                 from tmp_issue97_frozen_mapping_refresh_expansion expansion
+                 where expansion.identity_id=membership.identity_id
+                   and expansion.road_id=membership.road_id
+               ) then null else membership.road_id end
+             )
+           )::text,
            '|' order by junction.stable_junction_key,
-             (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'created_at'-'updated_at')::text),''))
+             (
+               (pg_catalog.to_jsonb(membership)
+                 -'id'-'junction_id'-'created_at'-'updated_at')
+               ||pg_catalog.jsonb_build_object(
+                 'road_id',
+                 case when exists(
+                   select 1
+                   from tmp_issue97_frozen_mapping_refresh_expansion expansion
+                   where expansion.identity_id=membership.identity_id
+                     and expansion.road_id=membership.road_id
+                 ) then null else membership.road_id end
+               )
+             )::text),''))
          from public.brinesearch_road_junction_memberships membership
          join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
           where junction.build_id=build.id
@@ -977,9 +1182,18 @@ begin
         membership.membership_role,
         membership.road_id,
         true as row_present,
-        pg_catalog.to_jsonb(membership)
-          -'id'-'junction_id'-'created_at'-'updated_at'
-          as semantic_row
+        (
+          pg_catalog.to_jsonb(membership)
+            -'id'-'junction_id'-'created_at'-'updated_at'
+        )||pg_catalog.jsonb_build_object(
+          'road_id',
+          case when exists(
+            select 1
+            from tmp_issue97_frozen_mapping_refresh_expansion expansion
+            where expansion.identity_id=membership.identity_id
+              and expansion.road_id=membership.road_id
+          ) then null else membership.road_id end
+        ) as semantic_row
       from pairs
       join public.brinesearch_road_junctions junction
         on junction.build_id=pairs.prior_build_id
@@ -999,9 +1213,18 @@ begin
         membership.membership_role,
         membership.road_id,
         true as row_present,
-        pg_catalog.to_jsonb(membership)
-          -'id'-'junction_id'-'created_at'-'updated_at'
-          as semantic_row
+        (
+          pg_catalog.to_jsonb(membership)
+            -'id'-'junction_id'-'created_at'-'updated_at'
+        )||pg_catalog.jsonb_build_object(
+          'road_id',
+          case when exists(
+            select 1
+            from tmp_issue97_frozen_mapping_refresh_expansion expansion
+            where expansion.identity_id=membership.identity_id
+              and expansion.road_id=membership.road_id
+          ) then null else membership.road_id end
+        ) as semantic_row
       from pairs
       join public.brinesearch_road_junctions junction
         on junction.build_id=pairs.new_build_id

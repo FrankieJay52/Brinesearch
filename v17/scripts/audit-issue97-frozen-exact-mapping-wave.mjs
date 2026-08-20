@@ -52,6 +52,142 @@ if (md5(identities.join('|')) !== '492ff9967d8a822d10c8d5003cd018a6'
   throw new Error('Frozen mapping allowlist digest drifted');
 }
 
+const refreshExpansionBlock = migration.match(
+  /insert into tmp_issue97_frozen_mapping_refresh_expansion values([\s\S]*?);\s*select pg_catalog\.pg_advisory_xact_lock/,
+)?.[1];
+if (!refreshExpansionBlock) {
+  throw new Error('Could not parse the reviewed mapping-refresh expansion block');
+}
+const refreshExpansionPattern = /\('(BEL|CAR)','([0-9a-f-]{36})','([^']+)','([0-9a-f-]{36})','(state_route)','(SR)','([0-9]+)',null,null,null,'(verified)','(exact_route_designation)',([0-9]+),(false),'OH:(BEL|CAR)','(identity_exact_components)','(exact_route_designation)','(needs_review)','(verified)',([0-9]+)\)/g;
+const refreshExpansion = [...refreshExpansionBlock.matchAll(refreshExpansionPattern)]
+  .map((match) => ({
+    county: match[1],
+    identity: match[2],
+    sourceIdentityKey: match[3],
+    road: match[4],
+    roadClass: match[5],
+    routeSystem: match[6],
+    routeNumber: match[7],
+    routeSuffix: '',
+    routeFraction: '',
+    routeExtension: '',
+    mappingStatus: match[8],
+    mappingMethod: match[9],
+    candidateCount: Number(match[10]),
+    ambiguity: match[11] === 'true',
+    refreshScope: `OH:${match[12]}`,
+    designationSource: match[13],
+    evidenceFamily: match[14],
+    priorRoadStatus: match[15],
+    newRoadStatus: match[16],
+    oldMembershipOccurrences: Number(match[17]),
+  }));
+const expectedRefreshExpansion = [
+  ['BEL', '0ee37e9a-6dd3-a186-8d3c-fc7dae6bccf1', 'OH:ODOT:NLF:SBELSR00026**C', '0a96a8b7-e9f6-4607-8d09-20cd3793ff8d', '26', 21],
+  ['BEL', '32151137-5710-e8d5-f106-83f5059b1d1d', 'OH:ODOT:NLF:SBELSR00007**N', '7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c', '7', 55],
+  ['BEL', '4164e40d-9d86-bb26-0950-e590bc53cb15', 'OH:ODOT:NLF:SBELSR00265**C', '154688cf-a3d1-4c2f-bf9c-65b15ab424a4', '265', 3],
+  ['BEL', '54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e', 'OH:ODOT:NLF:SBELSR00007**C', '7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c', '7', 88],
+  ['BEL', 'b56195f1-296a-834e-f5e8-2df1ae3f197e', 'OH:ODOT:NLF:SBELSR00800**C', '0a8a8721-4d20-41bf-8d95-ec069173e584', '800', 96],
+  ['CAR', '3a93792d-6725-df4b-de04-5a4075602ffc', 'OH:ODOT:NLF:SCARSR00332**N', '5ae10d76-e896-40bb-aecf-8d23f512e195', '332', 2],
+  ['CAR', '43bbec47-3530-415d-dd5d-0fbb54371081', 'OH:ODOT:NLF:SCARSR00644**C', '102d9976-3801-42dc-a716-ee1540364f8f', '644', 2],
+].map(([county, identity, sourceIdentityKey, road, routeNumber, oldMembershipOccurrences]) => ({
+  county,
+  identity,
+  sourceIdentityKey,
+  road,
+  roadClass: 'state_route',
+  routeSystem: 'SR',
+  routeNumber,
+  routeSuffix: '',
+  routeFraction: '',
+  routeExtension: '',
+  mappingStatus: 'verified',
+  mappingMethod: 'exact_route_designation',
+  candidateCount: 1,
+  ambiguity: false,
+  refreshScope: `OH:${county}`,
+  designationSource: 'identity_exact_components',
+  evidenceFamily: 'exact_route_designation',
+  priorRoadStatus: 'needs_review',
+  newRoadStatus: 'verified',
+  oldMembershipOccurrences,
+}));
+const sortExpansion = (rows) => [...rows].sort((a, b) => a.identity.localeCompare(b.identity));
+if (JSON.stringify(sortExpansion(refreshExpansion))
+    !== JSON.stringify(sortExpansion(expectedRefreshExpansion))) {
+  throw new Error('Reviewed mapping-refresh expansion rows drifted');
+}
+const refreshExpansionIdentities = refreshExpansion.map(({ identity }) => identity).sort();
+const refreshExpansionRoads = [...new Set(refreshExpansion.map(({ road }) => road))].sort();
+const refreshExpansionCanonical = sortExpansion(refreshExpansion).map((row) => [
+  row.county, row.identity, row.sourceIdentityKey, row.road,
+  row.roadClass, row.routeSystem, row.routeNumber,
+  row.routeSuffix, row.routeFraction, row.routeExtension,
+  row.mappingStatus, row.mappingMethod, String(row.candidateCount),
+  String(row.ambiguity), row.refreshScope, row.designationSource,
+  row.evidenceFamily, row.priorRoadStatus, row.newRoadStatus,
+  String(row.oldMembershipOccurrences),
+].join('|')).join(',');
+if (refreshExpansion.length !== 7
+    || refreshExpansionIdentities.length !== new Set(refreshExpansionIdentities).size
+    || refreshExpansionRoads.length !== 6
+    || refreshExpansion.filter(({ county }) => county === 'BEL').length !== 5
+    || refreshExpansion.filter(({ county }) => county === 'CAR').length !== 2
+    || refreshExpansion.reduce((sum, row) => sum + row.oldMembershipOccurrences, 0) !== 267
+    || refreshExpansion.some(({ identity }) => identities.includes(identity))
+    || refreshExpansion.some(({ road }) => !targets.some(
+      (target) => target.road === road && target.basis === 'exact_route_designation',
+    ))
+    || md5(refreshExpansionIdentities.join(',')) !== '8d8220e71953dc0ae998161ec169b1ae'
+    || md5(refreshExpansionRoads.join(',')) !== 'b2498ac8d77d75d69e23e528b57de08d'
+    || md5(sortExpansion(refreshExpansion)
+      .map(({ identity, road }) => `${identity}|${road}`).join(','))
+      !== '6c2fbf02b44ae04197e6da650a212da3'
+    || md5(refreshExpansionCanonical) !== '1d47469b225657e89e3c54e2d476fecb') {
+  throw new Error('Reviewed mapping-refresh expansion cardinality or digest drifted');
+}
+requireText(
+  migration,
+  "'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8'",
+  'complete rollback-proof transition digest',
+);
+const refreshExpansionGuard = migration.match(
+  /if \(select count\(\*\) from tmp_issue97_frozen_mapping_refresh_expansion\)<>7[\s\S]*?raise exception\s*'Issue #97 reviewed exact mapping-refresh expansion contract drifted';\s*end if;/,
+)?.[0];
+if (!refreshExpansionGuard) {
+  throw new Error('Could not parse the reviewed mapping-refresh expansion guard');
+}
+const normalizedRefreshExpansionGuard = refreshExpansionGuard.replace(/\s+/g, ' ');
+for (const token of [
+  '(select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
+  '(select count(distinct identity_id) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
+  '(select count(distinct road_id) from tmp_issue97_frozen_mapping_refresh_expansion)<>6',
+  "where county_code='BEL')<>5",
+  "where county_code='CAR')<>2",
+  'select sum(old_active_membership_occurrence_count) from tmp_issue97_frozen_mapping_refresh_expansion)<>267',
+  "identity.state_code is distinct from 'OH'",
+  'identity.county_code is distinct from expansion.county_code',
+  'identity.source_identity_key is distinct from expansion.source_identity_key',
+  'road.verification_status is distinct from expansion.prior_road_verification_status',
+  "expansion.mapping_status is distinct from 'verified'",
+  "expansion.mapping_method is distinct from 'exact_route_designation'",
+  'expansion.exact_candidate_count is distinct from 1',
+  'or expansion.ambiguity_flag',
+  "expansion.refresh_scope is distinct from 'OH:'||expansion.county_code",
+  "expansion.designation_source is distinct from 'identity_exact_components'",
+  "target.evidence_basis='exact_route_designation'",
+  "<>'8d8220e71953dc0ae998161ec169b1ae'",
+  "<>'b2498ac8d77d75d69e23e528b57de08d'",
+  "<>'6c2fbf02b44ae04197e6da650a212da3'",
+  "<>'1d47469b225657e89e3c54e2d476fecb'",
+]) {
+  requireText(
+    normalizedRefreshExpansionGuard,
+    token,
+    `reviewed mapping-refresh expansion guard: ${token}`,
+  );
+}
+
 const manifestTargetBlock = routeManifest.match(
   /target_pairs\(identity_id,road_id\) as \(\s*values([\s\S]*?)\),\s*-- EXACT_REPLACED_GRAPHS_BEGIN/,
 )?.[1];
@@ -204,6 +340,16 @@ for (const token of [
   'evidence_digest',
   "'mapping_ownership','manual_reviewed_source_evidence'",
   "'machine_refresh_may_retire_target_mappings',false",
+  'tmp_issue97_frozen_mapping_refresh_expansion',
+  'Issue #97 reviewed exact mapping-refresh expansion contract drifted',
+  "'reviewed_machine_refresh_expansion_count',7",
+  "'reviewed_machine_refresh_expansion_road_count',6",
+  "'reviewed_machine_refresh_membership_occurrences',267",
+  "'reviewed_machine_refresh_identity_digest','8d8220e71953dc0ae998161ec169b1ae'",
+  "'reviewed_machine_refresh_road_digest','b2498ac8d77d75d69e23e528b57de08d'",
+  "'reviewed_machine_refresh_pair_digest','6c2fbf02b44ae04197e6da650a212da3'",
+  "'reviewed_machine_refresh_contract_digest','1d47469b225657e89e3c54e2d476fecb'",
+  "'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8'",
   'old affected graph escaped the mapping-currentness quarantine',
   'target.road_id=mapping.road_id',
   "mapping.id=private_verification.brinesearch_issue97_uuid(",
@@ -263,6 +409,9 @@ const refreshOwnershipInspectionIndex = migration.indexOf(
 const refreshOwnershipGuardIndex = migration.indexOf(refreshOwnershipGuard);
 const refreshOwnershipGuardEndIndex = refreshOwnershipGuardIndex
   + refreshOwnershipGuard.length;
+const refreshExpansionGuardIndex = migration.indexOf(refreshExpansionGuard);
+const refreshExpansionGuardEndIndex = refreshExpansionGuardIndex
+  + refreshExpansionGuard.length;
 const roadWriteIndex = migration.indexOf('update public.brinesearch_roads road set');
 const mappingWriteIndex = migration.indexOf(
   'insert into public.brinesearch_road_identity_mappings(',
@@ -297,6 +446,11 @@ if (refreshOwnershipInspectionIndex < 0 || refreshOwnershipGuardIndex < 0
       && refreshOwnershipGuardEndIndex < roadWriteIndex
       && refreshOwnershipGuardEndIndex < mappingWriteIndex)) {
   throw new Error('Completed refresh ownership guard must precede target road and mapping writes');
+}
+if (refreshExpansionGuardIndex < 0
+    || !(refreshExpansionGuardEndIndex < roadWriteIndex
+      && refreshExpansionGuardEndIndex < mappingWriteIndex)) {
+  throw new Error('Completed mapping-refresh expansion guard must precede target road and mapping writes');
 }
 if (!(immediateQueueAssertionIndex < immediateReceiptSnapshotIndex
     && immediateQueueAssertionIndex < immediatePadSnapshotIndex
@@ -452,6 +606,16 @@ for (const token of [
   'tmp_issue97_mapping_wave_reviewed_mappings_before_build',
   'Issue #97 reviewed frozen mapping snapshot count drifted',
   'Issue #97 reviewed frozen mappings changed during graph rebuilds',
+  'tmp_issue97_mapping_wave_refresh_expansion_before_build',
+  'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted',
+  'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds',
+  'old_active_membership_occurrence_count',
+  'observed_old_membership_occurrence_count',
+  'old_nonnull_road_id_count',
+  "mapping.evidence->>'exact_candidate_count'",
+  "mapping.evidence->>'ambiguity_held'",
+  "mapping.evidence->>'refresh_scope'",
+  "mapping.evidence->>'designation_source'",
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_receipts)<>3',
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_pads)<>3',
   "receipt.status is distinct from 'stale'",
@@ -467,7 +631,7 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== '9e33dc1691090631049ceb8291adf120') {
+if (md5(normalizedRehearsal) !== 'f970764d675a026ae2bd50c478422b5a') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -484,7 +648,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== 'afd6f6f01c65002c81e9a4572215035b') {
+if (md5(rebuildAssertionsBlock) !== '729babe043893cb3e64582f72b24dccd') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 if ((rehearsal.match(/^\\set ON_ERROR_STOP on\s*$/gm) ?? []).length !== 1) {
@@ -539,6 +703,112 @@ if (offsetsOf(
   'Issue #97 reviewed frozen mappings changed during graph rebuilds',
 ).length !== 1) {
   throw new Error('Reviewed frozen mapping survival RAISE must occur exactly once');
+}
+
+const refreshExpansionSnapshotRaise =
+  'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted';
+const refreshExpansionSurvivalRaise =
+  'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds';
+if (offsetsOf(rehearsal, refreshExpansionSnapshotRaise).length !== 1
+    || offsetsOf(rehearsal, refreshExpansionSurvivalRaise).length !== 1) {
+  throw new Error('Reviewed mapping-refresh expansion assertions must each occur exactly once');
+}
+for (const token of [
+  'create temporary table tmp_issue97_mapping_wave_refresh_expansion_before_build on commit drop as select expansion.*',
+  "mapping.mapping_status in ('verified','candidate')",
+  'snapshot.active_mapping_count<>0',
+  'snapshot.observed_old_membership_occurrence_count<> snapshot.old_active_membership_occurrence_count',
+  'snapshot.old_nonnull_road_id_count<>0',
+  'select sum(observed_old_membership_occurrence_count) from tmp_issue97_mapping_wave_refresh_expansion_before_build )<>267',
+]) {
+  requireText(
+    normalizedRehearsal,
+    token,
+    `reviewed mapping-refresh pre-build contract: ${token}`,
+  );
+}
+const refreshExpansionSurvivalIndex = normalizedRehearsal.indexOf(
+  `raise exception '${refreshExpansionSurvivalRaise}'`,
+);
+const refreshExpansionSurvivalStart = normalizedRehearsal.lastIndexOf(
+  'if (',
+  refreshExpansionSurvivalIndex,
+);
+const refreshExpansionSurvivalEnd = normalizedRehearsal.indexOf(
+  'end if;',
+  refreshExpansionSurvivalIndex,
+);
+if (refreshExpansionSurvivalIndex < 0
+    || refreshExpansionSurvivalStart < 0
+    || refreshExpansionSurvivalEnd < 0) {
+  throw new Error('Could not parse reviewed mapping-refresh expansion survival assertion');
+}
+const refreshExpansionSurvivalBlock = normalizedRehearsal.slice(
+  refreshExpansionSurvivalStart,
+  refreshExpansionSurvivalEnd + 'end if;'.length,
+);
+for (const token of [
+  'join tmp_issue97_mapping_wave_new_builds build',
+  "mapping.mapping_status='verified'",
+  'mapping.mapping_method is distinct from expansion.mapping_method',
+  "mapping.evidence->>'source_identity_key' is distinct from expansion.source_identity_key",
+  "mapping.evidence->>'route_class' is distinct from expansion.road_class",
+  "mapping.evidence->>'route_token' is distinct from expansion.route_number",
+  "mapping.evidence->>'designation_source' is distinct from expansion.designation_source",
+  "mapping.evidence->>'refresh_scope' is distinct from expansion.refresh_scope",
+  "(mapping.evidence->>'exact_candidate_count')::integer is distinct from expansion.exact_candidate_count",
+  "(mapping.evidence->>'ambiguity_held')::boolean is distinct from expansion.ambiguity_flag",
+  'occurrence.membership_count is distinct from expansion.old_active_membership_occurrence_count',
+  'occurrence.exact_road_membership_count is distinct from expansion.old_active_membership_occurrence_count',
+  "mapping.mapping_status in ('verified','candidate')",
+  'mapping.road_id<>expansion.road_id',
+  'not exists( select 1 from tmp_issue97_mapping_wave_new_builds build',
+]) {
+  requireText(
+    refreshExpansionSurvivalBlock,
+    token,
+    `reviewed mapping-refresh survival contract: ${token}`,
+  );
+}
+
+const reviewedRefreshExpansionPasses = ({
+  transitionRows = 7,
+  identities: expansionIdentityCount = 7,
+  roads: expansionRoadCount = 6,
+  membershipOccurrences = 267,
+  mappingMethod = 'exact_route_designation',
+  candidateCount = 1,
+  ambiguity = false,
+  scopeExact = true,
+  evidenceExact = true,
+  roadSetExact = true,
+  roadOnlySemanticChange = true,
+}) => transitionRows === 7
+  && expansionIdentityCount === 7
+  && expansionRoadCount === 6
+  && membershipOccurrences === 267
+  && mappingMethod === 'exact_route_designation'
+  && candidateCount === 1
+  && ambiguity === false
+  && scopeExact
+  && evidenceExact
+  && roadSetExact
+  && roadOnlySemanticChange;
+assert.equal(reviewedRefreshExpansionPasses({}), true);
+for (const mutation of [
+  { transitionRows: 8 },
+  { identities: 6 },
+  { roads: 7 },
+  { membershipOccurrences: 266 },
+  { mappingMethod: 'exact_source_record_id' },
+  { candidateCount: 2 },
+  { ambiguity: true },
+  { scopeExact: false },
+  { evidenceExact: false },
+  { roadSetExact: false },
+  { roadOnlySemanticChange: false },
+]) {
+  assert.equal(reviewedRefreshExpansionPasses(mutation), false);
 }
 requireText(
   normalizedRehearsal,
@@ -797,14 +1067,14 @@ const semanticDiagnosticContracts = {
     detailCount: "'non_target_membership_diff_count'",
     detailSample: "'non_target_membership_diff_sample'",
     sampleProjection: 'select county_code, stable_junction_key, identity_id, membership_role, difference_kind, prior_road_id, new_road_id, prior_semantic, new_semantic from differences order by county_code, stable_junction_key, identity_id, membership_role limit 50',
-    semanticRow: "pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at' as semantic_row",
-    semanticHash: "junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at')::text, '|' order by junction.stable_junction_key, (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'created_at'-'updated_at')::text",
+    semanticRow: "( pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at' )||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) )::text, '|' order by junction.stable_junction_key, ( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) )::text",
     fullJoinKey: 'full join new_rows using( county_code, stable_junction_key, identity_id, membership_role )',
     hashSource: 'from public.brinesearch_road_junction_memberships membership join public.brinesearch_road_junctions junction on junction.id=membership.junction_id',
     priorHashFilter: 'where junction.build_id=prior.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
     newHashFilter: 'where junction.build_id=build.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
     aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code, sample.stable_junction_key, sample.identity_id, sample.membership_role )',
-    blockMd5: '1e4af39a198b37b48d63e81cb944db9d',
+    blockMd5: 'd501b032a6848eef59b1d2456f1e5959',
   },
 };
 
@@ -843,7 +1113,10 @@ for (const [name, contract] of Object.entries(semanticDiagnosticContracts)) {
     `<>(select pg_catalog.md5(coalesce(pg_catalog.string_agg( ${contract.semanticHash}),''))`,
     `${contract.hashSource} ${contract.newHashFilter}) )`,
   ].join(' ');
-  const actualHashGuard = contract.block.slice(0, contract.block.indexOf(' then'));
+  const actualHashGuard = contract.block.slice(
+    0,
+    contract.block.indexOf(' then with pairs as ('),
+  );
   if (actualHashGuard !== expectedHashGuard) {
     throw new Error(`${name} complete old-versus-candidate hash predicate drifted`);
   }
@@ -941,6 +1214,19 @@ forbid(
   /to_jsonb\(membership\)\s*-'id'-'junction_id'-'road_id'/i,
   'non-target membership semantic row excludes road_id',
 );
+const exactRefreshExpansionRoadNormalization =
+  "pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end )";
+if (offsetsOf(
+  semanticTopologyBlocks.nonTargetMembership,
+  exactRefreshExpansionRoadNormalization,
+).length !== 6) {
+  throw new Error('Non-target membership must normalize only the seven exact expansion identity/road pairs');
+}
+forbid(
+  semanticTopologyBlocks.nonTargetMembership,
+  /then null else null end/i,
+  'non-target membership road normalization widened to every identity',
+);
 
 const candidateDigestContractIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 exact eight-county dark rebuild contract failed'",
@@ -950,6 +1236,9 @@ const migrationApplicationIndex = normalizedRehearsal.indexOf(
 );
 const reviewedSnapshotIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_reviewed_mappings_before_build',
+);
+const refreshExpansionSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_refresh_expansion_before_build',
 );
 const buildResultsCreationIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_build_results(',
@@ -966,6 +1255,9 @@ const newBuildMaterializationIndex = normalizedRehearsal.indexOf(
 const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 reviewed frozen mappings changed during graph rebuilds'",
 );
+const refreshExpansionSurvivalAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds'",
+);
 const countDriftAssertionIndex = normalizedRehearsal.indexOf(countDriftRaise);
 const roadIdMismatchAssertionIndex = normalizedRehearsal.indexOf(roadIdMismatchRaise);
 const activationProtectionAssertionIndex = normalizedRehearsal.indexOf(
@@ -978,9 +1270,11 @@ const googleProtectionAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 rollback rehearsal Google state changed during dark builds'",
 );
 if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
+    || refreshExpansionSnapshotIndex < 0
     || buildResultsCreationIndex < 0
     || firstGraphBuildIndex < 0 || lastGraphBuildIndex < 0
     || newBuildMaterializationIndex < 0 || reviewedMappingSurvivalAssertionIndex < 0
+    || refreshExpansionSurvivalAssertionIndex < 0
     || candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
     || roadIdMismatchAssertionIndex < 0
     || semanticTopologyRaiseIndexes.junction < 0
@@ -990,12 +1284,14 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || releaseCurrentnessAssertionIndex < 0 || activationProtectionAssertionIndex < 0
     || routeProtectionAssertionIndex < 0 || googleProtectionAssertionIndex < 0
     || !(migrationApplicationIndex < reviewedSnapshotIndex
-      && reviewedSnapshotIndex < buildResultsCreationIndex
+      && reviewedSnapshotIndex < refreshExpansionSnapshotIndex
+      && refreshExpansionSnapshotIndex < buildResultsCreationIndex
       && buildResultsCreationIndex < firstGraphBuildIndex
       && firstGraphBuildIndex < lastGraphBuildIndex
       && lastGraphBuildIndex < newBuildMaterializationIndex
       && newBuildMaterializationIndex < reviewedMappingSurvivalAssertionIndex
-      && reviewedMappingSurvivalAssertionIndex < candidateDigestContractIndex
+      && reviewedMappingSurvivalAssertionIndex < refreshExpansionSurvivalAssertionIndex
+      && refreshExpansionSurvivalAssertionIndex < candidateDigestContractIndex
       && candidateDigestContractIndex < countDriftAssertionIndex
       && countDriftAssertionIndex < roadIdMismatchAssertionIndex
       && roadIdMismatchAssertionIndex < semanticTopologyRaiseIndexes.junction

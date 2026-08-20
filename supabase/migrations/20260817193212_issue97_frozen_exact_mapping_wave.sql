@@ -73,6 +73,42 @@ insert into tmp_issue97_frozen_mapping_targets values
 ('f80b4b21-06b0-b774-1ab7-402acfe3c2b9','f4cc321a-7010-4f44-a469-c49ca9c32241','exact_route_designation','d44ab9257f670b09c0dd2d65a51f8a88','59a42d782dcf97fc154bdbf6b9f6b2c4'),
 ('fb216029-dd42-ec15-192f-9192823a0601','a80366a3-06e0-4a0a-970d-7df6c2b7a205','exact_base_nlf_source_street_core','a5eab1a32bba2caa2b0f0e0d6fcdbda3','a6931700b1640e47cb8868eebde3630a');
 
+-- The reviewed highway adoption also makes exactly seven otherwise-unmapped
+-- BEL/CAR source identities eligible for the existing county-scoped exact
+-- designation refresh. This is a frozen machine-owned expansion, not a general
+-- relaxation of non-target membership protection.
+create temporary table tmp_issue97_frozen_mapping_refresh_expansion(
+  county_code text not null,
+  identity_id uuid primary key,
+  source_identity_key text not null unique,
+  road_id uuid not null,
+  road_class text not null,
+  route_system text not null,
+  route_number text not null,
+  route_suffix text,
+  route_fraction text,
+  route_extension text,
+  mapping_status text not null,
+  mapping_method text not null,
+  exact_candidate_count integer not null,
+  ambiguity_flag boolean not null,
+  refresh_scope text not null,
+  designation_source text not null,
+  evidence_family text not null,
+  prior_road_verification_status text not null,
+  new_road_verification_status text not null,
+  old_active_membership_occurrence_count bigint not null
+) on commit drop;
+
+insert into tmp_issue97_frozen_mapping_refresh_expansion values
+('BEL','0ee37e9a-6dd3-a186-8d3c-fc7dae6bccf1','OH:ODOT:NLF:SBELSR00026**C','0a96a8b7-e9f6-4607-8d09-20cd3793ff8d','state_route','SR','26',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',21),
+('BEL','32151137-5710-e8d5-f106-83f5059b1d1d','OH:ODOT:NLF:SBELSR00007**N','7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c','state_route','SR','7',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',55),
+('BEL','4164e40d-9d86-bb26-0950-e590bc53cb15','OH:ODOT:NLF:SBELSR00265**C','154688cf-a3d1-4c2f-bf9c-65b15ab424a4','state_route','SR','265',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',3),
+('BEL','54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e','OH:ODOT:NLF:SBELSR00007**C','7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c','state_route','SR','7',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',88),
+('BEL','b56195f1-296a-834e-f5e8-2df1ae3f197e','OH:ODOT:NLF:SBELSR00800**C','0a8a8721-4d20-41bf-8d95-ec069173e584','state_route','SR','800',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',96),
+('CAR','3a93792d-6725-df4b-de04-5a4075602ffc','OH:ODOT:NLF:SCARSR00332**N','5ae10d76-e896-40bb-aecf-8d23f512e195','state_route','SR','332',null,null,null,'verified','exact_route_designation',1,false,'OH:CAR','identity_exact_components','exact_route_designation','needs_review','verified',2),
+('CAR','43bbec47-3530-415d-dd5d-0fbb54371081','OH:ODOT:NLF:SCARSR00644**C','102d9976-3801-42dc-a716-ee1540364f8f','state_route','SR','644',null,null,null,'verified','exact_route_designation',1,false,'OH:CAR','identity_exact_components','exact_route_designation','needs_review','verified',2);
+
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('brinesearch:issue97:ohio-state-release'));
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('brinesearch:issue97:all-pad-routing-pipeline',97));
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('brinesearch:issue97:route-corpus',97));
@@ -305,6 +341,99 @@ begin
      or (select pg_catalog.md5(pg_catalog.string_agg(identity_id::text||':'||road_id::text,'|' order by identity_id)) from tmp_issue97_frozen_mapping_targets)<>'0a0f29f2c40f1d1265b498f77ab56dd7'
   then
     raise exception 'Issue #97 frozen 46-identity/37-road allowlist drifted';
+  end if;
+
+  if (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+     or (select count(distinct identity_id)
+         from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+     or (select count(distinct road_id)
+         from tmp_issue97_frozen_mapping_refresh_expansion)<>6
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion
+         where county_code='BEL')<>5
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion
+         where county_code='CAR')<>2
+     or (select sum(old_active_membership_occurrence_count)
+         from tmp_issue97_frozen_mapping_refresh_expansion)<>267
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_refresh_expansion expansion
+       join public.brinesearch_authoritative_road_identities identity
+         on identity.id=expansion.identity_id
+       join public.brinesearch_roads road on road.id=expansion.road_id
+       where identity.state_code is distinct from 'OH'
+          or identity.county_code is distinct from expansion.county_code
+          or identity.source_identity_key is distinct from
+             expansion.source_identity_key
+          or identity.road_class is distinct from expansion.road_class
+          or identity.route_system is distinct from expansion.route_system
+          or identity.route_number is distinct from expansion.route_number
+          or identity.route_suffix is distinct from expansion.route_suffix
+          or identity.route_fraction is distinct from expansion.route_fraction
+          or identity.route_extension is distinct from expansion.route_extension
+          or road.verification_status is distinct from
+             expansion.prior_road_verification_status
+     )
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_refresh_expansion expansion
+       where expansion.mapping_status is distinct from 'verified'
+          or expansion.mapping_method is distinct from
+             'exact_route_designation'
+          or expansion.exact_candidate_count is distinct from 1
+          or expansion.ambiguity_flag
+          or expansion.refresh_scope is distinct from
+             'OH:'||expansion.county_code
+          or expansion.designation_source is distinct from
+             'identity_exact_components'
+          or expansion.evidence_family is distinct from
+             'exact_route_designation'
+          or expansion.prior_road_verification_status is distinct from
+             'needs_review'
+          or expansion.new_road_verification_status is distinct from
+             'verified'
+          or not exists(
+            select 1
+            from tmp_issue97_frozen_mapping_targets target
+            where target.road_id=expansion.road_id
+              and target.evidence_basis='exact_route_designation'
+          )
+     )
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           identity_id::text,',' order by identity_id
+         ))
+         from tmp_issue97_frozen_mapping_refresh_expansion)
+        <>'8d8220e71953dc0ae998161ec169b1ae'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           road_id::text,',' order by road_id
+         ))
+         from (
+           select distinct road_id
+           from tmp_issue97_frozen_mapping_refresh_expansion
+         ) roads)
+        <>'b2498ac8d77d75d69e23e528b57de08d'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           identity_id::text||'|'||road_id::text,
+           ',' order by identity_id,road_id
+         ))
+         from tmp_issue97_frozen_mapping_refresh_expansion)
+        <>'6c2fbf02b44ae04197e6da650a212da3'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           pg_catalog.concat_ws(
+             '|',county_code,identity_id::text,source_identity_key,
+             road_id::text,road_class,route_system,route_number,
+             coalesce(route_suffix,''),coalesce(route_fraction,''),
+             coalesce(route_extension,''),mapping_status,mapping_method,
+             exact_candidate_count::text,ambiguity_flag::text,
+             refresh_scope,designation_source,evidence_family,
+             prior_road_verification_status,new_road_verification_status,
+             old_active_membership_occurrence_count::text
+           ),',' order by identity_id
+         ))
+         from tmp_issue97_frozen_mapping_refresh_expansion)
+        <>'1d47469b225657e89e3c54e2d476fecb'
+  then
+    raise exception
+      'Issue #97 reviewed exact mapping-refresh expansion contract drifted';
   end if;
 
   if (select count(*) from tmp_issue97_frozen_mapping_graph_before)<>8
@@ -962,6 +1091,14 @@ select pg_catalog.jsonb_build_object(
     pg_catalog.to_jsonb(array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']),
   'mapping_ownership','manual_reviewed_source_evidence',
   'machine_refresh_may_retire_target_mappings',false,
+  'reviewed_machine_refresh_expansion_count',7,
+  'reviewed_machine_refresh_expansion_road_count',6,
+  'reviewed_machine_refresh_membership_occurrences',267,
+  'reviewed_machine_refresh_identity_digest','8d8220e71953dc0ae998161ec169b1ae',
+  'reviewed_machine_refresh_road_digest','b2498ac8d77d75d69e23e528b57de08d',
+  'reviewed_machine_refresh_pair_digest','6c2fbf02b44ae04197e6da650a212da3',
+  'reviewed_machine_refresh_contract_digest','1d47469b225657e89e3c54e2d476fecb',
+  'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8',
   'mapping_dependent_routes',379,'transition_only_routes',33,
   'final_route_count',412,'final_primary_count',340,'final_alternate_count',72,
   'final_route_set_digest','711b1ddd3ba6c47e7642fc700197432f',
