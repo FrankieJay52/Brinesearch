@@ -302,19 +302,45 @@ create temporary table
 tmp_issue97_mapping_wave_refresh_expansion_google_before_build
 on commit drop
 as
-with expected(pad_id) as (
+with expected(
+  pad_id,
+  expected_evidence_identity_id,
+  expected_evidence_road_id,
+  expected_receipt_route_revision
+) as (
   values
-    ('69c63442-de05-4d15-95da-07da587bc070'::uuid),
-    ('6ef0746f-341a-4d29-9399-a81cfbec11e8'::uuid),
-    ('75600d0c-17b8-488b-96c9-4b7b8ffc8b1b'::uuid),
-    ('b6dae008-74d4-4976-9c72-fba7ae349c50'::uuid),
-    ('b7526e45-0b33-4988-ae1c-0a4140971f8e'::uuid),
-    ('d7898e8c-1bb6-48f8-b5e0-87bc1898420e'::uuid),
-    ('e2b32e85-9e93-4388-8215-9d8167cbbeb8'::uuid),
-    ('f896d00c-da26-41b6-bf5b-e9d91afbdbc6'::uuid),
-    ('fcbf5085-4ba2-496d-9c20-516e8b52f9bd'::uuid)
+    ('69c63442-de05-4d15-95da-07da587bc070'::uuid,
+     'e78dcae3-372f-4cf6-9bdd-a3773b21a50e'::uuid,
+     '01bad0cc-614e-42b7-9db9-22bf6410c849'::uuid,0::bigint),
+    ('6ef0746f-341a-4d29-9399-a81cfbec11e8'::uuid,
+     'ebbc1392-345c-882e-2708-6ecc27a76f3c'::uuid,
+     'cdcfd114-42c5-4478-9251-eac57a70e528'::uuid,0::bigint),
+    ('75600d0c-17b8-488b-96c9-4b7b8ffc8b1b'::uuid,
+     '542490a4-ba6f-02af-0209-37ad6257a962'::uuid,
+     '52b08bc7-9b54-4b8d-a833-f903fc298f7b'::uuid,0::bigint),
+    ('b6dae008-74d4-4976-9c72-fba7ae349c50'::uuid,
+     'ebbc1392-345c-882e-2708-6ecc27a76f3c'::uuid,
+     'cdcfd114-42c5-4478-9251-eac57a70e528'::uuid,0::bigint),
+    ('b7526e45-0b33-4988-ae1c-0a4140971f8e'::uuid,
+     '542490a4-ba6f-02af-0209-37ad6257a962'::uuid,
+     '52b08bc7-9b54-4b8d-a833-f903fc298f7b'::uuid,0::bigint),
+    ('d7898e8c-1bb6-48f8-b5e0-87bc1898420e'::uuid,
+     '9acadc48-c230-5e7b-6f2a-0a77f86f625c'::uuid,
+     'bbfacbaf-86be-4818-8541-61a697c71199'::uuid,1::bigint),
+    ('e2b32e85-9e93-4388-8215-9d8167cbbeb8'::uuid,
+     'ebbc1392-345c-882e-2708-6ecc27a76f3c'::uuid,
+     'cdcfd114-42c5-4478-9251-eac57a70e528'::uuid,0::bigint),
+    ('f896d00c-da26-41b6-bf5b-e9d91afbdbc6'::uuid,
+     'e78dcae3-372f-4cf6-9bdd-a3773b21a50e'::uuid,
+     '01bad0cc-614e-42b7-9db9-22bf6410c849'::uuid,0::bigint),
+    ('fcbf5085-4ba2-496d-9c20-516e8b52f9bd'::uuid,
+     'e78dcae3-372f-4cf6-9bdd-a3773b21a50e'::uuid,
+     '01bad0cc-614e-42b7-9db9-22bf6410c849'::uuid,0::bigint)
 )
 select expected.pad_id,
+  expected.expected_evidence_identity_id,
+  expected.expected_evidence_road_id,
+  expected.expected_receipt_route_revision,
   pg_catalog.to_jsonb(receipt) as pre_receipt_row,
   pg_catalog.jsonb_build_object(
     'status',pad.brinesearch_google_route_status_issue97,
@@ -328,6 +354,39 @@ left join private_verification.brinesearch_google_route_receipts_issue97 receipt
   on receipt.pad_id=expected.pad_id
 order by expected.pad_id;
 
+create temporary table
+tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before
+on commit drop
+as
+select
+  (
+    select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id
+    ),''))
+    from private_verification.brinesearch_google_route_receipts_issue97 receipt
+    where not exists(
+      select 1
+      from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+      where expected.pad_id=receipt.pad_id
+    )
+  ) as receipt_digest,
+  (
+    select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      pg_catalog.jsonb_build_object(
+        'pad_id',pad.id,
+        'status',pad.brinesearch_google_route_status_issue97,
+        'revision',pad.brinesearch_google_route_revision_issue97
+      )::text,
+      '|' order by pad.id
+    ),''))
+    from public.pads pad
+    where not exists(
+      select 1
+      from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+      where expected.pad_id=pad.id
+    )
+  ) as pad_digest;
+
 do $issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$
 begin
   if (
@@ -340,6 +399,45 @@ begin
        )
        from tmp_issue97_mapping_wave_refresh_expansion_google_before_build
      )<>'450948793c57a9a1535139fac4974792'
+     or (
+       select pg_catalog.md5(pg_catalog.string_agg(
+         pad_id::text||':'||
+         expected_evidence_identity_id::text||':'||
+         expected_evidence_road_id::text||':'||
+         expected_receipt_route_revision::text,
+         '|' order by pad_id
+       ))
+       from tmp_issue97_mapping_wave_refresh_expansion_google_before_build
+     )<>'5a75e5c4c34805b7dc2fdf8d0534a4f6'
+     or (
+       select count(*)
+       from tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before
+     )<>1
+     or exists(
+       select 1
+       from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+       where not (
+            exists(
+              select 1
+              from public.brinesearch_pad_roads step
+              where step.pad_id=expected.pad_id
+                and step.road_id=expected.expected_evidence_road_id
+            )
+            or exists(
+              select 1
+              from pg_catalog.jsonb_array_elements(
+                coalesce(
+                  expected.pre_receipt_row->'manifest'->'points',
+                  '[]'::jsonb
+                )
+              ) point
+              where point->>'identity_id'=
+                    expected.expected_evidence_identity_id::text
+                 or point->>'road_id'=
+                    expected.expected_evidence_road_id::text
+            )
+          )
+     )
   then
     raise exception
       'Issue #97 reviewed mapping-refresh Google dependency set drifted';
@@ -460,6 +558,123 @@ set constraints
 set constraints
   private_verification.brinesearch_issue97_google_route_refresh_deferred
   deferred;
+
+do $issue97_frozen_mapping_refresh_expansion_google_postprocess_assertion$
+declare
+  v_postprocess_diff_count bigint := 0;
+  v_postprocess_diff_sample jsonb := '[]'::jsonb;
+begin
+  with differences as (
+    select
+      expected.pad_id,
+      expected.expected_evidence_identity_id,
+      expected.expected_evidence_road_id,
+      expected.expected_receipt_route_revision,
+      pg_catalog.to_jsonb(receipt) as actual_receipt,
+      pg_catalog.jsonb_build_object(
+        'status',pad.brinesearch_google_route_status_issue97,
+        'revision',pad.brinesearch_google_route_revision_issue97,
+        'structured_route_revision',pad.structured_route_revision,
+        'road_sequence_status',pad.road_sequence_status
+      ) as actual_pad_state
+    from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+    left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+      on receipt.pad_id=expected.pad_id
+    left join public.pads pad on pad.id=expected.pad_id
+    where (
+      pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'
+    ) is distinct from pg_catalog.jsonb_build_object(
+      'pad_id',expected.pad_id,
+      'route_revision',expected.expected_receipt_route_revision,
+      'status','stale',
+      'hold_reason','road_identity_mapping_changed',
+      'manifest_version','issue97-google-v1',
+      'manifest_digest',null,
+      'dependency_digest',null,
+      'manifest',pg_catalog.jsonb_build_object(
+        'manifest_version','issue97-google-v1',
+        'route_ready',false,
+        'status','stale',
+        'pad_id',expected.pad_id,
+        'route_revision',expected.expected_receipt_route_revision
+      ),
+      'evidence',pg_catalog.jsonb_build_object(
+        'identity_id',expected.expected_evidence_identity_id,
+        'road_id',expected.expected_evidence_road_id
+      )
+    )
+       or receipt.generated_at is distinct from
+          pg_catalog.transaction_timestamp()
+       or receipt.updated_at is distinct from
+          pg_catalog.transaction_timestamp()
+       or not exists(
+            select 1
+            from public.brinesearch_road_identity_mappings mapping
+            where mapping.identity_id=
+                  expected.expected_evidence_identity_id
+              and mapping.road_id=expected.expected_evidence_road_id
+              and mapping.mapping_status='verified'
+              and mapping.mapping_method in (
+                'exact_source_record_id','exact_route_designation'
+              )
+          )
+       or pg_catalog.jsonb_build_object(
+            'status',pad.brinesearch_google_route_status_issue97,
+            'revision',pad.brinesearch_google_route_revision_issue97,
+            'structured_route_revision',pad.structured_route_revision,
+            'road_sequence_status',pad.road_sequence_status
+          ) is distinct from (
+            expected.pre_pad_state||pg_catalog.jsonb_build_object(
+              'status','stale',
+              'revision',expected.expected_receipt_route_revision
+            )
+          )
+  )
+  select
+    coalesce(max(sample.total_count),0)::bigint,
+    coalesce(
+      pg_catalog.jsonb_agg(
+        pg_catalog.to_jsonb(sample)-'total_count'
+        order by sample.pad_id
+      ),
+      '[]'::jsonb
+    )
+  into v_postprocess_diff_count,v_postprocess_diff_sample
+  from (
+    select differences.*,count(*) over() as total_count
+    from differences
+    order by pad_id
+    limit 50
+  ) sample;
+
+  if v_postprocess_diff_count<>0
+     or exists(
+       select 1
+       from private_verification.brinesearch_google_route_refresh_queue_issue97
+     )
+     or (select count(*)
+         from public.brinesearch_driver_google_routes_public)<>0
+     or public.brinesearch_issue97_cutover_active()
+  then
+    raise exception using
+      message=
+        'Issue #97 reviewed mapping-refresh Google postprocessor contract drifted',
+      detail=pg_catalog.jsonb_build_object(
+        'postprocess_diff_count',v_postprocess_diff_count,
+        'postprocess_diff_sample',v_postprocess_diff_sample,
+        'google_refresh_queue_count',
+          (select count(*)
+           from private_verification.brinesearch_google_route_refresh_queue_issue97),
+        'public_google_route_count',
+          (select count(*)
+           from public.brinesearch_driver_google_routes_public),
+        'cutover_active',public.brinesearch_issue97_cutover_active()
+      )::text;
+  end if;
+end
+$issue97_frozen_mapping_refresh_expansion_google_postprocess_assertion$;
+
+\echo ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS_PASS|9|5a75e5c4c34805b7dc2fdf8d0534a4f6
 
 select
   'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|'||
@@ -1533,22 +1748,43 @@ begin
 
   with differences as (
     select
-      coalesce(snapshot.pad_id,live.pad_id) as pad_id,
-      case
-        when snapshot.pad_id is null then 'added'
-        when live.pad_id is null then 'missing'
-        else 'changed'
-      end as difference_kind,
-      pg_catalog.to_jsonb(snapshot) as prior_semantic,
-      pg_catalog.to_jsonb(live) as new_semantic
-    from tmp_issue97_mapping_wave_post_migration_target_receipts snapshot
-    full join (
-      select receipt.*
-      from private_verification.brinesearch_google_route_receipts_issue97 receipt
-      join tmp_issue97_frozen_mapping_expected_google_pads expected
-        on expected.pad_id=receipt.pad_id
-    ) live using(pad_id)
-    where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)
+      target.pad_id,
+      expected.expected_evidence_identity_id,
+      expected.expected_evidence_road_id,
+      expected.expected_receipt_route_revision,
+      pg_catalog.to_jsonb(receipt) as actual_receipt
+    from tmp_issue97_frozen_mapping_expected_google_pads target
+    left join tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+      on expected.pad_id=target.pad_id
+    left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+      on receipt.pad_id=target.pad_id
+    where expected.pad_id is null
+       or (
+         pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'
+       ) is distinct from pg_catalog.jsonb_build_object(
+         'pad_id',expected.pad_id,
+         'route_revision',expected.expected_receipt_route_revision,
+         'status','stale',
+         'hold_reason','road_identity_mapping_changed',
+         'manifest_version','issue97-google-v1',
+         'manifest_digest',null,
+         'dependency_digest',null,
+         'manifest',pg_catalog.jsonb_build_object(
+           'manifest_version','issue97-google-v1',
+           'route_ready',false,
+           'status','stale',
+           'pad_id',expected.pad_id,
+           'route_revision',expected.expected_receipt_route_revision
+         ),
+         'evidence',pg_catalog.jsonb_build_object(
+           'identity_id',expected.expected_evidence_identity_id,
+           'road_id',expected.expected_evidence_road_id
+         )
+       )
+       or receipt.generated_at is distinct from
+          pg_catalog.transaction_timestamp()
+       or receipt.updated_at is distinct from
+          pg_catalog.transaction_timestamp()
   )
   select
     (select count(*) from differences),
@@ -1569,10 +1805,10 @@ begin
   if v_google_diff_count<>0
   then
     raise exception using
-      message='Issue #97 rollback rehearsal target Google receipts changed during dark builds',
+      message='Issue #97 rollback rehearsal target Google receipt postprocessor contract changed',
       detail=pg_catalog.jsonb_build_object(
-        'target_google_receipt_diff_count',v_google_diff_count,
-        'target_google_receipt_diff_sample',v_google_diff_sample
+        'target_google_receipt_contract_diff_count',v_google_diff_count,
+        'target_google_receipt_contract_diff_sample',v_google_diff_sample
       )::text;
   end if;
 
@@ -1670,19 +1906,21 @@ begin
 
   if (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
       from private_verification.brinesearch_google_route_receipts_issue97 receipt
-      where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+      where not exists(select 1 from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
         where expected.pad_id=receipt.pad_id))<>
-    (select non_target_private_google from tmp_issue97_frozen_mapping_protected_before)
+    (select receipt_digest
+     from tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before)
   then
     raise exception using
       message='Issue #97 rollback rehearsal non-target Google receipts changed',
       detail=pg_catalog.jsonb_build_object(
         'expected_non_target_receipt_digest',
-          (select non_target_private_google from tmp_issue97_frozen_mapping_protected_before),
+          (select receipt_digest
+           from tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before),
         'observed_non_target_receipt_digest',
           (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.to_jsonb(receipt)::text,'|' order by receipt.pad_id),''))
            from private_verification.brinesearch_google_route_receipts_issue97 receipt
-           where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+           where not exists(select 1 from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
              where expected.pad_id=receipt.pad_id))
       )::text;
   end if;
@@ -1692,22 +1930,24 @@ begin
       'revision',pad.brinesearch_google_route_revision_issue97
     )::text,'|' order by pad.id),''))
       from public.pads pad
-      where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+      where not exists(select 1 from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
         where expected.pad_id=pad.id))<>
-    (select non_target_pad_google from tmp_issue97_frozen_mapping_protected_before)
+    (select pad_digest
+     from tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before)
   then
     raise exception using
       message='Issue #97 rollback rehearsal non-target Google pad state changed',
       detail=pg_catalog.jsonb_build_object(
         'expected_non_target_pad_digest',
-          (select non_target_pad_google from tmp_issue97_frozen_mapping_protected_before),
+          (select pad_digest
+           from tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before),
         'observed_non_target_pad_digest',
           (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.jsonb_build_object(
               'pad_id',pad.id,'status',pad.brinesearch_google_route_status_issue97,
               'revision',pad.brinesearch_google_route_revision_issue97
             )::text,'|' order by pad.id),''))
            from public.pads pad
-           where not exists(select 1 from tmp_issue97_frozen_mapping_expected_google_pads expected
+           where not exists(select 1 from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
              where expected.pad_id=pad.id))
       )::text;
   end if;

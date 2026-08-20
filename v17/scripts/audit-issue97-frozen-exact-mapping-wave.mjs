@@ -628,8 +628,8 @@ for (const token of [
   'v_google_diff_sample',
   'google_refresh_queue_count',
   'google_refresh_queue_sample',
-  'target_google_receipt_diff_count',
-  'target_google_receipt_diff_sample',
+  'target_google_receipt_contract_diff_count',
+  'target_google_receipt_contract_diff_sample',
   'target_google_pad_diff_count',
   'target_google_pad_diff_sample',
   'target_google_stale_state_diff_count',
@@ -640,21 +640,27 @@ for (const token of [
   'observed_non_target_pad_digest',
   'matching_deferred_trigger_count',
   'tmp_issue97_mapping_wave_refresh_expansion_google_before_build',
-  'with expected(pad_id) as (',
+  'expected_evidence_identity_id',
+  'expected_evidence_road_id',
+  'expected_receipt_route_revision',
+  'tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before',
   '450948793c57a9a1535139fac4974792',
+  '5a75e5c4c34805b7dc2fdf8d0534a4f6',
   'Issue #97 reviewed mapping-refresh Google dependency set drifted',
   'Issue #97 reviewed mapping-refresh Google queue contract drifted',
+  'Issue #97 reviewed mapping-refresh Google postprocessor contract drifted',
   'expected_queue_count',
   'observed_queue_count',
   'expected_queue_pad_digest',
   'observed_queue_pad_digest',
   'ISSUE97_REVIEWED_REFRESH_GOOGLE_QUEUE|9|450948793c57a9a1535139fac4974792',
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS_PASS|9|5a75e5c4c34805b7dc2fdf8d0534a4f6',
   'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|',
   'Issue #97 rollback rehearsal post-processor Google contract failed',
   'Issue #97 rollback rehearsal Google target snapshot cardinality changed',
   'Issue #97 rollback rehearsal Google refresh queue is not empty after dark builds',
   'Issue #97 rollback rehearsal public Google or cutover state changed',
-  'Issue #97 rollback rehearsal target Google receipts changed during dark builds',
+  'Issue #97 rollback rehearsal target Google receipt postprocessor contract changed',
   'Issue #97 rollback rehearsal target Google pad state changed during dark builds',
   'Issue #97 rollback rehearsal target Google stale-state contract changed',
   'Issue #97 rollback rehearsal non-target Google receipts changed',
@@ -677,16 +683,87 @@ for (const padId of reviewedRefreshGooglePadIds) {
     throw new Error(`Reviewed mapping-refresh Google pad ${padId} must occur exactly once`);
   }
 }
+const reviewedRefreshGoogleSnapshotStart = rehearsal.indexOf(
+  'create temporary table\ntmp_issue97_mapping_wave_refresh_expansion_google_before_build',
+);
+const reviewedRefreshGoogleSnapshotClose =
+  '$issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$;';
+const reviewedRefreshGoogleSnapshotEnd = rehearsal.indexOf(
+  reviewedRefreshGoogleSnapshotClose,
+  reviewedRefreshGoogleSnapshotStart,
+);
+if (reviewedRefreshGoogleSnapshotStart < 0 || reviewedRefreshGoogleSnapshotEnd < 0) {
+  throw new Error('Could not parse the reviewed mapping-refresh Google snapshot');
+}
+const reviewedRefreshGoogleSnapshotBlock = rehearsal.slice(
+  reviewedRefreshGoogleSnapshotStart,
+  reviewedRefreshGoogleSnapshotEnd + reviewedRefreshGoogleSnapshotClose.length,
+);
+const reviewedRefreshGoogleContractPattern = new RegExp(
+  "\\('([0-9a-f-]{36})'::uuid,\\s*"
+    + "'([0-9a-f-]{36})'::uuid,\\s*"
+    + "'([0-9a-f-]{36})'::uuid,([0-9]+)::bigint\\)",
+  'g',
+);
+const reviewedRefreshGoogleContract = [
+  ...reviewedRefreshGoogleSnapshotBlock.matchAll(reviewedRefreshGoogleContractPattern),
+].map((match) => ({
+  padId: match[1],
+  evidenceIdentityId: match[2],
+  evidenceRoadId: match[3],
+  receiptRouteRevision: Number(match[4]),
+}));
+const expectedReviewedRefreshGoogleContract = [
+  ['69c63442-de05-4d15-95da-07da587bc070', 'e78dcae3-372f-4cf6-9bdd-a3773b21a50e', '01bad0cc-614e-42b7-9db9-22bf6410c849', 0],
+  ['6ef0746f-341a-4d29-9399-a81cfbec11e8', 'ebbc1392-345c-882e-2708-6ecc27a76f3c', 'cdcfd114-42c5-4478-9251-eac57a70e528', 0],
+  ['75600d0c-17b8-488b-96c9-4b7b8ffc8b1b', '542490a4-ba6f-02af-0209-37ad6257a962', '52b08bc7-9b54-4b8d-a833-f903fc298f7b', 0],
+  ['b6dae008-74d4-4976-9c72-fba7ae349c50', 'ebbc1392-345c-882e-2708-6ecc27a76f3c', 'cdcfd114-42c5-4478-9251-eac57a70e528', 0],
+  ['b7526e45-0b33-4988-ae1c-0a4140971f8e', '542490a4-ba6f-02af-0209-37ad6257a962', '52b08bc7-9b54-4b8d-a833-f903fc298f7b', 0],
+  ['d7898e8c-1bb6-48f8-b5e0-87bc1898420e', '9acadc48-c230-5e7b-6f2a-0a77f86f625c', 'bbfacbaf-86be-4818-8541-61a697c71199', 1],
+  ['e2b32e85-9e93-4388-8215-9d8167cbbeb8', 'ebbc1392-345c-882e-2708-6ecc27a76f3c', 'cdcfd114-42c5-4478-9251-eac57a70e528', 0],
+  ['f896d00c-da26-41b6-bf5b-e9d91afbdbc6', 'e78dcae3-372f-4cf6-9bdd-a3773b21a50e', '01bad0cc-614e-42b7-9db9-22bf6410c849', 0],
+  ['fcbf5085-4ba2-496d-9c20-516e8b52f9bd', 'e78dcae3-372f-4cf6-9bdd-a3773b21a50e', '01bad0cc-614e-42b7-9db9-22bf6410c849', 0],
+].map(([padId, evidenceIdentityId, evidenceRoadId, receiptRouteRevision]) => ({
+  padId,
+  evidenceIdentityId,
+  evidenceRoadId,
+  receiptRouteRevision,
+}));
+if (JSON.stringify(reviewedRefreshGoogleContract)
+    !== JSON.stringify(expectedReviewedRefreshGoogleContract)) {
+  throw new Error('Reviewed mapping-refresh Google postprocessor rows drifted');
+}
 forbid(
   rehearsal,
   /Issue #97 rollback rehearsal Google state changed during dark builds/,
   'old combined Google dark-build assertion returned',
 );
-if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 4) {
-  throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
+forbid(
+  rehearsal,
+  /Issue #97 rollback rehearsal target Google receipts changed during dark builds/,
+  'old byte-identical target Google receipt assertion returned',
+);
+if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 3) {
+  throw new Error('Rollback rehearsal must byte-compare mapping, pad, and unaffected receipt state');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== 'cdeb84a9c923b10e330b6bbc0ddf9a14') {
+const normalizedReviewedRefreshGoogleSnapshotBlock =
+  reviewedRefreshGoogleSnapshotBlock.replace(/\s+/g, ' ');
+for (const token of [
+  'expected_evidence_identity_id',
+  'expected_evidence_road_id',
+  'expected_receipt_route_revision',
+  'from public.brinesearch_pad_roads step',
+  "expected.pre_receipt_row->'manifest'->'points'",
+  'tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before',
+]) {
+  requireText(
+    normalizedReviewedRefreshGoogleSnapshotBlock,
+    token,
+    `reviewed mapping-refresh Google snapshot contract: ${token}`,
+  );
+}
+if (md5(normalizedRehearsal) !== 'ef60c17f93753b2b3974f335e090e7c0') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -703,8 +780,72 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== 'd7d294bef6ba8a96a0e9c38b0fb39578') {
+if (md5(rebuildAssertionsBlock) !== 'a54928183f5be82b77da970adf0a8e99') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
+}
+const googlePostprocessOpen =
+  'do $issue97_frozen_mapping_refresh_expansion_google_postprocess_assertion$';
+const googlePostprocessClose =
+  '$issue97_frozen_mapping_refresh_expansion_google_postprocess_assertion$;';
+const googlePostprocessStart = normalizedRehearsal.indexOf(googlePostprocessOpen);
+const googlePostprocessEnd = normalizedRehearsal.indexOf(
+  googlePostprocessClose,
+  googlePostprocessStart,
+);
+if (googlePostprocessStart < 0 || googlePostprocessEnd < 0) {
+  throw new Error('Could not parse reviewed mapping-refresh Google postprocessor assertion');
+}
+const googlePostprocessBlock = normalizedRehearsal.slice(
+  googlePostprocessStart,
+  googlePostprocessEnd + googlePostprocessClose.length,
+);
+for (const token of [
+  'from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
+  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'",
+  "'status','stale'",
+  "'hold_reason','road_identity_mapping_changed'",
+  "'manifest_version','issue97-google-v1'",
+  "'route_ready',false",
+  "'manifest_digest',null",
+  "'dependency_digest',null",
+  "'identity_id',expected.expected_evidence_identity_id",
+  "'road_id',expected.expected_evidence_road_id",
+  'receipt.generated_at is distinct from pg_catalog.transaction_timestamp()',
+  'receipt.updated_at is distinct from pg_catalog.transaction_timestamp()',
+  'from public.brinesearch_road_identity_mappings mapping',
+  'mapping.identity_id= expected.expected_evidence_identity_id',
+  'mapping.road_id=expected.expected_evidence_road_id',
+  "mapping.mapping_status='verified'",
+  "mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' )",
+  "expected.pre_pad_state||pg_catalog.jsonb_build_object( 'status','stale', 'revision',expected.expected_receipt_route_revision )",
+  'limit 50',
+  'v_postprocess_diff_count<>0',
+  'from private_verification.brinesearch_google_route_refresh_queue_issue97',
+  'from public.brinesearch_driver_google_routes_public',
+  'public.brinesearch_issue97_cutover_active()',
+  "message= 'Issue #97 reviewed mapping-refresh Google postprocessor contract drifted'",
+  "'postprocess_diff_count',v_postprocess_diff_count",
+  "'postprocess_diff_sample',v_postprocess_diff_sample",
+]) {
+  requireText(
+    googlePostprocessBlock,
+    token,
+    `reviewed mapping-refresh Google postprocessor contract: ${token}`,
+  );
+}
+if (offsetsOf(
+  rehearsal,
+  'Issue #97 reviewed mapping-refresh Google postprocessor contract drifted',
+).length !== 1
+    || offsetsOf(
+      rehearsal,
+      'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS_PASS|9|5a75e5c4c34805b7dc2fdf8d0534a4f6',
+    ).length !== 1
+    || offsetsOf(
+      rehearsal,
+      'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|',
+    ).length !== 1) {
+  throw new Error('Reviewed mapping-refresh Google postprocessor evidence markers drifted');
 }
 if ((rehearsal.match(/^\\set ON_ERROR_STOP on\s*$/gm) ?? []).length !== 1) {
   throw new Error('Mapping-wave rehearsal must enable ON_ERROR_STOP exactly once');
@@ -1330,8 +1471,17 @@ const refreshExpansionGoogleProcessorIndex = normalizedRehearsal.indexOf(
   'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;',
   refreshExpansionGoogleQueueAssertionIndex,
 );
+const refreshExpansionGooglePostprocessAssertionIndex = normalizedRehearsal.indexOf(
+  "message= 'Issue #97 reviewed mapping-refresh Google postprocessor contract drifted'",
+  refreshExpansionGoogleProcessorIndex,
+);
+const refreshExpansionGooglePostprocessPassIndex = normalizedRehearsal.indexOf(
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS_PASS|9|5a75e5c4c34805b7dc2fdf8d0534a4f6',
+  refreshExpansionGooglePostprocessAssertionIndex,
+);
 const refreshExpansionGooglePostprocessIndex = normalizedRehearsal.indexOf(
   'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|',
+  refreshExpansionGooglePostprocessPassIndex,
 );
 const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 reviewed frozen mappings changed during graph rebuilds'",
@@ -1347,11 +1497,105 @@ const activationProtectionAssertionIndex = normalizedRehearsal.indexOf(
 const routeProtectionAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 rollback rehearsal changed route/public/cutover/WV/PA state'",
 );
+const targetGoogleReceiptContractMessage =
+  'Issue #97 rollback rehearsal target Google receipt postprocessor contract changed';
+const targetGoogleReceiptContractIndex = normalizedRehearsal.indexOf(
+  targetGoogleReceiptContractMessage,
+);
+const targetGoogleReceiptContractStart = normalizedRehearsal.lastIndexOf(
+  'with differences as (',
+  targetGoogleReceiptContractIndex,
+);
+const targetGoogleReceiptContractEnd = normalizedRehearsal.indexOf(
+  'end if;',
+  targetGoogleReceiptContractIndex,
+);
+if (targetGoogleReceiptContractIndex < 0
+    || targetGoogleReceiptContractStart < 0
+    || targetGoogleReceiptContractEnd < 0) {
+  throw new Error('Could not parse target Google postprocessor subset contract');
+}
+const targetGoogleReceiptContractBlock = normalizedRehearsal.slice(
+  targetGoogleReceiptContractStart,
+  targetGoogleReceiptContractEnd + 'end if;'.length,
+);
+for (const token of [
+  'from tmp_issue97_frozen_mapping_expected_google_pads target',
+  'left join tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
+  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'",
+  "'status','stale'",
+  "'hold_reason','road_identity_mapping_changed'",
+  "'identity_id',expected.expected_evidence_identity_id",
+  "'road_id',expected.expected_evidence_road_id",
+  'receipt.generated_at is distinct from pg_catalog.transaction_timestamp()',
+  'receipt.updated_at is distinct from pg_catalog.transaction_timestamp()',
+  "message='Issue #97 rollback rehearsal target Google receipt postprocessor contract changed'",
+  "'target_google_receipt_contract_diff_count',v_google_diff_count",
+  "'target_google_receipt_contract_diff_sample',v_google_diff_sample",
+]) {
+  requireText(
+    targetGoogleReceiptContractBlock,
+    token,
+    `target Google postprocessor subset contract: ${token}`,
+  );
+}
+const nonTargetGoogleReceiptRaise =
+  'Issue #97 rollback rehearsal non-target Google receipts changed';
+const nonTargetGoogleReceiptIndex = normalizedRehearsal.indexOf(nonTargetGoogleReceiptRaise);
+const nonTargetGoogleReceiptStart = normalizedRehearsal.lastIndexOf(
+  'if (select pg_catalog.md5',
+  nonTargetGoogleReceiptIndex,
+);
+const nonTargetGoogleReceiptEnd = normalizedRehearsal.indexOf(
+  'end if;',
+  nonTargetGoogleReceiptIndex,
+);
+const nonTargetGoogleReceiptBlock = normalizedRehearsal.slice(
+  nonTargetGoogleReceiptStart,
+  nonTargetGoogleReceiptEnd + 'end if;'.length,
+);
+for (const token of [
+  'tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
+  'tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before',
+  'receipt_digest',
+]) {
+  requireText(
+    nonTargetGoogleReceiptBlock,
+    token,
+    `unchanged Google receipt complement contract: ${token}`,
+  );
+}
+const nonTargetGooglePadRaise =
+  'Issue #97 rollback rehearsal non-target Google pad state changed';
+const nonTargetGooglePadIndex = normalizedRehearsal.indexOf(nonTargetGooglePadRaise);
+const nonTargetGooglePadStart = normalizedRehearsal.lastIndexOf(
+  'if (select pg_catalog.md5',
+  nonTargetGooglePadIndex,
+);
+const nonTargetGooglePadEnd = normalizedRehearsal.indexOf(
+  'end if;',
+  nonTargetGooglePadIndex,
+);
+const nonTargetGooglePadBlock = normalizedRehearsal.slice(
+  nonTargetGooglePadStart,
+  nonTargetGooglePadEnd + 'end if;'.length,
+);
+for (const token of [
+  'tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
+  'tmp_issue97_mapping_wave_refresh_expansion_google_unchanged_before',
+  'pad_digest',
+]) {
+  requireText(
+    nonTargetGooglePadBlock,
+    token,
+    `unchanged Google pad complement contract: ${token}`,
+  );
+}
 const googleProtectionRaises = [
   'Issue #97 rollback rehearsal Google target snapshot cardinality changed',
   'Issue #97 rollback rehearsal Google refresh queue is not empty after dark builds',
   'Issue #97 rollback rehearsal public Google or cutover state changed',
-  'Issue #97 rollback rehearsal target Google receipts changed during dark builds',
+  'Issue #97 rollback rehearsal target Google receipt postprocessor contract changed',
   'Issue #97 rollback rehearsal target Google pad state changed during dark builds',
   'Issue #97 rollback rehearsal target Google stale-state contract changed',
   'Issue #97 rollback rehearsal non-target Google receipts changed',
@@ -1386,6 +1630,8 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || newBuildMaterializationIndex < 0
     || refreshExpansionGoogleQueueAssertionIndex < 0
     || refreshExpansionGoogleProcessorIndex < 0
+    || refreshExpansionGooglePostprocessAssertionIndex < 0
+    || refreshExpansionGooglePostprocessPassIndex < 0
     || refreshExpansionGooglePostprocessIndex < 0
     || reviewedMappingSurvivalAssertionIndex < 0
     || refreshExpansionSurvivalAssertionIndex < 0
@@ -1406,7 +1652,9 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
       && lastGraphBuildIndex < newBuildMaterializationIndex
       && newBuildMaterializationIndex < refreshExpansionGoogleQueueAssertionIndex
       && refreshExpansionGoogleQueueAssertionIndex < refreshExpansionGoogleProcessorIndex
-      && refreshExpansionGoogleProcessorIndex < refreshExpansionGooglePostprocessIndex
+      && refreshExpansionGoogleProcessorIndex < refreshExpansionGooglePostprocessAssertionIndex
+      && refreshExpansionGooglePostprocessAssertionIndex < refreshExpansionGooglePostprocessPassIndex
+      && refreshExpansionGooglePostprocessPassIndex < refreshExpansionGooglePostprocessIndex
       && refreshExpansionGooglePostprocessIndex < reviewedMappingSurvivalAssertionIndex
       && reviewedMappingSurvivalAssertionIndex < refreshExpansionSurvivalAssertionIndex
       && refreshExpansionSurvivalAssertionIndex < candidateDigestContractIndex
