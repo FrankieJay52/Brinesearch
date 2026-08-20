@@ -252,6 +252,12 @@ join public.brinesearch_road_graph_builds build
  and build.county_code=result.county_code;
 
 do $issue97_frozen_mapping_rebuild_assertions$
+declare
+  v_expected_target_membership_count constant bigint := 1565;
+  v_observed_target_membership_count bigint;
+  v_road_id_mismatch_count bigint;
+  v_count_diff_sample jsonb := '[]'::jsonb;
+  v_road_id_mismatch_sample jsonb := '[]'::jsonb;
 begin
   if (select count(*) from tmp_issue97_mapping_wave_build_results)<>8
      or (select pg_catalog.array_agg(county_code order by build_order) from tmp_issue97_mapping_wave_build_results)
@@ -334,22 +340,156 @@ begin
     raise exception 'Issue #97 exact eight-county dark rebuild contract failed';
   end if;
 
-  if (select count(*) from public.brinesearch_road_junction_memberships membership
-      join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
-      join tmp_issue97_mapping_wave_new_builds build on build.id=junction.build_id
-      join public.brinesearch_road_identity_mappings mapping
-        on mapping.identity_id=membership.identity_id and mapping.mapping_status='verified'
-      where mapping.evidence->>'migration'='issue97_frozen_exact_mapping_wave'
-        and membership.road_id=mapping.road_id)<>1565
-     or exists(select 1 from public.brinesearch_road_junction_memberships membership
-       join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
-       join tmp_issue97_mapping_wave_new_builds build on build.id=junction.build_id
-       join public.brinesearch_road_identity_mappings mapping
-         on mapping.identity_id=membership.identity_id and mapping.mapping_status='verified'
-       where mapping.evidence->>'migration'='issue97_frozen_exact_mapping_wave'
-         and membership.road_id is distinct from mapping.road_id)
+  select count(*)
+  into v_observed_target_membership_count
+  from public.brinesearch_road_junction_memberships membership
+  join public.brinesearch_road_junctions junction
+    on junction.id=membership.junction_id
+  join tmp_issue97_mapping_wave_new_builds build
+    on build.id=junction.build_id
+  join tmp_issue97_frozen_mapping_targets target
+    on target.identity_id=membership.identity_id;
+
+  select count(*)
+  into v_road_id_mismatch_count
+  from public.brinesearch_road_junction_memberships membership
+  join public.brinesearch_road_junctions junction
+    on junction.id=membership.junction_id
+  join tmp_issue97_mapping_wave_new_builds build
+    on build.id=junction.build_id
+  join tmp_issue97_frozen_mapping_targets target
+    on target.identity_id=membership.identity_id
+  where membership.road_id is distinct from target.road_id;
+
+  with expected as (
+    select
+      prior.county_code,
+      membership.identity_id,
+      count(*)::bigint as membership_count
+    from tmp_issue97_mapping_wave_active_before prior
+    join public.brinesearch_road_junctions junction
+      on junction.build_id=prior.id
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    join tmp_issue97_frozen_mapping_targets target
+      on target.identity_id=membership.identity_id
+    group by
+      prior.county_code,
+      membership.identity_id
+  ),
+  observed as (
+    select
+      build.county_code,
+      membership.identity_id,
+      count(*)::bigint as membership_count
+    from tmp_issue97_mapping_wave_new_builds build
+    join public.brinesearch_road_junctions junction
+      on junction.build_id=build.id
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    join tmp_issue97_frozen_mapping_targets target
+      on target.identity_id=membership.identity_id
+    group by
+      build.county_code,
+      membership.identity_id
+  ),
+  differences as (
+    select
+      coalesce(expected.county_code,observed.county_code)
+        as county_code,
+      coalesce(expected.identity_id,observed.identity_id)
+        as identity_id,
+      coalesce(expected.membership_count,0)
+        as expected_count,
+      coalesce(observed.membership_count,0)
+        as observed_count
+    from expected
+    full join observed
+      using(county_code,identity_id)
+    where expected.membership_count
+          is distinct from observed.membership_count
+  )
+  select coalesce(
+    pg_catalog.jsonb_agg(
+      pg_catalog.to_jsonb(sample)
+      order by sample.county_code,sample.identity_id
+    ),
+    '[]'::jsonb
+  )
+  into v_count_diff_sample
+  from (
+    select *
+    from differences
+    order by county_code,identity_id
+    limit 50
+  ) sample;
+
+  select coalesce(
+    pg_catalog.jsonb_agg(
+      pg_catalog.to_jsonb(sample)
+      order by
+        sample.county_code,
+        sample.stable_junction_key,
+        sample.identity_id
+    ),
+    '[]'::jsonb
+  )
+  into v_road_id_mismatch_sample
+  from (
+    select
+      build.county_code,
+      junction.stable_junction_key,
+      membership.identity_id,
+      target.road_id as expected_road_id,
+      membership.road_id as actual_road_id
+    from tmp_issue97_mapping_wave_new_builds build
+    join public.brinesearch_road_junctions junction
+      on junction.build_id=build.id
+    join public.brinesearch_road_junction_memberships membership
+      on membership.junction_id=junction.id
+    join tmp_issue97_frozen_mapping_targets target
+      on target.identity_id=membership.identity_id
+    where membership.road_id is distinct from target.road_id
+    order by
+      build.county_code,
+      junction.stable_junction_key,
+      membership.identity_id
+    limit 50
+  ) sample;
+
+  if v_observed_target_membership_count
+     <>v_expected_target_membership_count
   then
-    raise exception 'Issue #97 rebuilt graph memberships did not capture the exact 46 mappings';
+    raise exception using
+      message=
+        'Issue #97 rebuilt graph target-membership count drifted',
+      detail=pg_catalog.jsonb_build_object(
+        'expected_target_membership_count',
+          v_expected_target_membership_count,
+        'observed_target_membership_count',
+          v_observed_target_membership_count,
+        'road_id_mismatch_count',
+          v_road_id_mismatch_count,
+        'count_diff_sample',
+          v_count_diff_sample
+      )::text;
+  end if;
+
+  if v_road_id_mismatch_count<>0
+  then
+    raise exception using
+      message=
+        'Issue #97 rebuilt graph target-membership road IDs mismatched',
+      detail=pg_catalog.jsonb_build_object(
+        'expected_target_membership_count',
+          v_expected_target_membership_count,
+        'observed_target_membership_count',
+          v_observed_target_membership_count,
+        'road_id_mismatch_count',
+          v_road_id_mismatch_count,
+        'road_id_mismatch_sample',
+          v_road_id_mismatch_sample
+      )::text;
   end if;
 
   -- Rebuild output may use different row UUIDs and timestamps. Compare the

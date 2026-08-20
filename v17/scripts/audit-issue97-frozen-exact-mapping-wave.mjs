@@ -419,6 +419,107 @@ for (const property of Object.keys(reviewedCandidateDigestTransition)) {
   );
 }
 
+for (const token of [
+  'v_expected_target_membership_count constant bigint := 1565',
+  'v_observed_target_membership_count bigint',
+  'v_road_id_mismatch_count bigint',
+  "v_count_diff_sample jsonb := '[]'::jsonb",
+  "v_road_id_mismatch_sample jsonb := '[]'::jsonb",
+  "'expected_target_membership_count'",
+  "'observed_target_membership_count'",
+  "'count_diff_sample'",
+  "'road_id_mismatch_count'",
+  "'road_id_mismatch_sample'",
+  'junction.stable_junction_key',
+  'Issue #97 rebuilt graph target-membership count drifted',
+  'Issue #97 rebuilt graph target-membership road IDs mismatched',
+  'into v_observed_target_membership_count',
+  'into v_road_id_mismatch_count',
+  'into v_count_diff_sample',
+  'into v_road_id_mismatch_sample',
+  'full join observed using(county_code,identity_id)',
+]) {
+  requireText(
+    normalizedRehearsal,
+    token,
+    `target-membership diagnostic contract: ${token}`,
+  );
+}
+
+const countDriftRaise = "raise exception using message= 'Issue #97 rebuilt graph target-membership count drifted'";
+const roadIdMismatchRaise = "raise exception using message= 'Issue #97 rebuilt graph target-membership road IDs mismatched'";
+if (offsetsOf(normalizedRehearsal, countDriftRaise).length !== 1) {
+  throw new Error('Target-membership count-drift RAISE must occur exactly once');
+}
+if (offsetsOf(normalizedRehearsal, roadIdMismatchRaise).length !== 1) {
+  throw new Error('Target-membership road-ID mismatch RAISE must occur exactly once');
+}
+
+const candidateDigestContractIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 exact eight-county dark rebuild contract failed'",
+);
+const countDriftAssertionIndex = normalizedRehearsal.indexOf(countDriftRaise);
+const roadIdMismatchAssertionIndex = normalizedRehearsal.indexOf(roadIdMismatchRaise);
+const semanticTopologyAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 rebuilt graph changed source topology beyond exact mapping road IDs'",
+);
+if (candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
+    || roadIdMismatchAssertionIndex < 0 || semanticTopologyAssertionIndex < 0
+    || !(candidateDigestContractIndex < countDriftAssertionIndex
+      && countDriftAssertionIndex < roadIdMismatchAssertionIndex
+      && roadIdMismatchAssertionIndex < semanticTopologyAssertionIndex)) {
+  throw new Error('Target-membership diagnostics must follow the candidate contract and precede semantic topology');
+}
+
+const targetMembershipDiagnosticBlock = normalizedRehearsal.slice(
+  candidateDigestContractIndex,
+  semanticTopologyAssertionIndex,
+);
+if ((targetMembershipDiagnosticBlock.match(/where membership\.road_id is distinct from target\.road_id/g) ?? []).length !== 2) {
+  throw new Error('Target-membership diagnostics must fail closed on exactly two road-ID mismatch checks');
+}
+if ((targetMembershipDiagnosticBlock.match(/limit 50/g) ?? []).length !== 2) {
+  throw new Error('Target-membership diagnostic samples must each remain bounded to 50 rows');
+}
+forbid(
+  rehearsal,
+  /Issue #97 rebuilt graph memberships did not capture the exact 46 mappings/i,
+  'combined target-membership assertion without predicate-specific diagnostics',
+);
+forbid(
+  rehearsal,
+  /membership\.road_id\s*=\s*target\.road_id/i,
+  'target-membership road-ID mismatch check changed to equality',
+);
+
+const targetMembershipContractPasses = ({
+  expectedCount,
+  observedCount,
+  roadIdMismatchCount,
+}) => observedCount === expectedCount
+  && roadIdMismatchCount === 0;
+
+assert.equal(targetMembershipContractPasses({
+  expectedCount: 1565,
+  observedCount: 1565,
+  roadIdMismatchCount: 0,
+}), true);
+assert.equal(targetMembershipContractPasses({
+  expectedCount: 1565,
+  observedCount: 1564,
+  roadIdMismatchCount: 0,
+}), false);
+assert.equal(targetMembershipContractPasses({
+  expectedCount: 1565,
+  observedCount: 1566,
+  roadIdMismatchCount: 0,
+}), false);
+assert.equal(targetMembershipContractPasses({
+  expectedCount: 1565,
+  observedCount: 1565,
+  roadIdMismatchCount: 1,
+}), false);
+
 requireText(normalizedRehearsal,
   "from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt join public.brinesearch_route_prep route on route.id=receipt.route_prep_id join public.pads pad on pad.id=route.pad_id where route.active and route.route_group in ('primary','alternate') and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806",
   'Ohio-only 806 route-reconciliation receipt preflight');
