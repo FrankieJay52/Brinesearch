@@ -277,6 +277,7 @@ do $issue97_frozen_exact_mapping_wave$
 declare
   v_road record;
   v_geom extensions.geometry;
+  v_refresh_exact_mappings_definition text;
 begin
   if (select count(*) from tmp_issue97_frozen_mapping_expected_google_pads)<>3
      or (select pg_catalog.md5(pg_catalog.string_agg(pad_id::text,'|' order by pad_id))
@@ -427,6 +428,36 @@ begin
     raise exception 'Issue #97 exact 412-route dual-leg closure drifted';
   end if;
 
+  select pg_catalog.regexp_replace(
+    pg_catalog.pg_get_functiondef(proc.oid),
+    E'\\s+',
+    ' ',
+    'g'
+  )
+  into strict v_refresh_exact_mappings_definition
+  from pg_catalog.pg_proc proc
+  join pg_catalog.pg_namespace namespace
+    on namespace.oid=proc.pronamespace
+  where namespace.nspname='public'
+    and proc.proname='brinesearch_issue97_refresh_exact_mappings'
+    and proc.pronargs=0;
+
+  if v_refresh_exact_mappings_definition is null
+
+     or pg_catalog.strpos(
+       v_refresh_exact_mappings_definition,
+       'where mapping_method in (''exact_source_record_id'',''exact_route_designation'') and mapping_status in (''verified'',''candidate'')'
+     )=0
+
+     or pg_catalog.strpos(
+       v_refresh_exact_mappings_definition,
+       'manual.mapping_method not in (''exact_source_record_id'',''exact_route_designation'')'
+     )=0
+  then
+    raise exception
+      'Issue #97 exact mapping refresh ownership contract drifted';
+  end if;
+
   -- Adopt only the 24 exact highway family rows represented by the allowlist.
   for v_road in
     select target.road_id,min(target.expected_road_row_md5) expected_road_row_md5
@@ -469,8 +500,7 @@ begin
   select private_verification.brinesearch_issue97_uuid(
       'identity-mapping:'||target.identity_id::text||':'||target.road_id::text
     ),target.identity_id,target.road_id,'verified',
-    case target.evidence_basis when 'exact_route_designation' then 'exact_route_designation'
-      else 'exact_source_record_id' end,
+    'manual_reviewed_source_evidence',
     pg_catalog.jsonb_build_object(
       'issue',97,'scope','frozen-46','state_code','OH',
       'evidence_basis',target.evidence_basis,'identity_id',target.identity_id,
@@ -479,7 +509,25 @@ begin
       'exact_designation',target.evidence_basis='exact_route_designation',
       'exact_base_nlf_source_street_core',target.evidence_basis='exact_base_nlf_source_street_core',
       'name_matching_used',false,'fuzzy_matching_used',false,'nearest_road_used',false,
-      'migration','issue97_frozen_exact_mapping_wave'
+      'migration','issue97_frozen_exact_mapping_wave',
+      'reviewed_by','issue97_repository_frozen_wave',
+      'reviewed_at','2026-08-17T19:32:12Z',
+      'repository_reviewed',true,
+      'machine_owned',false,
+      'exact_method',case target.evidence_basis
+        when 'exact_route_designation' then 'official_source_id'
+        else 'manual_source_conflation'
+      end,
+      'evidence_digest',pg_catalog.md5(
+        pg_catalog.concat_ws(
+          '|',
+          target.identity_id::text,
+          target.road_id::text,
+          target.evidence_basis,
+          target.expected_source_digest,
+          target.expected_road_row_md5
+        )
+      )
     ),now(),now(),now()
   from tmp_issue97_frozen_mapping_targets target
   join public.brinesearch_authoritative_road_identities identity on identity.id=target.identity_id;
@@ -488,9 +536,26 @@ begin
       join tmp_issue97_frozen_mapping_targets target on target.identity_id=mapping.identity_id
         and target.road_id=mapping.road_id
       where mapping.mapping_status='verified'
-        and mapping.mapping_method=case target.evidence_basis when 'exact_route_designation'
-          then 'exact_route_designation' else 'exact_source_record_id' end
-        and mapping.evidence->>'migration'='issue97_frozen_exact_mapping_wave')<>46
+        and mapping.mapping_method='manual_reviewed_source_evidence'
+        and mapping.evidence->>'migration'='issue97_frozen_exact_mapping_wave'
+        and mapping.evidence->>'reviewed_by'='issue97_repository_frozen_wave'
+        and mapping.evidence->>'reviewed_at'='2026-08-17T19:32:12Z'
+        and (mapping.evidence->>'repository_reviewed')::boolean=true
+        and (mapping.evidence->>'machine_owned')::boolean=false
+        and mapping.evidence->>'exact_method'=case target.evidence_basis
+          when 'exact_route_designation' then 'official_source_id'
+          else 'manual_source_conflation'
+        end
+        and mapping.evidence->>'evidence_digest'=pg_catalog.md5(
+          pg_catalog.concat_ws(
+            '|',
+            target.identity_id::text,
+            target.road_id::text,
+            target.evidence_basis,
+            target.expected_source_digest,
+            target.expected_road_row_md5
+          )
+        ))<>46
   then
     raise exception 'Issue #97 exact frozen 46 mapping insert failed';
   end if;
@@ -895,6 +960,8 @@ select pg_catalog.jsonb_build_object(
   'split_component_identity_count',18,'affected_membership_count',1565,
   'graph_action','rebuild_required','affected_counties',
     pg_catalog.to_jsonb(array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']),
+  'mapping_ownership','manual_reviewed_source_evidence',
+  'machine_refresh_may_retire_target_mappings',false,
   'mapping_dependent_routes',379,'transition_only_routes',33,
   'final_route_count',412,'final_primary_count',340,'final_alternate_count',72,
   'final_route_set_digest','711b1ddd3ba6c47e7642fc700197432f',

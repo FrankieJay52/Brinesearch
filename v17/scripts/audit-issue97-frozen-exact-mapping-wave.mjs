@@ -65,6 +65,105 @@ if (manifestPairs.length !== 46
   throw new Error('Migration and exact route manifest use different identity/road pairs');
 }
 
+const normalizedMigration = migration.replace(/\s+/g, ' ');
+const frozenTargetMappingInsert = migration.match(
+  /insert into public\.brinesearch_road_identity_mappings\(\s*id,identity_id,road_id,mapping_status,mapping_method,evidence,verified_at,created_at,updated_at\s*\)\s*select[\s\S]*?from tmp_issue97_frozen_mapping_targets target\s*join public\.brinesearch_authoritative_road_identities identity on identity\.id=target\.identity_id;/,
+)?.[0];
+if (!frozenTargetMappingInsert) {
+  throw new Error('Could not parse the exact frozen target mapping INSERT');
+}
+const normalizedFrozenTargetMappingInsert = frozenTargetMappingInsert.replace(/\s+/g, ' ');
+const reviewedEvidenceDigestExpression = "pg_catalog.md5( pg_catalog.concat_ws( '|', target.identity_id::text, target.road_id::text, target.evidence_basis, target.expected_source_digest, target.expected_road_row_md5 ) )";
+if (!/target\.identity_id,target\.road_id,'verified',\s*'manual_reviewed_source_evidence',/.test(
+  normalizedFrozenTargetMappingInsert,
+)) {
+  throw new Error('Frozen target mapping INSERT must select the reviewed mapping method');
+}
+if ((frozenTargetMappingInsert.match(/'manual_reviewed_source_evidence'/g) ?? []).length !== 1) {
+  throw new Error('Frozen target mapping INSERT must select exactly one reviewed mapping method');
+}
+for (const token of [
+  "'reviewed_by','issue97_repository_frozen_wave'",
+  "'reviewed_at','2026-08-17T19:32:12Z'",
+  "'repository_reviewed',true",
+  "'machine_owned',false",
+  "'exact_method',case target.evidence_basis when 'exact_route_designation' then 'official_source_id' else 'manual_source_conflation' end",
+  `'evidence_digest',${reviewedEvidenceDigestExpression}`,
+]) {
+  requireText(
+    normalizedFrozenTargetMappingInsert,
+    token,
+    `frozen reviewed mapping INSERT contract: ${token}`,
+  );
+}
+
+const frozenTargetMappingReceipt = migration.match(
+  /if \(select count\(\*\) from public\.brinesearch_road_identity_mappings mapping[\s\S]*?raise exception 'Issue #97 exact frozen 46 mapping insert failed';\s*end if;/,
+)?.[0];
+if (!frozenTargetMappingReceipt) {
+  throw new Error('Could not parse the exact frozen 46-row mapping receipt assertion');
+}
+const normalizedFrozenTargetMappingReceipt = frozenTargetMappingReceipt.replace(/\s+/g, ' ');
+for (const token of [
+  "mapping.mapping_method='manual_reviewed_source_evidence'",
+  "mapping.evidence->>'migration'='issue97_frozen_exact_mapping_wave'",
+  "mapping.evidence->>'reviewed_by'='issue97_repository_frozen_wave'",
+  "mapping.evidence->>'reviewed_at'='2026-08-17T19:32:12Z'",
+  "(mapping.evidence->>'repository_reviewed')::boolean=true",
+  "(mapping.evidence->>'machine_owned')::boolean=false",
+  "mapping.evidence->>'exact_method'=case target.evidence_basis when 'exact_route_designation' then 'official_source_id' else 'manual_source_conflation' end",
+  `mapping.evidence->>'evidence_digest'=${reviewedEvidenceDigestExpression}`,
+  ')<>46',
+]) {
+  requireText(
+    normalizedFrozenTargetMappingReceipt,
+    token,
+    `frozen reviewed mapping receipt assertion: ${token}`,
+  );
+}
+forbid(
+  frozenTargetMappingInsert,
+  /case\s+target\.evidence_basis\s+when\s+'exact_route_designation'\s+then\s+'exact_route_designation'\s+else\s+'exact_source_record_id'\s+end/i,
+  'machine-owned mapping method restored in frozen target INSERT',
+);
+
+const machineOwnedMappingMethods = new Set([
+  'exact_source_record_id',
+  'exact_route_designation',
+]);
+
+const refreshMayRetire = (method) => machineOwnedMappingMethods.has(method);
+
+assert.equal(refreshMayRetire('exact_source_record_id'), true);
+assert.equal(refreshMayRetire('exact_route_designation'), true);
+assert.equal(refreshMayRetire('manual_reviewed_source_evidence'), false);
+
+const refreshOwnershipGuard = migration.match(
+  /select pg_catalog\.regexp_replace\(\s*pg_catalog\.pg_get_functiondef\(proc\.oid\),[\s\S]*?raise exception\s*'Issue #97 exact mapping refresh ownership contract drifted';\s*end if;/,
+)?.[0];
+if (!refreshOwnershipGuard) {
+  throw new Error('Could not parse the refresh ownership inspection and fail-closed guard');
+}
+const normalizedRefreshOwnershipGuard = refreshOwnershipGuard.replace(/\s+/g, ' ');
+for (const token of [
+  'pg_catalog.pg_get_functiondef(proc.oid)',
+  'into strict v_refresh_exact_mappings_definition',
+  'join pg_catalog.pg_namespace namespace on namespace.oid=proc.pronamespace',
+  "namespace.nspname='public'",
+  "proc.proname='brinesearch_issue97_refresh_exact_mappings'",
+  'proc.pronargs=0',
+  'v_refresh_exact_mappings_definition is null',
+  "pg_catalog.strpos( v_refresh_exact_mappings_definition, 'where mapping_method in (''exact_source_record_id'',''exact_route_designation'') and mapping_status in (''verified'',''candidate'')' )=0",
+  "pg_catalog.strpos( v_refresh_exact_mappings_definition, 'manual.mapping_method not in (''exact_source_record_id'',''exact_route_designation'')' )=0",
+  "raise exception 'Issue #97 exact mapping refresh ownership contract drifted'",
+]) {
+  requireText(
+    normalizedRefreshOwnershipGuard,
+    token,
+    `scoped refresh ownership guard: ${token}`,
+  );
+}
+
 for (const token of [
   "array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']::text[]",
   "'affected_membership_count',1565",
@@ -88,6 +187,23 @@ for (const token of [
   "'final_route_set_digest','711b1ddd3ba6c47e7642fc700197432f'",
   "'old_active_graphs_release_current',false",
   "'replacement_build_ids_must_be_repository_pinned',true",
+  'v_refresh_exact_mappings_definition text',
+  'pg_catalog.pg_get_functiondef(proc.oid)',
+  "proc.proname='brinesearch_issue97_refresh_exact_mappings'",
+  'proc.pronargs=0',
+  "'where mapping_method in (''exact_source_record_id'',''exact_route_designation'') and mapping_status in (''verified'',''candidate'')'",
+  "'manual.mapping_method not in (''exact_source_record_id'',''exact_route_designation'')'",
+  'Issue #97 exact mapping refresh ownership contract drifted',
+  'manual_reviewed_source_evidence',
+  'issue97_repository_frozen_wave',
+  '2026-08-17T19:32:12Z',
+  'repository_reviewed',
+  'machine_owned',
+  'official_source_id',
+  'manual_source_conflation',
+  'evidence_digest',
+  "'mapping_ownership','manual_reviewed_source_evidence'",
+  "'machine_refresh_may_retire_target_mappings',false",
   'old affected graph escaped the mapping-currentness quarantine',
   'target.road_id=mapping.road_id',
   "mapping.id=private_verification.brinesearch_issue97_uuid(",
@@ -141,6 +257,12 @@ for (const token of [
 const expectedPadsIndex = migration.indexOf(
   'create temporary table tmp_issue97_frozen_mapping_expected_google_pads',
 );
+const refreshOwnershipInspectionIndex = migration.indexOf(
+  'into strict v_refresh_exact_mappings_definition',
+);
+const refreshOwnershipGuardIndex = migration.indexOf(refreshOwnershipGuard);
+const refreshOwnershipGuardEndIndex = refreshOwnershipGuardIndex
+  + refreshOwnershipGuard.length;
 const roadWriteIndex = migration.indexOf('update public.brinesearch_roads road set');
 const mappingWriteIndex = migration.indexOf(
   'insert into public.brinesearch_road_identity_mappings(',
@@ -169,6 +291,12 @@ const drainedSafelyIndex = migration.indexOf(
 if (expectedPadsIndex < 0 || roadWriteIndex < 0 || mappingWriteIndex < 0
     || !(expectedPadsIndex < roadWriteIndex && expectedPadsIndex < mappingWriteIndex)) {
   throw new Error('Google invalidation dependency set must be frozen before road/mapping writes');
+}
+if (refreshOwnershipInspectionIndex < 0 || refreshOwnershipGuardIndex < 0
+    || !(refreshOwnershipInspectionIndex < refreshOwnershipGuardEndIndex
+      && refreshOwnershipGuardEndIndex < roadWriteIndex
+      && refreshOwnershipGuardEndIndex < mappingWriteIndex)) {
+  throw new Error('Completed refresh ownership guard must precede target road and mapping writes');
 }
 if (!(immediateQueueAssertionIndex < immediateReceiptSnapshotIndex
     && immediateQueueAssertionIndex < immediatePadSnapshotIndex
@@ -322,6 +450,9 @@ for (const token of [
   'tmp_issue97_frozen_mapping_google_immediate_pads',
   'tmp_issue97_mapping_wave_post_migration_target_receipts',
   'tmp_issue97_mapping_wave_post_migration_target_pads',
+  'tmp_issue97_mapping_wave_reviewed_mappings_before_build',
+  'Issue #97 reviewed frozen mapping snapshot count drifted',
+  'Issue #97 reviewed frozen mappings changed during graph rebuilds',
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_receipts)<>3',
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_pads)<>3',
   "receipt.status is distinct from 'stale'",
@@ -337,6 +468,36 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
+if ((normalizedRehearsal.match(
+  /from tmp_issue97_mapping_wave_reviewed_mappings_before_build\s*\)<>46/g,
+) ?? []).length !== 2) {
+  throw new Error('Reviewed frozen mapping snapshot count must be checked before and after builds');
+}
+for (const token of [
+  'create temporary table tmp_issue97_mapping_wave_reviewed_mappings_before_build on commit drop as select mapping.*',
+  "mapping.mapping_method='manual_reviewed_source_evidence'",
+  '( select count(*) from public.brinesearch_road_identity_mappings mapping join tmp_issue97_frozen_mapping_targets target on target.identity_id=mapping.identity_id and target.road_id=mapping.road_id )<>46',
+  'from tmp_issue97_mapping_wave_reviewed_mappings_before_build snapshot full join ( select mapping.*',
+  ') live using(id) where pg_catalog.to_jsonb(live) is distinct from pg_catalog.to_jsonb(snapshot)',
+]) {
+  requireText(
+    normalizedRehearsal,
+    token,
+    `reviewed frozen mapping survival contract: ${token}`,
+  );
+}
+if (offsetsOf(
+  rehearsal,
+  'Issue #97 reviewed frozen mapping snapshot count drifted',
+).length !== 1) {
+  throw new Error('Reviewed frozen mapping snapshot-count RAISE must occur exactly once');
+}
+if (offsetsOf(
+  rehearsal,
+  'Issue #97 reviewed frozen mappings changed during graph rebuilds',
+).length !== 1) {
+  throw new Error('Reviewed frozen mapping survival RAISE must occur exactly once');
+}
 requireText(
   normalizedRehearsal,
   'build.graph_digest is not distinct from prior.graph_digest',
@@ -458,17 +619,67 @@ if (offsetsOf(normalizedRehearsal, roadIdMismatchRaise).length !== 1) {
 const candidateDigestContractIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 exact eight-county dark rebuild contract failed'",
 );
+const migrationApplicationIndex = normalizedRehearsal.indexOf(
+  '\\ir ../migrations/20260817193212_issue97_frozen_exact_mapping_wave.sql',
+);
+const reviewedSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_reviewed_mappings_before_build',
+);
+const buildResultsCreationIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_build_results(',
+);
+const firstGraphBuildIndex = normalizedRehearsal.indexOf(
+  "public.brinesearch_issue97_rebuild_county_graph('OH','BEL')",
+);
+const lastGraphBuildIndex = normalizedRehearsal.indexOf(
+  "public.brinesearch_issue97_rebuild_county_graph('OH','NOB')",
+);
+const newBuildMaterializationIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_new_builds on commit drop as',
+);
+const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 reviewed frozen mappings changed during graph rebuilds'",
+);
 const countDriftAssertionIndex = normalizedRehearsal.indexOf(countDriftRaise);
 const roadIdMismatchAssertionIndex = normalizedRehearsal.indexOf(roadIdMismatchRaise);
 const semanticTopologyAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 rebuilt graph changed source topology beyond exact mapping road IDs'",
 );
-if (candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
+const releaseCurrentnessAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 rebuilt dark graph is not fully release-current'",
+);
+const activationProtectionAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 candidate build lane activated or replaced a graph'",
+);
+const routeProtectionAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 rollback rehearsal changed route/public/cutover/WV/PA state'",
+);
+const googleProtectionAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 rollback rehearsal Google state changed during dark builds'",
+);
+if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
+    || buildResultsCreationIndex < 0
+    || firstGraphBuildIndex < 0 || lastGraphBuildIndex < 0
+    || newBuildMaterializationIndex < 0 || reviewedMappingSurvivalAssertionIndex < 0
+    || candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
     || roadIdMismatchAssertionIndex < 0 || semanticTopologyAssertionIndex < 0
-    || !(candidateDigestContractIndex < countDriftAssertionIndex
+    || releaseCurrentnessAssertionIndex < 0 || activationProtectionAssertionIndex < 0
+    || routeProtectionAssertionIndex < 0 || googleProtectionAssertionIndex < 0
+    || !(migrationApplicationIndex < reviewedSnapshotIndex
+      && reviewedSnapshotIndex < buildResultsCreationIndex
+      && buildResultsCreationIndex < firstGraphBuildIndex
+      && firstGraphBuildIndex < lastGraphBuildIndex
+      && lastGraphBuildIndex < newBuildMaterializationIndex
+      && newBuildMaterializationIndex < reviewedMappingSurvivalAssertionIndex
+      && reviewedMappingSurvivalAssertionIndex < candidateDigestContractIndex
+      && candidateDigestContractIndex < countDriftAssertionIndex
       && countDriftAssertionIndex < roadIdMismatchAssertionIndex
-      && roadIdMismatchAssertionIndex < semanticTopologyAssertionIndex)) {
-  throw new Error('Target-membership diagnostics must follow the candidate contract and precede semantic topology');
+      && roadIdMismatchAssertionIndex < semanticTopologyAssertionIndex
+      && semanticTopologyAssertionIndex < releaseCurrentnessAssertionIndex
+      && releaseCurrentnessAssertionIndex < activationProtectionAssertionIndex
+      && activationProtectionAssertionIndex < routeProtectionAssertionIndex
+      && routeProtectionAssertionIndex < googleProtectionAssertionIndex)) {
+  throw new Error('Reviewed-mapping survival and later rehearsal safety ordering drifted');
 }
 
 const targetMembershipDiagnosticBlock = normalizedRehearsal.slice(

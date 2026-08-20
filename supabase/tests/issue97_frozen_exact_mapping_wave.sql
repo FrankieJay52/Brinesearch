@@ -192,6 +192,34 @@ begin
 end
 $issue97_frozen_mapping_post_migration_google_snapshot_assertion$;
 
+create temporary table
+tmp_issue97_mapping_wave_reviewed_mappings_before_build
+on commit drop
+as
+select mapping.*
+from public.brinesearch_road_identity_mappings mapping
+join tmp_issue97_frozen_mapping_targets target
+  on target.identity_id=mapping.identity_id
+ and target.road_id=mapping.road_id
+where mapping.mapping_status='verified'
+  and mapping.mapping_method='manual_reviewed_source_evidence'
+  and mapping.evidence->>'migration'=
+    'issue97_frozen_exact_mapping_wave'
+order by mapping.identity_id,mapping.road_id;
+
+do $issue97_frozen_mapping_reviewed_snapshot_assertion$
+begin
+  if (
+    select count(*)
+    from tmp_issue97_mapping_wave_reviewed_mappings_before_build
+  )<>46
+  then
+    raise exception
+      'Issue #97 reviewed frozen mapping snapshot count drifted';
+  end if;
+end
+$issue97_frozen_mapping_reviewed_snapshot_assertion$;
+
 insert into supabase_migrations.schema_migrations(version,statements,name)
 values (
   '20260817193212',
@@ -259,6 +287,35 @@ declare
   v_count_diff_sample jsonb := '[]'::jsonb;
   v_road_id_mismatch_sample jsonb := '[]'::jsonb;
 begin
+  if (
+       select count(*)
+       from tmp_issue97_mapping_wave_reviewed_mappings_before_build
+     )<>46
+     or (
+       select count(*)
+       from public.brinesearch_road_identity_mappings mapping
+       join tmp_issue97_frozen_mapping_targets target
+         on target.identity_id=mapping.identity_id
+        and target.road_id=mapping.road_id
+     )<>46
+     or exists(
+       select 1
+       from tmp_issue97_mapping_wave_reviewed_mappings_before_build snapshot
+       full join (
+         select mapping.*
+         from public.brinesearch_road_identity_mappings mapping
+         join tmp_issue97_frozen_mapping_targets target
+           on target.identity_id=mapping.identity_id
+          and target.road_id=mapping.road_id
+       ) live using(id)
+       where pg_catalog.to_jsonb(live)
+             is distinct from pg_catalog.to_jsonb(snapshot)
+     )
+  then
+    raise exception
+      'Issue #97 reviewed frozen mappings changed during graph rebuilds';
+  end if;
+
   if (select count(*) from tmp_issue97_mapping_wave_build_results)<>8
      or (select pg_catalog.array_agg(county_code order by build_order) from tmp_issue97_mapping_wave_build_results)
        is distinct from array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']::text[]
