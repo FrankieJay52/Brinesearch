@@ -624,14 +624,42 @@ for (const token of [
   'non_target_private_google',
   'non_target_pad_google',
   'brinesearch_google_route_refresh_queue_issue97',
+  'v_google_diff_count',
+  'v_google_diff_sample',
+  'google_refresh_queue_count',
+  'google_refresh_queue_sample',
+  'target_google_receipt_diff_count',
+  'target_google_receipt_diff_sample',
+  'target_google_pad_diff_count',
+  'target_google_pad_diff_sample',
+  'target_google_stale_state_diff_count',
+  'target_google_stale_state_diff_sample',
+  'expected_non_target_receipt_digest',
+  'observed_non_target_receipt_digest',
+  'expected_non_target_pad_digest',
+  'observed_non_target_pad_digest',
+  'matching_deferred_trigger_count',
   'Issue #97 rollback rehearsal post-processor Google contract failed',
-  'Issue #97 rollback rehearsal Google state changed during dark builds',
+  'Issue #97 rollback rehearsal Google target snapshot cardinality changed',
+  'Issue #97 rollback rehearsal Google refresh queue is not empty after dark builds',
+  'Issue #97 rollback rehearsal public Google or cutover state changed',
+  'Issue #97 rollback rehearsal target Google receipts changed during dark builds',
+  'Issue #97 rollback rehearsal target Google pad state changed during dark builds',
+  'Issue #97 rollback rehearsal target Google stale-state contract changed',
+  'Issue #97 rollback rehearsal non-target Google receipts changed',
+  'Issue #97 rollback rehearsal non-target Google pad state changed',
+  'Issue #97 rollback rehearsal deferred Google trigger contract changed',
 ]) requireText(rehearsal, token);
+forbid(
+  rehearsal,
+  /Issue #97 rollback rehearsal Google state changed during dark builds/,
+  'old combined Google dark-build assertion returned',
+);
 if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 4) {
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== '574317860fb052102e0414cc00ed02ab') {
+if (md5(normalizedRehearsal) !== '96c0171221570faa921f8efa28a0abec') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -648,7 +676,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== '7d585cce90ed2590b78d5583f1da0897') {
+if (md5(rebuildAssertionsBlock) !== 'd7d294bef6ba8a96a0e9c38b0fb39578') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 if ((rehearsal.match(/^\\set ON_ERROR_STOP on\s*$/gm) ?? []).length !== 1) {
@@ -1279,9 +1307,37 @@ const activationProtectionAssertionIndex = normalizedRehearsal.indexOf(
 const routeProtectionAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 rollback rehearsal changed route/public/cutover/WV/PA state'",
 );
-const googleProtectionAssertionIndex = normalizedRehearsal.indexOf(
-  "raise exception 'Issue #97 rollback rehearsal Google state changed during dark builds'",
+const googleProtectionRaises = [
+  'Issue #97 rollback rehearsal Google target snapshot cardinality changed',
+  'Issue #97 rollback rehearsal Google refresh queue is not empty after dark builds',
+  'Issue #97 rollback rehearsal public Google or cutover state changed',
+  'Issue #97 rollback rehearsal target Google receipts changed during dark builds',
+  'Issue #97 rollback rehearsal target Google pad state changed during dark builds',
+  'Issue #97 rollback rehearsal target Google stale-state contract changed',
+  'Issue #97 rollback rehearsal non-target Google receipts changed',
+  'Issue #97 rollback rehearsal non-target Google pad state changed',
+  'Issue #97 rollback rehearsal deferred Google trigger contract changed',
+];
+const googleProtectionRaiseIndexes = googleProtectionRaises.map((message) => {
+  const indexes = offsetsOf(rehearsal, message);
+  if (indexes.length !== 1) {
+    throw new Error(`Google dark-build diagnostic must occur exactly once: ${message}`);
+  }
+  return normalizedRehearsal.indexOf(message);
+});
+const googleProtectionAssertionIndex = googleProtectionRaiseIndexes[0];
+if (!googleProtectionRaiseIndexes.every((index, position) => (
+  position === 0 || googleProtectionRaiseIndexes[position - 1] < index
+))) {
+  throw new Error('Google dark-build diagnostics are not in fail-closed contract order');
+}
+const googleProtectionBlock = normalizedRehearsal.slice(
+  googleProtectionRaiseIndexes[0],
+  rebuildAssertionsEnd,
 );
+if ((googleProtectionBlock.match(/limit 50/g) ?? []).length !== 3) {
+  throw new Error('Google dark-build diagnostic samples must retain three 50-row bounds');
+}
 if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || refreshExpansionSnapshotIndex < 0
     || buildResultsCreationIndex < 0
