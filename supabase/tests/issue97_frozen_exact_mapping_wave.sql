@@ -582,7 +582,7 @@ begin
       on receipt.pad_id=expected.pad_id
     left join public.pads pad on pad.id=expected.pad_id
     where (
-      pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'
+      pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'-'evidence'
     ) is distinct from pg_catalog.jsonb_build_object(
       'pad_id',expected.pad_id,
       'route_revision',expected.expected_receipt_route_revision,
@@ -597,26 +597,55 @@ begin
         'status','stale',
         'pad_id',expected.pad_id,
         'route_revision',expected.expected_receipt_route_revision
-      ),
-      'evidence',pg_catalog.jsonb_build_object(
-        'identity_id',expected.expected_evidence_identity_id,
-        'road_id',expected.expected_evidence_road_id
       )
     )
        or receipt.generated_at is distinct from
           pg_catalog.transaction_timestamp()
        or receipt.updated_at is distinct from
           pg_catalog.transaction_timestamp()
+       -- The receipt evidence names ONE mapping row among several that can
+       -- each legitimately invalidate this pad. Which one the deferred
+       -- processor records depends on how many counties the wave rebuilt, so
+       -- it is a witness, not a fixed value, and pinning it fails closed for
+       -- the wrong reason. Assert the invariant the witness must satisfy,
+       -- using the same structural form the migration already applies to the
+       -- reviewed target pads: exactly an identity/road pair, that pair is a
+       -- live verified machine-owned mapping, and it genuinely binds to this
+       -- pad. issue97-google-evidence-witness-invariant
+       or receipt.evidence is null
+       or (
+            select count(*)
+            from pg_catalog.jsonb_object_keys(receipt.evidence)
+          )<>2
+       or receipt.evidence->>'identity_id' is null
+       or receipt.evidence->>'road_id' is null
        or not exists(
             select 1
             from public.brinesearch_road_identity_mappings mapping
-            where mapping.identity_id=
-                  expected.expected_evidence_identity_id
-              and mapping.road_id=expected.expected_evidence_road_id
+            where mapping.identity_id::text=receipt.evidence->>'identity_id'
+              and mapping.road_id::text=receipt.evidence->>'road_id'
               and mapping.mapping_status='verified'
               and mapping.mapping_method in (
                 'exact_source_record_id','exact_route_designation'
               )
+          )
+       or not (
+            exists(
+              select 1
+              from public.brinesearch_pad_roads step
+              where step.pad_id=expected.pad_id
+                and step.road_id::text=receipt.evidence->>'road_id'
+            )
+            or exists(
+              select 1
+              from pg_catalog.jsonb_array_elements(
+                coalesce(
+                  expected.pre_receipt_row->'manifest'->'points','[]'::jsonb
+                )
+              ) point
+              where point->>'identity_id'=receipt.evidence->>'identity_id'
+                 or point->>'road_id'=receipt.evidence->>'road_id'
+            )
           )
        or pg_catalog.jsonb_build_object(
             'status',pad.brinesearch_google_route_status_issue97,
@@ -1760,7 +1789,7 @@ begin
       on receipt.pad_id=target.pad_id
     where expected.pad_id is null
        or (
-         pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'
+         pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'-'evidence'
        ) is distinct from pg_catalog.jsonb_build_object(
          'pad_id',expected.pad_id,
          'route_revision',expected.expected_receipt_route_revision,
@@ -1775,16 +1804,52 @@ begin
            'status','stale',
            'pad_id',expected.pad_id,
            'route_revision',expected.expected_receipt_route_revision
-         ),
-         'evidence',pg_catalog.jsonb_build_object(
-           'identity_id',expected.expected_evidence_identity_id,
-           'road_id',expected.expected_evidence_road_id
          )
        )
        or receipt.generated_at is distinct from
           pg_catalog.transaction_timestamp()
        or receipt.updated_at is distinct from
           pg_catalog.transaction_timestamp()
+       -- Same witness rule as the postprocessor contract: the recorded
+       -- identity/road pair is one of several legitimate invalidation causes
+       -- and shifts with rebuild scope, so assert what it must satisfy rather
+       -- than which one it happens to be.
+       -- issue97-google-evidence-witness-invariant
+       or receipt.evidence is null
+       or (
+            select count(*)
+            from pg_catalog.jsonb_object_keys(receipt.evidence)
+          )<>2
+       or receipt.evidence->>'identity_id' is null
+       or receipt.evidence->>'road_id' is null
+       or not exists(
+            select 1
+            from public.brinesearch_road_identity_mappings mapping
+            where mapping.identity_id::text=receipt.evidence->>'identity_id'
+              and mapping.road_id::text=receipt.evidence->>'road_id'
+              and mapping.mapping_status='verified'
+              and mapping.mapping_method in (
+                'exact_source_record_id','exact_route_designation'
+              )
+          )
+       or not (
+            exists(
+              select 1
+              from public.brinesearch_pad_roads step
+              where step.pad_id=target.pad_id
+                and step.road_id::text=receipt.evidence->>'road_id'
+            )
+            or exists(
+              select 1
+              from pg_catalog.jsonb_array_elements(
+                coalesce(
+                  expected.pre_receipt_row->'manifest'->'points','[]'::jsonb
+                )
+              ) point
+              where point->>'identity_id'=receipt.evidence->>'identity_id'
+                 or point->>'road_id'=receipt.evidence->>'road_id'
+            )
+          )
   )
   select
     (select count(*) from differences),

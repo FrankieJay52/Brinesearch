@@ -743,6 +743,50 @@ forbid(
   /Issue #97 rollback rehearsal target Google receipts changed during dark builds/,
   'old byte-identical target Google receipt assertion returned',
 );
+// The deferred processor records ONE invalidating mapping row per pad as
+// evidence. Which row wins shifts with how many counties the wave rebuilds,
+// so pinning the pair fails closed for the wrong reason. Both Google receipt
+// contracts must assert the witness invariant instead, and must not go back
+// to comparing a pinned pair.
+forbid(
+  rehearsal,
+  /'evidence',pg_catalog\.jsonb_build_object\(\s*'identity_id',expected\.expected_evidence_identity_id/,
+  'pinned Google receipt evidence pair returned',
+);
+{
+  const witnessMarkers = (rehearsal.match(
+    /issue97-google-evidence-witness-invariant/g,
+  ) ?? []).length;
+  if (witnessMarkers !== 2) {
+    throw new Error(
+      `Google evidence witness invariant must guard both receipt contracts: found ${witnessMarkers}`,
+    );
+  }
+  const evidenceExcluded = (rehearsal.match(
+    /pg_catalog\.to_jsonb\(receipt\)-'generated_at'-'updated_at'-'evidence'/g,
+  ) ?? []).length;
+  if (evidenceExcluded !== 2) {
+    throw new Error(
+      `Both Google receipt comparisons must exclude the evidence witness: found ${evidenceExcluded}`,
+    );
+  }
+  const witnessMappingChecks = (rehearsal.match(
+    /mapping\.identity_id::text=receipt\.evidence->>'identity_id'/g,
+  ) ?? []).length;
+  const witnessBindChecks = (rehearsal.match(
+    /step\.road_id::text=receipt\.evidence->>'road_id'/g,
+  ) ?? []).length;
+  // Three pad-binding checks are expected: the pre-existing post-migration
+  // Google assertion already used this structural form, plus the two receipt
+  // contracts corrected here. Only the latter two resolve the witness against
+  // the live mapping table.
+  if (witnessMappingChecks !== 2 || witnessBindChecks !== 3) {
+    throw new Error(
+      `Witness invariant must verify a live verified mapping twice and a real pad binding three times: `
+        + `${witnessMappingChecks}/${witnessBindChecks}`,
+    );
+  }
+}
 if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_catalog\.to_jsonb\(snapshot\)/g) ?? []).length < 3) {
   throw new Error('Rollback rehearsal must byte-compare mapping, pad, and unaffected receipt state');
 }
@@ -763,7 +807,7 @@ for (const token of [
     `reviewed mapping-refresh Google snapshot contract: ${token}`,
   );
 }
-if (md5(normalizedRehearsal) !== 'ef60c17f93753b2b3974f335e090e7c0') {
+if (md5(normalizedRehearsal) !== '6bbb6251b8c1152465d28109087220b3') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -780,7 +824,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== 'a54928183f5be82b77da970adf0a8e99') {
+if (md5(rebuildAssertionsBlock) !== 'b876c962c0c3e511c6565f92b84e1836') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 const googlePostprocessOpen =
@@ -801,20 +845,26 @@ const googlePostprocessBlock = normalizedRehearsal.slice(
 );
 for (const token of [
   'from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
-  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'",
+  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'-'evidence'",
   "'status','stale'",
   "'hold_reason','road_identity_mapping_changed'",
   "'manifest_version','issue97-google-v1'",
   "'route_ready',false",
   "'manifest_digest',null",
   "'dependency_digest',null",
-  "'identity_id',expected.expected_evidence_identity_id",
-  "'road_id',expected.expected_evidence_road_id",
+  'issue97-google-evidence-witness-invariant',
+  'pg_catalog.jsonb_object_keys(receipt.evidence)',
+  "receipt.evidence->>'identity_id' is null",
+  "receipt.evidence->>'road_id' is null",
   'receipt.generated_at is distinct from pg_catalog.transaction_timestamp()',
   'receipt.updated_at is distinct from pg_catalog.transaction_timestamp()',
   'from public.brinesearch_road_identity_mappings mapping',
-  'mapping.identity_id= expected.expected_evidence_identity_id',
-  'mapping.road_id=expected.expected_evidence_road_id',
+  "mapping.identity_id::text=receipt.evidence->>'identity_id'",
+  "mapping.road_id::text=receipt.evidence->>'road_id'",
+  'from public.brinesearch_pad_roads step',
+  'step.pad_id=expected.pad_id',
+  "step.road_id::text=receipt.evidence->>'road_id'",
+  "expected.pre_receipt_row->'manifest'->'points'",
   "mapping.mapping_status='verified'",
   "mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' )",
   "expected.pre_pad_state||pg_catalog.jsonb_build_object( 'status','stale', 'revision',expected.expected_receipt_route_revision )",
@@ -1522,11 +1572,17 @@ const targetGoogleReceiptContractBlock = normalizedRehearsal.slice(
 for (const token of [
   'from tmp_issue97_frozen_mapping_expected_google_pads target',
   'left join tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected',
-  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'",
+  "pg_catalog.to_jsonb(receipt)-'generated_at'-'updated_at'-'evidence'",
   "'status','stale'",
   "'hold_reason','road_identity_mapping_changed'",
-  "'identity_id',expected.expected_evidence_identity_id",
-  "'road_id',expected.expected_evidence_road_id",
+  'issue97-google-evidence-witness-invariant',
+  'pg_catalog.jsonb_object_keys(receipt.evidence)',
+  "mapping.identity_id::text=receipt.evidence->>'identity_id'",
+  "mapping.road_id::text=receipt.evidence->>'road_id'",
+  'from public.brinesearch_pad_roads step',
+  'step.pad_id=target.pad_id',
+  "step.road_id::text=receipt.evidence->>'road_id'",
+  "expected.pre_receipt_row->'manifest'->'points'",
   'receipt.generated_at is distinct from pg_catalog.transaction_timestamp()',
   'receipt.updated_at is distinct from pg_catalog.transaction_timestamp()',
   "message='Issue #97 rollback rehearsal target Google receipt postprocessor contract changed'",
@@ -1538,6 +1594,35 @@ for (const token of [
     token,
     `target Google postprocessor subset contract: ${token}`,
   );
+}
+// Both Google receipt contracts may reference the historical pinned evidence
+// columns exactly once each, in the diagnostic sample projection. A second
+// reference means the witness is being compared against a pinned pair again,
+// in whatever syntax — which is the defect this correction removed.
+for (const [label, block] of [
+  ['reviewed mapping-refresh Google postprocessor', googlePostprocessBlock],
+  ['target Google postprocessor subset', targetGoogleReceiptContractBlock],
+]) {
+  for (const column of [
+    'expected_evidence_identity_id',
+    'expected_evidence_road_id',
+  ]) {
+    const uses = (block.match(new RegExp(column, 'g')) ?? []).length;
+    if (uses !== 1) {
+      throw new Error(
+        `${label} contract must reference ${column} only in its diagnostic sample: found ${uses}`,
+      );
+    }
+  }
+  // Guard against a predicate being neutralised while leaving its tokens in
+  // place, which a token-presence check alone cannot see.
+  for (const neutraliser of [/\btrue or\b/, /\bor true\b/, /\bfalse or\b/, /\b1=1\b/]) {
+    if (neutraliser.test(block)) {
+      throw new Error(
+        `${label} contract contains a neutralised predicate: ${neutraliser}`,
+      );
+    }
+  }
 }
 const nonTargetGoogleReceiptRaise =
   'Issue #97 rollback rehearsal non-target Google receipts changed';
