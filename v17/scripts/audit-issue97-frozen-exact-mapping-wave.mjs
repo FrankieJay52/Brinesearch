@@ -639,6 +639,16 @@ for (const token of [
   'expected_non_target_pad_digest',
   'observed_non_target_pad_digest',
   'matching_deferred_trigger_count',
+  'tmp_issue97_mapping_wave_refresh_expansion_google_before_build',
+  '450948793c57a9a1535139fac4974792',
+  'Issue #97 reviewed mapping-refresh Google dependency set drifted',
+  'Issue #97 reviewed mapping-refresh Google queue contract drifted',
+  'expected_queue_count',
+  'observed_queue_count',
+  'expected_queue_pad_digest',
+  'observed_queue_pad_digest',
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_QUEUE|9|450948793c57a9a1535139fac4974792',
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|',
   'Issue #97 rollback rehearsal post-processor Google contract failed',
   'Issue #97 rollback rehearsal Google target snapshot cardinality changed',
   'Issue #97 rollback rehearsal Google refresh queue is not empty after dark builds',
@@ -659,7 +669,7 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== '96c0171221570faa921f8efa28a0abec') {
+if (md5(normalizedRehearsal) !== '7daf7c656e9271a5b81c696b89627f48') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -1281,6 +1291,9 @@ const reviewedSnapshotIndex = normalizedRehearsal.indexOf(
 const refreshExpansionSnapshotIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_refresh_expansion_before_build',
 );
+const refreshExpansionGoogleSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_refresh_expansion_google_before_build',
+);
 const buildResultsCreationIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_build_results(',
 );
@@ -1292,6 +1305,16 @@ const lastGraphBuildIndex = normalizedRehearsal.indexOf(
 );
 const newBuildMaterializationIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_new_builds on commit drop as',
+);
+const refreshExpansionGoogleQueueAssertionIndex = normalizedRehearsal.indexOf(
+  "message= 'Issue #97 reviewed mapping-refresh Google queue contract drifted'",
+);
+const refreshExpansionGoogleProcessorIndex = normalizedRehearsal.indexOf(
+  'set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;',
+  refreshExpansionGoogleQueueAssertionIndex,
+);
+const refreshExpansionGooglePostprocessIndex = normalizedRehearsal.indexOf(
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|',
 );
 const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 reviewed frozen mappings changed during graph rebuilds'",
@@ -1340,9 +1363,14 @@ if ((googleProtectionBlock.match(/limit 50/g) ?? []).length !== 3) {
 }
 if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || refreshExpansionSnapshotIndex < 0
+    || refreshExpansionGoogleSnapshotIndex < 0
     || buildResultsCreationIndex < 0
     || firstGraphBuildIndex < 0 || lastGraphBuildIndex < 0
-    || newBuildMaterializationIndex < 0 || reviewedMappingSurvivalAssertionIndex < 0
+    || newBuildMaterializationIndex < 0
+    || refreshExpansionGoogleQueueAssertionIndex < 0
+    || refreshExpansionGoogleProcessorIndex < 0
+    || refreshExpansionGooglePostprocessIndex < 0
+    || reviewedMappingSurvivalAssertionIndex < 0
     || refreshExpansionSurvivalAssertionIndex < 0
     || candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
     || roadIdMismatchAssertionIndex < 0
@@ -1354,11 +1382,15 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || routeProtectionAssertionIndex < 0 || googleProtectionAssertionIndex < 0
     || !(migrationApplicationIndex < reviewedSnapshotIndex
       && reviewedSnapshotIndex < refreshExpansionSnapshotIndex
-      && refreshExpansionSnapshotIndex < buildResultsCreationIndex
+      && refreshExpansionSnapshotIndex < refreshExpansionGoogleSnapshotIndex
+      && refreshExpansionGoogleSnapshotIndex < buildResultsCreationIndex
       && buildResultsCreationIndex < firstGraphBuildIndex
       && firstGraphBuildIndex < lastGraphBuildIndex
       && lastGraphBuildIndex < newBuildMaterializationIndex
-      && newBuildMaterializationIndex < reviewedMappingSurvivalAssertionIndex
+      && newBuildMaterializationIndex < refreshExpansionGoogleQueueAssertionIndex
+      && refreshExpansionGoogleQueueAssertionIndex < refreshExpansionGoogleProcessorIndex
+      && refreshExpansionGoogleProcessorIndex < refreshExpansionGooglePostprocessIndex
+      && refreshExpansionGooglePostprocessIndex < reviewedMappingSurvivalAssertionIndex
       && reviewedMappingSurvivalAssertionIndex < refreshExpansionSurvivalAssertionIndex
       && refreshExpansionSurvivalAssertionIndex < candidateDigestContractIndex
       && candidateDigestContractIndex < countDriftAssertionIndex

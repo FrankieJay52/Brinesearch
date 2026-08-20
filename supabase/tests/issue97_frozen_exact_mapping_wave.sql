@@ -294,6 +294,67 @@ values (
 );
 \ir ../../ops/issue97-computer-rollout/sql/34-frozen-exact-mapping-wave-route-manifest.sql
 
+-- Freeze the exact Google dependency footprint that the reviewed seven-row
+-- machine refresh can invalidate. This reproduces the mapping invalidation
+-- trigger's two dependency paths before any builder can replace a receipt with
+-- its stale stub.
+create temporary table
+tmp_issue97_mapping_wave_refresh_expansion_google_before_build
+on commit drop
+as
+with affected as (
+  select receipt.pad_id
+  from tmp_issue97_frozen_mapping_refresh_expansion expansion
+  join private_verification.brinesearch_google_route_receipts_issue97 receipt
+    on exists(
+      select 1
+      from pg_catalog.jsonb_array_elements(
+        coalesce(receipt.manifest->'points','[]'::jsonb)
+      ) point
+      where point->>'identity_id'=expansion.identity_id::text
+         or point->>'road_id'=expansion.road_id::text
+    )
+
+  union
+
+  select step.pad_id
+  from tmp_issue97_frozen_mapping_refresh_expansion expansion
+  join public.brinesearch_pad_roads step
+    on step.road_id=expansion.road_id
+)
+select affected.pad_id,
+  pg_catalog.to_jsonb(receipt) as pre_receipt_row,
+  pg_catalog.jsonb_build_object(
+    'status',pad.brinesearch_google_route_status_issue97,
+    'revision',pad.brinesearch_google_route_revision_issue97,
+    'structured_route_revision',pad.structured_route_revision,
+    'road_sequence_status',pad.road_sequence_status
+  ) as pre_pad_state
+from (select distinct pad_id from affected) affected
+join public.pads pad on pad.id=affected.pad_id
+left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+  on receipt.pad_id=affected.pad_id
+order by affected.pad_id;
+
+do $issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$
+begin
+  if (
+       select count(*)
+       from tmp_issue97_mapping_wave_refresh_expansion_google_before_build
+     )<>9
+     or (
+       select pg_catalog.md5(
+         pg_catalog.string_agg(pad_id::text,'|' order by pad_id)
+       )
+       from tmp_issue97_mapping_wave_refresh_expansion_google_before_build
+     )<>'450948793c57a9a1535139fac4974792'
+  then
+    raise exception
+      'Issue #97 reviewed mapping-refresh Google dependency set drifted';
+  end if;
+end
+$issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$;
+
 create temporary table tmp_issue97_mapping_wave_build_results(
   build_order integer primary key,
   county_code text not null unique,
@@ -344,6 +405,101 @@ join public.brinesearch_road_graph_builds build
   on build.id=(result.result->>'build_id')::uuid
  and build.state_code='OH'
  and build.county_code=result.county_code;
+
+do $issue97_frozen_mapping_refresh_expansion_google_queue_assertion$
+declare
+  v_queue_count bigint;
+  v_queue_pad_digest text;
+  v_queue_sample jsonb := '[]'::jsonb;
+begin
+  select count(*),
+    pg_catalog.md5(pg_catalog.string_agg(queue.pad_id::text,'|' order by queue.pad_id)),
+    coalesce(
+      pg_catalog.jsonb_agg(
+        pg_catalog.jsonb_build_object(
+          'pad_id',queue.pad_id,
+          'reason',queue.reason
+        ) order by queue.pad_id
+      ),
+      '[]'::jsonb
+    )
+  into v_queue_count,v_queue_pad_digest,v_queue_sample
+  from private_verification.brinesearch_google_route_refresh_queue_issue97 queue;
+
+  if v_queue_count<>9
+     or v_queue_pad_digest<>'450948793c57a9a1535139fac4974792'
+     or exists(
+       select 1
+       from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+       full join private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+         on queue.pad_id=expected.pad_id
+       where expected.pad_id is null
+          or queue.pad_id is null
+          or queue.reason is distinct from 'road_identity_mapping_changed'
+     )
+     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0
+     or public.brinesearch_issue97_cutover_active()
+  then
+    raise exception using
+      message=
+        'Issue #97 reviewed mapping-refresh Google queue contract drifted',
+      detail=pg_catalog.jsonb_build_object(
+        'expected_queue_count',9,
+        'observed_queue_count',v_queue_count,
+        'expected_queue_pad_digest','450948793c57a9a1535139fac4974792',
+        'observed_queue_pad_digest',v_queue_pad_digest,
+        'queue_sample',v_queue_sample,
+        'public_google_route_count',
+          (select count(*) from public.brinesearch_driver_google_routes_public),
+        'cutover_active',public.brinesearch_issue97_cutover_active()
+      )::text;
+  end if;
+end
+$issue97_frozen_mapping_refresh_expansion_google_queue_assertion$;
+
+\echo ISSUE97_REVIEWED_REFRESH_GOOGLE_QUEUE|9|450948793c57a9a1535139fac4974792
+
+-- Exercise exactly the pending commit-time events while the outer rehearsal
+-- remains rollback-only. Cutover is already proven OFF and public projection
+-- remains fail-closed below.
+set constraints
+  private_verification.brinesearch_issue97_google_route_refresh_deferred
+  immediate;
+set constraints
+  private_verification.brinesearch_issue97_google_route_refresh_deferred
+  deferred;
+
+select
+  'ISSUE97_REVIEWED_REFRESH_GOOGLE_POSTPROCESS|'||
+  pg_catalog.jsonb_build_object(
+    'queue_count',
+      (select count(*)
+       from private_verification.brinesearch_google_route_refresh_queue_issue97),
+    'public_google_route_count',
+      (select count(*) from public.brinesearch_driver_google_routes_public),
+    'cutover_active',public.brinesearch_issue97_cutover_active(),
+    'pads',
+      (
+        select pg_catalog.jsonb_agg(
+          pg_catalog.jsonb_build_object(
+            'pad_id',expected.pad_id,
+            'pre_receipt',expected.pre_receipt_row,
+            'post_receipt',pg_catalog.to_jsonb(receipt),
+            'pre_pad_state',expected.pre_pad_state,
+            'post_pad_state',pg_catalog.jsonb_build_object(
+              'status',pad.brinesearch_google_route_status_issue97,
+              'revision',pad.brinesearch_google_route_revision_issue97,
+              'structured_route_revision',pad.structured_route_revision,
+              'road_sequence_status',pad.road_sequence_status
+            )
+          ) order by expected.pad_id
+        )
+        from tmp_issue97_mapping_wave_refresh_expansion_google_before_build expected
+        join public.pads pad on pad.id=expected.pad_id
+        left join private_verification.brinesearch_google_route_receipts_issue97 receipt
+          on receipt.pad_id=expected.pad_id
+      )
+  )::text;
 
 do $issue97_frozen_mapping_rebuild_assertions$
 declare
