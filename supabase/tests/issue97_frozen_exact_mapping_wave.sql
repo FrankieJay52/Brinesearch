@@ -390,46 +390,21 @@ begin
       'Issue #97 reviewed frozen mappings changed during graph rebuilds';
   end if;
 
-  if (
-       select count(*)
-       from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       join tmp_issue97_mapping_wave_new_builds build
-         on build.state_code='OH'
-        and build.county_code=expansion.county_code
-     )<>
-     (
-       select count(*)
-       from public.brinesearch_road_identity_mappings mapping
-       join tmp_issue97_frozen_mapping_refresh_expansion expansion
-         on expansion.identity_id=mapping.identity_id
-        and expansion.road_id=mapping.road_id
-       join tmp_issue97_mapping_wave_new_builds build
-         on build.state_code='OH'
-        and build.county_code=expansion.county_code
-       where mapping.mapping_status='verified'
-     )
+  if (select count(*)
+      from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+     or (select count(*)
+         from public.brinesearch_road_identity_mappings mapping
+         join tmp_issue97_frozen_mapping_refresh_expansion expansion
+           on expansion.identity_id=mapping.identity_id
+          and expansion.road_id=mapping.road_id
+         where mapping.mapping_status='verified')<>7
      or exists(
        select 1
        from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       join tmp_issue97_mapping_wave_new_builds build
-         on build.state_code='OH'
-        and build.county_code=expansion.county_code
        left join public.brinesearch_road_identity_mappings mapping
          on mapping.identity_id=expansion.identity_id
         and mapping.road_id=expansion.road_id
         and mapping.mapping_status='verified'
-       left join lateral (
-         select
-           count(*)::bigint as membership_count,
-           count(*) filter(
-             where membership.road_id=expansion.road_id
-           )::bigint as exact_road_membership_count
-         from public.brinesearch_road_junctions junction
-         join public.brinesearch_road_junction_memberships membership
-           on membership.junction_id=junction.id
-         where junction.build_id=build.id
-           and membership.identity_id=expansion.identity_id
-       ) occurrence on true
        where mapping.id is null
           or mapping.mapping_method is distinct from expansion.mapping_method
           or mapping.evidence->>'source_identity_key' is distinct from
@@ -448,7 +423,26 @@ begin
           or (mapping.evidence->>'ambiguity_held')::boolean
              is distinct from
              expansion.ambiguity_flag
-          or occurrence.membership_count is distinct from
+     )
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_refresh_expansion expansion
+       join tmp_issue97_mapping_wave_new_builds build
+         on build.state_code='OH'
+        and build.county_code=expansion.county_code
+       left join lateral (
+         select
+           count(*)::bigint as membership_count,
+           count(*) filter(
+             where membership.road_id=expansion.road_id
+           )::bigint as exact_road_membership_count
+         from public.brinesearch_road_junctions junction
+         join public.brinesearch_road_junction_memberships membership
+           on membership.junction_id=junction.id
+         where junction.build_id=build.id
+           and membership.identity_id=expansion.identity_id
+       ) occurrence on true
+       where occurrence.membership_count is distinct from
              expansion.old_active_membership_occurrence_count
           or occurrence.exact_road_membership_count is distinct from
              expansion.old_active_membership_occurrence_count
@@ -463,19 +457,6 @@ begin
            mapping.road_id<>expansion.road_id
            or mapping.mapping_status<>expansion.mapping_status
            or mapping.mapping_method<>expansion.mapping_method
-         )
-     )
-     or exists(
-       select 1
-       from public.brinesearch_road_identity_mappings mapping
-       join tmp_issue97_frozen_mapping_refresh_expansion expansion
-         on expansion.identity_id=mapping.identity_id
-       where mapping.mapping_status in ('verified','candidate')
-         and not exists(
-           select 1
-           from tmp_issue97_mapping_wave_new_builds build
-           where build.state_code='OH'
-             and build.county_code=expansion.county_code
          )
      )
   then

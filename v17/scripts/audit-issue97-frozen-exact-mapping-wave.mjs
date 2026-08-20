@@ -631,7 +631,7 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== 'f970764d675a026ae2bd50c478422b5a') {
+if (md5(normalizedRehearsal) !== '574317860fb052102e0414cc00ed02ab') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -648,7 +648,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== '729babe043893cb3e64582f72b24dccd') {
+if (md5(rebuildAssertionsBlock) !== '7d585cce90ed2590b78d5583f1da0897') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 if ((rehearsal.match(/^\\set ON_ERROR_STOP on\s*$/gm) ?? []).length !== 1) {
@@ -748,6 +748,9 @@ const refreshExpansionSurvivalBlock = normalizedRehearsal.slice(
   refreshExpansionSurvivalEnd + 'end if;'.length,
 );
 for (const token of [
+  '(select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
+  "where mapping.mapping_status='verified')<>7",
+  'left join public.brinesearch_road_identity_mappings mapping',
   'join tmp_issue97_mapping_wave_new_builds build',
   "mapping.mapping_status='verified'",
   'mapping.mapping_method is distinct from expansion.mapping_method',
@@ -762,7 +765,6 @@ for (const token of [
   'occurrence.exact_road_membership_count is distinct from expansion.old_active_membership_occurrence_count',
   "mapping.mapping_status in ('verified','candidate')",
   'mapping.road_id<>expansion.road_id',
-  'not exists( select 1 from tmp_issue97_mapping_wave_new_builds build',
 ]) {
   requireText(
     refreshExpansionSurvivalBlock,
@@ -770,6 +772,17 @@ for (const token of [
     `reviewed mapping-refresh survival contract: ${token}`,
   );
 }
+if (offsetsOf(
+  refreshExpansionSurvivalBlock,
+  'join tmp_issue97_mapping_wave_new_builds build',
+).length !== 1) {
+  throw new Error('Reviewed expansion mappings must be global while candidate membership proof is pair-scoped');
+}
+forbid(
+  refreshExpansionSurvivalBlock,
+  /and not exists\(\s*select 1 from tmp_issue97_mapping_wave_new_builds build/i,
+  'global reviewed expansion mapping rejected outside the currently built pair',
+);
 
 const reviewedRefreshExpansionPasses = ({
   transitionRows = 7,
