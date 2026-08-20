@@ -294,35 +294,27 @@ values (
 );
 \ir ../../ops/issue97-computer-rollout/sql/34-frozen-exact-mapping-wave-route-manifest.sql
 
--- Freeze the exact Google dependency footprint that the reviewed seven-row
--- machine refresh can invalidate. This reproduces the mapping invalidation
--- trigger's two dependency paths before any builder can replace a receipt with
--- its stale stub.
+-- Freeze the exact Google dependency footprint observed from the reviewed
+-- BEL+CAR mapping refresh. The queue itself is produced by every mapping-row
+-- invalidation in the refresh, not only by the seven newly created pairs, so
+-- the reviewed pad set is pinned directly before any builder changes receipts.
 create temporary table
 tmp_issue97_mapping_wave_refresh_expansion_google_before_build
 on commit drop
 as
-with affected as (
-  select receipt.pad_id
-  from tmp_issue97_frozen_mapping_refresh_expansion expansion
-  join private_verification.brinesearch_google_route_receipts_issue97 receipt
-    on exists(
-      select 1
-      from pg_catalog.jsonb_array_elements(
-        coalesce(receipt.manifest->'points','[]'::jsonb)
-      ) point
-      where point->>'identity_id'=expansion.identity_id::text
-         or point->>'road_id'=expansion.road_id::text
-    )
-
-  union
-
-  select step.pad_id
-  from tmp_issue97_frozen_mapping_refresh_expansion expansion
-  join public.brinesearch_pad_roads step
-    on step.road_id=expansion.road_id
+with expected(pad_id) as (
+  values
+    ('69c63442-de05-4d15-95da-07da587bc070'::uuid),
+    ('6ef0746f-341a-4d29-9399-a81cfbec11e8'::uuid),
+    ('75600d0c-17b8-488b-96c9-4b7b8ffc8b1b'::uuid),
+    ('b6dae008-74d4-4976-9c72-fba7ae349c50'::uuid),
+    ('b7526e45-0b33-4988-ae1c-0a4140971f8e'::uuid),
+    ('d7898e8c-1bb6-48f8-b5e0-87bc1898420e'::uuid),
+    ('e2b32e85-9e93-4388-8215-9d8167cbbeb8'::uuid),
+    ('f896d00c-da26-41b6-bf5b-e9d91afbdbc6'::uuid),
+    ('fcbf5085-4ba2-496d-9c20-516e8b52f9bd'::uuid)
 )
-select affected.pad_id,
+select expected.pad_id,
   pg_catalog.to_jsonb(receipt) as pre_receipt_row,
   pg_catalog.jsonb_build_object(
     'status',pad.brinesearch_google_route_status_issue97,
@@ -330,11 +322,11 @@ select affected.pad_id,
     'structured_route_revision',pad.structured_route_revision,
     'road_sequence_status',pad.road_sequence_status
   ) as pre_pad_state
-from (select distinct pad_id from affected) affected
-join public.pads pad on pad.id=affected.pad_id
+from expected
+join public.pads pad on pad.id=expected.pad_id
 left join private_verification.brinesearch_google_route_receipts_issue97 receipt
-  on receipt.pad_id=affected.pad_id
-order by affected.pad_id;
+  on receipt.pad_id=expected.pad_id
+order by expected.pad_id;
 
 do $issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$
 begin

@@ -640,6 +640,7 @@ for (const token of [
   'observed_non_target_pad_digest',
   'matching_deferred_trigger_count',
   'tmp_issue97_mapping_wave_refresh_expansion_google_before_build',
+  'with expected(pad_id) as (',
   '450948793c57a9a1535139fac4974792',
   'Issue #97 reviewed mapping-refresh Google dependency set drifted',
   'Issue #97 reviewed mapping-refresh Google queue contract drifted',
@@ -660,6 +661,22 @@ for (const token of [
   'Issue #97 rollback rehearsal non-target Google pad state changed',
   'Issue #97 rollback rehearsal deferred Google trigger contract changed',
 ]) requireText(rehearsal, token);
+const reviewedRefreshGooglePadIds = [
+  '69c63442-de05-4d15-95da-07da587bc070',
+  '6ef0746f-341a-4d29-9399-a81cfbec11e8',
+  '75600d0c-17b8-488b-96c9-4b7b8ffc8b1b',
+  'b6dae008-74d4-4976-9c72-fba7ae349c50',
+  'b7526e45-0b33-4988-ae1c-0a4140971f8e',
+  'd7898e8c-1bb6-48f8-b5e0-87bc1898420e',
+  'e2b32e85-9e93-4388-8215-9d8167cbbeb8',
+  'f896d00c-da26-41b6-bf5b-e9d91afbdbc6',
+  'fcbf5085-4ba2-496d-9c20-516e8b52f9bd',
+];
+for (const padId of reviewedRefreshGooglePadIds) {
+  if ((rehearsal.match(new RegExp(padId, 'g')) ?? []).length !== 1) {
+    throw new Error(`Reviewed mapping-refresh Google pad ${padId} must occur exactly once`);
+  }
+}
 forbid(
   rehearsal,
   /Issue #97 rollback rehearsal Google state changed during dark builds/,
@@ -669,7 +686,7 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
-if (md5(normalizedRehearsal) !== '7daf7c656e9271a5b81c696b89627f48') {
+if (md5(normalizedRehearsal) !== 'cdeb84a9c923b10e330b6bbc0ddf9a14') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
