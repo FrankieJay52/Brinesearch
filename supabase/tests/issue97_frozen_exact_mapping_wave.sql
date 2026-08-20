@@ -286,6 +286,14 @@ declare
   v_road_id_mismatch_count bigint;
   v_count_diff_sample jsonb := '[]'::jsonb;
   v_road_id_mismatch_sample jsonb := '[]'::jsonb;
+  v_junction_semantic_diff_count bigint := 0;
+  v_membership_semantic_diff_count bigint := 0;
+  v_anchor_semantic_diff_count bigint := 0;
+  v_non_target_membership_diff_count bigint := 0;
+  v_junction_semantic_diff_sample jsonb := '[]'::jsonb;
+  v_membership_semantic_diff_sample jsonb := '[]'::jsonb;
+  v_anchor_semantic_diff_sample jsonb := '[]'::jsonb;
+  v_non_target_membership_diff_sample jsonb := '[]'::jsonb;
 begin
   if (
        select count(*)
@@ -549,9 +557,10 @@ begin
       )::text;
   end if;
 
-  -- Rebuild output may use different row UUIDs and timestamps. Compare the
-  -- semantic topology as multisets keyed by the stable junction key. The only
-  -- permitted membership change is the exact target identity -> road_id value.
+  -- Rebuild output may use different row UUIDs and timestamps. Compare each
+  -- semantic topology family independently so a rollback can report the exact
+  -- changed rows. The only permitted membership change is the exact target
+  -- identity -> road_id value.
   if exists(
        select 1 from tmp_issue97_mapping_wave_active_before prior
        join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)
@@ -564,8 +573,103 @@ begin
            junction.stable_junction_key||':'||(pg_catalog.to_jsonb(junction)
              -'id'-'build_id'-'graph_digest'-'created_at'-'updated_at')::text,
            '|' order by junction.stable_junction_key),''))
-         from public.brinesearch_road_junctions junction where junction.build_id=build.id)
-       or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+          from public.brinesearch_road_junctions junction where junction.build_id=build.id)
+      )
+  then
+    with pairs as (
+      select
+        prior.county_code,
+        prior.id as prior_build_id,
+        build.id as new_build_id
+      from tmp_issue97_mapping_wave_active_before prior
+      join tmp_issue97_mapping_wave_new_builds build
+        using(state_code,county_code)
+    ),
+    prior_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        true as row_present,
+        pg_catalog.to_jsonb(junction)
+          -'id'-'build_id'-'graph_digest'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.prior_build_id
+    ),
+    new_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        true as row_present,
+        pg_catalog.to_jsonb(junction)
+          -'id'-'build_id'-'graph_digest'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.new_build_id
+    ),
+    differences as (
+      select
+        coalesce(prior_rows.county_code,new_rows.county_code)
+          as county_code,
+        coalesce(
+          prior_rows.stable_junction_key,
+          new_rows.stable_junction_key
+        ) as stable_junction_key,
+        case
+          when prior_rows.row_present is null then 'added'
+          when new_rows.row_present is null then 'missing'
+          else 'changed'
+        end as difference_kind,
+        prior_rows.semantic_row as prior_semantic,
+        new_rows.semantic_row as new_semantic
+      from prior_rows
+      full join new_rows
+        using(county_code,stable_junction_key)
+      where prior_rows.semantic_row
+            is distinct from new_rows.semantic_row
+    )
+    select
+      (select count(*) from differences),
+      coalesce(
+        (
+          select pg_catalog.jsonb_agg(
+            pg_catalog.to_jsonb(sample)
+            order by sample.county_code,sample.stable_junction_key
+          )
+          from (
+            select
+              county_code,
+              stable_junction_key,
+              difference_kind,
+              prior_semantic,
+              new_semantic
+            from differences
+            order by county_code,stable_junction_key
+            limit 50
+          ) sample
+        ),
+        '[]'::jsonb
+      )
+    into
+      v_junction_semantic_diff_count,
+      v_junction_semantic_diff_sample;
+
+    raise exception using
+      message='Issue #97 rebuilt graph junction semantics changed',
+      detail=pg_catalog.jsonb_build_object(
+        'junction_semantic_diff_count',
+          v_junction_semantic_diff_count,
+        'junction_semantic_diff_sample',
+          v_junction_semantic_diff_sample
+      )::text;
+  end if;
+
+  if exists(
+       select 1 from tmp_issue97_mapping_wave_active_before prior
+       join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)
+       where (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
            junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership)
              -'id'-'junction_id'-'road_id'-'created_at'-'updated_at')::text,
            '|' order by junction.stable_junction_key,
@@ -581,7 +685,139 @@ begin
          from public.brinesearch_road_junction_memberships membership
          join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
          where junction.build_id=build.id)
-       or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+     )
+  then
+    with pairs as (
+      select
+        prior.county_code,
+        prior.id as prior_build_id,
+        build.id as new_build_id
+      from tmp_issue97_mapping_wave_active_before prior
+      join tmp_issue97_mapping_wave_new_builds build
+        using(state_code,county_code)
+    ),
+    prior_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        membership.identity_id,
+        membership.membership_role,
+        true as row_present,
+        pg_catalog.to_jsonb(membership)
+          -'id'-'junction_id'-'road_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.prior_build_id
+      join public.brinesearch_road_junction_memberships membership
+        on membership.junction_id=junction.id
+    ),
+    new_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        membership.identity_id,
+        membership.membership_role,
+        true as row_present,
+        pg_catalog.to_jsonb(membership)
+          -'id'-'junction_id'-'road_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.new_build_id
+      join public.brinesearch_road_junction_memberships membership
+        on membership.junction_id=junction.id
+    ),
+    differences as (
+      select
+        coalesce(prior_rows.county_code,new_rows.county_code)
+          as county_code,
+        coalesce(
+          prior_rows.stable_junction_key,
+          new_rows.stable_junction_key
+        ) as stable_junction_key,
+        coalesce(prior_rows.identity_id,new_rows.identity_id)
+          as identity_id,
+        coalesce(prior_rows.membership_role,new_rows.membership_role)
+          as membership_role,
+        exists(
+          select 1
+          from tmp_issue97_frozen_mapping_targets target
+          where target.identity_id=coalesce(
+            prior_rows.identity_id,
+            new_rows.identity_id
+          )
+        ) as is_frozen_target,
+        case
+          when prior_rows.row_present is null then 'added'
+          when new_rows.row_present is null then 'missing'
+          else 'changed'
+        end as difference_kind,
+        prior_rows.semantic_row as prior_semantic,
+        new_rows.semantic_row as new_semantic
+      from prior_rows
+      full join new_rows
+        using(
+          county_code,
+          stable_junction_key,
+          identity_id,
+          membership_role
+        )
+      where prior_rows.semantic_row
+            is distinct from new_rows.semantic_row
+    )
+    select
+      (select count(*) from differences),
+      coalesce(
+        (
+          select pg_catalog.jsonb_agg(
+            pg_catalog.to_jsonb(sample)
+            order by
+              sample.county_code,
+              sample.stable_junction_key,
+              sample.identity_id,
+              sample.membership_role
+          )
+          from (
+            select
+              county_code,
+              stable_junction_key,
+              identity_id,
+              membership_role,
+              is_frozen_target,
+              difference_kind,
+              prior_semantic,
+              new_semantic
+            from differences
+            order by
+              county_code,
+              stable_junction_key,
+              identity_id,
+              membership_role
+            limit 50
+          ) sample
+        ),
+        '[]'::jsonb
+      )
+    into
+      v_membership_semantic_diff_count,
+      v_membership_semantic_diff_sample;
+
+    raise exception using
+      message=
+        'Issue #97 rebuilt graph membership semantics changed beyond reviewed road IDs',
+      detail=pg_catalog.jsonb_build_object(
+        'membership_semantic_diff_count',
+          v_membership_semantic_diff_count,
+        'membership_semantic_diff_sample',
+          v_membership_semantic_diff_sample
+      )::text;
+  end if;
+
+  if exists(
+       select 1 from tmp_issue97_mapping_wave_active_before prior
+       join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)
+       where (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
            junction.stable_junction_key||':'||(pg_catalog.to_jsonb(anchor)
              -'id'-'junction_id'-'created_at'-'updated_at')::text,
            '|' order by junction.stable_junction_key,anchor.anchor_key),''))
@@ -596,7 +832,110 @@ begin
          join public.brinesearch_road_junctions junction on junction.id=anchor.junction_id
          where junction.build_id=build.id)
      )
-     or exists(
+  then
+    with pairs as (
+      select
+        prior.county_code,
+        prior.id as prior_build_id,
+        build.id as new_build_id
+      from tmp_issue97_mapping_wave_active_before prior
+      join tmp_issue97_mapping_wave_new_builds build
+        using(state_code,county_code)
+    ),
+    prior_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        anchor.anchor_key,
+        true as row_present,
+        pg_catalog.to_jsonb(anchor)
+          -'id'-'junction_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.prior_build_id
+      join public.brinesearch_road_junction_anchors anchor
+        on anchor.junction_id=junction.id
+    ),
+    new_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        anchor.anchor_key,
+        true as row_present,
+        pg_catalog.to_jsonb(anchor)
+          -'id'-'junction_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.new_build_id
+      join public.brinesearch_road_junction_anchors anchor
+        on anchor.junction_id=junction.id
+    ),
+    differences as (
+      select
+        coalesce(prior_rows.county_code,new_rows.county_code)
+          as county_code,
+        coalesce(
+          prior_rows.stable_junction_key,
+          new_rows.stable_junction_key
+        ) as stable_junction_key,
+        coalesce(prior_rows.anchor_key,new_rows.anchor_key)
+          as anchor_key,
+        case
+          when prior_rows.row_present is null then 'added'
+          when new_rows.row_present is null then 'missing'
+          else 'changed'
+        end as difference_kind,
+        prior_rows.semantic_row as prior_semantic,
+        new_rows.semantic_row as new_semantic
+      from prior_rows
+      full join new_rows
+        using(county_code,stable_junction_key,anchor_key)
+      where prior_rows.semantic_row
+            is distinct from new_rows.semantic_row
+    )
+    select
+      (select count(*) from differences),
+      coalesce(
+        (
+          select pg_catalog.jsonb_agg(
+            pg_catalog.to_jsonb(sample)
+            order by
+              sample.county_code,
+              sample.stable_junction_key,
+              sample.anchor_key
+          )
+          from (
+            select
+              county_code,
+              stable_junction_key,
+              anchor_key,
+              difference_kind,
+              prior_semantic,
+              new_semantic
+            from differences
+            order by county_code,stable_junction_key,anchor_key
+            limit 50
+          ) sample
+        ),
+        '[]'::jsonb
+      )
+    into
+      v_anchor_semantic_diff_count,
+      v_anchor_semantic_diff_sample;
+
+    raise exception using
+      message='Issue #97 rebuilt graph anchor semantics changed',
+      detail=pg_catalog.jsonb_build_object(
+        'anchor_semantic_diff_count',
+          v_anchor_semantic_diff_count,
+        'anchor_semantic_diff_sample',
+          v_anchor_semantic_diff_sample
+      )::text;
+  end if;
+
+  if exists(
        select 1 from tmp_issue97_mapping_wave_active_before prior
        join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)
        where (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
@@ -616,12 +955,143 @@ begin
              (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'created_at'-'updated_at')::text),''))
          from public.brinesearch_road_junction_memberships membership
          join public.brinesearch_road_junctions junction on junction.id=membership.junction_id
-         where junction.build_id=build.id
-           and not exists(select 1 from tmp_issue97_frozen_mapping_targets target
-             where target.identity_id=membership.identity_id))
-     )
+          where junction.build_id=build.id
+            and not exists(select 1 from tmp_issue97_frozen_mapping_targets target
+              where target.identity_id=membership.identity_id))
+      )
   then
-    raise exception 'Issue #97 rebuilt graph changed source topology beyond exact mapping road IDs';
+    with pairs as (
+      select
+        prior.county_code,
+        prior.id as prior_build_id,
+        build.id as new_build_id
+      from tmp_issue97_mapping_wave_active_before prior
+      join tmp_issue97_mapping_wave_new_builds build
+        using(state_code,county_code)
+    ),
+    prior_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        membership.identity_id,
+        membership.membership_role,
+        membership.road_id,
+        true as row_present,
+        pg_catalog.to_jsonb(membership)
+          -'id'-'junction_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.prior_build_id
+      join public.brinesearch_road_junction_memberships membership
+        on membership.junction_id=junction.id
+      where not exists(
+        select 1
+        from tmp_issue97_frozen_mapping_targets target
+        where target.identity_id=membership.identity_id
+      )
+    ),
+    new_rows as (
+      select
+        pairs.county_code,
+        junction.stable_junction_key,
+        membership.identity_id,
+        membership.membership_role,
+        membership.road_id,
+        true as row_present,
+        pg_catalog.to_jsonb(membership)
+          -'id'-'junction_id'-'created_at'-'updated_at'
+          as semantic_row
+      from pairs
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=pairs.new_build_id
+      join public.brinesearch_road_junction_memberships membership
+        on membership.junction_id=junction.id
+      where not exists(
+        select 1
+        from tmp_issue97_frozen_mapping_targets target
+        where target.identity_id=membership.identity_id
+      )
+    ),
+    differences as (
+      select
+        coalesce(prior_rows.county_code,new_rows.county_code)
+          as county_code,
+        coalesce(
+          prior_rows.stable_junction_key,
+          new_rows.stable_junction_key
+        ) as stable_junction_key,
+        coalesce(prior_rows.identity_id,new_rows.identity_id)
+          as identity_id,
+        coalesce(prior_rows.membership_role,new_rows.membership_role)
+          as membership_role,
+        case
+          when prior_rows.row_present is null then 'added'
+          when new_rows.row_present is null then 'missing'
+          else 'changed'
+        end as difference_kind,
+        prior_rows.road_id as prior_road_id,
+        new_rows.road_id as new_road_id,
+        prior_rows.semantic_row as prior_semantic,
+        new_rows.semantic_row as new_semantic
+      from prior_rows
+      full join new_rows
+        using(
+          county_code,
+          stable_junction_key,
+          identity_id,
+          membership_role
+        )
+      where prior_rows.semantic_row
+            is distinct from new_rows.semantic_row
+    )
+    select
+      (select count(*) from differences),
+      coalesce(
+        (
+          select pg_catalog.jsonb_agg(
+            pg_catalog.to_jsonb(sample)
+            order by
+              sample.county_code,
+              sample.stable_junction_key,
+              sample.identity_id,
+              sample.membership_role
+          )
+          from (
+            select
+              county_code,
+              stable_junction_key,
+              identity_id,
+              membership_role,
+              difference_kind,
+              prior_road_id,
+              new_road_id,
+              prior_semantic,
+              new_semantic
+            from differences
+            order by
+              county_code,
+              stable_junction_key,
+              identity_id,
+              membership_role
+            limit 50
+          ) sample
+        ),
+        '[]'::jsonb
+      )
+    into
+      v_non_target_membership_diff_count,
+      v_non_target_membership_diff_sample;
+
+    raise exception using
+      message=
+        'Issue #97 rebuilt graph non-target membership semantics changed',
+      detail=pg_catalog.jsonb_build_object(
+        'non_target_membership_diff_count',
+          v_non_target_membership_diff_count,
+        'non_target_membership_diff_sample',
+          v_non_target_membership_diff_sample
+      )::text;
   end if;
 
   if exists(select 1 from tmp_issue97_mapping_wave_new_builds build

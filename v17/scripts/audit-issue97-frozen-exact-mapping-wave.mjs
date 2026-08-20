@@ -436,7 +436,6 @@ for (const token of [
   "where version='20260817193212'", "build.status<>'validated'",
   "build.activated_at is not null",
   "where target.identity_id=membership.identity_id",
-  'rebuilt graph changed source topology beyond exact mapping road IDs',
   'brinesearch_issue97_graph_build_release_current(build.id)',
   "build.id=(result.result->>'build_id')::uuid",
   'requires_repository_pin',
@@ -468,6 +467,49 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare target receipts and pad state after processing and dark builds');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
+if (md5(normalizedRehearsal) !== '9e33dc1691090631049ceb8291adf120') {
+  throw new Error('Complete frozen mapping-wave rehearsal drifted');
+}
+const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
+const rebuildAssertionsClose = '$issue97_frozen_mapping_rebuild_assertions$;';
+const rebuildAssertionsStart = normalizedRehearsal.indexOf(rebuildAssertionsOpen);
+const rebuildAssertionsEnd = normalizedRehearsal.indexOf(
+  rebuildAssertionsClose,
+  rebuildAssertionsStart,
+);
+if (rebuildAssertionsStart < 0 || rebuildAssertionsEnd < 0) {
+  throw new Error('Could not parse the mapping-wave rebuild assertion block');
+}
+const rebuildAssertionsBlock = normalizedRehearsal.slice(
+  rebuildAssertionsStart,
+  rebuildAssertionsEnd + rebuildAssertionsClose.length,
+);
+if (md5(rebuildAssertionsBlock) !== 'afd6f6f01c65002c81e9a4572215035b') {
+  throw new Error('Complete mapping-wave rebuild assertion block drifted');
+}
+if ((rehearsal.match(/^\\set ON_ERROR_STOP on\s*$/gm) ?? []).length !== 1) {
+  throw new Error('Mapping-wave rehearsal must enable ON_ERROR_STOP exactly once');
+}
+forbid(
+  rehearsal,
+  /^\s*\\set\s+ON_ERROR_STOP\s+(?:off|false|0)\b/im,
+  'mapping-wave rehearsal disables ON_ERROR_STOP',
+);
+forbid(
+  rehearsal,
+  /^\s*\\(?:if|elif|else|endif|quit|q)\b/im,
+  'psql conditional or early-exit metacommand can bypass a fail-closed contract',
+);
+forbid(
+  rebuildAssertionsBlock,
+  /\bexception\s+when\b/i,
+  'rebuild assertion exception handler can swallow a fail-closed contract',
+);
+forbid(
+  rebuildAssertionsBlock,
+  /\b(?:return|exit|continue)\b/i,
+  'rebuild assertion block can bypass a fail-closed contract',
+);
 if ((normalizedRehearsal.match(
   /from tmp_issue97_mapping_wave_reviewed_mappings_before_build\s*\)<>46/g,
 ) ?? []).length !== 2) {
@@ -616,6 +658,290 @@ if (offsetsOf(normalizedRehearsal, roadIdMismatchRaise).length !== 1) {
   throw new Error('Target-membership road-ID mismatch RAISE must occur exactly once');
 }
 
+for (const token of [
+  'v_junction_semantic_diff_count bigint := 0',
+  'v_membership_semantic_diff_count bigint := 0',
+  'v_anchor_semantic_diff_count bigint := 0',
+  'v_non_target_membership_diff_count bigint := 0',
+  "v_junction_semantic_diff_sample jsonb := '[]'::jsonb",
+  "v_membership_semantic_diff_sample jsonb := '[]'::jsonb",
+  "v_anchor_semantic_diff_sample jsonb := '[]'::jsonb",
+  "v_non_target_membership_diff_sample jsonb := '[]'::jsonb",
+]) {
+  requireText(
+    normalizedRehearsal,
+    token,
+    `semantic-topology diagnostic variable: ${token}`,
+  );
+}
+
+const semanticTopologyMessages = {
+  junction: 'Issue #97 rebuilt graph junction semantics changed',
+  membership: 'Issue #97 rebuilt graph membership semantics changed beyond reviewed road IDs',
+  anchor: 'Issue #97 rebuilt graph anchor semantics changed',
+  nonTargetMembership: 'Issue #97 rebuilt graph non-target membership semantics changed',
+};
+for (const [name, message] of Object.entries(semanticTopologyMessages)) {
+  if (offsetsOf(rehearsal, message).length !== 1) {
+    throw new Error(`${name} semantic-topology RAISE must occur exactly once`);
+  }
+}
+forbid(
+  rehearsal,
+  /Issue #97 rebuilt graph changed source topology beyond exact mapping road IDs/i,
+  'combined semantic-topology assertion without predicate-specific diagnostics',
+);
+
+const semanticTopologyRaiseTokens = {
+  junction: `message='${semanticTopologyMessages.junction}'`,
+  membership: `message= '${semanticTopologyMessages.membership}'`,
+  anchor: `message='${semanticTopologyMessages.anchor}'`,
+  nonTargetMembership: `message= '${semanticTopologyMessages.nonTargetMembership}'`,
+};
+const semanticTopologyRaiseIndexes = Object.fromEntries(
+  Object.entries(semanticTopologyRaiseTokens).map(([name, token]) => {
+    const index = normalizedRehearsal.indexOf(token);
+    if (index < 0) throw new Error(`Could not locate ${name} semantic-topology RAISE`);
+    return [name, index];
+  }),
+);
+const semanticTopologyBlockStarts = Object.fromEntries(
+  Object.entries(semanticTopologyRaiseIndexes).map(([name, index]) => {
+    const start = normalizedRehearsal.lastIndexOf('if exists(', index);
+    if (start < 0) throw new Error(`Could not locate ${name} semantic-topology IF`);
+    return [name, start];
+  }),
+);
+const releaseCurrentnessAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 rebuilt dark graph is not fully release-current'",
+);
+if (releaseCurrentnessAssertionIndex < 0) {
+  throw new Error('Could not locate release-currentness assertion');
+}
+const releaseCurrentnessBlockStart = normalizedRehearsal.lastIndexOf(
+  'if exists(',
+  releaseCurrentnessAssertionIndex,
+);
+const semanticTopologyBlocks = {
+  junction: normalizedRehearsal.slice(
+    semanticTopologyBlockStarts.junction,
+    semanticTopologyBlockStarts.membership,
+  ),
+  membership: normalizedRehearsal.slice(
+    semanticTopologyBlockStarts.membership,
+    semanticTopologyBlockStarts.anchor,
+  ),
+  anchor: normalizedRehearsal.slice(
+    semanticTopologyBlockStarts.anchor,
+    semanticTopologyBlockStarts.nonTargetMembership,
+  ),
+  nonTargetMembership: normalizedRehearsal.slice(
+    semanticTopologyBlockStarts.nonTargetMembership,
+    releaseCurrentnessBlockStart,
+  ),
+};
+
+const semanticDiagnosticContracts = {
+  junction: {
+    block: semanticTopologyBlocks.junction,
+    countVariable: 'v_junction_semantic_diff_count',
+    sampleVariable: 'v_junction_semantic_diff_sample',
+    detailCount: "'junction_semantic_diff_count'",
+    detailSample: "'junction_semantic_diff_sample'",
+    sampleProjection: 'select county_code, stable_junction_key, difference_kind, prior_semantic, new_semantic from differences order by county_code,stable_junction_key limit 50',
+    semanticRow: "pg_catalog.to_jsonb(junction) -'id'-'build_id'-'graph_digest'-'created_at'-'updated_at' as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||(pg_catalog.to_jsonb(junction) -'id'-'build_id'-'graph_digest'-'created_at'-'updated_at')::text, '|' order by junction.stable_junction_key",
+    fullJoinKey: 'full join new_rows using(county_code,stable_junction_key)',
+    hashSource: 'from public.brinesearch_road_junctions junction',
+    priorHashFilter: 'where junction.build_id=prior.id',
+    newHashFilter: 'where junction.build_id=build.id',
+    aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code,sample.stable_junction_key )',
+    blockMd5: 'd811f2d958525db8e5d686440e196146',
+  },
+  membership: {
+    block: semanticTopologyBlocks.membership,
+    countVariable: 'v_membership_semantic_diff_count',
+    sampleVariable: 'v_membership_semantic_diff_sample',
+    detailCount: "'membership_semantic_diff_count'",
+    detailSample: "'membership_semantic_diff_sample'",
+    sampleProjection: 'select county_code, stable_junction_key, identity_id, membership_role, is_frozen_target, difference_kind, prior_semantic, new_semantic from differences order by county_code, stable_junction_key, identity_id, membership_role limit 50',
+    semanticRow: "pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'road_id'-'created_at'-'updated_at' as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'road_id'-'created_at'-'updated_at')::text, '|' order by junction.stable_junction_key, (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'road_id'-'created_at'-'updated_at')::text",
+    fullJoinKey: 'full join new_rows using( county_code, stable_junction_key, identity_id, membership_role )',
+    hashSource: 'from public.brinesearch_road_junction_memberships membership join public.brinesearch_road_junctions junction on junction.id=membership.junction_id',
+    priorHashFilter: 'where junction.build_id=prior.id',
+    newHashFilter: 'where junction.build_id=build.id',
+    aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code, sample.stable_junction_key, sample.identity_id, sample.membership_role )',
+    blockMd5: 'f925905b791400576f593f953c584fd2',
+  },
+  anchor: {
+    block: semanticTopologyBlocks.anchor,
+    countVariable: 'v_anchor_semantic_diff_count',
+    sampleVariable: 'v_anchor_semantic_diff_sample',
+    detailCount: "'anchor_semantic_diff_count'",
+    detailSample: "'anchor_semantic_diff_sample'",
+    sampleProjection: 'select county_code, stable_junction_key, anchor_key, difference_kind, prior_semantic, new_semantic from differences order by county_code,stable_junction_key,anchor_key limit 50',
+    semanticRow: "pg_catalog.to_jsonb(anchor) -'id'-'junction_id'-'created_at'-'updated_at' as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||(pg_catalog.to_jsonb(anchor) -'id'-'junction_id'-'created_at'-'updated_at')::text, '|' order by junction.stable_junction_key,anchor.anchor_key",
+    fullJoinKey: 'full join new_rows using(county_code,stable_junction_key,anchor_key)',
+    hashSource: 'from public.brinesearch_road_junction_anchors anchor join public.brinesearch_road_junctions junction on junction.id=anchor.junction_id',
+    priorHashFilter: 'where junction.build_id=prior.id',
+    newHashFilter: 'where junction.build_id=build.id',
+    aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code, sample.stable_junction_key, sample.anchor_key )',
+    blockMd5: '21da1c402a1b98a1570f78c862e09f99',
+  },
+  nonTargetMembership: {
+    block: semanticTopologyBlocks.nonTargetMembership,
+    countVariable: 'v_non_target_membership_diff_count',
+    sampleVariable: 'v_non_target_membership_diff_sample',
+    detailCount: "'non_target_membership_diff_count'",
+    detailSample: "'non_target_membership_diff_sample'",
+    sampleProjection: 'select county_code, stable_junction_key, identity_id, membership_role, difference_kind, prior_road_id, new_road_id, prior_semantic, new_semantic from differences order by county_code, stable_junction_key, identity_id, membership_role limit 50',
+    semanticRow: "pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at' as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||(pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at')::text, '|' order by junction.stable_junction_key, (pg_catalog.to_jsonb(membership)-'id'-'junction_id'-'created_at'-'updated_at')::text",
+    fullJoinKey: 'full join new_rows using( county_code, stable_junction_key, identity_id, membership_role )',
+    hashSource: 'from public.brinesearch_road_junction_memberships membership join public.brinesearch_road_junctions junction on junction.id=membership.junction_id',
+    priorHashFilter: 'where junction.build_id=prior.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
+    newHashFilter: 'where junction.build_id=build.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
+    aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code, sample.stable_junction_key, sample.identity_id, sample.membership_role )',
+    blockMd5: '1e4af39a198b37b48d63e81cb944db9d',
+  },
+};
+
+for (const [name, contract] of Object.entries(semanticDiagnosticContracts)) {
+  if (md5(contract.block) !== contract.blockMd5) {
+    throw new Error(`${name} complete semantic assertion block drifted`);
+  }
+  for (const token of [
+    'difference_kind',
+    'prior_semantic',
+    'new_semantic',
+    'stable_junction_key',
+    contract.countVariable,
+    contract.sampleVariable,
+    contract.detailCount,
+    contract.detailSample,
+    contract.sampleProjection,
+    contract.aggregateOrder,
+  ]) {
+    requireText(contract.block, token, `${name} semantic diagnostic: ${token}`);
+  }
+  if ((contract.block.match(/limit 50/g) ?? []).length !== 1) {
+    throw new Error(`${name} semantic diagnostic must have exactly one 50-row sample limit`);
+  }
+  if (offsetsOf(contract.block, contract.semanticRow).length !== 2) {
+    throw new Error(`${name} diagnostic semantic-row normalization drifted`);
+  }
+  if (offsetsOf(contract.block, contract.semanticHash).length !== 2) {
+    throw new Error(`${name} original semantic hash comparison drifted`);
+  }
+  const expectedHashGuard = [
+    'if exists( select 1 from tmp_issue97_mapping_wave_active_before prior',
+    'join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code)',
+    `where (select pg_catalog.md5(coalesce(pg_catalog.string_agg( ${contract.semanticHash}),''))`,
+    `${contract.hashSource} ${contract.priorHashFilter})`,
+    `<>(select pg_catalog.md5(coalesce(pg_catalog.string_agg( ${contract.semanticHash}),''))`,
+    `${contract.hashSource} ${contract.newHashFilter}) )`,
+  ].join(' ');
+  const actualHashGuard = contract.block.slice(0, contract.block.indexOf(' then'));
+  if (actualHashGuard !== expectedHashGuard) {
+    throw new Error(`${name} complete old-versus-candidate hash predicate drifted`);
+  }
+  if (offsetsOf(
+    contract.block,
+    'select 1 from tmp_issue97_mapping_wave_active_before prior join tmp_issue97_mapping_wave_new_builds build using(state_code,county_code) where (',
+  ).length !== 1) {
+    throw new Error(`${name} original active-to-candidate build pairing drifted`);
+  }
+  if ((contract.block.match(
+    /\(select pg_catalog\.md5\(coalesce\(pg_catalog\.string_agg\(/g,
+  ) ?? []).length !== 2) {
+    throw new Error(`${name} original semantic hash wrappers drifted`);
+  }
+  const priorBuildSelectorIndex = contract.block.indexOf(
+    'where junction.build_id=prior.id',
+  );
+  const hashComparatorIndex = contract.block.indexOf(
+    ') <>(select pg_catalog.md5(',
+  );
+  const newBuildSelectorIndex = contract.block.indexOf(
+    'where junction.build_id=build.id',
+  );
+  if (priorBuildSelectorIndex < 0 || hashComparatorIndex < 0
+      || newBuildSelectorIndex < 0
+      || !(priorBuildSelectorIndex < hashComparatorIndex
+        && hashComparatorIndex < newBuildSelectorIndex)
+      || offsetsOf(contract.block, ') <>(select pg_catalog.md5(').length !== 1) {
+    throw new Error(`${name} original old-versus-candidate hash comparator drifted`);
+  }
+  if (offsetsOf(
+    contract.block,
+    'where prior_rows.semantic_row is distinct from new_rows.semantic_row',
+  ).length !== 1) {
+    throw new Error(`${name} row-difference predicate drifted`);
+  }
+  if (contract.fullJoinKey
+      && offsetsOf(contract.block, contract.fullJoinKey).length !== 1) {
+    throw new Error(`${name} row-difference full-join key drifted`);
+  }
+  if (offsetsOf(
+    contract.block,
+    "case when prior_rows.row_present is null then 'added' when new_rows.row_present is null then 'missing' else 'changed' end as difference_kind",
+  ).length !== 1) {
+    throw new Error(`${name} row-difference classification drifted`);
+  }
+}
+
+for (const block of [
+  semanticTopologyBlocks.membership,
+  semanticTopologyBlocks.nonTargetMembership,
+]) {
+  if (offsetsOf(
+    block,
+    'coalesce(prior_rows.membership_role,new_rows.membership_role) as membership_role',
+  ).length !== 1) {
+    throw new Error('Membership diagnostic stable-role projection drifted');
+  }
+}
+
+for (const token of [
+  'identity_id',
+  'membership_role',
+  'is_frozen_target',
+]) {
+  requireText(semanticTopologyBlocks.membership, token, `membership sample field: ${token}`);
+}
+requireText(
+  semanticTopologyBlocks.anchor,
+  'anchor_key',
+  'anchor semantic diagnostic key',
+);
+for (const token of [
+  'identity_id',
+  'membership_role',
+  'prior_road_id',
+  'new_road_id',
+]) {
+  requireText(
+    semanticTopologyBlocks.nonTargetMembership,
+    token,
+    `non-target membership sample field: ${token}`,
+  );
+}
+if ((semanticTopologyBlocks.nonTargetMembership.match(
+  /not exists\(select 1 from tmp_issue97_frozen_mapping_targets target/g,
+) ?? []).length !== 2
+    || (semanticTopologyBlocks.nonTargetMembership.match(
+      /from tmp_issue97_frozen_mapping_targets target where target\.identity_id=membership\.identity_id/g,
+    ) ?? []).length !== 4) {
+  throw new Error('Non-target membership hashes and diagnostics must exclude every frozen target identity');
+}
+forbid(
+  semanticTopologyBlocks.nonTargetMembership,
+  /to_jsonb\(membership\)\s*-'id'-'junction_id'-'road_id'/i,
+  'non-target membership semantic row excludes road_id',
+);
+
 const candidateDigestContractIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 exact eight-county dark rebuild contract failed'",
 );
@@ -642,12 +968,6 @@ const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
 );
 const countDriftAssertionIndex = normalizedRehearsal.indexOf(countDriftRaise);
 const roadIdMismatchAssertionIndex = normalizedRehearsal.indexOf(roadIdMismatchRaise);
-const semanticTopologyAssertionIndex = normalizedRehearsal.indexOf(
-  "raise exception 'Issue #97 rebuilt graph changed source topology beyond exact mapping road IDs'",
-);
-const releaseCurrentnessAssertionIndex = normalizedRehearsal.indexOf(
-  "raise exception 'Issue #97 rebuilt dark graph is not fully release-current'",
-);
 const activationProtectionAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 candidate build lane activated or replaced a graph'",
 );
@@ -662,7 +982,11 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || firstGraphBuildIndex < 0 || lastGraphBuildIndex < 0
     || newBuildMaterializationIndex < 0 || reviewedMappingSurvivalAssertionIndex < 0
     || candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
-    || roadIdMismatchAssertionIndex < 0 || semanticTopologyAssertionIndex < 0
+    || roadIdMismatchAssertionIndex < 0
+    || semanticTopologyRaiseIndexes.junction < 0
+    || semanticTopologyRaiseIndexes.membership < 0
+    || semanticTopologyRaiseIndexes.anchor < 0
+    || semanticTopologyRaiseIndexes.nonTargetMembership < 0
     || releaseCurrentnessAssertionIndex < 0 || activationProtectionAssertionIndex < 0
     || routeProtectionAssertionIndex < 0 || googleProtectionAssertionIndex < 0
     || !(migrationApplicationIndex < reviewedSnapshotIndex
@@ -674,8 +998,11 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
       && reviewedMappingSurvivalAssertionIndex < candidateDigestContractIndex
       && candidateDigestContractIndex < countDriftAssertionIndex
       && countDriftAssertionIndex < roadIdMismatchAssertionIndex
-      && roadIdMismatchAssertionIndex < semanticTopologyAssertionIndex
-      && semanticTopologyAssertionIndex < releaseCurrentnessAssertionIndex
+      && roadIdMismatchAssertionIndex < semanticTopologyRaiseIndexes.junction
+      && semanticTopologyRaiseIndexes.junction < semanticTopologyRaiseIndexes.membership
+      && semanticTopologyRaiseIndexes.membership < semanticTopologyRaiseIndexes.anchor
+      && semanticTopologyRaiseIndexes.anchor < semanticTopologyRaiseIndexes.nonTargetMembership
+      && semanticTopologyRaiseIndexes.nonTargetMembership < releaseCurrentnessAssertionIndex
       && releaseCurrentnessAssertionIndex < activationProtectionAssertionIndex
       && activationProtectionAssertionIndex < routeProtectionAssertionIndex
       && routeProtectionAssertionIndex < googleProtectionAssertionIndex)) {
@@ -684,7 +1011,7 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
 
 const targetMembershipDiagnosticBlock = normalizedRehearsal.slice(
   candidateDigestContractIndex,
-  semanticTopologyAssertionIndex,
+  semanticTopologyBlockStarts.junction,
 );
 if ((targetMembershipDiagnosticBlock.match(/where membership\.road_id is distinct from target\.road_id/g) ?? []).length !== 2) {
   throw new Error('Target-membership diagnostics must fail closed on exactly two road-ID mismatch checks');
