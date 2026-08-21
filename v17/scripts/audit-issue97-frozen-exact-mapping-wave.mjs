@@ -18,12 +18,164 @@ const syntheticRegression = fs.readFileSync(
   'supabase/tests/issue97_road_junction_graph_synthetic.sql',
   'utf8',
 );
+const stripSqlComments = (source) => {
+  let result = '';
+  let index = 0;
+  let singleQuoted = false;
+  let doubleQuoted = false;
+  let lineComment = false;
+  let blockCommentDepth = 0;
+  while (index < source.length) {
+    if (lineComment) {
+      if (source[index] === '\r' || source[index] === '\n') {
+        lineComment = false;
+        result += source[index];
+      } else result += ' ';
+      index += 1;
+      continue;
+    }
+    if (blockCommentDepth > 0) {
+      if (source.startsWith('/*', index)) {
+        blockCommentDepth += 1;
+        result += '  ';
+        index += 2;
+      } else if (source.startsWith('*/', index)) {
+        blockCommentDepth -= 1;
+        result += '  ';
+        index += 2;
+      } else {
+        result += source[index] === '\r' || source[index] === '\n'
+          ? source[index] : ' ';
+        index += 1;
+      }
+      continue;
+    }
+    if (singleQuoted || doubleQuoted) {
+      const quote = singleQuoted ? "'" : '"';
+      result += source[index];
+      if (source[index] === quote) {
+        if (source[index + 1] === quote) {
+          result += source[index + 1];
+          index += 2;
+        } else {
+          singleQuoted = false;
+          doubleQuoted = false;
+          index += 1;
+        }
+      } else index += 1;
+      continue;
+    }
+    if (source.startsWith('--', index)) {
+      lineComment = true;
+      result += '  ';
+      index += 2;
+      continue;
+    }
+    if (source.startsWith('/*', index)) {
+      blockCommentDepth = 1;
+      result += '  ';
+      index += 2;
+      continue;
+    }
+    if (source[index] === "'") {
+      singleQuoted = true;
+      result += source[index];
+      index += 1;
+      continue;
+    }
+    if (source[index] === '"') {
+      doubleQuoted = true;
+      result += source[index];
+      index += 1;
+      continue;
+    }
+    if (source[index] === '$') {
+      const match = source.slice(index).match(/^\$[A-Za-z0-9_]*\$/);
+      if (match) {
+        const dollarTag = match[0];
+        const bodyStart = index + dollarTag.length;
+        const bodyEnd = source.indexOf(dollarTag, bodyStart);
+        if (bodyEnd >= 0) {
+          result += dollarTag;
+          result += stripSqlComments(source.slice(bodyStart, bodyEnd));
+          result += dollarTag;
+          index = bodyEnd + dollarTag.length;
+          continue;
+        }
+      }
+    }
+    result += source[index];
+    index += 1;
+  }
+  return result;
+};
+const splitTopLevelSqlStatements = (source) => {
+  const statements = [];
+  let start = 0;
+  let index = 0;
+  let singleQuoted = false;
+  let dollarTag = null;
+  while (index < source.length) {
+    if (dollarTag) {
+      if (source.startsWith(dollarTag, index)) {
+        index += dollarTag.length;
+        dollarTag = null;
+      } else {
+        index += 1;
+      }
+      continue;
+    }
+    if (singleQuoted) {
+      if (source[index] === "'") {
+        if (source[index + 1] === "'") index += 2;
+        else {
+          singleQuoted = false;
+          index += 1;
+        }
+      } else index += 1;
+      continue;
+    }
+    if (source[index] === "'") {
+      singleQuoted = true;
+      index += 1;
+      continue;
+    }
+    if (source[index] === '$') {
+      const match = source.slice(index).match(/^\$[A-Za-z0-9_]*\$/);
+      if (match) {
+        dollarTag = match[0];
+        index += dollarTag.length;
+        continue;
+      }
+    }
+    if (source[index] === ';') {
+      statements.push(source.slice(start, index + 1));
+      start = index + 1;
+    }
+    index += 1;
+  }
+  if (source.slice(start).trim()) statements.push(source.slice(start));
+  return statements;
+};
+const normalizeTopLevelStatement = (statement) => statement
+  .replace(/^\s*(?:\\[^\r\n]*[\r\n]+\s*)*/, '')
+  .replace(/\s+/g, ' ')
+  .trim();
+const executableRehearsal = stripSqlComments(rehearsal);
+const executableSyntheticRegression = stripSqlComments(syntheticRegression);
 
 const requireText = (source, token, label = token) => {
   if (!source.includes(token)) throw new Error(`Missing Issue #97 mapping-wave contract: ${label}`);
 };
 const forbid = (source, pattern, label) => {
   if (pattern.test(source)) throw new Error(`Forbidden Issue #97 mapping-wave behavior: ${label}`);
+};
+const forbidFailClosedNeutralizers = (source, label) => {
+  forbid(
+    source,
+    /\b(?:if|where|having|on)\s+(?:false\b|true\s+or\b|1\s*=\s*0\b)|\(\s*false\s+and\b|\band\s+(?:false|1\s*=\s*0)\s*(?:then|\)|;)|\band\s*\(\s*false\s*\)|\bor\s+true\s*(?:then|\)|;)|\bor\s*\(\s*true\s*\)|\bor\s+false\s+or\b|\b1\s*=\s*1\b|\bif\s+(?:case\b|coalesce\s*\(\s*true\b)/i,
+    `${label} contains a fail-closed predicate neutralizer`,
+  );
 };
 const md5 = (value) => crypto.createHash('md5').update(value).digest('hex');
 
@@ -784,7 +936,7 @@ if (replacedGraphs.join(',') !== 'BEL,CAR,COL,GUE,HAS,JEF,MOE,NOB') {
   throw new Error(`Replaced active graph pins drifted: ${replacedGraphs.join(',')}`);
 }
 
-const builds = [...rehearsal.matchAll(
+const builds = [...executableRehearsal.matchAll(
   /public\.brinesearch_issue97_rebuild_county_graph\('OH','([A-Z]{3})'\)/g,
 )].map((match) => match[1]);
 if (builds.join(',') !== 'BEL,CAR,COL,GUE,HAS,JEF,MOE,NOB') {
@@ -812,7 +964,14 @@ const offsetsOf = (source, needle) => {
 
 // guardedFrom is the 1-based index of the first builder call that requires a
 // preceding guard; earlier calls run against a clean pg_temp and need none.
-const assertGuardedCalls = (source, label, callPattern, expectedCalls, guardedFrom) => {
+const assertGuardedCalls = (
+  source,
+  label,
+  callPattern,
+  expectedCalls,
+  guardedFrom,
+  rationaleSource = source,
+) => {
   const calls = [...source.matchAll(callPattern)].map((match) => match.index);
   if (calls.length !== expectedCalls) {
     throw new Error(`${label}: expected ${expectedCalls} builder calls, found ${calls.length}`);
@@ -829,33 +988,35 @@ const assertGuardedCalls = (source, label, callPattern, expectedCalls, guardedFr
       throw new Error(`${label}: guard ${index + 1} is not between builder call ${guardedFrom - 1 + index} and call ${guardedFrom + index}`);
     }
   }
-  requireText(source, guardToken, `${label}: repeated-call guard rationale token`);
+  requireText(rationaleSource, guardToken, `${label}: repeated-call guard rationale token`);
   return guards.length;
 };
 
 const rehearsalGuards = assertGuardedCalls(
-  rehearsal,
+  executableRehearsal,
   'Frozen mapping rehearsal',
   /public\.brinesearch_issue97_rebuild_county_graph\('OH','[A-Z]{3}'\)/g,
   8,
   1,
+  rehearsal,
 );
 const syntheticGuards = assertGuardedCalls(
-  syntheticRegression,
+  executableSyntheticRegression,
   'Synthetic topology regression',
   /public\.brinesearch_issue97_rebuild_county_graph\('WV','DOD'\)/g,
   3,
   2,
+  syntheticRegression,
 );
 for (const token of [
   "set local statement_timeout='90min'", "set local lock_timeout='2min'",
   "'06705f5b35a6d37151bb2c0dc5ade9bd'",
-  "where version='20260817193212'", "build.status<>'validated'",
+  "where version='20260817193212'", "build.status is distinct from 'validated'",
   "build.activated_at is not null",
   "where target.identity_id=membership.identity_id",
   'brinesearch_issue97_graph_build_release_current(build.id)',
   "build.id=(result.result->>'build_id')::uuid",
-  'requires_repository_pin',
+  'source_revision_digest,immediate_release_current,final_release_current',
   'candidate build lane activated or replaced a graph',
   "where evidence->>'migration'='issue97_frozen_exact_mapping_wave')<>0",
   'insert into supabase_migrations.schema_migrations(version,statements,name)',
@@ -873,8 +1034,11 @@ for (const token of [
   'tmp_issue97_mapping_wave_machine_mappings_before_build',
   'tmp_issue97_mapping_wave_refresh_contract_before_build',
   'Issue #97 complete mapping-refresh contract pre-build snapshot drifted',
-  'tmp_issue97_mapping_wave_machine_scope_after_build',
-  'tmp_issue97_mapping_wave_machine_mappings_after_build',
+  'tmp_issue97_mapping_wave_county_order',
+  'tmp_issue97_mapping_wave_stabilization_results',
+  'Issue #97 all-eight pre-build mapping stabilization drifted',
+  'tmp_issue97_mapping_wave_machine_scope_after_stabilization',
+  'tmp_issue97_mapping_wave_machine_mappings_after_stabilization',
   'tmp_issue97_mapping_wave_changed_machine_mappings',
   'tmp_issue97_mapping_wave_post_machine_candidates',
   'tmp_issue97_mapping_wave_machine_mapping_transitions',
@@ -887,7 +1051,7 @@ for (const token of [
   'old_exact_road_id_count',
   'prior_mapping_state',
   'final_mapping_state',
-  'full join tmp_issue97_mapping_wave_machine_mappings_after_build live',
+  'full join tmp_issue97_mapping_wave_machine_mappings_after_stabilization live',
   'full join tmp_issue97_frozen_mapping_refresh_contract contract',
   'tmp_issue97_mapping_wave_expected_machine_mapping_transitions expected',
   'pg_catalog.to_jsonb(actual)',
@@ -901,8 +1065,19 @@ for (const token of [
   'from tmp_issue97_mapping_wave_refresh_contract_after_build)<>1126',
   "mapping.evidence->>'exact_candidate_count'",
   "mapping.evidence->>'ambiguity_held'",
-  "mapping.evidence->>'refresh_scope'",
+  "snapshot.observed_mapping_evidence->>'refresh_scope'",
   "mapping.evidence->>'designation_source'",
+  'Issue #97 all-eight mapping stabilization contract drifted',
+  'tmp_issue97_mapping_wave_post_stabilization_pre_build_semantic_baseline',
+  'issue97_mapping_wave_current_machine_semantic_state',
+  'issue97_mapping_wave_release_current_diagnostic',
+  'issue97_mapping_wave_release_diagnostic_passes',
+  'issue97_mapping_wave_assert_builder_stable',
+  'Issue #97 builder-internal county refresh changed stabilized machine mapping state',
+  'Issue #97 candidate was not immediately release-current after mapping stabilization',
+  'tmp_issue97_mapping_wave_final_machine_mapping_differences',
+  'Issue #97 final all-eight stabilized candidate contract drifted',
+  'tmp_issue97_mapping_wave_candidate_temporal_evidence',
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_receipts)<>3',
   '(select count(*) from tmp_issue97_mapping_wave_post_migration_target_pads)<>3',
   "receipt.status is distinct from 'stale'",
@@ -1078,6 +1253,7 @@ if ((rehearsal.match(/where pg_catalog\.to_jsonb\(live\) is distinct from pg_cat
   throw new Error('Rollback rehearsal must byte-compare mapping, pad, and unaffected receipt state');
 }
 const normalizedRehearsal = rehearsal.replace(/\s+/g, ' ');
+const normalizedExecutableRehearsal = executableRehearsal.replace(/\s+/g, ' ');
 const normalizedReviewedRefreshGoogleSnapshotBlock =
   reviewedRefreshGoogleSnapshotBlock.replace(/\s+/g, ' ');
 for (const token of [
@@ -1094,7 +1270,999 @@ for (const token of [
     `reviewed mapping-refresh Google snapshot contract: ${token}`,
   );
 }
-if (md5(normalizedRehearsal) !== '304f0eecd1564ad32faae9b80271fbcd') {
+
+// The complete eight-county machine mapping wave must converge before the
+// first graph build. These are the only explicit mapping refresher calls in the
+// rehearsal; each builder's own fixed refresh remains inside the pinned builder
+// definition and is checked for semantic idempotence immediately on return.
+const stabilizationCounties = ['BEL', 'CAR', 'COL', 'GUE', 'HAS', 'JEF', 'MOE', 'NOB'];
+const explicitStabilizers = [...normalizedRehearsal.matchAll(
+  /private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\('([A-Z]{3})'\)/g,
+)];
+const executableStabilizers = [...normalizedExecutableRehearsal.matchAll(
+  /private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\('([A-Z]{3})'\)/g,
+)];
+if (explicitStabilizers.map((match) => match[1]).join(',')
+      !== stabilizationCounties.join(',')
+    || executableStabilizers.map((match) => match[1]).join(',')
+      !== stabilizationCounties.join(',')) {
+  throw new Error(
+    `Pre-build mapping stabilization order/count drifted: raw=${explicitStabilizers.map((match) => match[1]).join(',')} executable=${executableStabilizers.map((match) => match[1]).join(',')}`,
+  );
+}
+const firstBuilderOffset = normalizedRehearsal.indexOf(
+  "public.brinesearch_issue97_rebuild_county_graph('OH','BEL')",
+);
+const googleDependencySnapshotOffset = normalizedRehearsal.indexOf(
+  '$issue97_frozen_mapping_refresh_expansion_google_snapshot_assertion$;',
+);
+if (firstBuilderOffset < 0 || googleDependencySnapshotOffset < 0
+    || explicitStabilizers.some((match) => (
+      match.index <= googleDependencySnapshotOffset || match.index >= firstBuilderOffset
+    ))) {
+  throw new Error('All eight exact county stabilizers must follow the Google dependency snapshot and precede BEL');
+}
+for (const [index, county] of stabilizationCounties.entries()) {
+  requireText(
+    normalizedRehearsal,
+    `insert into tmp_issue97_mapping_wave_stabilization_results values (${index + 1},'${county}',private_verification.brinesearch_issue97_refresh_exact_mappings_oh('${county}'));`,
+    `literal pre-build mapper ${index + 1}/${county}`,
+  );
+}
+for (const token of [
+  'create temporary table tmp_issue97_mapping_wave_county_order( ordinal integer primary key, county_code text not null unique ) on commit drop;',
+  "(1,'BEL'),(2,'CAR'),(3,'COL'),(4,'GUE'), (5,'HAS'),(6,'JEF'),(7,'MOE'),(8,'NOB')",
+  'create temporary table tmp_issue97_mapping_wave_stabilization_results( ordinal integer primary key, county_code text not null unique, mapping_refresh jsonb not null ) on commit drop;',
+  '(select count(*) from tmp_issue97_mapping_wave_stabilization_results)<>8',
+  "array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']::text[]",
+  "result.mapping_refresh->>'scope' is distinct from 'OH:'||result.county_code",
+  "result.mapping_refresh->>'all_route_components_must_match' is distinct from 'true'",
+  "result.mapping_refresh->>'name_matching_used' is distinct from 'false'",
+  "result.mapping_refresh->>'fuzzy_matching_used' is distinct from 'false'",
+  "result.mapping_refresh->>'nearest_road_used' is distinct from 'false'",
+  "result.mapping_refresh->>'ambiguous_exact_candidates_held' is distinct from '0'",
+  "message='Issue #97 all-eight pre-build mapping stabilization drifted'",
+]) {
+  requireText(normalizedRehearsal, token, `pre-build stabilization contract: ${token}`);
+}
+forbid(
+  rehearsal,
+  /private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\s*\(\s*\)/i,
+  'broad Ohio mapping refresh in rehearsal',
+);
+forbid(
+  rehearsal,
+  /(?:private_verification|public)\.brinesearch_issue97_refresh_oh_identities\s*\(/i,
+  'extra identity refresh outside the pinned builder',
+);
+
+const stabilizationAssertionClose =
+  '$issue97_mapping_wave_all_eight_stabilization_assertions$;';
+const stabilizationAssertionEnd = normalizedRehearsal.indexOf(stabilizationAssertionClose);
+const stabilizationTransitionStart = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_scope_after_stabilization',
+);
+const stabilizedBaselineIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_post_stabilization_pre_build_semantic_baseline',
+);
+if (stabilizationTransitionStart < 0 || stabilizationAssertionEnd < 0
+    || stabilizedBaselineIndex < 0
+    || !(explicitStabilizers.at(-1).index < stabilizationTransitionStart
+      && stabilizationTransitionStart < stabilizationAssertionEnd
+      && stabilizationAssertionEnd < stabilizedBaselineIndex
+      && stabilizedBaselineIndex < firstBuilderOffset)) {
+  throw new Error('Pre-build 42-transition proof/baseline ordering drifted');
+}
+const stabilizationTransitionBlock = normalizedRehearsal.slice(
+  stabilizationTransitionStart,
+  stabilizationAssertionEnd + stabilizationAssertionClose.length,
+);
+for (const token of [
+  'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
+  'full join tmp_issue97_mapping_wave_machine_mappings_after_stabilization live using(identity_id)',
+  'create temporary table tmp_issue97_mapping_wave_stabilization_transition_differences',
+  'from tmp_issue97_mapping_wave_machine_mapping_transitions actual full join tmp_issue97_mapping_wave_expected_machine_mapping_transitions expected using(identity_id)',
+  'where pg_catalog.to_jsonb(actual) is distinct from pg_catalog.to_jsonb(expected)',
+  'create temporary table tmp_issue97_mapping_wave_stabilization_live_differences',
+  'live.observed_mapping_evidence is distinct from live.expected_mapping_evidence',
+  '(select count(*) from tmp_issue97_mapping_wave_changed_machine_mappings)<>42',
+  '(select count(*) from tmp_issue97_mapping_wave_machine_mapping_transitions)<>42',
+  'full join tmp_issue97_frozen_mapping_refresh_contract contract using(identity_id)',
+  "transition.transition_class in ( 'NONNULL_TO_NULL','NONNULL_TO_DIFFERENT_NONNULL' )",
+  "transition.transition_class='UNCHANGED_OR_INVALID'",
+  "transition.prior_mapping_method='exact_route_designation'",
+  "transition.new_mapping_method='exact_source_record_id'",
+  '<>42', '<>23', '<>35', '<>7', '<>34', '<>8', '<>1126', '<>1066', '<>60',
+  "<>'043d969160dded7b9ff3526b6b09b752'",
+  "<>'fd835556c06d4b067ca01ff8329a5d1c'",
+  "<>'cf20cef7b1f18ea57afbfee9a6f5202e'",
+  "<>'0b89d8b7f7969a95b6d94f270cd81ccc'",
+  "message='Issue #97 all-eight mapping stabilization contract drifted'",
+]) {
+  requireText(stabilizationTransitionBlock, token,
+    `authoritative pre-build 42-transition contract: ${token}`);
+}
+forbid(
+  stabilizationTransitionBlock,
+  /public\.brinesearch_issue97_rebuild_county_graph\s*\(/i,
+  'transition proof depends on a graph build',
+);
+forbidFailClosedNeutralizers(
+  stabilizationTransitionBlock,
+  'authoritative pre-build 42-transition contract',
+);
+
+const stabilizedBaselineExecutableIndex = normalizedExecutableRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_post_stabilization_pre_build_semantic_baseline',
+);
+const buildResultsExecutableIndex = normalizedExecutableRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_build_results(',
+  stabilizedBaselineExecutableIndex,
+);
+const exactStabilizedBaseline = 'create temporary table tmp_issue97_mapping_wave_post_stabilization_pre_build_semantic_baseline on commit drop as select * from tmp_issue97_mapping_wave_machine_mappings_after_stabilization order by county_code,source_identity_key,identity_id;';
+if (stabilizedBaselineExecutableIndex < 0 || buildResultsExecutableIndex < 0
+    || normalizedExecutableRehearsal.slice(
+      stabilizedBaselineExecutableIndex,
+      buildResultsExecutableIndex,
+    ).trim() !== exactStabilizedBaseline) {
+  throw new Error('Post-stabilization/pre-build semantic baseline query drifted or narrowed');
+}
+
+const currentMachineHelperStart = normalizedRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_current_machine_semantic_state()',
+);
+const currentMappingDigestHelperStart = normalizedRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_current_mapping_digest(',
+  currentMachineHelperStart,
+);
+if (currentMachineHelperStart < 0 || currentMappingDigestHelperStart < 0) {
+  throw new Error('Could not parse post-stabilization complete machine-state helper');
+}
+const currentMachineHelperBlock = normalizedRehearsal.slice(
+  currentMachineHelperStart,
+  currentMappingDigestHelperStart,
+);
+const executableCurrentMachineHelperStart = normalizedExecutableRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_current_machine_semantic_state()',
+);
+const executableCurrentMappingDigestHelperStart = normalizedExecutableRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_current_mapping_digest(',
+  executableCurrentMachineHelperStart,
+);
+const executableCurrentMachineHelperBlock = normalizedExecutableRehearsal.slice(
+  executableCurrentMachineHelperStart,
+  executableCurrentMappingDigestHelperStart,
+).trim();
+const exactCurrentMachineHelperBlock = "create or replace function pg_temp.issue97_mapping_wave_current_machine_semantic_state() returns table( identity_id uuid, county_code text, source_identity_key text, graph_mapping_fingerprint text, mapping_state jsonb ) language sql stable set search_path='' as $$ select identity.id,identity.county_code,identity.source_identity_key, private_verification.brinesearch_issue97_graph_mapping_fingerprint_v2( identity.id ), coalesce(machine.mapping_state,'[]'::jsonb) from public.brinesearch_authoritative_road_identities identity join pg_temp.tmp_issue97_mapping_wave_county_order county on county.county_code=identity.county_code left join lateral ( select pg_catalog.jsonb_agg( pg_catalog.to_jsonb(mapping) -array['created_at','updated_at','verified_at']::text[] order by mapping.id,mapping.road_id, mapping.mapping_status,mapping.mapping_method ) as mapping_state from public.brinesearch_road_identity_mappings mapping where mapping.identity_id=identity.id and mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' ) and mapping.mapping_status in ('verified','candidate') ) machine on true where identity.active and identity.state_code='OH' order by county.ordinal,identity.source_identity_key,identity.id $$;";
+if (executableCurrentMachineHelperStart < 0
+    || executableCurrentMappingDigestHelperStart < 0
+    || executableCurrentMachineHelperBlock !== exactCurrentMachineHelperBlock) {
+  throw new Error('Complete stabilized machine-state helper query drifted or narrowed');
+}
+for (const token of [
+  'from public.brinesearch_authoritative_road_identities identity',
+  'join pg_temp.tmp_issue97_mapping_wave_county_order county on county.county_code=identity.county_code',
+  "where identity.active and identity.state_code='OH'",
+  "mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' )",
+  "mapping.mapping_status in ('verified','candidate')",
+  "pg_catalog.to_jsonb(mapping) -array['created_at','updated_at','verified_at']::text[]",
+  'private_verification.brinesearch_issue97_graph_mapping_fingerprint_v2( identity.id )',
+  "coalesce(machine.mapping_state,'[]'::jsonb)",
+]) {
+  requireText(currentMachineHelperBlock, token, `complete stabilized machine-state helper: ${token}`);
+}
+forbid(
+  currentMachineHelperBlock,
+  /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b/i,
+  'post-stabilization machine-state helper narrowed to the expected rows',
+);
+forbid(
+  currentMachineHelperBlock,
+  /-array\[[^\]]*'(?:id|identity_id|road_id|mapping_status|mapping_method|evidence|verified_by)'/i,
+  'post-stabilization machine-state helper removes release-semantic fields',
+);
+forbidFailClosedNeutralizers(
+  currentMachineHelperBlock,
+  'complete stabilized machine-state helper',
+);
+
+const builderCheckerStart = normalizedRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_assert_builder_stable(',
+);
+const builderCallsStart = normalizedRehearsal.indexOf(
+  'drop table if exists pg_temp.tmp_issue97_point_corroboration;',
+  builderCheckerStart,
+);
+if (builderCheckerStart < 0 || builderCallsStart < 0
+    || !(stabilizedBaselineIndex < builderCheckerStart
+      && builderCheckerStart < builderCallsStart
+      && builderCallsStart < firstBuilderOffset)) {
+  throw new Error('Builder-idempotence helper is not fixed before the first builder');
+}
+const builderCheckerBlock = normalizedRehearsal.slice(builderCheckerStart, builderCallsStart);
+for (const token of [
+  'full join pg_temp.issue97_mapping_wave_current_machine_semantic_state() current using(identity_id)',
+  'where pg_catalog.to_jsonb(prior) is distinct from pg_catalog.to_jsonb(current)',
+  'full join pg_temp.issue97_mapping_wave_current_machine_semantic_state() current using(identity_id) where pg_catalog.to_jsonb(prior) is distinct from pg_catalog.to_jsonb(current) ), sample as (',
+  'count(*) over() as total_count',
+  'limit 50',
+  'if v_mapping_diff_count<>0 then',
+  "message= 'Issue #97 builder-internal county refresh changed stabilized machine mapping state'",
+  'issue97_mapping_wave_release_current_diagnostic(p_build_id)',
+  'issue97_mapping_wave_release_diagnostic_passes(v_diagnostic) is distinct from true',
+  "message= 'Issue #97 candidate was not immediately release-current after mapping stabilization'",
+  "'triggering_build_order',p_build_order",
+  "'triggering_county_code',p_county_code",
+  "'build_id',p_build_id",
+]) {
+  requireText(builderCheckerBlock, token, `per-builder fail-closed check: ${token}`);
+}
+forbid(
+  builderCheckerBlock,
+  /\bexception\s+when\b|\b(?:return|exit|continue|perform|execute)\b|\bselect\s+\d+\s*\/|:=\s*\d+\s*\//i,
+  'per-builder helper can swallow or bypass a failed invariant',
+);
+forbidFailClosedNeutralizers(builderCheckerBlock, 'per-builder mapping/currentness helper');
+if (offsetsOf(builderCheckerBlock, 'raise exception using').length !== 3) {
+  throw new Error('Per-builder helper must expose exactly three deterministic failure diagnostics');
+}
+if ((builderCheckerBlock.match(/\bselect\b/g) ?? []).length !== 4
+    || (builderCheckerBlock.match(/:=/g) ?? []).length !== 3) {
+  throw new Error('Per-builder helper contains an unreviewed statement or assignment');
+}
+if (md5(builderCheckerBlock) !== '174fee537721e7f00fbfbbaab47dc0d2') {
+  throw new Error('Complete per-builder mapping/currentness helper block drifted');
+}
+
+const diagnosticStart = normalizedRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_release_current_diagnostic(',
+);
+const diagnosticPassStart = normalizedRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_release_diagnostic_passes(',
+  diagnosticStart,
+);
+const diagnosticPassEnd = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_candidate_currentness_checks(',
+  diagnosticPassStart,
+);
+const executableDiagnosticStart = normalizedExecutableRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_release_current_diagnostic(',
+);
+const executableDiagnosticPassStart = normalizedExecutableRehearsal.indexOf(
+  'create or replace function pg_temp.issue97_mapping_wave_release_diagnostic_passes(',
+  executableDiagnosticStart,
+);
+if (
+  diagnosticStart < 0 || diagnosticPassStart < 0 || diagnosticPassEnd < 0
+  || executableDiagnosticStart < 0 || executableDiagnosticPassStart < 0
+) {
+  throw new Error('Could not parse complete release-current diagnostic/pass helpers');
+}
+const releaseDiagnosticBlock = normalizedRehearsal.slice(diagnosticStart, diagnosticPassEnd);
+const releaseDiagnosticProducerBlock = normalizedExecutableRehearsal.slice(
+  executableDiagnosticStart,
+  executableDiagnosticPassStart,
+);
+const releaseDiagnosticPassBlock = normalizedRehearsal.slice(
+  diagnosticPassStart,
+  diagnosticPassEnd,
+);
+const releaseDiagnosticPassBody = releaseDiagnosticPassBlock.slice(
+  releaseDiagnosticPassBlock.indexOf('as $$'),
+);
+for (const token of [
+  "'status',build.status", "'activated_at',build.activated_at",
+  "'graph_build_sources_current',inputs.graph_build_sources_current",
+  "'graph_build_release_current',inputs.graph_build_release_current",
+  "'stored_mapping_snapshot_digest'", "'recomputed_current_mapping_snapshot_digest'",
+  "'mapping_snapshot_equality'", "'mapping_snapshot_version'",
+  "'stored_release_generation_key'", "'active_release_generation_key'",
+  "'stored_release_builder_md5'", "'active_release_builder_md5'",
+  "'current_builder_md5'", "'stored_supplemental_mapper_md5'",
+  "'active_release_supplemental_mapper_md5'", "'current_supplemental_mapper_md5'",
+  "'stored_source_content_digest'", "'current_source_content_digest'",
+  "'stored_authoritative_name_digest'", "'current_authoritative_name_digest'",
+  "'stored_supplemental_input_digest'", "'current_supplemental_input_digest'",
+  "'stored_source_content_contract'", "'active_source_content_contract'",
+  "'build_algorithm_version'", "'active_release_algorithm_version'",
+  "'source_vector_current'", "'release_receipt_presence'",
+  "'release_receipt_key_completeness'", "'release_receipt_stamped_at'",
+  "'direct_release_receipt_current'", "'stored_graph_digest'",
+  "'recomputed_graph_digest'", "'graph_digest_equality'",
+  "'enabled_release_receipt_trigger_count'", "'release_receipt_trigger_function_md5'",
+  "trigger.tgname='brinesearch_issue97_stamp_graph_release_receipt'",
+  "'qualification_count'", "'current_qualification_count'",
+  "'raw_uncached_predicate_used',true",
+  "'release_current_cache_table'", "'source_current_cache_table'",
+  "'issue97-release-20260815-r2'", "'06705f5b35a6d37151bb2c0dc5ade9bd'",
+  "'4dd8a572b153d795163cf38a41ea9d1f'",
+  "'captured-run-content+authoritative-name+supplemental-map-v2'",
+  "'issue97-authoritative-topology-v2'", "'issue97-graph-mapping-v2'",
+  "'e3c8fa406c6b4631b25e95a7ebb6d2d2'",
+  "build_result.result->>'build_id'=build.id::text",
+  "build_result.result->>'graph_digest'=build.graph_digest",
+  "build.details->>'mapping_snapshot_digest' is not distinct from inputs.current_mapping_snapshot_digest",
+  "build.details->>'release_generation_key'=generation.generation_key",
+  "build.details->>'release_builder_md5'= generation.builder_definition_md5",
+  "build.details->>'release_supplemental_mapper_md5'= generation.supplemental_mapper_md5",
+  "build.details->>'release_source_content_digest'= inputs.current_source_content_digest",
+  "build.details->>'release_authoritative_name_digest'= inputs.current_authoritative_name_digest",
+  "build.details->>'release_supplemental_input_digest'= inputs.current_supplemental_input_digest",
+  "build.details->>'release_source_content_contract'= generation.source_content_contract",
+  'build.algorithm_version=generation.algorithm_version',
+  'build.graph_digest is not distinct from topology.recomputed_graph_digest',
+  'build.point_junction_count is not distinct from topology.recomputed_point_junction_count',
+  'build.shared_segment_count is not distinct from topology.recomputed_shared_segment_count',
+  'build.membership_count is not distinct from topology.recomputed_membership_count',
+]) {
+  requireText(releaseDiagnosticBlock, token, `release-current diagnostic component: ${token}`);
+}
+const releaseDiagnosticSectionNames = [
+  'core', 'source_currentness', 'mapping_snapshot', 'release_generation',
+  'derived_inputs', 'release_receipt', 'topology', 'release_trigger',
+  'qualification', 'predicate',
+];
+const splitTopLevelSqlArguments = (expression, openingParenthesis) => {
+  const argumentsFound = [];
+  let argumentStart = openingParenthesis + 1;
+  let parenthesisDepth = 1;
+  let bracketDepth = 0;
+  let singleQuoted = false;
+  let doubleQuoted = false;
+  for (let index = openingParenthesis + 1; index < expression.length; index += 1) {
+    const character = expression[index];
+    if (singleQuoted || doubleQuoted) {
+      const quote = singleQuoted ? "'" : '"';
+      if (character === quote) {
+        if (expression[index + 1] === quote) index += 1;
+        else {
+          singleQuoted = false;
+          doubleQuoted = false;
+        }
+      }
+      continue;
+    }
+    if (character === "'") {
+      singleQuoted = true;
+      continue;
+    }
+    if (character === '"') {
+      doubleQuoted = true;
+      continue;
+    }
+    if (character === '(') parenthesisDepth += 1;
+    else if (character === ')') {
+      parenthesisDepth -= 1;
+      if (parenthesisDepth === 0) {
+        argumentsFound.push(expression.slice(argumentStart, index).trim());
+        return { argumentsFound, closingParenthesis: index };
+      }
+    } else if (character === '[') bracketDepth += 1;
+    else if (character === ']') bracketDepth -= 1;
+    else if (character === ',' && parenthesisDepth === 1 && bracketDepth === 0) {
+      argumentsFound.push(expression.slice(argumentStart, index).trim());
+      argumentStart = index + 1;
+    }
+  }
+  throw new Error('Unbalanced release-current jsonb_build_object expression');
+};
+const findTopLevelSqlKeywordOffsets = (expression, keyword) => {
+  const offsets = [];
+  let parenthesisDepth = 0;
+  let bracketDepth = 0;
+  let singleQuoted = false;
+  let doubleQuoted = false;
+  for (let index = 0; index < expression.length; index += 1) {
+    const character = expression[index];
+    if (singleQuoted || doubleQuoted) {
+      const quote = singleQuoted ? "'" : '"';
+      if (character === quote) {
+        if (expression[index + 1] === quote) index += 1;
+        else {
+          singleQuoted = false;
+          doubleQuoted = false;
+        }
+      }
+      continue;
+    }
+    if (character === "'") {
+      singleQuoted = true;
+      continue;
+    }
+    if (character === '"') {
+      doubleQuoted = true;
+      continue;
+    }
+    if (character === '(') parenthesisDepth += 1;
+    else if (character === ')') parenthesisDepth -= 1;
+    else if (character === '[') bracketDepth += 1;
+    else if (character === ']') bracketDepth -= 1;
+    if (
+      parenthesisDepth === 0 && bracketDepth === 0
+      && expression.slice(index, index + keyword.length).toLowerCase() === keyword
+      && !/[a-z0-9_]/i.test(expression[index - 1] ?? '')
+      && !/[a-z0-9_]/i.test(expression[index + keyword.length] ?? '')
+    ) offsets.push(index);
+  }
+  return offsets;
+};
+const diagnosticBodyMarker = 'as $$';
+const diagnosticBodyStart = releaseDiagnosticProducerBlock.indexOf(diagnosticBodyMarker);
+const diagnosticBodyEnd = releaseDiagnosticProducerBlock.lastIndexOf('$$;');
+if (diagnosticBodyStart < 0 || diagnosticBodyEnd <= diagnosticBodyStart) {
+  throw new Error('Could not isolate executable release-current diagnostic body');
+}
+const releaseDiagnosticSqlBody = releaseDiagnosticProducerBlock.slice(
+  diagnosticBodyStart + diagnosticBodyMarker.length,
+  diagnosticBodyEnd,
+).trim();
+const releaseDiagnosticTopLevelSelects = findTopLevelSqlKeywordOffsets(
+  releaseDiagnosticSqlBody,
+  'select',
+);
+if (releaseDiagnosticTopLevelSelects.length !== 1) {
+  throw new Error('Release-current diagnostic must have one top-level returned SELECT');
+}
+const releaseDiagnosticOuterStart = releaseDiagnosticTopLevelSelects[0];
+const releaseDiagnosticOuterPrefix = 'select pg_catalog.jsonb_build_object(';
+if (!releaseDiagnosticSqlBody.startsWith(
+  releaseDiagnosticOuterPrefix,
+  releaseDiagnosticOuterStart,
+)) {
+  throw new Error('Release-current diagnostic does not directly return its outer object');
+}
+const releaseDiagnosticOuter = splitTopLevelSqlArguments(
+  releaseDiagnosticSqlBody,
+  releaseDiagnosticOuterStart + 'select pg_catalog.jsonb_build_object'.length,
+);
+const releaseDiagnosticOuterSuffix = releaseDiagnosticSqlBody.slice(
+  releaseDiagnosticOuter.closingParenthesis + 1,
+).trim();
+const expectedReleaseDiagnosticOuterSuffix = [
+  'from generation_summary',
+  'cross join trigger_state',
+  'left join build on true',
+  'left join generation on true',
+  'left join current_inputs inputs on true',
+  'left join topology on true',
+  'left join build_result on true',
+  'left join qualification on true',
+].join(' ');
+if (releaseDiagnosticOuterSuffix !== expectedReleaseDiagnosticOuterSuffix) {
+  throw new Error('Release-current diagnostic returned-object FROM/JOIN contract drifted');
+}
+if (releaseDiagnosticOuter.argumentsFound.length % 2 !== 0) {
+  throw new Error('Outer release-current diagnostic has an odd argument count');
+}
+const releaseDiagnosticSections = new Map();
+const actualReleaseDiagnosticSectionNames = [];
+for (
+  let index = 0;
+  index < releaseDiagnosticOuter.argumentsFound.length;
+  index += 2
+) {
+  const keyArgument = releaseDiagnosticOuter.argumentsFound[index];
+  const valueArgument = releaseDiagnosticOuter.argumentsFound[index + 1];
+  const keyMatch = keyArgument.match(/^'([a-z0-9_]+)'$/);
+  if (!keyMatch) {
+    throw new Error('Outer release-current diagnostic has a computed section key');
+  }
+  if (!valueArgument.startsWith('pg_catalog.jsonb_build_object(')) {
+    throw new Error(`Release-current diagnostic section ${keyMatch[1]} is not an object`);
+  }
+  const parsedValue = splitTopLevelSqlArguments(
+    valueArgument,
+    'pg_catalog.jsonb_build_object'.length,
+  );
+  if (valueArgument.slice(parsedValue.closingParenthesis + 1).trim() !== '') {
+    throw new Error(`Release-current diagnostic section ${keyMatch[1]} has a wrapper`);
+  }
+  actualReleaseDiagnosticSectionNames.push(keyMatch[1]);
+  releaseDiagnosticSections.set(keyMatch[1], parsedValue.argumentsFound);
+}
+assert.deepEqual(
+  actualReleaseDiagnosticSectionNames,
+  releaseDiagnosticSectionNames,
+  'Outer release-current diagnostic section set/order drifted',
+);
+const expectedReleaseDiagnosticKeys = new Map([
+  ['core', [
+    'build_present', 'build_order', 'county_code', 'build_id', 'status',
+    'activated_at', 'started_at', 'algorithm_version', 'source_revision_digest',
+    'graph_digest', 'result_status', 'result_active', 'result_build_id',
+    'result_graph_digest', 'result_build_matches', 'result_graph_digest_matches',
+  ]],
+  ['source_currentness', [
+    'source_vector_current', 'graph_build_sources_current', 'source_run_vector',
+    'source_vector_version',
+  ]],
+  ['mapping_snapshot', [
+    'stored_mapping_snapshot_digest', 'recomputed_current_mapping_snapshot_digest',
+    'mapping_snapshot_equality', 'mapping_snapshot_version', 'mapping_snapshot_present',
+  ]],
+  ['release_generation', [
+    'active_release_generation_count', 'active_generations',
+    'stored_release_generation_key', 'active_release_generation_key',
+    'stored_release_builder_md5', 'active_release_builder_md5', 'current_builder_md5',
+    'stored_supplemental_mapper_md5', 'active_release_supplemental_mapper_md5',
+    'current_supplemental_mapper_md5', 'stored_source_content_contract',
+    'active_source_content_contract', 'build_algorithm_version',
+    'active_release_algorithm_version', 'generation_activated_at',
+  ]],
+  ['derived_inputs', [
+    'stored_source_content_digest', 'current_source_content_digest',
+    'source_content_equality', 'stored_authoritative_name_digest',
+    'current_authoritative_name_digest', 'authoritative_name_equality',
+    'stored_supplemental_input_digest', 'current_supplemental_input_digest',
+    'supplemental_input_equality', 'current_source_content_digest_valid',
+    'current_authoritative_name_digest_valid', 'current_supplemental_input_digest_valid',
+  ]],
+  ['release_receipt', [
+    'release_receipt_presence', 'release_receipt_key_completeness',
+    'release_receipt_stamped_at', 'build_started_after_generation_activation',
+    'direct_release_receipt_current',
+  ]],
+  ['topology', [
+    'stored_graph_digest', 'recomputed_graph_digest', 'graph_digest_equality',
+    'stored_point_junction_count', 'recomputed_point_junction_count',
+    'point_junction_count_equality', 'stored_shared_segment_count',
+    'recomputed_shared_segment_count', 'shared_segment_count_equality',
+    'stored_membership_count', 'recomputed_membership_count', 'membership_count_equality',
+  ]],
+  ['release_trigger', [
+    'enabled_release_receipt_trigger_count', 'release_receipt_trigger_function_md5',
+    'release_receipt_trigger_definitions',
+  ]],
+  ['qualification', [
+    'qualification_count', 'current_qualification_count', 'qualification_rows',
+  ]],
+  ['predicate', [
+    'graph_build_release_current', 'raw_uncached_predicate_used',
+    'release_current_cache_table', 'source_current_cache_table',
+  ]],
+]);
+const releaseDiagnosticValues = new Map();
+for (const sectionName of releaseDiagnosticSectionNames) {
+  const argumentsFound = releaseDiagnosticSections.get(sectionName);
+  if (argumentsFound.length % 2 !== 0) {
+    throw new Error(`Release-current diagnostic section ${sectionName} has an odd argument count`);
+  }
+  const actualKeys = argumentsFound
+    .filter((_, index) => index % 2 === 0)
+    .map((argument) => {
+      const match = argument.match(/^'([a-z0-9_]+)'$/);
+      if (!match) {
+        throw new Error(`Release-current diagnostic section ${sectionName} has a computed key`);
+      }
+      return match[1];
+    });
+  assert.deepEqual(
+    actualKeys,
+    expectedReleaseDiagnosticKeys.get(sectionName),
+    `Release-current diagnostic section ${sectionName} key set/order drifted`,
+  );
+  releaseDiagnosticValues.set(sectionName, new Map(actualKeys.map(
+    (key, index) => [key, argumentsFound[(index * 2) + 1]],
+  )));
+}
+const releaseDiagnosticBindings = [
+  ['core', 'build_present', 'build.id is not null', 'build presence'],
+  ['core', 'status', 'build.status', 'candidate status'],
+  ['core', 'activated_at', 'build.activated_at', 'candidate activation'],
+  ['core', 'result_status', "build_result.result->>'status'", 'builder result status'],
+  ['core', 'result_active', "build_result.result->>'active'", 'builder result activation'],
+  ['core', 'result_build_matches', "build_result.result->>'build_id'=build.id::text", 'builder result/build identity'],
+  ['core', 'result_graph_digest_matches', "build_result.result->>'graph_digest'=build.graph_digest", 'builder result/graph digest'],
+  ['source_currentness', 'source_vector_current', 'inputs.source_vector_current', 'source-vector currentness'],
+  ['source_currentness', 'graph_build_sources_current', 'inputs.graph_build_sources_current', 'raw source currentness'],
+  ['mapping_snapshot', 'mapping_snapshot_equality', "build.details->>'mapping_snapshot_digest' is not distinct from inputs.current_mapping_snapshot_digest", 'mapping snapshot equality'],
+  ['mapping_snapshot', 'mapping_snapshot_present', "nullif(build.details->>'mapping_snapshot_digest','') is not null", 'mapping snapshot presence'],
+  ['mapping_snapshot', 'mapping_snapshot_version', "build.details->>'mapping_snapshot_version'", 'mapping snapshot version'],
+  ['release_generation', 'active_release_generation_count', 'generation_summary.active_generation_count', 'active generation count'],
+  ['release_generation', 'stored_release_generation_key', "build.details->>'release_generation_key'", 'stored generation key'],
+  ['release_generation', 'active_release_generation_key', 'generation.generation_key', 'active generation key'],
+  ['release_generation', 'stored_release_builder_md5', "build.details->>'release_builder_md5'", 'stored builder MD5'],
+  ['release_generation', 'active_release_builder_md5', 'generation.builder_definition_md5', 'active builder MD5'],
+  ['release_generation', 'current_builder_md5', 'inputs.current_builder_md5', 'live builder MD5'],
+  ['release_generation', 'stored_supplemental_mapper_md5', "build.details->>'release_supplemental_mapper_md5'", 'stored supplemental mapper MD5'],
+  ['release_generation', 'active_release_supplemental_mapper_md5', 'generation.supplemental_mapper_md5', 'active supplemental mapper MD5'],
+  ['release_generation', 'current_supplemental_mapper_md5', 'inputs.current_supplemental_mapper_md5', 'live supplemental mapper MD5'],
+  ['release_generation', 'stored_source_content_contract', "build.details->>'release_source_content_contract'", 'stored source-content contract'],
+  ['release_generation', 'active_source_content_contract', 'generation.source_content_contract', 'active source-content contract'],
+  ['release_generation', 'build_algorithm_version', 'build.algorithm_version', 'build algorithm version'],
+  ['release_generation', 'active_release_algorithm_version', 'generation.algorithm_version', 'active algorithm version'],
+  ['derived_inputs', 'source_content_equality', "build.details->>'release_source_content_digest' is not distinct from inputs.current_source_content_digest", 'source-content equality'],
+  ['derived_inputs', 'authoritative_name_equality', "build.details->>'release_authoritative_name_digest' is not distinct from inputs.current_authoritative_name_digest", 'authoritative-name equality'],
+  ['derived_inputs', 'supplemental_input_equality', "build.details->>'release_supplemental_input_digest' is not distinct from inputs.current_supplemental_input_digest", 'supplemental-input equality'],
+  ['derived_inputs', 'current_source_content_digest_valid', "coalesce(inputs.current_source_content_digest,'')~'^[0-9a-f]{32}$'", 'source-content digest format'],
+  ['derived_inputs', 'current_authoritative_name_digest_valid', "coalesce(inputs.current_authoritative_name_digest,'')~'^[0-9a-f]{32}$'", 'authoritative-name digest format'],
+  ['derived_inputs', 'current_supplemental_input_digest_valid', "coalesce(inputs.current_supplemental_input_digest,'')~'^[0-9a-f]{32}$'", 'supplemental-input digest format'],
+  ['release_receipt', 'release_receipt_presence', "build.details ? 'release_generation_key'", 'release receipt presence'],
+  ['release_receipt', 'release_receipt_key_completeness', "build.details ?& array[ 'release_generation_key','release_builder_md5', 'release_supplemental_mapper_md5','release_source_content_digest', 'release_authoritative_name_digest', 'release_supplemental_input_digest', 'release_source_content_contract','release_receipt_stamped_at' ]", 'complete release receipt key set'],
+  ['release_receipt', 'release_receipt_stamped_at', "build.details->>'release_receipt_stamped_at'", 'release receipt stamp'],
+  ['release_receipt', 'build_started_after_generation_activation', 'build.started_at>=generation.activated_at', 'build/generation temporal order'],
+  ['release_receipt', 'direct_release_receipt_current', "generation.generation_key is not null and build.details->>'release_generation_key'=generation.generation_key and build.details->>'release_builder_md5'= generation.builder_definition_md5 and build.details->>'release_supplemental_mapper_md5'= generation.supplemental_mapper_md5 and build.details->>'release_source_content_digest'= inputs.current_source_content_digest and build.details->>'release_authoritative_name_digest'= inputs.current_authoritative_name_digest and build.details->>'release_supplemental_input_digest'= inputs.current_supplemental_input_digest and build.details->>'release_source_content_contract'= generation.source_content_contract and build.algorithm_version=generation.algorithm_version", 'complete direct release receipt predicate'],
+  ['topology', 'graph_digest_equality', 'build.graph_digest is not distinct from topology.recomputed_graph_digest', 'topology graph digest equality'],
+  ['topology', 'point_junction_count_equality', 'build.point_junction_count is not distinct from topology.recomputed_point_junction_count', 'topology point-junction count equality'],
+  ['topology', 'shared_segment_count_equality', 'build.shared_segment_count is not distinct from topology.recomputed_shared_segment_count', 'topology shared-segment count equality'],
+  ['topology', 'membership_count_equality', 'build.membership_count is not distinct from topology.recomputed_membership_count', 'topology membership count equality'],
+  ['release_trigger', 'enabled_release_receipt_trigger_count', 'trigger_state.enabled_trigger_count', 'enabled release trigger count'],
+  ['release_trigger', 'release_receipt_trigger_function_md5', 'trigger_state.trigger_function_md5', 'release trigger function MD5'],
+  ['predicate', 'raw_uncached_predicate_used', 'true', 'raw predicate selection'],
+  ['predicate', 'graph_build_release_current', 'inputs.graph_build_release_current', 'raw release currentness'],
+];
+for (const [sectionName, key, expectedValue, label] of releaseDiagnosticBindings) {
+  const actualValue = releaseDiagnosticValues.get(sectionName).get(key);
+  if (actualValue !== expectedValue) {
+    throw new Error(`Release-current diagnostic is not exactly bound to live ${label}`);
+  }
+}
+forbid(
+  releaseDiagnosticBlock,
+  /brinesearch_issue97_graph_build_release_current_(?:cached|contextual)|brinesearch_issue97_(?:ensure|prepare)[a-z0-9_]*cache/i,
+  'cached/contextual/restamped release-current substitute',
+);
+forbid(
+  releaseDiagnosticBlock,
+  /direct_release_receipt_current[^;]{0,300}\bor\b[^;]{0,300}(?:qualification|current_qualification)/i,
+  'qualification fallback can make a failed direct candidate receipt pass',
+);
+forbid(
+  releaseDiagnosticBlock,
+  /\btrue\s+or\b|\bor\s+true\b|\b1\s*=\s*1\b|\bexception\s+when\b/i,
+  'release-current diagnostic contains a neutralised/swallowed predicate',
+);
+const releaseDiagnosticPassPredicates = [
+  "p_diagnostic->'core'->>'build_present'='true'",
+  "p_diagnostic->'core'->>'status'='validated'",
+  "p_diagnostic->'core'->>'activated_at' is null",
+  "p_diagnostic->'core'->>'result_status'='validated'",
+  "p_diagnostic->'core'->>'result_active'='false'",
+  "p_diagnostic->'core'->>'result_build_matches'='true'",
+  "p_diagnostic->'core'->>'result_graph_digest_matches'='true'",
+  "p_diagnostic->'source_currentness'->>'source_vector_current'='true'",
+  "p_diagnostic->'source_currentness'->>'graph_build_sources_current'='true'",
+  "p_diagnostic->'mapping_snapshot'->>'mapping_snapshot_present'='true'",
+  "p_diagnostic->'mapping_snapshot'->>'mapping_snapshot_equality'='true'",
+  "p_diagnostic->'mapping_snapshot'->>'mapping_snapshot_version'= 'issue97-graph-mapping-v2'",
+  "p_diagnostic->'release_generation'->>'active_release_generation_count'='1'",
+  "p_diagnostic->'release_generation'->>'stored_release_generation_key'= 'issue97-release-20260815-r2'",
+  "p_diagnostic->'release_generation'->>'active_release_generation_key'= 'issue97-release-20260815-r2'",
+  "p_diagnostic->'release_generation'->>'stored_release_builder_md5'= '06705f5b35a6d37151bb2c0dc5ade9bd'",
+  "p_diagnostic->'release_generation'->>'active_release_builder_md5'= '06705f5b35a6d37151bb2c0dc5ade9bd'",
+  "p_diagnostic->'release_generation'->>'current_builder_md5'= '06705f5b35a6d37151bb2c0dc5ade9bd'",
+  "p_diagnostic->'release_generation'->>'stored_supplemental_mapper_md5'= '4dd8a572b153d795163cf38a41ea9d1f'",
+  "p_diagnostic->'release_generation'->>'active_release_supplemental_mapper_md5'= '4dd8a572b153d795163cf38a41ea9d1f'",
+  "p_diagnostic->'release_generation'->>'current_supplemental_mapper_md5'= '4dd8a572b153d795163cf38a41ea9d1f'",
+  "p_diagnostic->'release_generation'->>'stored_source_content_contract'= 'captured-run-content+authoritative-name+supplemental-map-v2'",
+  "p_diagnostic->'release_generation'->>'active_source_content_contract'= 'captured-run-content+authoritative-name+supplemental-map-v2'",
+  "p_diagnostic->'release_generation'->>'build_algorithm_version'= 'issue97-authoritative-topology-v2'",
+  "p_diagnostic->'release_generation'->>'active_release_algorithm_version'= 'issue97-authoritative-topology-v2'",
+  "p_diagnostic->'derived_inputs'->>'source_content_equality'='true'",
+  "p_diagnostic->'derived_inputs'->>'authoritative_name_equality'='true'",
+  "p_diagnostic->'derived_inputs'->>'supplemental_input_equality'='true'",
+  "p_diagnostic->'derived_inputs'->>'current_source_content_digest_valid'='true'",
+  "p_diagnostic->'derived_inputs'->>'current_authoritative_name_digest_valid'='true'",
+  "p_diagnostic->'derived_inputs'->>'current_supplemental_input_digest_valid'='true'",
+  "p_diagnostic->'release_receipt'->>'release_receipt_presence'='true'",
+  "p_diagnostic->'release_receipt'->>'release_receipt_key_completeness'='true'",
+  "nullif(p_diagnostic->'release_receipt'->>'release_receipt_stamped_at','') is not null",
+  "p_diagnostic->'release_receipt'->>'build_started_after_generation_activation'='true'",
+  "p_diagnostic->'release_receipt'->>'direct_release_receipt_current'='true'",
+  "p_diagnostic->'topology'->>'graph_digest_equality'='true'",
+  "p_diagnostic->'topology'->>'point_junction_count_equality'='true'",
+  "p_diagnostic->'topology'->>'shared_segment_count_equality'='true'",
+  "p_diagnostic->'topology'->>'membership_count_equality'='true'",
+  "p_diagnostic->'release_trigger'->>'enabled_release_receipt_trigger_count'='1'",
+  "p_diagnostic->'release_trigger'->>'release_receipt_trigger_function_md5'= 'e3c8fa406c6b4631b25e95a7ebb6d2d2'",
+  "p_diagnostic->'predicate'->>'raw_uncached_predicate_used'='true'",
+  "p_diagnostic->'predicate'->>'graph_build_release_current'='true'",
+];
+for (const token of releaseDiagnosticPassPredicates) {
+  requireText(releaseDiagnosticPassBlock, token,
+    `release-current NULL-fail-closed pass predicate: ${token}`);
+}
+const releaseDiagnosticPassMatch = releaseDiagnosticPassBlock.match(
+  /as \$\$ select coalesce\( (.*), false \) \$\$;\s*$/,
+);
+if (!releaseDiagnosticPassMatch
+    || !releaseDiagnosticPassMatch[1].split(' and ').every(
+      (predicate, index) => predicate === releaseDiagnosticPassPredicates[index],
+    )
+    || releaseDiagnosticPassMatch[1].split(' and ').length
+      !== releaseDiagnosticPassPredicates.length) {
+  throw new Error('Release-current pass helper must be exactly one NULL-fail-closed AND chain');
+}
+forbid(
+  releaseDiagnosticPassBody,
+  /\bor\b|\bqualification\b|\bcached\b|\bcontextual\b|\bcase\b|\bcoalesce\s*\(\s*true\b/i,
+  'release-current pass predicate permits a fallback/disjunction',
+);
+
+const checkCalls = [...normalizedRehearsal.matchAll(
+  /select pg_temp\.issue97_mapping_wave_assert_builder_stable\(\s*([1-8]),'([A-Z]{3})',\s*\(select \(result->>'build_id'\)::uuid from tmp_issue97_mapping_wave_build_results where build_order=\1\)\s*\);/g,
+)];
+const executableCheckCalls = [...normalizedExecutableRehearsal.matchAll(
+  /select pg_temp\.issue97_mapping_wave_assert_builder_stable\(\s*([1-8]),'([A-Z]{3})',\s*\(select \(result->>'build_id'\)::uuid from tmp_issue97_mapping_wave_build_results where build_order=\1\)\s*\);/g,
+)];
+if (checkCalls.length !== 8
+    || checkCalls.map((match) => match[2]).join(',') !== stabilizationCounties.join(',')
+    || executableCheckCalls.length !== 8
+    || executableCheckCalls.map((match) => match[2]).join(',')
+      !== stabilizationCounties.join(',')) {
+  throw new Error(`Per-builder immediate checks drifted: ${checkCalls.map((match) => `${match[1]}:${match[2]}`).join(',')}`);
+}
+const builderOffsets = [...normalizedRehearsal.matchAll(
+  /public\.brinesearch_issue97_rebuild_county_graph\('OH','([A-Z]{3})'\)/g,
+)];
+const executableBuilderOffsets = [...normalizedExecutableRehearsal.matchAll(
+  /public\.brinesearch_issue97_rebuild_county_graph\('OH','([A-Z]{3})'\)/g,
+)];
+if (executableBuilderOffsets.length !== 8
+    || executableBuilderOffsets.map((match) => match[1]).join(',')
+      !== stabilizationCounties.join(',')) {
+  throw new Error('Executable builder order/count drifted');
+}
+for (let index = 0; index < 8; index += 1) {
+  const nextBuilder = index === 7 ? Number.POSITIVE_INFINITY : builderOffsets[index + 1].index;
+  if (!(builderOffsets[index].index < checkCalls[index].index
+        && checkCalls[index].index < nextBuilder)) {
+    throw new Error(`Immediate mapping/currentness check is not directly after builder ${index + 1}`);
+  }
+  const buildOrder = index + 1;
+  const county = stabilizationCounties[index];
+  const exactAdjacentPair = `insert into tmp_issue97_mapping_wave_build_results( build_order,county_code,result ) values (${buildOrder},'${county}',public.brinesearch_issue97_rebuild_county_graph('OH','${county}')); select pg_temp.issue97_mapping_wave_assert_builder_stable( ${buildOrder},'${county}',(select (result->>'build_id')::uuid from tmp_issue97_mapping_wave_build_results where build_order=${buildOrder}) );`;
+  requireText(
+    normalizedExecutableRehearsal,
+    exactAdjacentPair,
+    `builder ${buildOrder}/${county} must be immediately followed by its checker`,
+  );
+}
+
+const finalStabilityMessage = 'Issue #97 final all-eight stabilized candidate contract drifted';
+const finalMachineDifferenceStart = normalizedExecutableRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_final_machine_mapping_differences',
+);
+const finalCurrentnessInsertStart = normalizedExecutableRehearsal.indexOf(
+  'insert into tmp_issue97_mapping_wave_candidate_currentness_checks(',
+  finalMachineDifferenceStart,
+);
+const exactFinalMachineDifferenceQuery = "create temporary table tmp_issue97_mapping_wave_final_machine_mapping_differences on commit drop as select coalesce(prior.identity_id,current.identity_id) as identity_id, coalesce(current.county_code,prior.county_code) as owning_county_code, coalesce(current.source_identity_key,prior.source_identity_key) as source_identity_key, case when prior.identity_id is null then 'IDENTITY_ADDED' when current.identity_id is null then 'IDENTITY_REMOVED' when prior.graph_mapping_fingerprint is distinct from current.graph_mapping_fingerprint then 'GRAPH_MAPPING_FINGERPRINT_CHANGED' else 'NORMALIZED_MACHINE_MAPPING_CHANGED' end as transition_classification, pg_catalog.to_jsonb(prior) as stabilized_mapping, pg_catalog.to_jsonb(current) as final_mapping from tmp_issue97_mapping_wave_post_stabilization_pre_build_semantic_baseline prior full join tmp_issue97_mapping_wave_machine_mappings_after_all_builds current using(identity_id) where pg_catalog.to_jsonb(prior) is distinct from pg_catalog.to_jsonb(current) order by owning_county_code,source_identity_key,identity_id;";
+if (finalMachineDifferenceStart < 0 || finalCurrentnessInsertStart < 0
+    || normalizedExecutableRehearsal.slice(
+      finalMachineDifferenceStart,
+      finalCurrentnessInsertStart,
+    ).trim() !== exactFinalMachineDifferenceQuery) {
+  throw new Error('Final all-eight machine-state FULL JOIN query drifted or narrowed');
+}
+const finalStabilityExecutableStart = normalizedExecutableRehearsal.indexOf(
+  'do $issue97_mapping_wave_final_all_eight_stability_assertion$',
+  finalCurrentnessInsertStart,
+);
+const exactFinalCurrentnessInsert = "insert into tmp_issue97_mapping_wave_candidate_currentness_checks( check_phase,triggering_build_order,triggering_county_code, build_order,county_code,build_id,diagnostic ) select 'final',8,'NOB',result.build_order,result.county_code,build.id, pg_temp.issue97_mapping_wave_release_current_diagnostic(build.id) from tmp_issue97_mapping_wave_build_results result join tmp_issue97_mapping_wave_new_builds build on build.id=(result.result->>'build_id')::uuid order by result.build_order;";
+if (finalStabilityExecutableStart < 0
+    || normalizedExecutableRehearsal.slice(
+      finalCurrentnessInsertStart,
+      finalStabilityExecutableStart,
+    ).trim() !== exactFinalCurrentnessInsert) {
+  throw new Error('Final all-eight currentness checks must recompute live candidate diagnostics');
+}
+const finalStabilityIndex = normalizedRehearsal.indexOf(finalStabilityMessage);
+const candidateEvidenceIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_candidate_temporal_evidence',
+);
+const executableCandidateEvidenceIndex = normalizedExecutableRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_candidate_temporal_evidence',
+);
+const finalCandidateOutput = 'select build_order,county_code,build_id,graph_digest,mapping_snapshot_digest, source_revision_digest,immediate_release_current,final_release_current, status,activated_at from tmp_issue97_mapping_wave_candidate_temporal_evidence order by build_order;';
+const finalCandidateOutputIndex = normalizedRehearsal.indexOf(finalCandidateOutput);
+if (finalStabilityIndex < 0 || candidateEvidenceIndex < 0 || finalCandidateOutputIndex < 0
+    || !(builderOffsets[7].index < finalStabilityIndex
+      && finalStabilityIndex < candidateEvidenceIndex
+      && candidateEvidenceIndex < finalCandidateOutputIndex)) {
+  throw new Error('Final all-eight currentness assertion/evidence/output ordering drifted');
+}
+if (offsetsOf(normalizedRehearsal, finalCandidateOutput).length !== 1) {
+  throw new Error('Final ten-column candidate evidence output must occur exactly once');
+}
+if (offsetsOf(normalizedExecutableRehearsal, finalCandidateOutput).length !== 1) {
+  throw new Error('Final ten-column candidate evidence output is not executable exactly once');
+}
+const topLevelCandidateSelects = splitTopLevelSqlStatements(executableRehearsal)
+  .map(normalizeTopLevelStatement)
+  .filter((statement) => /^select\b/i.test(statement)
+    && /tmp_issue97_mapping_wave_(?:build_results|new_builds|candidate_temporal_evidence)/i
+      .test(statement));
+const expectedTopLevelCandidateSelects = stabilizationCounties.map((county, index) => {
+  const buildOrder = index + 1;
+  return `select pg_temp.issue97_mapping_wave_assert_builder_stable( ${buildOrder},'${county}',(select (result->>'build_id')::uuid from tmp_issue97_mapping_wave_build_results where build_order=${buildOrder}) );`;
+}).concat(finalCandidateOutput);
+assert.deepEqual(
+  topLevelCandidateSelects,
+  expectedTopLevelCandidateSelects,
+  'Only the eight immediate checker calls and terminal evidence SELECT may expose candidate tables',
+);
+forbid(
+  normalizedExecutableRehearsal.slice(0, executableCandidateEvidenceIndex),
+  /\bselect\s+(?:result\.)?build_order\s*,\s*(?:build\.)?county_code\s*,\s*(?:build\.)?(?:id\s+as\s+)?build_id\b/i,
+  'candidate rows can be emitted before the final all-eight assertions',
+);
+const candidateEvidenceAssertionOpen =
+  'do $issue97_mapping_wave_candidate_temporal_evidence_assertion$';
+const candidateEvidenceEnd = normalizedRehearsal.indexOf(
+  candidateEvidenceAssertionOpen,
+  candidateEvidenceIndex,
+);
+const candidateEvidenceBlock = normalizedRehearsal.slice(
+  candidateEvidenceIndex,
+  candidateEvidenceEnd,
+);
+for (const token of [
+  'select result.build_order,build.county_code,build.id as build_id, build.graph_digest, build.details->>\'mapping_snapshot_digest\' as mapping_snapshot_digest, build.source_revision_digest, result.immediate_release_current, (final_check.diagnostic->\'predicate\'->>\'graph_build_release_current\')::boolean as final_release_current, build.status,build.activated_at',
+  'from tmp_issue97_mapping_wave_build_results result',
+  'join tmp_issue97_mapping_wave_new_builds build on build.id=(result.result->>\'build_id\')::uuid',
+  "join tmp_issue97_mapping_wave_candidate_currentness_checks final_check on final_check.check_phase='final' and final_check.build_id=build.id",
+  'order by result.build_order;',
+]) {
+  requireText(candidateEvidenceBlock, token, `candidate temporal evidence row shape: ${token}`);
+}
+forbid(
+  candidateEvidenceBlock,
+  /\bwhere\b|\blimit\b|\bcross\s+join\b|\b(?:union|intersect|except)\b/i,
+  'candidate evidence table can omit one of the eight checked builds',
+);
+const candidateEvidenceAssertionClose =
+  '$issue97_mapping_wave_candidate_temporal_evidence_assertion$;';
+const candidateEvidenceAssertionEnd = normalizedRehearsal.indexOf(
+  candidateEvidenceAssertionClose,
+  candidateEvidenceEnd,
+);
+if (candidateEvidenceEnd < 0 || candidateEvidenceAssertionEnd < 0) {
+  throw new Error('Could not parse final candidate evidence-table assertion');
+}
+const candidateEvidenceAssertionBlock = normalizedRehearsal.slice(
+  candidateEvidenceEnd,
+  candidateEvidenceAssertionEnd + candidateEvidenceAssertionClose.length,
+);
+for (const token of [
+  '(select count(*) from tmp_issue97_mapping_wave_candidate_temporal_evidence)<>8',
+  'array[1,2,3,4,5,6,7,8]::integer[]',
+  "array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']::text[]",
+  'candidate.build_id is null',
+  "coalesce(candidate.graph_digest,'') !~ '^[0-9a-f]{32}$'",
+  "coalesce(candidate.mapping_snapshot_digest,'') !~ '^[0-9a-f]{32}$'",
+  "coalesce(candidate.source_revision_digest,'') !~ '^[0-9a-f]{32}$'",
+  'candidate.immediate_release_current is distinct from true',
+  'candidate.final_release_current is distinct from true',
+  "candidate.status is distinct from 'validated'",
+  'candidate.activated_at is not null',
+  "'candidate_count',count(*)",
+  "'candidate_rows',coalesce(pg_catalog.jsonb_agg( pg_catalog.to_jsonb(candidate) order by candidate.build_order ),'[]'::jsonb)",
+  "message='Issue #97 final candidate evidence table drifted'",
+  'detail=v_detail::text',
+]) {
+  requireText(
+    candidateEvidenceAssertionBlock,
+    token,
+    `final candidate evidence-table assertion: ${token}`,
+  );
+}
+forbidFailClosedNeutralizers(
+  candidateEvidenceAssertionBlock,
+  'final candidate evidence-table assertion',
+);
+const finalStabilityStart = normalizedRehearsal.lastIndexOf(
+  'do $issue97_mapping_wave_final_all_eight_stability_assertion$',
+  finalStabilityIndex,
+);
+const finalStabilityClose = '$issue97_mapping_wave_final_all_eight_stability_assertion$;';
+const finalStabilityEnd = normalizedRehearsal.indexOf(finalStabilityClose, finalStabilityIndex);
+const finalStabilityBlock = normalizedRehearsal.slice(
+  finalStabilityStart,
+  finalStabilityEnd + finalStabilityClose.length,
+);
+for (const token of [
+  'from tmp_issue97_mapping_wave_final_machine_mapping_differences',
+  "where check_phase='immediate')<>8",
+  "where check_phase='final')<>8",
+  'issue97_mapping_wave_release_diagnostic_passes( check_result.diagnostic ) is distinct from true',
+  'result.immediate_release_current is distinct from true',
+  "build.status is distinct from 'validated'",
+  'build.activated_at is not null',
+  "'final_mapping_semantic_difference_count'",
+  "'candidate_currentness_checks'",
+  `message='${finalStabilityMessage}'`,
+]) {
+  requireText(finalStabilityBlock, token, `final all-eight stability contract: ${token}`);
+}
+forbidFailClosedNeutralizers(finalStabilityBlock, 'final all-eight stability contract');
+forbid(
+  normalizedRehearsal.slice(candidateEvidenceIndex, finalCandidateOutputIndex),
+  /\btrue\s+as\s+(?:immediate_release_current|final_release_current)\b/i,
+  'candidate output hard-codes release currentness',
+);
+forbid(
+  normalizedExecutableRehearsal.slice(
+    normalizedExecutableRehearsal.indexOf(
+      candidateEvidenceAssertionClose,
+      normalizedExecutableRehearsal.indexOf(candidateEvidenceAssertionOpen),
+    ) + candidateEvidenceAssertionClose.length,
+    normalizedExecutableRehearsal.indexOf(finalCandidateOutput),
+  ),
+  /tmp_issue97_mapping_wave_candidate_temporal_evidence/i,
+  'candidate evidence is emitted before every later safety assertion passes',
+);
+
+const releaseDiagnosticModelPasses = ({
+  status = 'validated',
+  activatedAt = null,
+  resultStatus = 'validated',
+  resultActive = false,
+  resultBuildMatches = true,
+  resultGraphMatches = true,
+  sourceVectorCurrent = true,
+  sourcesCurrent = true,
+  mappingPresent = true,
+  mappingEqual = true,
+  mappingVersion = 'issue97-graph-mapping-v2',
+  activeGenerationCount = 1,
+  generationKey = 'issue97-release-20260815-r2',
+  builderMd5 = '06705f5b35a6d37151bb2c0dc5ade9bd',
+  mapperMd5 = '4dd8a572b153d795163cf38a41ea9d1f',
+  sourceContract = 'captured-run-content+authoritative-name+supplemental-map-v2',
+  algorithm = 'issue97-authoritative-topology-v2',
+  inputDigestsEqual = true,
+  inputDigestsValid = true,
+  receiptPresent = true,
+  receiptComplete = true,
+  receiptStampedAt = '2026-08-21T00:00:00Z',
+  startedAfterGeneration = true,
+  directReceiptCurrent = true,
+  topologyEqual = true,
+  triggerCount = 1,
+  triggerMd5 = 'e3c8fa406c6b4631b25e95a7ebb6d2d2',
+  rawPredicate = true,
+}) => status === 'validated' && activatedAt === null
+  && resultStatus === 'validated' && resultActive === false
+  && resultBuildMatches === true && resultGraphMatches === true
+  && sourceVectorCurrent === true && sourcesCurrent === true
+  && mappingPresent === true && mappingEqual === true
+  && mappingVersion === 'issue97-graph-mapping-v2'
+  && activeGenerationCount === 1 && generationKey === 'issue97-release-20260815-r2'
+  && builderMd5 === '06705f5b35a6d37151bb2c0dc5ade9bd'
+  && mapperMd5 === '4dd8a572b153d795163cf38a41ea9d1f'
+  && sourceContract === 'captured-run-content+authoritative-name+supplemental-map-v2'
+  && algorithm === 'issue97-authoritative-topology-v2'
+  && inputDigestsEqual === true && inputDigestsValid === true
+  && receiptPresent === true && receiptComplete === true
+  && typeof receiptStampedAt === 'string' && receiptStampedAt.length > 0
+  && startedAfterGeneration === true && directReceiptCurrent === true
+  && topologyEqual === true && triggerCount === 1
+  && triggerMd5 === 'e3c8fa406c6b4631b25e95a7ebb6d2d2'
+  && rawPredicate === true;
+assert.equal(releaseDiagnosticModelPasses({}), true);
+for (const mutation of [
+  { status: null }, { activatedAt: '2026-08-21T00:00:00Z' },
+  { resultStatus: null }, { resultActive: null }, { resultActive: true },
+  { resultBuildMatches: false }, { resultBuildMatches: null },
+  { resultGraphMatches: false }, { sourceVectorCurrent: null },
+  { sourcesCurrent: false }, { mappingPresent: null }, { mappingEqual: false },
+  { mappingVersion: null }, { activeGenerationCount: 0 }, { activeGenerationCount: 2 },
+  { generationKey: null }, { builderMd5: null }, { mapperMd5: null },
+  { sourceContract: null }, { algorithm: null }, { inputDigestsEqual: null },
+  { inputDigestsValid: false }, { receiptPresent: null }, { receiptComplete: false },
+  { receiptStampedAt: null }, { startedAfterGeneration: null },
+  { directReceiptCurrent: false }, { topologyEqual: null },
+  { triggerCount: 0 }, { triggerCount: 2 }, { triggerMd5: null },
+  { rawPredicate: false }, { rawPredicate: null },
+]) {
+  assert.equal(
+    releaseDiagnosticModelPasses(mutation),
+    false,
+    `release-current diagnostic mutation escaped: ${JSON.stringify(mutation)}`,
+  );
+}
+if (md5(normalizedRehearsal) !== '4fd6d1486a214fdbb91aa77b9767a00d') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -1111,7 +2279,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== '45a1c905297d8a40325d6a19fc7d68a2') {
+if (md5(rebuildAssertionsBlock) !== 'c00fd82468b032b86ba561cd1188626a') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 const googlePostprocessOpen =
@@ -1255,7 +2423,7 @@ const machineBeforeEnd = normalizedRehearsal.indexOf(
   machineBeforeStart,
 );
 const machineAfterStart = normalizedRehearsal.indexOf(
-  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_build',
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_stabilization',
 );
 const machineAfterEnd = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
@@ -1265,17 +2433,21 @@ if (machineBeforeStart < 0 || machineBeforeEnd < 0
     || machineAfterStart < 0 || machineAfterEnd < 0) {
   throw new Error('Could not parse complete before/after machine-mapping snapshots');
 }
-const machineScopeTail = "from public.brinesearch_authoritative_road_identities identity join tmp_issue97_mapping_wave_active_before county on county.state_code='OH' and county.county_code=identity.county_code left join public.brinesearch_road_identity_mappings verified on verified.identity_id=identity.id and verified.mapping_status='verified' where identity.active and identity.state_code='OH' order by identity.id;";
-for (const phase of ['before', 'after']) {
+const machineScopeTail = "from public.brinesearch_authoritative_road_identities identity join tmp_issue97_mapping_wave_county_order county on county.county_code=identity.county_code left join public.brinesearch_road_identity_mappings verified on verified.identity_id=identity.id and verified.mapping_status='verified' where identity.active and identity.state_code='OH' order by identity.id;";
+const completeMachinePhases = [
+  { label: 'before', suffix: 'before_build' },
+  { label: 'after stabilization', suffix: 'after_stabilization' },
+];
+for (const { label, suffix } of completeMachinePhases) {
   const start = normalizedRehearsal.indexOf(
-    `create temporary table tmp_issue97_mapping_wave_machine_scope_${phase}_build`,
+    `create temporary table tmp_issue97_mapping_wave_machine_scope_${suffix}`,
   );
   const end = normalizedRehearsal.indexOf(
-    `create temporary table tmp_issue97_mapping_wave_machine_mappings_${phase}_build`,
+    `create temporary table tmp_issue97_mapping_wave_machine_mappings_${suffix}`,
     start,
   );
   if (start < 0 || end < 0) {
-    throw new Error(`Could not parse complete ${phase} machine-mapping scope`);
+    throw new Error(`Could not parse complete ${label} machine-mapping scope`);
   }
   const block = normalizedRehearsal.slice(start, end).trim();
   for (const token of [
@@ -1297,31 +2469,28 @@ for (const phase of ['before', 'after']) {
     "verified.evidence->>'refresh_scope' as refresh_scope",
     'end as evidence_source',
   ]) {
-    requireText(block, token, `complete ${phase} machine scope: ${token}`);
+    requireText(block, token, `complete ${label} machine scope: ${token}`);
   }
   if (!block.endsWith(machineScopeTail)) {
-    throw new Error(`Complete ${phase} machine scope source/filter contract drifted`);
+    throw new Error(`Complete ${label} machine scope source/filter contract drifted`);
   }
   forbid(
     block,
     /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b/i,
-    `${phase} machine scope restricted to a reviewed allowlist`,
+    `${label} machine scope restricted to a reviewed allowlist`,
   );
 }
 for (const [label, block] of [
   ['before', normalizedRehearsal.slice(machineBeforeStart, machineBeforeEnd)],
-  ['after', normalizedRehearsal.slice(machineAfterStart, machineAfterEnd)],
+  ['after stabilization', normalizedRehearsal.slice(machineAfterStart, machineAfterEnd)],
 ]) {
   for (const token of [
     "mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' )",
     "mapping.mapping_status in ('verified','candidate')",
-    "'road_id',mapping.road_id",
-    "'mapping_status',mapping.mapping_status",
-    "'mapping_method',mapping.mapping_method",
-    "'exact_candidate_count'",
-    "'ambiguity_flag'",
-    "'refresh_scope'",
-    "'evidence_source'",
+    'private_verification.brinesearch_issue97_graph_mapping_fingerprint_v2( scope.identity_id ) as graph_mapping_fingerprint',
+    "pg_catalog.to_jsonb(mapping) -array['created_at','updated_at','verified_at']::text[]",
+    'order by mapping.id,mapping.road_id, mapping.mapping_status,mapping.mapping_method',
+    "coalesce(machine.mapping_state,'[]'::jsonb) as mapping_state",
   ]) {
     requireText(block, token, `complete ${label} machine snapshot: ${token}`);
   }
@@ -1329,6 +2498,11 @@ for (const [label, block] of [
     block,
     /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b/i,
     `${label} machine snapshot restricted to the expected 42`,
+  );
+  forbid(
+    block,
+    /-array\[[^\]]*'(?:id|identity_id|road_id|mapping_status|mapping_method|evidence|verified_by)'/i,
+    `${label} machine snapshot removes release-semantic fields`,
   );
 }
 for (const token of [
@@ -1360,7 +2534,7 @@ const changedMachineMappingBlock = normalizedRehearsal.slice(
 );
 for (const token of [
   'from tmp_issue97_mapping_wave_machine_mappings_before_build prior',
-  'full join tmp_issue97_mapping_wave_machine_mappings_after_build live using(identity_id)',
+  'full join tmp_issue97_mapping_wave_machine_mappings_after_stabilization live using(identity_id)',
   "where coalesce(prior.mapping_state,'[]'::jsonb) is distinct from coalesce(live.mapping_state,'[]'::jsonb)",
 ]) {
   requireText(
@@ -1663,10 +2837,27 @@ const semanticTopologyBlockStarts = Object.fromEntries(
   }),
 );
 const releaseCurrentnessAssertionIndex = normalizedRehearsal.indexOf(
-  "raise exception 'Issue #97 rebuilt dark graph is not fully release-current'",
+  "message='Issue #97 rebuilt dark graph is not fully release-current'",
 );
 if (releaseCurrentnessAssertionIndex < 0) {
   throw new Error('Could not locate release-currentness assertion');
+}
+for (const token of [
+  "'release_current_failure_count'",
+  "'candidate_diagnostics'",
+  'issue97_mapping_wave_release_current_diagnostic(build.id)',
+  'issue97_mapping_wave_release_diagnostic_passes( observed.diagnostic ) is distinct from true',
+  'detail=v_release_current_detail::text',
+]) {
+  requireText(
+    normalizedRehearsal.slice(
+      normalizedRehearsal.lastIndexOf('if exists(', releaseCurrentnessAssertionIndex),
+      normalizedRehearsal.indexOf('end if;', releaseCurrentnessAssertionIndex)
+        + 'end if;'.length,
+    ),
+    token,
+    `final release-current diagnostic: ${token}`,
+  );
 }
 const releaseCurrentnessBlockStart = normalizedRehearsal.lastIndexOf(
   'if exists(',
@@ -1947,7 +3138,7 @@ const newBuildMaterializationIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_new_builds on commit drop as',
 );
 const machineAfterSnapshotIndex = normalizedRehearsal.indexOf(
-  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_build',
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_stabilization',
 );
 const changedMachineMappingsIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
@@ -1957,6 +3148,12 @@ const actualMachineTransitionsIndex = normalizedRehearsal.indexOf(
 );
 const expectedMachineTransitionsIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_expected_machine_mapping_transitions',
+);
+const stabilizationContractAssertionIndex = normalizedRehearsal.indexOf(
+  'Issue #97 all-eight mapping stabilization contract drifted',
+);
+const finalMachineSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_all_builds',
 );
 const afterBuildRefreshContractIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_refresh_contract_after_build',
@@ -2162,6 +3359,9 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || newBuildMaterializationIndex < 0
     || machineAfterSnapshotIndex < 0 || changedMachineMappingsIndex < 0
     || actualMachineTransitionsIndex < 0 || expectedMachineTransitionsIndex < 0
+    || stabilizationContractAssertionIndex < 0 || stabilizedBaselineIndex < 0
+    || builderCheckerStart < 0 || finalMachineSnapshotIndex < 0
+    || finalStabilityIndex < 0 || candidateEvidenceIndex < 0
     || afterBuildRefreshContractIndex < 0
     || refreshExpansionGoogleQueueAssertionIndex < 0
     || refreshExpansionGoogleProcessorIndex < 0
@@ -2182,15 +3382,22 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
       && reviewedSnapshotIndex < machineBeforeSnapshotIndex
       && machineBeforeSnapshotIndex < refreshContractSnapshotIndex
       && refreshContractSnapshotIndex < refreshExpansionGoogleSnapshotIndex
-      && refreshExpansionGoogleSnapshotIndex < buildResultsCreationIndex
-      && buildResultsCreationIndex < firstGraphBuildIndex
-      && firstGraphBuildIndex < lastGraphBuildIndex
-      && lastGraphBuildIndex < newBuildMaterializationIndex
-      && newBuildMaterializationIndex < machineAfterSnapshotIndex
+      && refreshExpansionGoogleSnapshotIndex < explicitStabilizers[0].index
+      && explicitStabilizers.at(-1).index < machineAfterSnapshotIndex
       && machineAfterSnapshotIndex < changedMachineMappingsIndex
       && changedMachineMappingsIndex < actualMachineTransitionsIndex
       && actualMachineTransitionsIndex < expectedMachineTransitionsIndex
-      && expectedMachineTransitionsIndex < afterBuildRefreshContractIndex
+      && expectedMachineTransitionsIndex < stabilizationContractAssertionIndex
+      && stabilizationContractAssertionIndex < stabilizedBaselineIndex
+      && stabilizedBaselineIndex < buildResultsCreationIndex
+      && buildResultsCreationIndex < builderCheckerStart
+      && builderCheckerStart < firstGraphBuildIndex
+      && firstGraphBuildIndex < lastGraphBuildIndex
+      && lastGraphBuildIndex < newBuildMaterializationIndex
+      && newBuildMaterializationIndex < finalMachineSnapshotIndex
+      && finalMachineSnapshotIndex < finalStabilityIndex
+      && finalStabilityIndex < candidateEvidenceIndex
+      && candidateEvidenceIndex < afterBuildRefreshContractIndex
       && afterBuildRefreshContractIndex < refreshExpansionGoogleQueueAssertionIndex
       && refreshExpansionGoogleQueueAssertionIndex < refreshExpansionGoogleProcessorIndex
       && refreshExpansionGoogleProcessorIndex < refreshExpansionGooglePostprocessAssertionIndex
@@ -2210,6 +3417,16 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
       && activationProtectionAssertionIndex < routeProtectionAssertionIndex
       && routeProtectionAssertionIndex < googleProtectionAssertionIndex)) {
   throw new Error('Reviewed-mapping survival and later rehearsal safety ordering drifted');
+}
+const rollbackIndex = normalizedRehearsal.lastIndexOf('rollback;');
+if (rollbackIndex < 0
+    || !(rebuildAssertionsEnd < finalCandidateOutputIndex
+      && finalCandidateOutputIndex < rollbackIndex)
+    || normalizedRehearsal.slice(
+      finalCandidateOutputIndex + finalCandidateOutput.length,
+      rollbackIndex,
+    ).trim() !== '') {
+  throw new Error('Final candidate evidence must print once after all assertions and immediately before rollback');
 }
 
 const targetMembershipDiagnosticBlock = normalizedRehearsal.slice(
@@ -2264,14 +3481,41 @@ assert.equal(targetMembershipContractPasses({
 requireText(normalizedRehearsal,
   "from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt join public.brinesearch_route_prep route on route.id=receipt.route_prep_id join public.pads pad on pad.id=route.pad_id where route.active and route.route_group in ('primary','alternate') and pad.state='Ohio' and not coalesce(pad.list_only,false))<>806",
   'Ohio-only 806 route-reconciliation receipt preflight');
-if ((rehearsal.match(/^begin;/gmi) ?? []).length !== 1
-    || (rehearsal.match(/^rollback;/gmi) ?? []).length !== 1
-    || (rehearsal.match(/insert into supabase_migrations\.schema_migrations/gi) ?? []).length !== 1
-    || /^commit;/mi.test(rehearsal)) {
+if ((executableRehearsal.match(/^begin;/gmi) ?? []).length !== 1
+    || (executableRehearsal.match(/^rollback;/gmi) ?? []).length !== 1
+    || (executableRehearsal.match(/insert into supabase_migrations\.schema_migrations/gi) ?? []).length !== 1
+    || /^commit;/mi.test(executableRehearsal)) {
   throw new Error('Rollback rehearsal must have one BEGIN, one ROLLBACK, and zero COMMIT');
 }
-forbid(rehearsal, /brinesearch_issue97_(?:refresh|reconcile|activate)[a-z0-9_]*\s*\(/i,
+const rehearsalWithoutExactStabilizers = executableRehearsal.replace(
+  /private_verification\.brinesearch_issue97_refresh_exact_mappings_oh\('[A-Z]{3}'\)/g,
+  '',
+).replace(
+  /'public\.brinesearch_issue97_refresh_supplemental_aliases_issue97_core\(uuid\)'\s*::pg_catalog\.regprocedure/g,
+  '',
+);
+forbid(rehearsalWithoutExactStabilizers,
+  /brinesearch_issue97_(?:refresh|reconcile|activate)[a-z0-9_]*\s*\(/i,
   'route refresh, reconciliation, or activation in rehearsal');
+forbidFailClosedNeutralizers(
+  normalizedExecutableRehearsal,
+  'complete executable rollback rehearsal',
+);
+forbid(
+  normalizedExecutableRehearsal,
+  /\b(?:create(?:\s+temporary)?\s+table|insert\s+into|update|delete\s+from|truncate(?:\s+table)?|drop\s+table)\s+(?:pg_temp\.)?tmp_issue97_(?:graph_release_current_cache|graph_current_cache)\b/i,
+  'rehearsal creates or mutates a transaction-local currentness cache',
+);
+for (const cacheTable of [
+  'tmp_issue97_graph_release_current_cache',
+  'tmp_issue97_graph_current_cache',
+]) {
+  const exactObservation = `pg_catalog.to_regclass('pg_temp.${cacheTable}')`;
+  if (offsetsOf(normalizedExecutableRehearsal, cacheTable).length !== 1
+      || offsetsOf(normalizedExecutableRehearsal, exactObservation).length !== 1) {
+    throw new Error(`${cacheTable} may appear only in its read-only diagnostic observation`);
+  }
+}
 forbid(rehearsal, /order\s+by[\s\S]{0,120}(?:completed_at|created_at)[\s\S]{0,80}limit\s+1/i,
   'latest/newest graph selection');
 forbid(rehearsal, /where\s+build\.status='validated'[\s\S]{0,120}(?:select|into)\s+[^;]*build\.id/i,
