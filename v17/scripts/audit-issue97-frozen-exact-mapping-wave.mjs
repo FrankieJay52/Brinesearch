@@ -52,139 +52,365 @@ if (md5(identities.join('|')) !== '492ff9967d8a822d10c8d5003cd018a6'
   throw new Error('Frozen mapping allowlist digest drifted');
 }
 
-const refreshExpansionBlock = migration.match(
-  /insert into tmp_issue97_frozen_mapping_refresh_expansion values([\s\S]*?);\s*select pg_catalog\.pg_advisory_xact_lock/,
+const refreshContractJson = migration.match(
+  /\$issue97_frozen_mapping_refresh_contract_rows\$\s*([\s\S]*?)\s*\$issue97_frozen_mapping_refresh_contract_rows\$::jsonb/,
 )?.[1];
-if (!refreshExpansionBlock) {
-  throw new Error('Could not parse the reviewed mapping-refresh expansion block');
+if (!refreshContractJson) {
+  throw new Error('Could not parse the complete Ohio mapping-refresh contract rows');
 }
-const refreshExpansionPattern = /\('(BEL|CAR)','([0-9a-f-]{36})','([^']+)','([0-9a-f-]{36})','(state_route)','(SR)','([0-9]+)',null,null,null,'(verified)','(exact_route_designation)',([0-9]+),(false),'OH:(BEL|CAR)','(identity_exact_components)','(exact_route_designation)','(needs_review)','(verified)',([0-9]+)\)/g;
-const refreshExpansion = [...refreshExpansionBlock.matchAll(refreshExpansionPattern)]
-  .map((match) => ({
-    county: match[1],
-    identity: match[2],
-    sourceIdentityKey: match[3],
-    road: match[4],
-    roadClass: match[5],
-    routeSystem: match[6],
-    routeNumber: match[7],
-    routeSuffix: '',
-    routeFraction: '',
-    routeExtension: '',
-    mappingStatus: match[8],
-    mappingMethod: match[9],
-    candidateCount: Number(match[10]),
-    ambiguity: match[11] === 'true',
-    refreshScope: `OH:${match[12]}`,
-    designationSource: match[13],
-    evidenceFamily: match[14],
-    priorRoadStatus: match[15],
-    newRoadStatus: match[16],
-    oldMembershipOccurrences: Number(match[17]),
-  }));
-const expectedRefreshExpansion = [
-  ['BEL', '0ee37e9a-6dd3-a186-8d3c-fc7dae6bccf1', 'OH:ODOT:NLF:SBELSR00026**C', '0a96a8b7-e9f6-4607-8d09-20cd3793ff8d', '26', 21],
-  ['BEL', '32151137-5710-e8d5-f106-83f5059b1d1d', 'OH:ODOT:NLF:SBELSR00007**N', '7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c', '7', 55],
-  ['BEL', '4164e40d-9d86-bb26-0950-e590bc53cb15', 'OH:ODOT:NLF:SBELSR00265**C', '154688cf-a3d1-4c2f-bf9c-65b15ab424a4', '265', 3],
-  ['BEL', '54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e', 'OH:ODOT:NLF:SBELSR00007**C', '7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c', '7', 88],
-  ['BEL', 'b56195f1-296a-834e-f5e8-2df1ae3f197e', 'OH:ODOT:NLF:SBELSR00800**C', '0a8a8721-4d20-41bf-8d95-ec069173e584', '800', 96],
-  ['CAR', '3a93792d-6725-df4b-de04-5a4075602ffc', 'OH:ODOT:NLF:SCARSR00332**N', '5ae10d76-e896-40bb-aecf-8d23f512e195', '332', 2],
-  ['CAR', '43bbec47-3530-415d-dd5d-0fbb54371081', 'OH:ODOT:NLF:SCARSR00644**C', '102d9976-3801-42dc-a716-ee1540364f8f', '644', 2],
-].map(([county, identity, sourceIdentityKey, road, routeNumber, oldMembershipOccurrences]) => ({
-  county,
-  identity,
-  sourceIdentityKey,
-  road,
-  roadClass: 'state_route',
-  routeSystem: 'SR',
-  routeNumber,
-  routeSuffix: '',
-  routeFraction: '',
-  routeExtension: '',
-  mappingStatus: 'verified',
-  mappingMethod: 'exact_route_designation',
-  candidateCount: 1,
-  ambiguity: false,
-  refreshScope: `OH:${county}`,
-  designationSource: 'identity_exact_components',
-  evidenceFamily: 'exact_route_designation',
-  priorRoadStatus: 'needs_review',
-  newRoadStatus: 'verified',
-  oldMembershipOccurrences,
-}));
-const sortExpansion = (rows) => [...rows].sort((a, b) => a.identity.localeCompare(b.identity));
-if (JSON.stringify(sortExpansion(refreshExpansion))
-    !== JSON.stringify(sortExpansion(expectedRefreshExpansion))) {
-  throw new Error('Reviewed mapping-refresh expansion rows drifted');
-}
-const refreshExpansionIdentities = refreshExpansion.map(({ identity }) => identity).sort();
-const refreshExpansionRoads = [...new Set(refreshExpansion.map(({ road }) => road))].sort();
-const refreshExpansionCanonical = sortExpansion(refreshExpansion).map((row) => [
-  row.county, row.identity, row.sourceIdentityKey, row.road,
-  row.roadClass, row.routeSystem, row.routeNumber,
-  row.routeSuffix, row.routeFraction, row.routeExtension,
-  row.mappingStatus, row.mappingMethod, String(row.candidateCount),
-  String(row.ambiguity), row.refreshScope, row.designationSource,
-  row.evidenceFamily, row.priorRoadStatus, row.newRoadStatus,
-  String(row.oldMembershipOccurrences),
-].join('|')).join(',');
-if (refreshExpansion.length !== 7
-    || refreshExpansionIdentities.length !== new Set(refreshExpansionIdentities).size
-    || refreshExpansionRoads.length !== 6
-    || refreshExpansion.filter(({ county }) => county === 'BEL').length !== 5
-    || refreshExpansion.filter(({ county }) => county === 'CAR').length !== 2
-    || refreshExpansion.reduce((sum, row) => sum + row.oldMembershipOccurrences, 0) !== 267
-    || refreshExpansion.some(({ identity }) => identities.includes(identity))
-    || refreshExpansion.some(({ road }) => !targets.some(
-      (target) => target.road === road && target.basis === 'exact_route_designation',
-    ))
-    || md5(refreshExpansionIdentities.join(',')) !== '8d8220e71953dc0ae998161ec169b1ae'
-    || md5(refreshExpansionRoads.join(',')) !== 'b2498ac8d77d75d69e23e528b57de08d'
-    || md5(sortExpansion(refreshExpansion)
-      .map(({ identity, road }) => `${identity}|${road}`).join(','))
-      !== '6c2fbf02b44ae04197e6da650a212da3'
-    || md5(refreshExpansionCanonical) !== '1d47469b225657e89e3c54e2d476fecb') {
-  throw new Error('Reviewed mapping-refresh expansion cardinality or digest drifted');
-}
-requireText(
-  migration,
-  "'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8'",
-  'complete rollback-proof transition digest',
+const normalizedMigrationForContract = migration.replace(/\s+/g, ' ');
+const refreshContractTableStart = normalizedMigrationForContract.indexOf(
+  'create temporary table tmp_issue97_frozen_mapping_refresh_contract(',
 );
-const refreshExpansionGuard = migration.match(
-  /if \(select count\(\*\) from tmp_issue97_frozen_mapping_refresh_expansion\)<>7[\s\S]*?raise exception\s*'Issue #97 reviewed exact mapping-refresh expansion contract drifted';\s*end if;/,
-)?.[0];
-if (!refreshExpansionGuard) {
-  throw new Error('Could not parse the reviewed mapping-refresh expansion guard');
+const refreshContractTableEnd = normalizedMigrationForContract.indexOf(
+  ') on commit drop;',
+  refreshContractTableStart,
+) + ') on commit drop;'.length;
+const exactRefreshContractTable = "create temporary table tmp_issue97_frozen_mapping_refresh_contract( county_code text not null, identity_id uuid primary key, source_identity_key text not null unique, prior_road_id uuid, road_id uuid not null, prior_mapping_status text, final_mapping_status text not null, prior_mapping_method text, final_mapping_method text not null, exact_candidate_count integer not null, ambiguity_flag boolean not null, refresh_scope text not null, evidence_source jsonb not null, reviewed_identity_46 boolean not null, prior_road_reviewed_37 boolean not null, final_road_reviewed_37 boolean not null, old_active_membership_occurrence_count bigint not null, raw_transition_class text not null check( raw_transition_class in ('NULL_TO_NONNULL','UNCHANGED_OR_INVALID') ) ) on commit drop;";
+if (refreshContractTableStart < 0 || refreshContractTableEnd < 0
+    || normalizedMigrationForContract.slice(
+      refreshContractTableStart,
+      refreshContractTableEnd,
+    ) !== exactRefreshContractTable) {
+  throw new Error('Complete Ohio mapping-refresh relational schema drifted');
 }
-const normalizedRefreshExpansionGuard = refreshExpansionGuard.replace(/\s+/g, ' ');
+const refreshContract = JSON.parse(refreshContractJson);
+const refreshContractKeys = [
+  'county_code',
+  'identity_id',
+  'source_identity_key',
+  'prior_road_id',
+  'road_id',
+  'prior_mapping_status',
+  'final_mapping_status',
+  'prior_mapping_method',
+  'final_mapping_method',
+  'exact_candidate_count',
+  'ambiguity_flag',
+  'refresh_scope',
+  'evidence_source',
+  'reviewed_identity_46',
+  'prior_road_reviewed_37',
+  'final_road_reviewed_37',
+  'old_active_membership_occurrence_count',
+  'raw_transition_class',
+];
+const byteCompare = (left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right));
+const compareNullable = (left, right) => {
+  if (left === null && right === null) return 0;
+  if (left === null) return -1;
+  if (right === null) return 1;
+  return byteCompare(left, right);
+};
+const sortRefreshContract = (rows) => [...rows].sort((left, right) => (
+  byteCompare(left.county_code, right.county_code)
+  || byteCompare(left.identity_id, right.identity_id)
+  || byteCompare(left.road_id, right.road_id)
+));
+if (!Array.isArray(refreshContract)
+    || refreshContract.some((row) => (
+      JSON.stringify(Object.keys(row)) !== JSON.stringify(refreshContractKeys)
+    ))
+    || JSON.stringify(refreshContract) !== JSON.stringify(sortRefreshContract(refreshContract))) {
+  throw new Error('Complete Ohio mapping-refresh row schema or ordering drifted');
+}
+
+const routeIdentityPattern = /^OH:ODOT:NLF:[SCT]([A-Z]{3})(SR|US|CR|TR)([0-9]{5})\*\*[A-Z](?::COMP:.+)?$/;
+const routeClassBySystem = new Map([
+  ['SR', 'state_route'],
+  ['US', 'us_route'],
+  ['CR', 'county'],
+  ['TR', 'township'],
+]);
+const rawTransitionForContract = (row) => {
+  const route = row.source_identity_key.match(routeIdentityPattern);
+  if (!route || route[1] !== row.county_code) {
+    throw new Error(`Complete mapping-refresh source identity key drifted: ${row.identity_id}`);
+  }
+  const routeNumber = String(Number(route[3]));
+  return {
+    road_class: routeClassBySystem.get(route[2]),
+    county_code: row.county_code,
+    identity_id: row.identity_id,
+    new_road_id: row.road_id,
+    route_number: routeNumber,
+    route_suffix: null,
+    route_system: route[2],
+    prior_road_id: row.prior_road_id,
+    refresh_scope: row.refresh_scope,
+    ambiguity_flag: row.ambiguity_flag,
+    route_fraction: null,
+    route_extension: null,
+    transition_class: row.raw_transition_class,
+    new_mapping_method: row.final_mapping_method,
+    new_mapping_status: row.final_mapping_status,
+    source_identity_key: row.source_identity_key,
+    prior_mapping_method: row.prior_mapping_method,
+    prior_mapping_status: row.prior_mapping_status,
+    exact_candidate_count: row.exact_candidate_count,
+    new_road_source_method: row.final_road_reviewed_37
+      ? 'issue97_frozen_exact_mapping_wave'
+      : 'issue97_harrison_exact_authoritative_identity_repair',
+    active_machine_mapping_rows: 1,
+    designation_evidence_source: row.evidence_source,
+    new_road_verification_status: 'verified',
+    post_machine_mapping_methods: [row.final_mapping_method],
+    frozen_target_evidence_family: row.final_road_reviewed_37
+      ? 'exact_route_designation'
+      : 'not_in_frozen_37',
+    identity_is_among_reviewed_46: row.reviewed_identity_46,
+    new_road_is_among_reviewed_37: row.final_road_reviewed_37,
+    post_machine_mapping_statuses: [row.final_mapping_status],
+    prior_road_is_among_reviewed_37: row.prior_road_reviewed_37,
+    verified_road_resolution_changed: row.prior_road_id !== row.road_id,
+    old_active_graph_membership_occurrence_count:
+      row.old_active_membership_occurrence_count,
+  };
+};
+const jsonbKeyCompare = (left, right) => (
+  Buffer.byteLength(left) - Buffer.byteLength(right) || byteCompare(left, right)
+);
+const jsonbText = (value) => {
+  if (value === null || typeof value !== 'object') return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(jsonbText).join(', ')}]`;
+  return `{${Object.keys(value).sort(jsonbKeyCompare)
+    .map((key) => `${JSON.stringify(key)}: ${jsonbText(value[key])}`).join(', ')}}`;
+};
+
+const refreshIdentities = refreshContract.map((row) => row.identity_id).sort(byteCompare);
+const refreshRoads = [...new Set(refreshContract.map((row) => row.road_id))].sort(byteCompare);
+const roadResolutions = refreshContract.filter(
+  (row) => row.raw_transition_class === 'NULL_TO_NONNULL',
+);
+const sameRoadUpgrades = refreshContract.filter(
+  (row) => row.raw_transition_class === 'UNCHANGED_OR_INVALID',
+);
+const expectedCountyContract = new Map([
+  ['BEL', [5, 5, 0, 263, 263, 0]],
+  ['CAR', [2, 2, 0, 4, 4, 0]],
+  ['COL', [9, 9, 0, 199, 199, 0]],
+  ['GUE', [4, 4, 0, 48, 48, 0]],
+  ['HAS', [8, 1, 7, 63, 3, 60]],
+  ['JEF', [5, 5, 0, 240, 240, 0]],
+  ['MOE', [3, 3, 0, 86, 86, 0]],
+  ['NOB', [6, 6, 0, 223, 223, 0]],
+]);
+for (const [county, expected] of expectedCountyContract) {
+  const rows = refreshContract.filter((row) => row.county_code === county);
+  const resolutions = rows.filter((row) => row.raw_transition_class === 'NULL_TO_NONNULL');
+  const upgrades = rows.filter((row) => row.raw_transition_class === 'UNCHANGED_OR_INVALID');
+  const actual = [
+    rows.length,
+    resolutions.length,
+    upgrades.length,
+    rows.reduce((sum, row) => sum + row.old_active_membership_occurrence_count, 0),
+    resolutions.reduce((sum, row) => sum + row.old_active_membership_occurrence_count, 0),
+    upgrades.reduce((sum, row) => sum + row.old_active_membership_occurrence_count, 0),
+  ];
+  if (JSON.stringify(actual) !== JSON.stringify(expected)) {
+    throw new Error(`Complete mapping-refresh ${county} contract drifted`);
+  }
+}
+if (refreshContract.length !== 42
+    || refreshIdentities.length !== new Set(refreshIdentities).size
+    || refreshRoads.length !== 23
+    || roadResolutions.length !== 35
+    || sameRoadUpgrades.length !== 7
+    || refreshContract.filter((row) => row.final_mapping_method === 'exact_route_designation').length !== 34
+    || refreshContract.filter((row) => row.final_mapping_method === 'exact_source_record_id').length !== 8
+    || refreshContract.reduce(
+      (sum, row) => sum + row.old_active_membership_occurrence_count,
+      0,
+    ) !== 1126
+    || roadResolutions.reduce(
+      (sum, row) => sum + row.old_active_membership_occurrence_count,
+      0,
+    ) !== 1066
+    || sameRoadUpgrades.reduce(
+      (sum, row) => sum + row.old_active_membership_occurrence_count,
+      0,
+    ) !== 60
+    || refreshContract.some((row) => row.reviewed_identity_46)
+    || refreshContract.filter((row) => row.final_road_reviewed_37).length !== 34
+    || refreshContract.filter((row) => !row.final_road_reviewed_37).length !== 8
+    || roadResolutions.filter((row) => row.final_road_reviewed_37).length !== 34
+    || roadResolutions.filter((row) => !row.final_road_reviewed_37).length !== 1
+    || refreshContract.some((row) => row.prior_road_reviewed_37)
+    || refreshContract.some((row) => row.final_mapping_status !== 'verified'
+    || row.exact_candidate_count !== 1 || row.ambiguity_flag
+    || row.refresh_scope !== `OH:${row.county_code}`)
+    || roadResolutions.some((row) => row.prior_road_id !== null
+      || row.prior_mapping_status !== null || row.prior_mapping_method !== null)
+    || sameRoadUpgrades.some((row) => row.prior_road_id !== row.road_id
+      || row.prior_mapping_status !== 'verified'
+      || row.prior_mapping_method !== 'exact_route_designation'
+      || row.final_mapping_method !== 'exact_source_record_id')
+    || refreshContract.some((row) => (
+      row.final_mapping_method === 'exact_route_designation'
+        ? JSON.stringify(row.evidence_source)
+          !== JSON.stringify({ designation_source: 'identity_exact_components' })
+        : JSON.stringify(Object.keys(row.evidence_source))
+          !== JSON.stringify(['road_source_record_id'])
+    ))) {
+  throw new Error('Complete Ohio mapping-refresh semantic contract drifted');
+}
+const harrisonTransition = refreshContract.filter((row) => (
+  row.county_code === 'HAS'
+  && row.identity_id === 'dbcc9da8-07cb-f054-68ca-debe2f8640fc'
+  && row.road_id === 'c1eefe49-fe29-44fa-84b7-2cfe29180761'
+  && row.source_identity_key === 'OH:ODOT:NLF:THASTR00225**C'
+  && row.final_mapping_method === 'exact_source_record_id'
+  && row.evidence_source.road_source_record_id === 'THASTR00225**C|route:TR:225'
+  && row.old_active_membership_occurrence_count === 3
+  && row.raw_transition_class === 'NULL_TO_NONNULL'
+  && !row.final_road_reviewed_37
+));
+if (harrisonTransition.length !== 1) {
+  throw new Error('Harrison outside-37 exact-source-record transition drifted');
+}
+const rawTransitions = refreshContract.map(rawTransitionForContract).sort((left, right) => (
+  byteCompare(left.county_code, right.county_code)
+  || byteCompare(left.identity_id, right.identity_id)
+  || compareNullable(left.prior_road_id, right.prior_road_id)
+  || compareNullable(left.new_road_id, right.new_road_id)
+));
+if (md5(refreshIdentities.join(',')) !== '043d969160dded7b9ff3526b6b09b752'
+    || md5(refreshRoads.join(',')) !== 'fd835556c06d4b067ca01ff8329a5d1c'
+    || md5([...refreshContract].sort((left, right) => (
+      byteCompare(left.identity_id, right.identity_id)
+      || byteCompare(left.road_id, right.road_id)
+    ))
+      .map((row) => `${row.identity_id}|${row.road_id}`).join(','))
+      !== 'cf20cef7b1f18ea57afbfee9a6f5202e'
+    || md5(rawTransitions.map(jsonbText).join('|'))
+      !== '0b89d8b7f7969a95b6d94f270cd81ccc') {
+  throw new Error('Complete Ohio mapping-refresh digest drifted');
+}
+
+const refreshContractGuard = migration.match(
+  /if \(select count\(\*\) from tmp_issue97_frozen_mapping_refresh_contract\)<>42[\s\S]*?raise exception\s*'Issue #97 complete Ohio mapping-refresh contract drifted';\s*end if;/,
+)?.[0];
+if (!refreshContractGuard) {
+  throw new Error('Could not parse the complete Ohio mapping-refresh guard');
+}
+const normalizedRefreshContractGuard = refreshContractGuard.replace(/\s+/g, ' ');
 for (const token of [
-  '(select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
-  '(select count(distinct identity_id) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
-  '(select count(distinct road_id) from tmp_issue97_frozen_mapping_refresh_expansion)<>6',
-  "where county_code='BEL')<>5",
-  "where county_code='CAR')<>2",
-  'select sum(old_active_membership_occurrence_count) from tmp_issue97_frozen_mapping_refresh_expansion)<>267',
-  "identity.state_code is distinct from 'OH'",
-  'identity.county_code is distinct from expansion.county_code',
-  'identity.source_identity_key is distinct from expansion.source_identity_key',
-  'road.verification_status is distinct from expansion.prior_road_verification_status',
-  "expansion.mapping_status is distinct from 'verified'",
-  "expansion.mapping_method is distinct from 'exact_route_designation'",
-  'expansion.exact_candidate_count is distinct from 1',
-  'or expansion.ambiguity_flag',
-  "expansion.refresh_scope is distinct from 'OH:'||expansion.county_code",
-  "expansion.designation_source is distinct from 'identity_exact_components'",
-  "target.evidence_basis='exact_route_designation'",
-  "<>'8d8220e71953dc0ae998161ec169b1ae'",
-  "<>'b2498ac8d77d75d69e23e528b57de08d'",
-  "<>'6c2fbf02b44ae04197e6da650a212da3'",
-  "<>'1d47469b225657e89e3c54e2d476fecb'",
+  '(select count(*) from tmp_issue97_frozen_mapping_refresh_contract)<>42',
+  '(select count(distinct identity_id) from tmp_issue97_frozen_mapping_refresh_contract)<>42',
+  '(select count(distinct road_id) from tmp_issue97_frozen_mapping_refresh_contract)<>23',
+  "where raw_transition_class='NULL_TO_NONNULL')<>35",
+  "where raw_transition_class='UNCHANGED_OR_INVALID')<>7",
+  "then 'SAME_ROAD_METHOD_UPGRADE' else contract.raw_transition_class end='SAME_ROAD_METHOD_UPGRADE')<>7",
+  "where final_mapping_method='exact_route_designation')<>34",
+  "where final_mapping_method='exact_source_record_id')<>8",
+  'from tmp_issue97_frozen_mapping_refresh_contract)<>1126',
+  "where raw_transition_class='NULL_TO_NONNULL')<>1066",
+  "where raw_transition_class='UNCHANGED_OR_INVALID')<>60",
+  "contract.prior_mapping_method='exact_route_designation'",
+  "contract.final_mapping_method='exact_source_record_id'",
+  "contract.final_mapping_method='exact_route_designation'",
+  "'designation_source','identity_exact_components'",
+  "'road_source_record_id'",
+  "('BEL',5,5,0,263,263,0)",
+  "('CAR',2,2,0,4,4,0)",
+  "('COL',9,9,0,199,199,0)",
+  "('GUE',4,4,0,48,48,0)",
+  "('HAS',8,1,7,63,3,60)",
+  "('JEF',5,5,0,240,240,0)",
+  "('MOE',3,3,0,86,86,0)",
+  "('NOB',6,6,0,223,223,0)",
+  "<>'043d969160dded7b9ff3526b6b09b752'",
+  "<>'fd835556c06d4b067ca01ff8329a5d1c'",
+  "<>'cf20cef7b1f18ea57afbfee9a6f5202e'",
+  "<>'0b89d8b7f7969a95b6d94f270cd81ccc'",
 ]) {
   requireText(
-    normalizedRefreshExpansionGuard,
+    normalizedRefreshContractGuard,
     token,
-    `reviewed mapping-refresh expansion guard: ${token}`,
+    `complete mapping-refresh guard: ${token}`,
+  );
+}
+
+const refreshPrestateGuard = migration.match(
+  /if exists\(\s*select 1\s*from tmp_issue97_frozen_mapping_refresh_contract contract[\s\S]*?raise exception\s*'Issue #97 complete Ohio mapping-refresh prestate drifted';\s*end if;/,
+)?.[0];
+if (!refreshPrestateGuard) {
+  throw new Error('Could not parse the complete mapping-refresh prestate guard');
+}
+const normalizedRefreshPrestateGuard = refreshPrestateGuard.replace(/\s+/g, ' ');
+for (const token of [
+  "mapping.mapping_status in ('verified','candidate')",
+  'mapping_state.active_mapping_count<>0',
+  'mapping_state.active_mapping_count<>1',
+  'mapping_state.exact_prior_mapping_count<>1',
+  "contract.raw_transition_class='NULL_TO_NONNULL'",
+  "contract.raw_transition_class='UNCHANGED_OR_INVALID'",
+  'old_memberships.nonnull_road_count<>0',
+  'old_memberships.exact_road_count is distinct from contract.old_active_membership_occurrence_count',
+  'contract.prior_road_id is distinct from contract.road_id',
+  "contract.prior_mapping_status is distinct from 'verified'",
+  "contract.prior_mapping_method is distinct from 'exact_route_designation'",
+]) {
+  requireText(
+    normalizedRefreshPrestateGuard,
+    token,
+    `complete mapping-refresh prestate guard: ${token}`,
+  );
+}
+
+const exactCandidateContract = migration.match(
+  /create temporary table\s+tmp_issue97_frozen_mapping_refresh_exact_candidates[\s\S]*?raise exception\s*'Issue #97 complete Ohio exact candidate contract drifted';\s*end if;/,
+)?.[0];
+if (!exactCandidateContract) {
+  throw new Error('Could not parse the complete exact-candidate contract');
+}
+const normalizedExactCandidateContract = exactCandidateContract.replace(/\s+/g, ' ');
+for (const token of [
+  "'exact_source_record_id'::text as mapping_method",
+  'road.source_record_id=identity.source_identity_key',
+  "pg_catalog.split_part( coalesce(road.source_record_id,''), '|', 1 )=identity.nlf_base",
+  'and base.identity_count=1',
+  "road.verification_status='verified'",
+  "road.state='OH'",
+  "road.road_type in ('interstate','us_route','state_route')",
+  "pg_catalog.lower(coalesce(road.county,''))= pg_catalog.lower(identity.county_name)",
+  "'state_and_jurisdiction_checked',true",
+  "'no_name_matching',true",
+  "'exact_route_designation'",
+  "'designation_source','identity_exact_components'",
+  "'designation_not_name',true",
+  "'no_fuzzy_or_spatial_matching',true",
+  "designation.road_class='township'",
+  'count(*) over(partition by candidate.identity_id)::integer as candidate_count',
+  'candidate.candidate_count<>1',
+  "candidate.mapping_method is distinct from contract.final_mapping_method",
+  "candidate.evidence->>'road_source_record_id' is distinct from contract.evidence_source->>'road_source_record_id'",
+  "candidate.evidence->>'road_source_record_id' is distinct from road.source_record_id",
+  "'dbcc9da8-07cb-f054-68ca-debe2f8640fc'",
+  "'c1eefe49-fe29-44fa-84b7-2cfe29180761'",
+  "'THASTR00225**C|route:TR:225'",
+  'contract.old_active_membership_occurrence_count=3',
+  'and not contract.final_road_reviewed_37',
+]) {
+  requireText(
+    normalizedExactCandidateContract,
+    token,
+    `exact candidate contract: ${token}`,
+  );
+}
+forbid(
+  exactCandidateContract,
+  /\bsimilarity\s*\(|<->|st_distance\s*\(|nearest[_ -]?road|fuzzy[_ -]?name/i,
+  'name, fuzzy, spatial, or nearest-road candidate evidence',
+);
+for (const [label, block] of [
+  ['migration prestate', normalizedRefreshPrestateGuard],
+  ['migration exact candidate', normalizedExactCandidateContract],
+]) {
+  forbid(
+    block,
+    /\b(?:or true|true or|and false|false and|1=1)\b/i,
+    `${label} contract contains a fail-open neutralizer`,
   );
 }
 
@@ -340,16 +566,24 @@ for (const token of [
   'evidence_digest',
   "'mapping_ownership','manual_reviewed_source_evidence'",
   "'machine_refresh_may_retire_target_mappings',false",
-  'tmp_issue97_frozen_mapping_refresh_expansion',
-  'Issue #97 reviewed exact mapping-refresh expansion contract drifted',
-  "'reviewed_machine_refresh_expansion_count',7",
-  "'reviewed_machine_refresh_expansion_road_count',6",
-  "'reviewed_machine_refresh_membership_occurrences',267",
-  "'reviewed_machine_refresh_identity_digest','8d8220e71953dc0ae998161ec169b1ae'",
-  "'reviewed_machine_refresh_road_digest','b2498ac8d77d75d69e23e528b57de08d'",
-  "'reviewed_machine_refresh_pair_digest','6c2fbf02b44ae04197e6da650a212da3'",
-  "'reviewed_machine_refresh_contract_digest','1d47469b225657e89e3c54e2d476fecb'",
-  "'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8'",
+  'tmp_issue97_frozen_mapping_refresh_contract',
+  'Issue #97 complete Ohio mapping-refresh contract drifted',
+  'Issue #97 complete Ohio mapping-refresh prestate drifted',
+  'tmp_issue97_frozen_mapping_refresh_exact_candidates',
+  'Issue #97 complete Ohio exact candidate contract drifted',
+  "'reviewed_machine_refresh_transition_count',42",
+  "'reviewed_machine_refresh_final_road_count',23",
+  "'reviewed_machine_refresh_road_resolution_count',35",
+  "'reviewed_machine_refresh_same_road_method_upgrade_count',7",
+  "'reviewed_machine_refresh_same_road_semantic_class'",
+  "'SAME_ROAD_METHOD_UPGRADE'",
+  "'reviewed_machine_refresh_membership_occurrences',1126",
+  "'reviewed_machine_refresh_road_resolution_occurrences',1066",
+  "'reviewed_machine_refresh_same_road_upgrade_occurrences',60",
+  "'reviewed_machine_refresh_identity_digest','043d969160dded7b9ff3526b6b09b752'",
+  "'reviewed_machine_refresh_final_road_digest','fd835556c06d4b067ca01ff8329a5d1c'",
+  "'reviewed_machine_refresh_identity_road_pair_digest','cf20cef7b1f18ea57afbfee9a6f5202e'",
+  "'reviewed_machine_refresh_raw_typed_digest','0b89d8b7f7969a95b6d94f270cd81ccc'",
   'old affected graph escaped the mapping-currentness quarantine',
   'target.road_id=mapping.road_id',
   "mapping.id=private_verification.brinesearch_issue97_uuid(",
@@ -409,9 +643,13 @@ const refreshOwnershipInspectionIndex = migration.indexOf(
 const refreshOwnershipGuardIndex = migration.indexOf(refreshOwnershipGuard);
 const refreshOwnershipGuardEndIndex = refreshOwnershipGuardIndex
   + refreshOwnershipGuard.length;
-const refreshExpansionGuardIndex = migration.indexOf(refreshExpansionGuard);
-const refreshExpansionGuardEndIndex = refreshExpansionGuardIndex
-  + refreshExpansionGuard.length;
+const refreshContractGuardIndex = migration.indexOf(refreshContractGuard);
+const refreshContractGuardEndIndex = refreshContractGuardIndex
+  + refreshContractGuard.length;
+const refreshPrestateGuardIndex = migration.indexOf(refreshPrestateGuard);
+const refreshPrestateGuardEndIndex = refreshPrestateGuardIndex
+  + refreshPrestateGuard.length;
+const exactCandidateContractIndex = migration.indexOf(exactCandidateContract);
 const roadWriteIndex = migration.indexOf('update public.brinesearch_roads road set');
 const mappingWriteIndex = migration.indexOf(
   'insert into public.brinesearch_road_identity_mappings(',
@@ -447,10 +685,20 @@ if (refreshOwnershipInspectionIndex < 0 || refreshOwnershipGuardIndex < 0
       && refreshOwnershipGuardEndIndex < mappingWriteIndex)) {
   throw new Error('Completed refresh ownership guard must precede target road and mapping writes');
 }
-if (refreshExpansionGuardIndex < 0
-    || !(refreshExpansionGuardEndIndex < roadWriteIndex
-      && refreshExpansionGuardEndIndex < mappingWriteIndex)) {
-  throw new Error('Completed mapping-refresh expansion guard must precede target road and mapping writes');
+if (refreshContractGuardIndex < 0
+    || !(refreshContractGuardEndIndex < roadWriteIndex
+      && refreshContractGuardEndIndex < mappingWriteIndex)) {
+  throw new Error('Completed mapping-refresh contract guard must precede target road and mapping writes');
+}
+if (refreshPrestateGuardIndex < 0
+    || !(refreshPrestateGuardEndIndex < roadWriteIndex
+      && refreshPrestateGuardEndIndex < mappingWriteIndex)) {
+  throw new Error('Complete mapping-refresh prestate guard must precede target writes');
+}
+if (exactCandidateContractIndex < 0
+    || !(roadWriteIndex < exactCandidateContractIndex
+      && mappingWriteIndex < exactCandidateContractIndex)) {
+  throw new Error('Exact candidate contract must inspect the adopted road state');
 }
 if (!(immediateQueueAssertionIndex < immediateReceiptSnapshotIndex
     && immediateQueueAssertionIndex < immediatePadSnapshotIndex
@@ -474,6 +722,21 @@ forbid(migration, /brinesearch_issue97_(?:refresh|reconcile|activate)[a-z0-9_]*\
 forbid(migration, /(?:name_only|fuzzy_name|nearest_road)\s*['"]?\s*[:,=]\s*(?:true|1)/i,
   'guess resolution evidence');
 forbid(migration, /\bdisable\s+trigger\b/i, 'disabled Google safety trigger');
+forbid(
+  migration,
+  /tmp_issue97_frozen_mapping_refresh_expansion\b/i,
+  'obsolete seven-row mapping-refresh table',
+);
+forbid(
+  migration,
+  /reviewed_machine_refresh_(?:expansion_count|expansion_road_count|contract_digest|proof_digest)/i,
+  'obsolete partial mapping-refresh receipt',
+);
+forbid(
+  migration,
+  /(?:tmp_issue97_frozen_mapping_refresh_contract|reviewed_machine_refresh)[\s\S]{0,120}<>267/i,
+  'old 267 occurrences treated as the complete expansion',
+);
 forbid(migration, /issue97_cutover_not_active/i,
   'stored held state substituted for the unchanged immediate stale state');
 forbid(migration,
@@ -606,12 +869,36 @@ for (const token of [
   'tmp_issue97_mapping_wave_reviewed_mappings_before_build',
   'Issue #97 reviewed frozen mapping snapshot count drifted',
   'Issue #97 reviewed frozen mappings changed during graph rebuilds',
-  'tmp_issue97_mapping_wave_refresh_expansion_before_build',
-  'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted',
-  'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds',
+  'tmp_issue97_mapping_wave_machine_scope_before_build',
+  'tmp_issue97_mapping_wave_machine_mappings_before_build',
+  'tmp_issue97_mapping_wave_refresh_contract_before_build',
+  'Issue #97 complete mapping-refresh contract pre-build snapshot drifted',
+  'tmp_issue97_mapping_wave_machine_scope_after_build',
+  'tmp_issue97_mapping_wave_machine_mappings_after_build',
+  'tmp_issue97_mapping_wave_changed_machine_mappings',
+  'tmp_issue97_mapping_wave_post_machine_candidates',
+  'tmp_issue97_mapping_wave_machine_mapping_transitions',
+  'tmp_issue97_mapping_wave_expected_machine_mapping_transitions',
+  'tmp_issue97_mapping_wave_refresh_contract_after_build',
+  'Issue #97 complete Ohio machine mapping-refresh contract changed during graph rebuilds',
   'old_active_membership_occurrence_count',
   'observed_old_membership_occurrence_count',
   'old_nonnull_road_id_count',
+  'old_exact_road_id_count',
+  'prior_mapping_state',
+  'final_mapping_state',
+  'full join tmp_issue97_mapping_wave_machine_mappings_after_build live',
+  'full join tmp_issue97_frozen_mapping_refresh_contract contract',
+  'tmp_issue97_mapping_wave_expected_machine_mapping_transitions expected',
+  'pg_catalog.to_jsonb(actual)',
+  'pg_catalog.to_jsonb(expected)',
+  'transition.transition_class in (',
+  "'NONNULL_TO_NULL','NONNULL_TO_DIFFERENT_NONNULL'",
+  "transition.new_mapping_status is distinct from 'verified'",
+  'transition.exact_candidate_count is distinct from 1',
+  'or transition.ambiguity_flag',
+  'snapshot.active_mapping_count<>1',
+  'from tmp_issue97_mapping_wave_refresh_contract_after_build)<>1126',
   "mapping.evidence->>'exact_candidate_count'",
   "mapping.evidence->>'ambiguity_held'",
   "mapping.evidence->>'refresh_scope'",
@@ -807,7 +1094,7 @@ for (const token of [
     `reviewed mapping-refresh Google snapshot contract: ${token}`,
   );
 }
-if (md5(normalizedRehearsal) !== '6bbb6251b8c1152465d28109087220b3') {
+if (md5(normalizedRehearsal) !== '304f0eecd1564ad32faae9b80271fbcd') {
   throw new Error('Complete frozen mapping-wave rehearsal drifted');
 }
 const rebuildAssertionsOpen = 'do $issue97_frozen_mapping_rebuild_assertions$';
@@ -824,7 +1111,7 @@ const rebuildAssertionsBlock = normalizedRehearsal.slice(
   rebuildAssertionsStart,
   rebuildAssertionsEnd + rebuildAssertionsClose.length,
 );
-if (md5(rebuildAssertionsBlock) !== 'b876c962c0c3e511c6565f92b84e1836') {
+if (md5(rebuildAssertionsBlock) !== '45a1c905297d8a40325d6a19fc7d68a2') {
   throw new Error('Complete mapping-wave rebuild assertion block drifted');
 }
 const googlePostprocessOpen =
@@ -951,123 +1238,257 @@ if (offsetsOf(
   throw new Error('Reviewed frozen mapping survival RAISE must occur exactly once');
 }
 
-const refreshExpansionSnapshotRaise =
-  'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted';
-const refreshExpansionSurvivalRaise =
-  'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds';
-if (offsetsOf(rehearsal, refreshExpansionSnapshotRaise).length !== 1
-    || offsetsOf(rehearsal, refreshExpansionSurvivalRaise).length !== 1) {
-  throw new Error('Reviewed mapping-refresh expansion assertions must each occur exactly once');
+const refreshContractSnapshotRaise =
+  'Issue #97 complete mapping-refresh contract pre-build snapshot drifted';
+const refreshContractSurvivalRaise =
+  'Issue #97 complete Ohio machine mapping-refresh contract changed during graph rebuilds';
+if (offsetsOf(rehearsal, refreshContractSnapshotRaise).length !== 1
+    || offsetsOf(rehearsal, refreshContractSurvivalRaise).length !== 1) {
+  throw new Error('Complete mapping-refresh assertions must each occur exactly once');
+}
+
+const machineBeforeStart = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_before_build',
+);
+const machineBeforeEnd = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_refresh_contract_before_build',
+  machineBeforeStart,
+);
+const machineAfterStart = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_build',
+);
+const machineAfterEnd = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
+  machineAfterStart,
+);
+if (machineBeforeStart < 0 || machineBeforeEnd < 0
+    || machineAfterStart < 0 || machineAfterEnd < 0) {
+  throw new Error('Could not parse complete before/after machine-mapping snapshots');
+}
+const machineScopeTail = "from public.brinesearch_authoritative_road_identities identity join tmp_issue97_mapping_wave_active_before county on county.state_code='OH' and county.county_code=identity.county_code left join public.brinesearch_road_identity_mappings verified on verified.identity_id=identity.id and verified.mapping_status='verified' where identity.active and identity.state_code='OH' order by identity.id;";
+for (const phase of ['before', 'after']) {
+  const start = normalizedRehearsal.indexOf(
+    `create temporary table tmp_issue97_mapping_wave_machine_scope_${phase}_build`,
+  );
+  const end = normalizedRehearsal.indexOf(
+    `create temporary table tmp_issue97_mapping_wave_machine_mappings_${phase}_build`,
+    start,
+  );
+  if (start < 0 || end < 0) {
+    throw new Error(`Could not parse complete ${phase} machine-mapping scope`);
+  }
+  const block = normalizedRehearsal.slice(start, end).trim();
+  for (const token of [
+    'identity.id as identity_id',
+    'identity.county_code',
+    'identity.source_identity_key',
+    'identity.road_class',
+    'identity.route_system',
+    'identity.route_number',
+    'identity.route_suffix',
+    'identity.route_fraction',
+    'identity.route_extension',
+    'verified.road_id as effective_road_id',
+    'verified.mapping_status',
+    'verified.mapping_method',
+    'verified.evidence as mapping_evidence',
+    "verified.evidence->>'exact_candidate_count'",
+    "verified.evidence->>'ambiguity_held'",
+    "verified.evidence->>'refresh_scope' as refresh_scope",
+    'end as evidence_source',
+  ]) {
+    requireText(block, token, `complete ${phase} machine scope: ${token}`);
+  }
+  if (!block.endsWith(machineScopeTail)) {
+    throw new Error(`Complete ${phase} machine scope source/filter contract drifted`);
+  }
+  forbid(
+    block,
+    /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b/i,
+    `${phase} machine scope restricted to a reviewed allowlist`,
+  );
+}
+for (const [label, block] of [
+  ['before', normalizedRehearsal.slice(machineBeforeStart, machineBeforeEnd)],
+  ['after', normalizedRehearsal.slice(machineAfterStart, machineAfterEnd)],
+]) {
+  for (const token of [
+    "mapping.mapping_method in ( 'exact_source_record_id','exact_route_designation' )",
+    "mapping.mapping_status in ('verified','candidate')",
+    "'road_id',mapping.road_id",
+    "'mapping_status',mapping.mapping_status",
+    "'mapping_method',mapping.mapping_method",
+    "'exact_candidate_count'",
+    "'ambiguity_flag'",
+    "'refresh_scope'",
+    "'evidence_source'",
+  ]) {
+    requireText(block, token, `complete ${label} machine snapshot: ${token}`);
+  }
+  forbid(
+    block,
+    /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b/i,
+    `${label} machine snapshot restricted to the expected 42`,
+  );
 }
 for (const token of [
-  'create temporary table tmp_issue97_mapping_wave_refresh_expansion_before_build on commit drop as select expansion.*',
-  "mapping.mapping_status in ('verified','candidate')",
+  'create temporary table tmp_issue97_mapping_wave_refresh_contract_before_build on commit drop as select contract.*',
+  "snapshot.raw_transition_class='NULL_TO_NONNULL'",
+  "snapshot.raw_transition_class='UNCHANGED_OR_INVALID'",
   'snapshot.active_mapping_count<>0',
-  'snapshot.observed_old_membership_occurrence_count<> snapshot.old_active_membership_occurrence_count',
+  'snapshot.active_mapping_count<>1',
+  'snapshot.exact_prior_mapping_count<>1',
   'snapshot.old_nonnull_road_id_count<>0',
-  'select sum(observed_old_membership_occurrence_count) from tmp_issue97_mapping_wave_refresh_expansion_before_build )<>267',
+  'snapshot.old_exact_road_id_count is distinct from snapshot.old_active_membership_occurrence_count',
+  'from tmp_issue97_mapping_wave_refresh_contract_before_build )<>1126',
+  "where raw_transition_class='NULL_TO_NONNULL' )<>1066",
+  "where raw_transition_class='UNCHANGED_OR_INVALID' )<>60",
 ]) {
   requireText(
     normalizedRehearsal,
     token,
-    `reviewed mapping-refresh pre-build contract: ${token}`,
+    `complete mapping-refresh pre-build contract: ${token}`,
   );
 }
-const refreshExpansionSurvivalIndex = normalizedRehearsal.indexOf(
-  `raise exception '${refreshExpansionSurvivalRaise}'`,
-);
-const refreshExpansionSurvivalStart = normalizedRehearsal.lastIndexOf(
-  'if (',
-  refreshExpansionSurvivalIndex,
-);
-const refreshExpansionSurvivalEnd = normalizedRehearsal.indexOf(
-  'end if;',
-  refreshExpansionSurvivalIndex,
-);
-if (refreshExpansionSurvivalIndex < 0
-    || refreshExpansionSurvivalStart < 0
-    || refreshExpansionSurvivalEnd < 0) {
-  throw new Error('Could not parse reviewed mapping-refresh expansion survival assertion');
-}
-const refreshExpansionSurvivalBlock = normalizedRehearsal.slice(
-  refreshExpansionSurvivalStart,
-  refreshExpansionSurvivalEnd + 'end if;'.length,
+const changedMachineMappingBlock = normalizedRehearsal.slice(
+  normalizedRehearsal.indexOf(
+    'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
+  ),
+  normalizedRehearsal.indexOf(
+    'create temporary table tmp_issue97_mapping_wave_post_machine_candidates',
+  ),
 );
 for (const token of [
-  '(select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7',
-  "where mapping.mapping_status='verified')<>7",
-  'left join public.brinesearch_road_identity_mappings mapping',
-  'join tmp_issue97_mapping_wave_new_builds build',
-  "mapping.mapping_status='verified'",
-  'mapping.mapping_method is distinct from expansion.mapping_method',
-  "mapping.evidence->>'source_identity_key' is distinct from expansion.source_identity_key",
-  "mapping.evidence->>'route_class' is distinct from expansion.road_class",
-  "mapping.evidence->>'route_token' is distinct from expansion.route_number",
-  "mapping.evidence->>'designation_source' is distinct from expansion.designation_source",
-  "mapping.evidence->>'refresh_scope' is distinct from expansion.refresh_scope",
-  "(mapping.evidence->>'exact_candidate_count')::integer is distinct from expansion.exact_candidate_count",
-  "(mapping.evidence->>'ambiguity_held')::boolean is distinct from expansion.ambiguity_flag",
-  'occurrence.membership_count is distinct from expansion.old_active_membership_occurrence_count',
-  'occurrence.exact_road_membership_count is distinct from expansion.old_active_membership_occurrence_count',
-  "mapping.mapping_status in ('verified','candidate')",
-  'mapping.road_id<>expansion.road_id',
+  'from tmp_issue97_mapping_wave_machine_mappings_before_build prior',
+  'full join tmp_issue97_mapping_wave_machine_mappings_after_build live using(identity_id)',
+  "where coalesce(prior.mapping_state,'[]'::jsonb) is distinct from coalesce(live.mapping_state,'[]'::jsonb)",
 ]) {
   requireText(
-    refreshExpansionSurvivalBlock,
+    changedMachineMappingBlock,
     token,
-    `reviewed mapping-refresh survival contract: ${token}`,
+    `complete changed machine-mapping set: ${token}`,
   );
 }
-if (offsetsOf(
-  refreshExpansionSurvivalBlock,
-  'join tmp_issue97_mapping_wave_new_builds build',
-).length !== 1) {
-  throw new Error('Reviewed expansion mappings must be global while candidate membership proof is pair-scoped');
-}
 forbid(
-  refreshExpansionSurvivalBlock,
-  /and not exists\(\s*select 1 from tmp_issue97_mapping_wave_new_builds build/i,
-  'global reviewed expansion mapping rejected outside the currently built pair',
+  changedMachineMappingBlock,
+  /tmp_issue97_frozen_mapping_(?:refresh_contract|targets)|\blimit\b|\b(?:with|union|intersect|except)\b/i,
+  'complete changed machine-mapping set narrowed before comparison',
 );
+if ((changedMachineMappingBlock.match(/\bfrom\b/g) ?? []).length !== 2
+    || (changedMachineMappingBlock.match(/\bfull join\b/g) ?? []).length !== 1
+    || (changedMachineMappingBlock.match(/\bwhere\b/g) ?? []).length !== 1
+    || (changedMachineMappingBlock.match(/\b(?:and|or)\b/g) ?? []).length !== 0) {
+  throw new Error('Complete changed machine-mapping set query shape drifted');
+}
 
-const reviewedRefreshExpansionPasses = ({
-  transitionRows = 7,
-  identities: expansionIdentityCount = 7,
-  roads: expansionRoadCount = 6,
-  membershipOccurrences = 267,
-  mappingMethod = 'exact_route_designation',
-  candidateCount = 1,
-  ambiguity = false,
-  scopeExact = true,
-  evidenceExact = true,
-  roadSetExact = true,
-  roadOnlySemanticChange = true,
-}) => transitionRows === 7
-  && expansionIdentityCount === 7
-  && expansionRoadCount === 6
-  && membershipOccurrences === 267
-  && mappingMethod === 'exact_route_designation'
-  && candidateCount === 1
-  && ambiguity === false
-  && scopeExact
-  && evidenceExact
-  && roadSetExact
-  && roadOnlySemanticChange;
-assert.equal(reviewedRefreshExpansionPasses({}), true);
-for (const mutation of [
-  { transitionRows: 8 },
-  { identities: 6 },
-  { roads: 7 },
-  { membershipOccurrences: 266 },
-  { mappingMethod: 'exact_source_record_id' },
-  { candidateCount: 2 },
-  { ambiguity: true },
-  { scopeExact: false },
-  { evidenceExact: false },
-  { roadSetExact: false },
-  { roadOnlySemanticChange: false },
+const refreshContractSurvivalIndex = normalizedRehearsal.indexOf(
+  `raise exception '${refreshContractSurvivalRaise}'`,
+);
+const refreshContractSurvivalStart = normalizedRehearsal.lastIndexOf(
+  'if (',
+  refreshContractSurvivalIndex,
+);
+const refreshContractSurvivalEnd = normalizedRehearsal.indexOf(
+  'end if;',
+  refreshContractSurvivalIndex,
+);
+if (refreshContractSurvivalIndex < 0
+    || refreshContractSurvivalStart < 0
+    || refreshContractSurvivalEnd < 0) {
+  throw new Error('Could not parse complete mapping-refresh survival assertion');
+}
+const refreshContractSurvivalBlock = normalizedRehearsal.slice(
+  refreshContractSurvivalStart,
+  refreshContractSurvivalEnd + 'end if;'.length,
+);
+for (const token of [
+  '(select count(*) from tmp_issue97_frozen_mapping_refresh_contract)<>42',
+  '(select count(*) from tmp_issue97_mapping_wave_changed_machine_mappings)<>42',
+  'full join tmp_issue97_frozen_mapping_refresh_contract contract using(identity_id)',
+  'changed.identity_id is null or contract.identity_id is null',
+  '(select count(*) from tmp_issue97_mapping_wave_machine_mapping_transitions)<>42',
+  'full join tmp_issue97_mapping_wave_expected_machine_mapping_transitions expected using(identity_id)',
+  'where pg_catalog.to_jsonb(actual) is distinct from pg_catalog.to_jsonb(expected)',
+  "transition.transition_class in ( 'NONNULL_TO_NULL','NONNULL_TO_DIFFERENT_NONNULL' )",
+  "transition.new_mapping_status is distinct from 'verified'",
+  'transition.exact_candidate_count is distinct from 1',
+  'or transition.ambiguity_flag',
+  'transition.active_machine_mapping_rows is distinct from 1',
+  "transition.transition_class='UNCHANGED_OR_INVALID'",
+  "transition.prior_mapping_method= 'exact_route_designation'",
+  "transition.new_mapping_method='exact_source_record_id'",
+  "<>'043d969160dded7b9ff3526b6b09b752'",
+  "<>'fd835556c06d4b067ca01ff8329a5d1c'",
+  "<>'cf20cef7b1f18ea57afbfee9a6f5202e'",
+  "<>'0b89d8b7f7969a95b6d94f270cd81ccc'",
+  'snapshot.active_mapping_count<>1',
+  'snapshot.observed_mapping_road_id is distinct from snapshot.road_id',
+  'snapshot.observed_mapping_status is distinct from snapshot.final_mapping_status',
+  'snapshot.observed_mapping_method is distinct from snapshot.final_mapping_method',
+  "snapshot.observed_mapping_evidence->>'exact_candidate_count'",
+  "snapshot.observed_mapping_evidence->>'ambiguity_held'",
+  "snapshot.observed_mapping_evidence->>'designation_source'",
+  "snapshot.observed_mapping_evidence->>'road_source_record_id'",
+  'snapshot.membership_count is distinct from snapshot.old_active_membership_occurrence_count',
+  'snapshot.exact_road_membership_count is distinct from snapshot.old_active_membership_occurrence_count',
+  'from tmp_issue97_mapping_wave_refresh_contract_after_build)<>1126',
+  "where raw_transition_class='NULL_TO_NONNULL')<>1066",
+  "where raw_transition_class='UNCHANGED_OR_INVALID')<>60",
 ]) {
-  assert.equal(reviewedRefreshExpansionPasses(mutation), false);
+  requireText(
+    refreshContractSurvivalBlock,
+    token,
+    `complete mapping-refresh survival contract: ${token}`,
+  );
+}
+
+const completeRefreshContractPasses = ({
+  transitions = 42,
+  identities: transitionIdentities = 42,
+  roads: transitionRoads = 23,
+  roadResolutionCount = 35,
+  sameRoadUpgradeCount = 7,
+  allOccurrences = 1126,
+  roadResolutionOccurrences = 1066,
+  sameRoadUpgradeOccurrences = 60,
+  candidateCountExact = true,
+  ambiguityAbsent = true,
+  fullChangedSetExact = true,
+  sourceEvidenceExact = true,
+  removalAbsent = true,
+  substitutionAbsent = true,
+}) => transitions === 42
+  && transitionIdentities === 42
+  && transitionRoads === 23
+  && roadResolutionCount === 35
+  && sameRoadUpgradeCount === 7
+  && allOccurrences === 1126
+  && roadResolutionOccurrences === 1066
+  && sameRoadUpgradeOccurrences === 60
+  && candidateCountExact
+  && ambiguityAbsent
+  && fullChangedSetExact
+  && sourceEvidenceExact
+  && removalAbsent
+  && substitutionAbsent;
+assert.equal(completeRefreshContractPasses({}), true);
+for (const mutation of [
+  { transitions: 41 },
+  { identities: 43 },
+  { roads: 22 },
+  { roadResolutionCount: 34 },
+  { sameRoadUpgradeCount: 8 },
+  { allOccurrences: 1125 },
+  { roadResolutionOccurrences: 1065 },
+  { sameRoadUpgradeOccurrences: 59 },
+  { candidateCountExact: false },
+  { ambiguityAbsent: false },
+  { fullChangedSetExact: false },
+  { sourceEvidenceExact: false },
+  { removalAbsent: false },
+  { substitutionAbsent: false },
+]) {
+  assert.equal(completeRefreshContractPasses(mutation), false);
 }
 requireText(
   normalizedRehearsal,
@@ -1326,14 +1747,14 @@ const semanticDiagnosticContracts = {
     detailCount: "'non_target_membership_diff_count'",
     detailSample: "'non_target_membership_diff_sample'",
     sampleProjection: 'select county_code, stable_junction_key, identity_id, membership_role, difference_kind, prior_road_id, new_road_id, prior_semantic, new_semantic from differences order by county_code, stable_junction_key, identity_id, membership_role limit 50',
-    semanticRow: "( pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at' )||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) as semantic_row",
-    semanticHash: "junction.stable_junction_key||':'||( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) )::text, '|' order by junction.stable_junction_key, ( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end ) )::text",
+    semanticRow: "( pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at' )||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_contract contract where contract.identity_id=membership.identity_id and contract.road_id=membership.road_id and contract.raw_transition_class='NULL_TO_NONNULL' and contract.prior_road_id is null ) then null else membership.road_id end ) as semantic_row",
+    semanticHash: "junction.stable_junction_key||':'||( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_contract contract where contract.identity_id=membership.identity_id and contract.road_id=membership.road_id and contract.raw_transition_class='NULL_TO_NONNULL' and contract.prior_road_id is null ) then null else membership.road_id end ) )::text, '|' order by junction.stable_junction_key, ( (pg_catalog.to_jsonb(membership) -'id'-'junction_id'-'created_at'-'updated_at') ||pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_contract contract where contract.identity_id=membership.identity_id and contract.road_id=membership.road_id and contract.raw_transition_class='NULL_TO_NONNULL' and contract.prior_road_id is null ) then null else membership.road_id end ) )::text",
     fullJoinKey: 'full join new_rows using( county_code, stable_junction_key, identity_id, membership_role )',
     hashSource: 'from public.brinesearch_road_junction_memberships membership join public.brinesearch_road_junctions junction on junction.id=membership.junction_id',
     priorHashFilter: 'where junction.build_id=prior.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
     newHashFilter: 'where junction.build_id=build.id and not exists(select 1 from tmp_issue97_frozen_mapping_targets target where target.identity_id=membership.identity_id)',
     aggregateOrder: 'pg_catalog.jsonb_agg( pg_catalog.to_jsonb(sample) order by sample.county_code, sample.stable_junction_key, sample.identity_id, sample.membership_role )',
-    blockMd5: 'd501b032a6848eef59b1d2456f1e5959',
+    blockMd5: '16256909085ba9501ec8d019972e66ef',
   },
 };
 
@@ -1473,13 +1894,21 @@ forbid(
   /to_jsonb\(membership\)\s*-'id'-'junction_id'-'road_id'/i,
   'non-target membership semantic row excludes road_id',
 );
-const exactRefreshExpansionRoadNormalization =
-  "pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_expansion expansion where expansion.identity_id=membership.identity_id and expansion.road_id=membership.road_id ) then null else membership.road_id end )";
+const exactRefreshContractRoadNormalization =
+  "pg_catalog.jsonb_build_object( 'road_id', case when exists( select 1 from tmp_issue97_frozen_mapping_refresh_contract contract where contract.identity_id=membership.identity_id and contract.road_id=membership.road_id and contract.raw_transition_class='NULL_TO_NONNULL' and contract.prior_road_id is null ) then null else membership.road_id end )";
 if (offsetsOf(
   semanticTopologyBlocks.nonTargetMembership,
-  exactRefreshExpansionRoadNormalization,
+  exactRefreshContractRoadNormalization,
 ).length !== 6) {
-  throw new Error('Non-target membership must normalize only the seven exact expansion identity/road pairs');
+  throw new Error('Non-target membership must normalize only the exact 35 road-resolution pairs');
+}
+if ((semanticTopologyBlocks.nonTargetMembership.match(
+  /raw_transition_class='NULL_TO_NONNULL'/g,
+) ?? []).length !== 6
+    || (semanticTopologyBlocks.nonTargetMembership.match(
+      /contract\.prior_road_id is null/g,
+    ) ?? []).length !== 6) {
+  throw new Error('Non-target normalization must exclude all seven same-road method upgrades');
 }
 forbid(
   semanticTopologyBlocks.nonTargetMembership,
@@ -1496,8 +1925,11 @@ const migrationApplicationIndex = normalizedRehearsal.indexOf(
 const reviewedSnapshotIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_reviewed_mappings_before_build',
 );
-const refreshExpansionSnapshotIndex = normalizedRehearsal.indexOf(
-  'create temporary table tmp_issue97_mapping_wave_refresh_expansion_before_build',
+const machineBeforeSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_before_build',
+);
+const refreshContractSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_refresh_contract_before_build',
 );
 const refreshExpansionGoogleSnapshotIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_refresh_expansion_google_before_build',
@@ -1513,6 +1945,21 @@ const lastGraphBuildIndex = normalizedRehearsal.indexOf(
 );
 const newBuildMaterializationIndex = normalizedRehearsal.indexOf(
   'create temporary table tmp_issue97_mapping_wave_new_builds on commit drop as',
+);
+const machineAfterSnapshotIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mappings_after_build',
+);
+const changedMachineMappingsIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_changed_machine_mappings',
+);
+const actualMachineTransitionsIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_machine_mapping_transitions',
+);
+const expectedMachineTransitionsIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_expected_machine_mapping_transitions',
+);
+const afterBuildRefreshContractIndex = normalizedRehearsal.indexOf(
+  'create temporary table tmp_issue97_mapping_wave_refresh_contract_after_build',
 );
 const refreshExpansionGoogleQueueAssertionIndex = normalizedRehearsal.indexOf(
   "message= 'Issue #97 reviewed mapping-refresh Google queue contract drifted'",
@@ -1536,8 +1983,8 @@ const refreshExpansionGooglePostprocessIndex = normalizedRehearsal.indexOf(
 const reviewedMappingSurvivalAssertionIndex = normalizedRehearsal.indexOf(
   "raise exception 'Issue #97 reviewed frozen mappings changed during graph rebuilds'",
 );
-const refreshExpansionSurvivalAssertionIndex = normalizedRehearsal.indexOf(
-  "raise exception 'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds'",
+const refreshContractSurvivalAssertionIndex = normalizedRehearsal.indexOf(
+  "raise exception 'Issue #97 complete Ohio machine mapping-refresh contract changed during graph rebuilds'",
 );
 const countDriftAssertionIndex = normalizedRehearsal.indexOf(countDriftRaise);
 const roadIdMismatchAssertionIndex = normalizedRehearsal.indexOf(roadIdMismatchRaise);
@@ -1708,18 +2155,21 @@ if ((googleProtectionBlock.match(/limit 50/g) ?? []).length !== 3) {
   throw new Error('Google dark-build diagnostic samples must retain three 50-row bounds');
 }
 if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
-    || refreshExpansionSnapshotIndex < 0
+    || machineBeforeSnapshotIndex < 0 || refreshContractSnapshotIndex < 0
     || refreshExpansionGoogleSnapshotIndex < 0
     || buildResultsCreationIndex < 0
     || firstGraphBuildIndex < 0 || lastGraphBuildIndex < 0
     || newBuildMaterializationIndex < 0
+    || machineAfterSnapshotIndex < 0 || changedMachineMappingsIndex < 0
+    || actualMachineTransitionsIndex < 0 || expectedMachineTransitionsIndex < 0
+    || afterBuildRefreshContractIndex < 0
     || refreshExpansionGoogleQueueAssertionIndex < 0
     || refreshExpansionGoogleProcessorIndex < 0
     || refreshExpansionGooglePostprocessAssertionIndex < 0
     || refreshExpansionGooglePostprocessPassIndex < 0
     || refreshExpansionGooglePostprocessIndex < 0
     || reviewedMappingSurvivalAssertionIndex < 0
-    || refreshExpansionSurvivalAssertionIndex < 0
+    || refreshContractSurvivalAssertionIndex < 0
     || candidateDigestContractIndex < 0 || countDriftAssertionIndex < 0
     || roadIdMismatchAssertionIndex < 0
     || semanticTopologyRaiseIndexes.junction < 0
@@ -1729,20 +2179,26 @@ if (migrationApplicationIndex < 0 || reviewedSnapshotIndex < 0
     || releaseCurrentnessAssertionIndex < 0 || activationProtectionAssertionIndex < 0
     || routeProtectionAssertionIndex < 0 || googleProtectionAssertionIndex < 0
     || !(migrationApplicationIndex < reviewedSnapshotIndex
-      && reviewedSnapshotIndex < refreshExpansionSnapshotIndex
-      && refreshExpansionSnapshotIndex < refreshExpansionGoogleSnapshotIndex
+      && reviewedSnapshotIndex < machineBeforeSnapshotIndex
+      && machineBeforeSnapshotIndex < refreshContractSnapshotIndex
+      && refreshContractSnapshotIndex < refreshExpansionGoogleSnapshotIndex
       && refreshExpansionGoogleSnapshotIndex < buildResultsCreationIndex
       && buildResultsCreationIndex < firstGraphBuildIndex
       && firstGraphBuildIndex < lastGraphBuildIndex
       && lastGraphBuildIndex < newBuildMaterializationIndex
-      && newBuildMaterializationIndex < refreshExpansionGoogleQueueAssertionIndex
+      && newBuildMaterializationIndex < machineAfterSnapshotIndex
+      && machineAfterSnapshotIndex < changedMachineMappingsIndex
+      && changedMachineMappingsIndex < actualMachineTransitionsIndex
+      && actualMachineTransitionsIndex < expectedMachineTransitionsIndex
+      && expectedMachineTransitionsIndex < afterBuildRefreshContractIndex
+      && afterBuildRefreshContractIndex < refreshExpansionGoogleQueueAssertionIndex
       && refreshExpansionGoogleQueueAssertionIndex < refreshExpansionGoogleProcessorIndex
       && refreshExpansionGoogleProcessorIndex < refreshExpansionGooglePostprocessAssertionIndex
       && refreshExpansionGooglePostprocessAssertionIndex < refreshExpansionGooglePostprocessPassIndex
       && refreshExpansionGooglePostprocessPassIndex < refreshExpansionGooglePostprocessIndex
       && refreshExpansionGooglePostprocessIndex < reviewedMappingSurvivalAssertionIndex
-      && reviewedMappingSurvivalAssertionIndex < refreshExpansionSurvivalAssertionIndex
-      && refreshExpansionSurvivalAssertionIndex < candidateDigestContractIndex
+      && reviewedMappingSurvivalAssertionIndex < refreshContractSurvivalAssertionIndex
+      && refreshContractSurvivalAssertionIndex < candidateDigestContractIndex
       && candidateDigestContractIndex < countDriftAssertionIndex
       && countDriftAssertionIndex < roadIdMismatchAssertionIndex
       && roadIdMismatchAssertionIndex < semanticTopologyRaiseIndexes.junction
@@ -1863,6 +2319,10 @@ for (const mutation of [
 console.log('Issue #97 frozen exact mapping-wave audit passed.');
 console.log(`  frozen identities/roads: ${identities.length}/${roads.length}`);
 console.log(`  evidence split: 28 designation / 18 base-NLF street-core`);
+console.log('  machine refresh: 42 transitions / 23 final roads');
+console.log('  transition semantics: 35 road resolutions / 7 same-road method upgrades');
+console.log('  old membership occurrences: 1126 (1066 resolutions / 60 upgrades)');
+console.log('  machine digests: 043d969160dded7b9ff3526b6b09b752 / fd835556c06d4b067ca01ff8329a5d1c / cf20cef7b1f18ea57afbfee9a6f5202e / 0b89d8b7f7969a95b6d94f270cd81ccc');
 console.log(`  graph rebuild footprint: ${builds.join(',')}`);
 console.log(`  repeated-call temp guards: ${rehearsalGuards} rehearsal / ${syntheticGuards} synthetic`);
 console.log(`  exact final route closure: ${routeIds.length} (340 primary / 72 alternate)`);

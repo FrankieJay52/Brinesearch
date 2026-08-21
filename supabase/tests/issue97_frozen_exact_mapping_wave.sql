@@ -220,71 +220,206 @@ begin
 end
 $issue97_frozen_mapping_reviewed_snapshot_assertion$;
 
+-- Snapshot the complete normalized active machine-mapping state for every
+-- active Ohio identity in the eight-county build scope. This is deliberately
+-- broader than the frozen 42 identities so an unlisted refresh transition
+-- cannot hide outside the reviewed contract.
 create temporary table
-tmp_issue97_mapping_wave_refresh_expansion_before_build
+tmp_issue97_mapping_wave_machine_scope_before_build
 on commit drop
 as
 select
-  expansion.*,
-  (
-    select count(*)
-    from public.brinesearch_road_identity_mappings mapping
-    where mapping.identity_id=expansion.identity_id
-      and mapping.mapping_status in ('verified','candidate')
-  )::bigint as active_mapping_count,
-  (
-    select count(*)
-    from tmp_issue97_mapping_wave_active_before prior
-    join public.brinesearch_road_junctions junction
-      on junction.build_id=prior.id
-    join public.brinesearch_road_junction_memberships membership
-      on membership.junction_id=junction.id
-    where prior.state_code='OH'
-      and prior.county_code=expansion.county_code
-      and membership.identity_id=expansion.identity_id
-  )::bigint as observed_old_membership_occurrence_count,
-  (
-    select count(*)
-    from tmp_issue97_mapping_wave_active_before prior
-    join public.brinesearch_road_junctions junction
-      on junction.build_id=prior.id
-    join public.brinesearch_road_junction_memberships membership
-      on membership.junction_id=junction.id
-    where prior.state_code='OH'
-      and prior.county_code=expansion.county_code
-      and membership.identity_id=expansion.identity_id
-      and membership.road_id is not null
-  )::bigint as old_nonnull_road_id_count
-from tmp_issue97_frozen_mapping_refresh_expansion expansion
-order by expansion.county_code,expansion.identity_id;
+  identity.id as identity_id,
+  identity.county_code,
+  identity.source_identity_key,
+  identity.road_class,
+  identity.route_system,
+  identity.route_number,
+  identity.route_suffix,
+  identity.route_fraction,
+  identity.route_extension,
+  verified.road_id as effective_road_id,
+  verified.mapping_status,
+  verified.mapping_method,
+  verified.evidence as mapping_evidence,
+  case
+    when verified.evidence->>'exact_candidate_count' ~ '^[0-9]+$'
+      then (verified.evidence->>'exact_candidate_count')::integer
+  end as exact_candidate_count,
+  case
+    when verified.evidence->>'ambiguity_held' in ('true','false')
+      then (verified.evidence->>'ambiguity_held')::boolean
+  end as ambiguity_flag,
+  verified.evidence->>'refresh_scope' as refresh_scope,
+  case when verified.id is null then null else
+    pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
+      'designation_source',verified.evidence->>'designation_source',
+      'road_source_record_id',verified.evidence->>'road_source_record_id',
+      'migration',verified.evidence->>'migration',
+      'evidence_basis',verified.evidence->>'evidence_basis',
+      'exact_method',verified.evidence->>'exact_method'
+    ))
+  end as evidence_source
+from public.brinesearch_authoritative_road_identities identity
+join tmp_issue97_mapping_wave_active_before county
+  on county.state_code='OH'
+ and county.county_code=identity.county_code
+left join public.brinesearch_road_identity_mappings verified
+  on verified.identity_id=identity.id
+ and verified.mapping_status='verified'
+where identity.active
+  and identity.state_code='OH'
+order by identity.id;
 
-do $issue97_frozen_mapping_refresh_expansion_snapshot_assertion$
+create temporary table
+tmp_issue97_mapping_wave_machine_mappings_before_build
+on commit drop
+as
+select
+  scope.identity_id,
+  scope.county_code,
+  scope.source_identity_key,
+  coalesce(machine.mapping_state,'[]'::jsonb) as mapping_state
+from tmp_issue97_mapping_wave_machine_scope_before_build scope
+left join lateral (
+  select pg_catalog.jsonb_agg(
+    pg_catalog.jsonb_build_object(
+      'road_id',mapping.road_id,
+      'mapping_status',mapping.mapping_status,
+      'mapping_method',mapping.mapping_method,
+      'exact_candidate_count',case
+        when mapping.evidence->>'exact_candidate_count' ~ '^[0-9]+$'
+          then (mapping.evidence->>'exact_candidate_count')::integer
+      end,
+      'ambiguity_flag',case
+        when mapping.evidence->>'ambiguity_held' in ('true','false')
+          then (mapping.evidence->>'ambiguity_held')::boolean
+      end,
+      'refresh_scope',mapping.evidence->>'refresh_scope',
+      'evidence_source',pg_catalog.jsonb_strip_nulls(
+        pg_catalog.jsonb_build_object(
+          'designation_source',mapping.evidence->>'designation_source',
+          'road_source_record_id',mapping.evidence->>'road_source_record_id',
+          'migration',mapping.evidence->>'migration',
+          'evidence_basis',mapping.evidence->>'evidence_basis',
+          'exact_method',mapping.evidence->>'exact_method'
+        )
+      )
+    ) order by mapping.road_id,mapping.mapping_status,mapping.mapping_method
+  ) as mapping_state
+  from public.brinesearch_road_identity_mappings mapping
+  where mapping.identity_id=scope.identity_id
+    and mapping.mapping_method in (
+      'exact_source_record_id','exact_route_designation'
+    )
+    and mapping.mapping_status in ('verified','candidate')
+) machine on true
+order by scope.identity_id;
+
+create temporary table
+tmp_issue97_mapping_wave_refresh_contract_before_build
+on commit drop
+as
+select
+  contract.*,
+  mapping_state.active_mapping_count,
+  mapping_state.exact_prior_mapping_count,
+  old_memberships.observed_old_membership_occurrence_count,
+  old_memberships.old_nonnull_road_id_count,
+  old_memberships.old_exact_road_id_count
+from tmp_issue97_frozen_mapping_refresh_contract contract
+left join lateral (
+  select
+    count(*)::bigint as active_mapping_count,
+    count(*) filter(
+      where mapping.road_id=contract.prior_road_id
+        and mapping.mapping_status=contract.prior_mapping_status
+        and mapping.mapping_method=contract.prior_mapping_method
+    )::bigint as exact_prior_mapping_count
+  from public.brinesearch_road_identity_mappings mapping
+  where mapping.identity_id=contract.identity_id
+    and mapping.mapping_status in ('verified','candidate')
+) mapping_state on true
+left join lateral (
+  select
+    count(*)::bigint as observed_old_membership_occurrence_count,
+    count(*) filter(where membership.road_id is not null)::bigint
+      as old_nonnull_road_id_count,
+    count(*) filter(where membership.road_id=contract.road_id)::bigint
+      as old_exact_road_id_count
+  from tmp_issue97_mapping_wave_active_before prior
+  join public.brinesearch_road_junctions junction
+    on junction.build_id=prior.id
+  join public.brinesearch_road_junction_memberships membership
+    on membership.junction_id=junction.id
+  where prior.state_code='OH'
+    and prior.county_code=contract.county_code
+    and membership.identity_id=contract.identity_id
+) old_memberships on true
+order by contract.county_code,contract.identity_id,contract.road_id;
+
+do $issue97_frozen_mapping_refresh_contract_snapshot_assertion$
 begin
   if (
        select count(*)
-       from tmp_issue97_mapping_wave_refresh_expansion_before_build
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+     )<>42
+     or (
+       select count(*)
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+       where raw_transition_class='NULL_TO_NONNULL'
+     )<>35
+     or (
+       select count(*)
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+       where raw_transition_class='UNCHANGED_OR_INVALID'
      )<>7
      or exists(
        select 1
-       from tmp_issue97_mapping_wave_refresh_expansion_before_build snapshot
-       join public.brinesearch_roads road on road.id=snapshot.road_id
-       where snapshot.active_mapping_count<>0
-          or snapshot.observed_old_membership_occurrence_count<>
-             snapshot.old_active_membership_occurrence_count
-          or snapshot.old_nonnull_road_id_count<>0
-          or road.verification_status<>
-             snapshot.new_road_verification_status
+       from tmp_issue97_mapping_wave_refresh_contract_before_build snapshot
+       where snapshot.observed_old_membership_occurrence_count is distinct from
+               snapshot.old_active_membership_occurrence_count
+          or (
+            snapshot.raw_transition_class='NULL_TO_NONNULL'
+            and (
+              snapshot.active_mapping_count<>0
+              or snapshot.exact_prior_mapping_count<>0
+              or snapshot.old_nonnull_road_id_count<>0
+              or snapshot.old_exact_road_id_count<>0
+            )
+          )
+          or (
+            snapshot.raw_transition_class='UNCHANGED_OR_INVALID'
+            and (
+              snapshot.active_mapping_count<>1
+              or snapshot.exact_prior_mapping_count<>1
+              or snapshot.old_nonnull_road_id_count is distinct from
+                 snapshot.old_active_membership_occurrence_count
+              or snapshot.old_exact_road_id_count is distinct from
+                 snapshot.old_active_membership_occurrence_count
+            )
+          )
      )
      or (
        select sum(observed_old_membership_occurrence_count)
-       from tmp_issue97_mapping_wave_refresh_expansion_before_build
-     )<>267
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+     )<>1126
+     or (
+       select sum(observed_old_membership_occurrence_count)
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+       where raw_transition_class='NULL_TO_NONNULL'
+     )<>1066
+     or (
+       select sum(observed_old_membership_occurrence_count)
+       from tmp_issue97_mapping_wave_refresh_contract_before_build
+       where raw_transition_class='UNCHANGED_OR_INVALID'
+     )<>60
   then
     raise exception
-      'Issue #97 reviewed mapping-refresh expansion pre-build snapshot drifted';
+      'Issue #97 complete mapping-refresh contract pre-build snapshot drifted';
   end if;
 end
-$issue97_frozen_mapping_refresh_expansion_snapshot_assertion$;
+$issue97_frozen_mapping_refresh_contract_snapshot_assertion$;
 
 insert into supabase_migrations.schema_migrations(version,statements,name)
 values (
@@ -294,10 +429,10 @@ values (
 );
 \ir ../../ops/issue97-computer-rollout/sql/34-frozen-exact-mapping-wave-route-manifest.sql
 
--- Freeze the exact Google dependency footprint observed from the reviewed
--- BEL+CAR mapping refresh. The queue itself is produced by every mapping-row
--- invalidation in the refresh, not only by the seven newly created pairs, so
--- the reviewed pad set is pinned directly before any builder changes receipts.
+-- Freeze the exact nine-pad Google dependency footprint for the reviewed
+-- all-eight machine-refresh contract. The queue is produced by mapping-row
+-- invalidations, so the reviewed pad set is pinned directly before any builder
+-- changes receipts.
 create temporary table
 tmp_issue97_mapping_wave_refresh_expansion_google_before_build
 on commit drop
@@ -495,6 +630,433 @@ join public.brinesearch_road_graph_builds build
   on build.id=(result.result->>'build_id')::uuid
  and build.state_code='OH'
  and build.county_code=result.county_code;
+
+create temporary table
+tmp_issue97_mapping_wave_machine_scope_after_build
+on commit drop
+as
+select
+  identity.id as identity_id,
+  identity.county_code,
+  identity.source_identity_key,
+  identity.road_class,
+  identity.route_system,
+  identity.route_number,
+  identity.route_suffix,
+  identity.route_fraction,
+  identity.route_extension,
+  verified.road_id as effective_road_id,
+  verified.mapping_status,
+  verified.mapping_method,
+  verified.evidence as mapping_evidence,
+  case
+    when verified.evidence->>'exact_candidate_count' ~ '^[0-9]+$'
+      then (verified.evidence->>'exact_candidate_count')::integer
+  end as exact_candidate_count,
+  case
+    when verified.evidence->>'ambiguity_held' in ('true','false')
+      then (verified.evidence->>'ambiguity_held')::boolean
+  end as ambiguity_flag,
+  verified.evidence->>'refresh_scope' as refresh_scope,
+  case when verified.id is null then null else
+    pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
+      'designation_source',verified.evidence->>'designation_source',
+      'road_source_record_id',verified.evidence->>'road_source_record_id',
+      'migration',verified.evidence->>'migration',
+      'evidence_basis',verified.evidence->>'evidence_basis',
+      'exact_method',verified.evidence->>'exact_method'
+    ))
+  end as evidence_source
+from public.brinesearch_authoritative_road_identities identity
+join tmp_issue97_mapping_wave_active_before county
+  on county.state_code='OH'
+ and county.county_code=identity.county_code
+left join public.brinesearch_road_identity_mappings verified
+  on verified.identity_id=identity.id
+ and verified.mapping_status='verified'
+where identity.active
+  and identity.state_code='OH'
+order by identity.id;
+
+create temporary table
+tmp_issue97_mapping_wave_machine_mappings_after_build
+on commit drop
+as
+select
+  scope.identity_id,
+  scope.county_code,
+  scope.source_identity_key,
+  coalesce(machine.mapping_state,'[]'::jsonb) as mapping_state
+from tmp_issue97_mapping_wave_machine_scope_after_build scope
+left join lateral (
+  select pg_catalog.jsonb_agg(
+    pg_catalog.jsonb_build_object(
+      'road_id',mapping.road_id,
+      'mapping_status',mapping.mapping_status,
+      'mapping_method',mapping.mapping_method,
+      'exact_candidate_count',case
+        when mapping.evidence->>'exact_candidate_count' ~ '^[0-9]+$'
+          then (mapping.evidence->>'exact_candidate_count')::integer
+      end,
+      'ambiguity_flag',case
+        when mapping.evidence->>'ambiguity_held' in ('true','false')
+          then (mapping.evidence->>'ambiguity_held')::boolean
+      end,
+      'refresh_scope',mapping.evidence->>'refresh_scope',
+      'evidence_source',pg_catalog.jsonb_strip_nulls(
+        pg_catalog.jsonb_build_object(
+          'designation_source',mapping.evidence->>'designation_source',
+          'road_source_record_id',mapping.evidence->>'road_source_record_id',
+          'migration',mapping.evidence->>'migration',
+          'evidence_basis',mapping.evidence->>'evidence_basis',
+          'exact_method',mapping.evidence->>'exact_method'
+        )
+      )
+    ) order by mapping.road_id,mapping.mapping_status,mapping.mapping_method
+  ) as mapping_state
+  from public.brinesearch_road_identity_mappings mapping
+  where mapping.identity_id=scope.identity_id
+    and mapping.mapping_method in (
+      'exact_source_record_id','exact_route_designation'
+    )
+    and mapping.mapping_status in ('verified','candidate')
+) machine on true
+order by scope.identity_id;
+
+create temporary table
+tmp_issue97_mapping_wave_changed_machine_mappings
+on commit drop
+as
+select
+  coalesce(prior.identity_id,live.identity_id) as identity_id,
+  coalesce(live.county_code,prior.county_code) as county_code,
+  coalesce(live.source_identity_key,prior.source_identity_key)
+    as source_identity_key,
+  coalesce(prior.mapping_state,'[]'::jsonb) as prior_mapping_state,
+  coalesce(live.mapping_state,'[]'::jsonb) as final_mapping_state
+from tmp_issue97_mapping_wave_machine_mappings_before_build prior
+full join tmp_issue97_mapping_wave_machine_mappings_after_build live
+  using(identity_id)
+where coalesce(prior.mapping_state,'[]'::jsonb)
+      is distinct from coalesce(live.mapping_state,'[]'::jsonb)
+order by county_code,identity_id;
+
+create temporary table
+tmp_issue97_mapping_wave_post_machine_candidates
+on commit drop
+as
+with raw as (
+  select
+    mapping.identity_id,
+    mapping.mapping_status,
+    mapping.mapping_method,
+    mapping.evidence,
+    case
+      when mapping.evidence->>'exact_candidate_count' ~ '^[0-9]+$'
+        then (mapping.evidence->>'exact_candidate_count')::integer
+    end as exact_candidate_count,
+    case
+      when mapping.evidence->>'ambiguity_held' in ('true','false')
+        then (mapping.evidence->>'ambiguity_held')::boolean
+    end as ambiguity_flag,
+    pg_catalog.jsonb_strip_nulls(pg_catalog.jsonb_build_object(
+      'designation_source',mapping.evidence->>'designation_source',
+      'road_source_record_id',mapping.evidence->>'road_source_record_id',
+      'migration',mapping.evidence->>'migration',
+      'evidence_basis',mapping.evidence->>'evidence_basis',
+      'exact_method',mapping.evidence->>'exact_method'
+    )) as evidence_source
+  from public.brinesearch_road_identity_mappings mapping
+  join tmp_issue97_mapping_wave_machine_scope_after_build identity
+    on identity.identity_id=mapping.identity_id
+  where mapping.mapping_method in (
+    'exact_source_record_id','exact_route_designation'
+  )
+    and mapping.mapping_status in ('verified','candidate')
+), sources as (
+  select distinct identity_id,evidence_source
+  from raw
+)
+select
+  raw.identity_id,
+  count(*)::integer as active_machine_mapping_rows,
+  max(raw.exact_candidate_count) as exact_candidate_count,
+  pg_catalog.bool_or(raw.ambiguity_flag) as ambiguity_flag,
+  min(raw.evidence->>'refresh_scope') as refresh_scope,
+  pg_catalog.array_agg(
+    distinct raw.mapping_status order by raw.mapping_status
+  ) as mapping_statuses,
+  pg_catalog.array_agg(
+    distinct raw.mapping_method order by raw.mapping_method
+  ) as mapping_methods,
+  (
+    select pg_catalog.jsonb_agg(
+      source.evidence_source order by source.evidence_source::text
+    )
+    from sources source
+    where source.identity_id=raw.identity_id
+  ) as evidence_sources
+from raw
+group by raw.identity_id;
+
+create temporary table
+tmp_issue97_mapping_wave_machine_mapping_transitions
+on commit drop
+as
+with paired as (
+  select
+    coalesce(prior.identity_id,live.identity_id) as identity_id,
+    coalesce(live.county_code,prior.county_code) as county_code,
+    coalesce(live.source_identity_key,prior.source_identity_key)
+      as source_identity_key,
+    coalesce(live.road_class,prior.road_class) as road_class,
+    coalesce(live.route_system,prior.route_system) as route_system,
+    coalesce(live.route_number,prior.route_number) as route_number,
+    coalesce(live.route_suffix,prior.route_suffix) as route_suffix,
+    coalesce(live.route_fraction,prior.route_fraction) as route_fraction,
+    coalesce(live.route_extension,prior.route_extension) as route_extension,
+    prior.effective_road_id as prior_road_id,
+    live.effective_road_id as new_road_id,
+    prior.mapping_status as prior_mapping_status,
+    live.mapping_status as new_mapping_status,
+    prior.mapping_method as prior_mapping_method,
+    live.mapping_method as new_mapping_method,
+    prior.exact_candidate_count as prior_exact_candidate_count,
+    live.exact_candidate_count as new_verified_exact_candidate_count,
+    prior.ambiguity_flag as prior_ambiguity_flag,
+    live.ambiguity_flag as new_verified_ambiguity_flag,
+    prior.refresh_scope as prior_refresh_scope,
+    live.refresh_scope as new_verified_refresh_scope,
+    prior.evidence_source as prior_evidence_source,
+    live.evidence_source as new_verified_evidence_source
+  from tmp_issue97_mapping_wave_machine_scope_before_build prior
+  full join tmp_issue97_mapping_wave_machine_scope_after_build live
+    using(identity_id)
+), changed as (
+  select paired.*
+  from paired
+  where (
+    paired.prior_road_id,
+    paired.prior_mapping_status,
+    paired.prior_mapping_method,
+    paired.prior_exact_candidate_count,
+    paired.prior_ambiguity_flag,
+    paired.prior_refresh_scope,
+    paired.prior_evidence_source
+  ) is distinct from (
+    paired.new_road_id,
+    paired.new_mapping_status,
+    paired.new_mapping_method,
+    paired.new_verified_exact_candidate_count,
+    paired.new_verified_ambiguity_flag,
+    paired.new_verified_refresh_scope,
+    paired.new_verified_evidence_source
+  )
+)
+select
+  changed.county_code,
+  changed.identity_id,
+  changed.source_identity_key,
+  changed.road_class,
+  changed.route_system,
+  changed.route_number,
+  changed.route_suffix,
+  changed.route_fraction,
+  changed.route_extension,
+  changed.prior_road_id,
+  changed.new_road_id,
+  changed.prior_mapping_status,
+  changed.new_mapping_status,
+  changed.prior_mapping_method,
+  changed.new_mapping_method,
+  coalesce(
+    changed.new_verified_exact_candidate_count,
+    candidates.exact_candidate_count,
+    candidates.active_machine_mapping_rows,
+    0
+  )::integer as exact_candidate_count,
+  coalesce(
+    changed.new_verified_ambiguity_flag,
+    candidates.ambiguity_flag,
+    candidates.active_machine_mapping_rows>1,
+    false
+  ) as ambiguity_flag,
+  coalesce(
+    changed.new_verified_refresh_scope,
+    candidates.refresh_scope,
+    changed.prior_refresh_scope
+  ) as refresh_scope,
+  coalesce(
+    changed.new_verified_evidence_source,
+    case when candidates.evidence_sources is null then null
+      else pg_catalog.jsonb_build_object(
+        'candidate_evidence_sources',candidates.evidence_sources
+      )
+    end,
+    changed.prior_evidence_source
+  ) as designation_evidence_source,
+  candidates.mapping_statuses as post_machine_mapping_statuses,
+  candidates.mapping_methods as post_machine_mapping_methods,
+  candidates.active_machine_mapping_rows,
+  changed.prior_road_id is distinct from changed.new_road_id
+    as verified_road_resolution_changed,
+  exists(
+    select 1
+    from tmp_issue97_frozen_mapping_targets target
+    where target.identity_id=changed.identity_id
+  ) as identity_is_among_reviewed_46,
+  changed.prior_road_id is not null and exists(
+    select 1
+    from tmp_issue97_frozen_mapping_targets target
+    where target.road_id=changed.prior_road_id
+  ) as prior_road_is_among_reviewed_37,
+  changed.new_road_id is not null and exists(
+    select 1
+    from tmp_issue97_frozen_mapping_targets target
+    where target.road_id=changed.new_road_id
+  ) as new_road_is_among_reviewed_37,
+  coalesce(old_occurrences.occurrence_count,0)::bigint
+    as old_active_graph_membership_occurrence_count,
+  case
+    when family.basis_count=0 then 'not_in_frozen_37'
+    when family.basis_count=1 then family.evidence_basis
+    else 'mixed'
+  end as frozen_target_evidence_family,
+  road.verification_status as new_road_verification_status,
+  road.source_method as new_road_source_method,
+  case
+    when changed.prior_road_id is null
+     and changed.new_road_id is not null
+      then 'NULL_TO_NONNULL'
+    when changed.prior_road_id is not null
+     and changed.new_road_id is null
+      then 'NONNULL_TO_NULL'
+    when changed.prior_road_id is not null
+     and changed.new_road_id is not null
+     and changed.prior_road_id<>changed.new_road_id
+      then 'NONNULL_TO_DIFFERENT_NONNULL'
+    else 'UNCHANGED_OR_INVALID'
+  end as transition_class
+from changed
+left join tmp_issue97_mapping_wave_post_machine_candidates candidates
+  on candidates.identity_id=changed.identity_id
+left join lateral (
+  select count(*)::bigint as occurrence_count
+  from tmp_issue97_mapping_wave_active_before build
+  join public.brinesearch_road_junctions junction
+    on junction.build_id=build.id
+  join public.brinesearch_road_junction_memberships membership
+    on membership.junction_id=junction.id
+  where build.state_code='OH'
+    and build.county_code=changed.county_code
+    and membership.identity_id=changed.identity_id
+) old_occurrences on true
+left join public.brinesearch_roads road
+  on road.id=changed.new_road_id
+left join lateral (
+  select
+    count(distinct target.evidence_basis)::integer as basis_count,
+    min(target.evidence_basis) as evidence_basis
+  from tmp_issue97_frozen_mapping_targets target
+  where target.road_id=changed.new_road_id
+) family on true
+order by changed.county_code,changed.identity_id,
+  changed.prior_road_id nulls first,changed.new_road_id nulls first;
+
+create temporary table
+tmp_issue97_mapping_wave_expected_machine_mapping_transitions
+on commit drop
+as
+select
+  contract.county_code,
+  contract.identity_id,
+  contract.source_identity_key,
+  identity.road_class,
+  identity.route_system,
+  identity.route_number,
+  identity.route_suffix,
+  identity.route_fraction,
+  identity.route_extension,
+  contract.prior_road_id,
+  contract.road_id as new_road_id,
+  contract.prior_mapping_status,
+  contract.final_mapping_status as new_mapping_status,
+  contract.prior_mapping_method,
+  contract.final_mapping_method as new_mapping_method,
+  contract.exact_candidate_count,
+  contract.ambiguity_flag,
+  contract.refresh_scope,
+  contract.evidence_source as designation_evidence_source,
+  array[contract.final_mapping_status]::text[]
+    as post_machine_mapping_statuses,
+  array[contract.final_mapping_method]::text[]
+    as post_machine_mapping_methods,
+  1::integer as active_machine_mapping_rows,
+  contract.prior_road_id is distinct from contract.road_id
+    as verified_road_resolution_changed,
+  contract.reviewed_identity_46 as identity_is_among_reviewed_46,
+  contract.prior_road_reviewed_37
+    as prior_road_is_among_reviewed_37,
+  contract.final_road_reviewed_37 as new_road_is_among_reviewed_37,
+  contract.old_active_membership_occurrence_count
+    as old_active_graph_membership_occurrence_count,
+  case when contract.final_road_reviewed_37
+    then 'exact_route_designation'
+    else 'not_in_frozen_37'
+  end as frozen_target_evidence_family,
+  'verified'::text as new_road_verification_status,
+  case when contract.final_road_reviewed_37
+    then 'issue97_frozen_exact_mapping_wave'
+    else 'issue97_harrison_exact_authoritative_identity_repair'
+  end as new_road_source_method,
+  contract.raw_transition_class as transition_class
+from tmp_issue97_frozen_mapping_refresh_contract contract
+join public.brinesearch_authoritative_road_identities identity
+  on identity.id=contract.identity_id
+order by contract.county_code,contract.identity_id,
+  contract.prior_road_id nulls first,contract.road_id nulls first;
+
+create temporary table
+tmp_issue97_mapping_wave_refresh_contract_after_build
+on commit drop
+as
+select
+  contract.*,
+  mapping.id as mapping_id,
+  mapping.road_id as observed_mapping_road_id,
+  mapping.mapping_status as observed_mapping_status,
+  mapping.mapping_method as observed_mapping_method,
+  mapping.evidence as observed_mapping_evidence,
+  active_mappings.active_mapping_count,
+  memberships.membership_count,
+  memberships.exact_road_membership_count
+from tmp_issue97_frozen_mapping_refresh_contract contract
+left join public.brinesearch_road_identity_mappings mapping
+  on mapping.identity_id=contract.identity_id
+ and mapping.road_id=contract.road_id
+ and mapping.mapping_status='verified'
+left join lateral (
+  select count(*)::bigint as active_mapping_count
+  from public.brinesearch_road_identity_mappings active
+  where active.identity_id=contract.identity_id
+    and active.mapping_status in ('verified','candidate')
+) active_mappings on true
+left join lateral (
+  select
+    count(*)::bigint as membership_count,
+    count(*) filter(
+      where membership.road_id=contract.road_id
+    )::bigint as exact_road_membership_count
+  from tmp_issue97_mapping_wave_new_builds build
+  join public.brinesearch_road_junctions junction
+    on junction.build_id=build.id
+  join public.brinesearch_road_junction_memberships membership
+    on membership.junction_id=junction.id
+  where build.state_code='OH'
+    and build.county_code=contract.county_code
+    and membership.identity_id=contract.identity_id
+) memberships on true
+order by contract.county_code,contract.identity_id,contract.road_id;
 
 do $issue97_frozen_mapping_refresh_expansion_google_queue_assertion$
 declare
@@ -785,77 +1347,165 @@ begin
   end if;
 
   if (select count(*)
-      from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+      from tmp_issue97_frozen_mapping_refresh_contract)<>42
      or (select count(*)
-         from public.brinesearch_road_identity_mappings mapping
-         join tmp_issue97_frozen_mapping_refresh_expansion expansion
-           on expansion.identity_id=mapping.identity_id
-          and expansion.road_id=mapping.road_id
-         where mapping.mapping_status='verified')<>7
+         from tmp_issue97_mapping_wave_changed_machine_mappings)<>42
      or exists(
        select 1
-       from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       left join public.brinesearch_road_identity_mappings mapping
-         on mapping.identity_id=expansion.identity_id
-        and mapping.road_id=expansion.road_id
-        and mapping.mapping_status='verified'
-       where mapping.id is null
-          or mapping.mapping_method is distinct from expansion.mapping_method
-          or mapping.evidence->>'source_identity_key' is distinct from
-             expansion.source_identity_key
-          or mapping.evidence->>'route_class' is distinct from
-             expansion.road_class
-          or mapping.evidence->>'route_token' is distinct from
-             expansion.route_number
-          or mapping.evidence->>'designation_source' is distinct from
-             expansion.designation_source
-          or mapping.evidence->>'refresh_scope' is distinct from
-             expansion.refresh_scope
-          or (mapping.evidence->>'exact_candidate_count')::integer
-             is distinct from
-             expansion.exact_candidate_count
-          or (mapping.evidence->>'ambiguity_held')::boolean
-             is distinct from
-             expansion.ambiguity_flag
+       from tmp_issue97_mapping_wave_changed_machine_mappings changed
+       full join tmp_issue97_frozen_mapping_refresh_contract contract
+         using(identity_id)
+       where changed.identity_id is null
+          or contract.identity_id is null
+          or changed.county_code is distinct from contract.county_code
+          or changed.source_identity_key is distinct from
+             contract.source_identity_key
+     )
+     or (select count(*)
+         from tmp_issue97_mapping_wave_machine_mapping_transitions)<>42
+     or (select count(*)
+         from tmp_issue97_mapping_wave_expected_machine_mapping_transitions)
+        <>42
+     or exists(
+       select 1
+       from tmp_issue97_mapping_wave_machine_mapping_transitions actual
+       full join
+         tmp_issue97_mapping_wave_expected_machine_mapping_transitions expected
+         using(identity_id)
+       where pg_catalog.to_jsonb(actual)
+             is distinct from pg_catalog.to_jsonb(expected)
      )
      or exists(
        select 1
-       from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       join tmp_issue97_mapping_wave_new_builds build
-         on build.state_code='OH'
-        and build.county_code=expansion.county_code
-       left join lateral (
-         select
-           count(*)::bigint as membership_count,
-           count(*) filter(
-             where membership.road_id=expansion.road_id
-           )::bigint as exact_road_membership_count
-         from public.brinesearch_road_junctions junction
-         join public.brinesearch_road_junction_memberships membership
-           on membership.junction_id=junction.id
-         where junction.build_id=build.id
-           and membership.identity_id=expansion.identity_id
-       ) occurrence on true
-       where occurrence.membership_count is distinct from
-             expansion.old_active_membership_occurrence_count
-          or occurrence.exact_road_membership_count is distinct from
-             expansion.old_active_membership_occurrence_count
+       from tmp_issue97_mapping_wave_machine_mapping_transitions transition
+       where transition.transition_class in (
+               'NONNULL_TO_NULL','NONNULL_TO_DIFFERENT_NONNULL'
+             )
+          or transition.new_mapping_status is distinct from 'verified'
+          or transition.exact_candidate_count is distinct from 1
+          or transition.ambiguity_flag
+          or transition.active_machine_mapping_rows is distinct from 1
+          or transition.post_machine_mapping_statuses is distinct from
+             array['verified']::text[]
+          or transition.refresh_scope is distinct from
+             'OH:'||transition.county_code
+          or (
+            transition.transition_class='NULL_TO_NONNULL'
+            and transition.prior_road_id is not null
+          )
+          or (
+            transition.transition_class='UNCHANGED_OR_INVALID'
+            and not (
+              transition.prior_road_id=transition.new_road_id
+              and transition.prior_mapping_status='verified'
+              and transition.new_mapping_status='verified'
+              and transition.prior_mapping_method=
+                  'exact_route_designation'
+              and transition.new_mapping_method='exact_source_record_id'
+            )
+          )
      )
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           identity_id::text,',' order by identity_id
+         ))
+         from tmp_issue97_mapping_wave_machine_mapping_transitions)
+        <>'043d969160dded7b9ff3526b6b09b752'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           new_road_id::text,',' order by new_road_id
+         ))
+         from (
+           select distinct new_road_id
+           from tmp_issue97_mapping_wave_machine_mapping_transitions
+         ) roads)
+        <>'fd835556c06d4b067ca01ff8329a5d1c'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           identity_id::text||'|'||coalesce(new_road_id::text,'<NULL>'),
+           ',' order by identity_id,new_road_id
+         ))
+         from tmp_issue97_mapping_wave_machine_mapping_transitions)
+        <>'cf20cef7b1f18ea57afbfee9a6f5202e'
+     or (select pg_catalog.md5(pg_catalog.string_agg(
+           pg_catalog.to_jsonb(transition)::text,
+           '|' order by transition.county_code,transition.identity_id,
+             transition.prior_road_id nulls first,
+             transition.new_road_id nulls first
+         ))
+         from tmp_issue97_mapping_wave_machine_mapping_transitions transition)
+        <>'0b89d8b7f7969a95b6d94f270cd81ccc'
+     or (select count(*)
+         from tmp_issue97_mapping_wave_refresh_contract_after_build)<>42
      or exists(
        select 1
-       from public.brinesearch_road_identity_mappings mapping
-       join tmp_issue97_frozen_mapping_refresh_expansion expansion
-         on expansion.identity_id=mapping.identity_id
-       where mapping.mapping_status in ('verified','candidate')
-         and (
-           mapping.road_id<>expansion.road_id
-           or mapping.mapping_status<>expansion.mapping_status
-           or mapping.mapping_method<>expansion.mapping_method
-         )
+       from tmp_issue97_mapping_wave_refresh_contract_after_build snapshot
+       join public.brinesearch_authoritative_road_identities identity
+         on identity.id=snapshot.identity_id
+       where snapshot.mapping_id is null
+          or snapshot.active_mapping_count<>1
+          or snapshot.observed_mapping_road_id is distinct from snapshot.road_id
+          or snapshot.observed_mapping_status is distinct from
+             snapshot.final_mapping_status
+          or snapshot.observed_mapping_method is distinct from
+             snapshot.final_mapping_method
+          or snapshot.observed_mapping_evidence->>'source_identity_key'
+               is distinct from snapshot.source_identity_key
+          or snapshot.observed_mapping_evidence->>'refresh_scope'
+               is distinct from snapshot.refresh_scope
+          or (snapshot.observed_mapping_evidence->>'exact_candidate_count')
+               ::integer is distinct from snapshot.exact_candidate_count
+          or (snapshot.observed_mapping_evidence->>'ambiguity_held')
+               ::boolean is distinct from snapshot.ambiguity_flag
+          or (
+            snapshot.final_mapping_method='exact_route_designation'
+            and (
+              snapshot.observed_mapping_evidence->>'designation_source'
+                is distinct from
+                snapshot.evidence_source->>'designation_source'
+              or snapshot.observed_mapping_evidence->>'designation_source'
+                is distinct from 'identity_exact_components'
+              or snapshot.observed_mapping_evidence->>'route_class'
+                is distinct from identity.road_class
+              or snapshot.observed_mapping_evidence->>'route_number'
+                is distinct from identity.route_number
+              or snapshot.observed_mapping_evidence->>'route_suffix'
+                is distinct from identity.route_suffix
+              or snapshot.observed_mapping_evidence->>'route_fraction'
+                is distinct from identity.route_fraction
+              or snapshot.observed_mapping_evidence->>'route_extension'
+                is distinct from identity.route_extension
+              or snapshot.observed_mapping_evidence->>'designation_not_name'
+                is distinct from 'true'
+              or snapshot.observed_mapping_evidence
+                   ->>'no_fuzzy_or_spatial_matching' is distinct from 'true'
+            )
+          )
+          or (
+            snapshot.final_mapping_method='exact_source_record_id'
+            and (
+              snapshot.observed_mapping_evidence->>'road_source_record_id'
+                is distinct from
+                snapshot.evidence_source->>'road_source_record_id'
+              or snapshot.observed_mapping_evidence
+                   ->>'state_and_jurisdiction_checked' is distinct from 'true'
+              or snapshot.observed_mapping_evidence->>'no_name_matching'
+                   is distinct from 'true'
+            )
+          )
+          or snapshot.membership_count is distinct from
+             snapshot.old_active_membership_occurrence_count
+          or snapshot.exact_road_membership_count is distinct from
+             snapshot.old_active_membership_occurrence_count
      )
+     or (select sum(membership_count)
+         from tmp_issue97_mapping_wave_refresh_contract_after_build)<>1126
+     or (select sum(membership_count)
+         from tmp_issue97_mapping_wave_refresh_contract_after_build
+         where raw_transition_class='NULL_TO_NONNULL')<>1066
+     or (select sum(membership_count)
+         from tmp_issue97_mapping_wave_refresh_contract_after_build
+         where raw_transition_class='UNCHANGED_OR_INVALID')<>60
   then
     raise exception
-      'Issue #97 reviewed exact mapping-refresh expansion changed during graph rebuilds';
+      'Issue #97 complete Ohio machine mapping-refresh contract changed during graph rebuilds';
   end if;
 
   if (select count(*) from tmp_issue97_mapping_wave_build_results)<>8
@@ -1480,9 +2130,11 @@ begin
                'road_id',
                case when exists(
                  select 1
-                 from tmp_issue97_frozen_mapping_refresh_expansion expansion
-                 where expansion.identity_id=membership.identity_id
-                   and expansion.road_id=membership.road_id
+                 from tmp_issue97_frozen_mapping_refresh_contract contract
+                 where contract.identity_id=membership.identity_id
+                   and contract.road_id=membership.road_id
+                   and contract.raw_transition_class='NULL_TO_NONNULL'
+                   and contract.prior_road_id is null
                ) then null else membership.road_id end
              )
            )::text,
@@ -1494,9 +2146,11 @@ begin
                  'road_id',
                  case when exists(
                    select 1
-                   from tmp_issue97_frozen_mapping_refresh_expansion expansion
-                   where expansion.identity_id=membership.identity_id
-                     and expansion.road_id=membership.road_id
+                 from tmp_issue97_frozen_mapping_refresh_contract contract
+                 where contract.identity_id=membership.identity_id
+                   and contract.road_id=membership.road_id
+                   and contract.raw_transition_class='NULL_TO_NONNULL'
+                   and contract.prior_road_id is null
                  ) then null else membership.road_id end
                )
              )::text),''))
@@ -1513,9 +2167,11 @@ begin
                'road_id',
                case when exists(
                  select 1
-                 from tmp_issue97_frozen_mapping_refresh_expansion expansion
-                 where expansion.identity_id=membership.identity_id
-                   and expansion.road_id=membership.road_id
+                 from tmp_issue97_frozen_mapping_refresh_contract contract
+                 where contract.identity_id=membership.identity_id
+                   and contract.road_id=membership.road_id
+                   and contract.raw_transition_class='NULL_TO_NONNULL'
+                   and contract.prior_road_id is null
                ) then null else membership.road_id end
              )
            )::text,
@@ -1527,9 +2183,11 @@ begin
                  'road_id',
                  case when exists(
                    select 1
-                   from tmp_issue97_frozen_mapping_refresh_expansion expansion
-                   where expansion.identity_id=membership.identity_id
-                     and expansion.road_id=membership.road_id
+                 from tmp_issue97_frozen_mapping_refresh_contract contract
+                 where contract.identity_id=membership.identity_id
+                   and contract.road_id=membership.road_id
+                   and contract.raw_transition_class='NULL_TO_NONNULL'
+                   and contract.prior_road_id is null
                  ) then null else membership.road_id end
                )
              )::text),''))
@@ -1564,9 +2222,11 @@ begin
           'road_id',
           case when exists(
             select 1
-            from tmp_issue97_frozen_mapping_refresh_expansion expansion
-            where expansion.identity_id=membership.identity_id
-              and expansion.road_id=membership.road_id
+            from tmp_issue97_frozen_mapping_refresh_contract contract
+            where contract.identity_id=membership.identity_id
+              and contract.road_id=membership.road_id
+              and contract.raw_transition_class='NULL_TO_NONNULL'
+              and contract.prior_road_id is null
           ) then null else membership.road_id end
         ) as semantic_row
       from pairs
@@ -1595,9 +2255,11 @@ begin
           'road_id',
           case when exists(
             select 1
-            from tmp_issue97_frozen_mapping_refresh_expansion expansion
-            where expansion.identity_id=membership.identity_id
-              and expansion.road_id=membership.road_id
+            from tmp_issue97_frozen_mapping_refresh_contract contract
+            where contract.identity_id=membership.identity_id
+              and contract.road_id=membership.road_id
+              and contract.raw_transition_class='NULL_TO_NONNULL'
+              and contract.prior_road_id is null
           ) then null else membership.road_id end
         ) as semantic_row
       from pairs

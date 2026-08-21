@@ -73,41 +73,119 @@ insert into tmp_issue97_frozen_mapping_targets values
 ('f80b4b21-06b0-b774-1ab7-402acfe3c2b9','f4cc321a-7010-4f44-a469-c49ca9c32241','exact_route_designation','d44ab9257f670b09c0dd2d65a51f8a88','59a42d782dcf97fc154bdbf6b9f6b2c4'),
 ('fb216029-dd42-ec15-192f-9192823a0601','a80366a3-06e0-4a0a-970d-7df6c2b7a205','exact_base_nlf_source_street_core','a5eab1a32bba2caa2b0f0e0d6fcdbda3','a6931700b1640e47cb8868eebde3630a');
 
--- The reviewed highway adoption also makes exactly seven otherwise-unmapped
--- BEL/CAR source identities eligible for the existing county-scoped exact
--- designation refresh. This is a frozen machine-owned expansion, not a general
--- relaxation of non-target membership protection.
-create temporary table tmp_issue97_frozen_mapping_refresh_expansion(
+-- The reviewed migration makes a complete, deterministic all-eight-county
+-- machine-refresh transition set eligible for the existing county-scoped exact
+-- refresh. These 42 runtime transitions remain separate from the 46 manually
+-- reviewed mappings and are not a general relaxation of non-target protection.
+create temporary table tmp_issue97_frozen_mapping_refresh_contract(
   county_code text not null,
   identity_id uuid primary key,
   source_identity_key text not null unique,
+  prior_road_id uuid,
   road_id uuid not null,
-  road_class text not null,
-  route_system text not null,
-  route_number text not null,
-  route_suffix text,
-  route_fraction text,
-  route_extension text,
-  mapping_status text not null,
-  mapping_method text not null,
+  prior_mapping_status text,
+  final_mapping_status text not null,
+  prior_mapping_method text,
+  final_mapping_method text not null,
   exact_candidate_count integer not null,
   ambiguity_flag boolean not null,
   refresh_scope text not null,
-  designation_source text not null,
-  evidence_family text not null,
-  prior_road_verification_status text not null,
-  new_road_verification_status text not null,
-  old_active_membership_occurrence_count bigint not null
+  evidence_source jsonb not null,
+  reviewed_identity_46 boolean not null,
+  prior_road_reviewed_37 boolean not null,
+  final_road_reviewed_37 boolean not null,
+  old_active_membership_occurrence_count bigint not null,
+  raw_transition_class text not null check(
+    raw_transition_class in ('NULL_TO_NONNULL','UNCHANGED_OR_INVALID')
+  )
 ) on commit drop;
 
-insert into tmp_issue97_frozen_mapping_refresh_expansion values
-('BEL','0ee37e9a-6dd3-a186-8d3c-fc7dae6bccf1','OH:ODOT:NLF:SBELSR00026**C','0a96a8b7-e9f6-4607-8d09-20cd3793ff8d','state_route','SR','26',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',21),
-('BEL','32151137-5710-e8d5-f106-83f5059b1d1d','OH:ODOT:NLF:SBELSR00007**N','7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c','state_route','SR','7',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',55),
-('BEL','4164e40d-9d86-bb26-0950-e590bc53cb15','OH:ODOT:NLF:SBELSR00265**C','154688cf-a3d1-4c2f-bf9c-65b15ab424a4','state_route','SR','265',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',3),
-('BEL','54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e','OH:ODOT:NLF:SBELSR00007**C','7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c','state_route','SR','7',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',88),
-('BEL','b56195f1-296a-834e-f5e8-2df1ae3f197e','OH:ODOT:NLF:SBELSR00800**C','0a8a8721-4d20-41bf-8d95-ec069173e584','state_route','SR','800',null,null,null,'verified','exact_route_designation',1,false,'OH:BEL','identity_exact_components','exact_route_designation','needs_review','verified',96),
-('CAR','3a93792d-6725-df4b-de04-5a4075602ffc','OH:ODOT:NLF:SCARSR00332**N','5ae10d76-e896-40bb-aecf-8d23f512e195','state_route','SR','332',null,null,null,'verified','exact_route_designation',1,false,'OH:CAR','identity_exact_components','exact_route_designation','needs_review','verified',2),
-('CAR','43bbec47-3530-415d-dd5d-0fbb54371081','OH:ODOT:NLF:SCARSR00644**C','102d9976-3801-42dc-a716-ee1540364f8f','state_route','SR','644',null,null,null,'verified','exact_route_designation',1,false,'OH:CAR','identity_exact_components','exact_route_designation','needs_review','verified',2);
+insert into tmp_issue97_frozen_mapping_refresh_contract(
+  county_code,identity_id,source_identity_key,prior_road_id,road_id,
+  prior_mapping_status,final_mapping_status,prior_mapping_method,
+  final_mapping_method,exact_candidate_count,ambiguity_flag,refresh_scope,
+  evidence_source,reviewed_identity_46,prior_road_reviewed_37,
+  final_road_reviewed_37,old_active_membership_occurrence_count,
+  raw_transition_class
+)
+select
+  contract.county_code,contract.identity_id,contract.source_identity_key,
+  contract.prior_road_id,contract.road_id,contract.prior_mapping_status,
+  contract.final_mapping_status,contract.prior_mapping_method,
+  contract.final_mapping_method,contract.exact_candidate_count,
+  contract.ambiguity_flag,contract.refresh_scope,contract.evidence_source,
+  contract.reviewed_identity_46,contract.prior_road_reviewed_37,
+  contract.final_road_reviewed_37,
+  contract.old_active_membership_occurrence_count,
+  contract.raw_transition_class
+from pg_catalog.jsonb_to_recordset(
+$issue97_frozen_mapping_refresh_contract_rows$
+  [
+    {"county_code":"BEL","identity_id":"0ee37e9a-6dd3-a186-8d3c-fc7dae6bccf1","source_identity_key":"OH:ODOT:NLF:SBELSR00026**C","prior_road_id":null,"road_id":"0a96a8b7-e9f6-4607-8d09-20cd3793ff8d","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:BEL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":21,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"BEL","identity_id":"32151137-5710-e8d5-f106-83f5059b1d1d","source_identity_key":"OH:ODOT:NLF:SBELSR00007**N","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:BEL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":55,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"BEL","identity_id":"4164e40d-9d86-bb26-0950-e590bc53cb15","source_identity_key":"OH:ODOT:NLF:SBELSR00265**C","prior_road_id":null,"road_id":"154688cf-a3d1-4c2f-bf9c-65b15ab424a4","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:BEL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":3,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"BEL","identity_id":"54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e","source_identity_key":"OH:ODOT:NLF:SBELSR00007**C","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:BEL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":88,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"BEL","identity_id":"b56195f1-296a-834e-f5e8-2df1ae3f197e","source_identity_key":"OH:ODOT:NLF:SBELSR00800**C","prior_road_id":null,"road_id":"0a8a8721-4d20-41bf-8d95-ec069173e584","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:BEL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":96,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"CAR","identity_id":"3a93792d-6725-df4b-de04-5a4075602ffc","source_identity_key":"OH:ODOT:NLF:SCARSR00332**N","prior_road_id":null,"road_id":"5ae10d76-e896-40bb-aecf-8d23f512e195","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:CAR","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":2,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"CAR","identity_id":"43bbec47-3530-415d-dd5d-0fbb54371081","source_identity_key":"OH:ODOT:NLF:SCARSR00644**C","prior_road_id":null,"road_id":"102d9976-3801-42dc-a716-ee1540364f8f","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:CAR","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":2,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"2855fb26-753f-59b0-07c7-d4a2f6aba39f","source_identity_key":"OH:ODOT:NLF:SCOLSR00039**N:COMP:2025_000000000279471","prior_road_id":null,"road_id":"cf05fdb2-fcdf-4f63-bd6b-73a4d11e2eac","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":2,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"3fb3e3cb-c746-f0f0-a7ba-878ec19b0377","source_identity_key":"OH:ODOT:NLF:SCOLSR00039**N:COMP:2025_000000000279476","prior_road_id":null,"road_id":"cf05fdb2-fcdf-4f63-bd6b-73a4d11e2eac","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":3,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"461650e7-4b29-3cff-9b4b-c1b8a193b334","source_identity_key":"OH:ODOT:NLF:SCOLSR00039**N:COMP:2025_000000000279472","prior_road_id":null,"road_id":"cf05fdb2-fcdf-4f63-bd6b-73a4d11e2eac","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":6,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"6f59b210-36e1-44d7-df41-37f50f5c6eb8","source_identity_key":"OH:ODOT:NLF:SCOLSR00007**N:COMP:2025_000000000279243","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":4,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"7784a008-3f9e-371d-3a59-a1915b1bdd49","source_identity_key":"OH:ODOT:NLF:SCOLSR00644**C:COMP:2025_000000000279950","prior_road_id":null,"road_id":"102d9976-3801-42dc-a716-ee1540364f8f","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":8,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"7b5d1a0d-c06a-7b02-ccfd-3f6abb8a189d","source_identity_key":"OH:ODOT:NLF:SCOLUS00030**N","prior_road_id":null,"road_id":"77bf1737-51e7-46b6-887c-87305375a99d","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":31,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"90bdcebf-84fc-9640-0685-a227641106b1","source_identity_key":"OH:ODOT:NLF:SCOLSR00007**N:COMP:2025_000000000279246","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":2,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"ca52407a-1833-2053-8c74-53eceb0b7575","source_identity_key":"OH:ODOT:NLF:SCOLSR00007**N:COMP:2025_000000000279231","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":17,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"COL","identity_id":"e8e05a84-aa1e-2d4c-0cac-811603c9fdb5","source_identity_key":"OH:ODOT:NLF:SCOLSR00039**C","prior_road_id":null,"road_id":"cf05fdb2-fcdf-4f63-bd6b-73a4d11e2eac","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:COL","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":126,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"GUE","identity_id":"66f40934-5581-0323-e48b-146b45bc1ff9","source_identity_key":"OH:ODOT:NLF:SGUESR00265**C:COMP:2025_000000000296098","prior_road_id":null,"road_id":"154688cf-a3d1-4c2f-bf9c-65b15ab424a4","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:GUE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":1,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"GUE","identity_id":"8adcad23-2788-1529-5c26-f33a4802c3e4","source_identity_key":"OH:ODOT:NLF:SGUESR00800**C","prior_road_id":null,"road_id":"0a8a8721-4d20-41bf-8d95-ec069173e584","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:GUE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":10,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"GUE","identity_id":"d10313c3-7906-b64c-794b-390c8010beed","source_identity_key":"OH:ODOT:NLF:SGUESR00146**C","prior_road_id":null,"road_id":"89023472-5bbd-4bf9-b9a4-27d09e7856c9","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:GUE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":35,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"GUE","identity_id":"e97fa7be-fa8e-95f4-daca-b50eba962456","source_identity_key":"OH:ODOT:NLF:SGUESR00313**C:COMP:2025_000000000296158","prior_road_id":null,"road_id":"40d2fcd0-8205-44dc-a4de-a650d46ad890","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:GUE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":2,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"HAS","identity_id":"100e158e-9b85-f169-ae1e-cbb88b9f18fa","source_identity_key":"OH:ODOT:NLF:CHASCR00044**C","prior_road_id":"7fe5f642-bfdc-4d5f-9f54-85f9b15af741","road_id":"7fe5f642-bfdc-4d5f-9f54-85f9b15af741","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00044**C|route:CR:44"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":25,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"1a09df0d-e31b-52a9-1d1d-6434e02546f5","source_identity_key":"OH:ODOT:NLF:CHASCR00060**C","prior_road_id":"f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965","road_id":"f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00060**C|route:CR:60"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":5,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"82d4acf0-4592-3c60-732f-ef07cb42796a","source_identity_key":"OH:ODOT:NLF:CHASCR00014**C","prior_road_id":"f0db4fa8-3900-4350-a31e-3d61128006f8","road_id":"f0db4fa8-3900-4350-a31e-3d61128006f8","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00014**C|route:CR:14"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":6,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"83906bd8-9c10-e948-60e6-ed78a1ca34de","source_identity_key":"OH:ODOT:NLF:CHASCR00030**C","prior_road_id":"639b05f2-5dc6-4678-86bf-e7a0a775663b","road_id":"639b05f2-5dc6-4678-86bf-e7a0a775663b","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00030**C|route:CR:30"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":4,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"b0ec2efd-e511-2e2d-c481-eaf896757bbb","source_identity_key":"OH:ODOT:NLF:CHASCR00020**C","prior_road_id":"ebb77f8d-ed1b-4612-ae33-a0c0e64c0ae3","road_id":"ebb77f8d-ed1b-4612-ae33-a0c0e64c0ae3","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00020**C|route:CR:20"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":8,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"d2f9004d-3a70-a61c-30b1-6aca9b4b46d0","source_identity_key":"OH:ODOT:NLF:CHASCR00502**C","prior_road_id":"8382d2bf-d427-4a91-9afa-641885c71533","road_id":"8382d2bf-d427-4a91-9afa-641885c71533","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00502**C|route:CR:502"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":3,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"HAS","identity_id":"dbcc9da8-07cb-f054-68ca-debe2f8640fc","source_identity_key":"OH:ODOT:NLF:THASTR00225**C","prior_road_id":null,"road_id":"c1eefe49-fe29-44fa-84b7-2cfe29180761","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"THASTR00225**C|route:TR:225"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":3,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"HAS","identity_id":"dd89cc57-386f-5f4a-cd54-79c862bda433","source_identity_key":"OH:ODOT:NLF:CHASCR00045**C","prior_road_id":"8da26948-222c-46ef-ac79-9d07ccd08c31","road_id":"8da26948-222c-46ef-ac79-9d07ccd08c31","prior_mapping_status":"verified","final_mapping_status":"verified","prior_mapping_method":"exact_route_designation","final_mapping_method":"exact_source_record_id","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:HAS","evidence_source":{"road_source_record_id":"CHASCR00045**C|route:CR:45"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":false,"old_active_membership_occurrence_count":9,"raw_transition_class":"UNCHANGED_OR_INVALID"},
+    {"county_code":"JEF","identity_id":"77ae2895-3173-a69b-e1bc-664c09bb8224","source_identity_key":"OH:ODOT:NLF:SJEFSR00646**C","prior_road_id":null,"road_id":"9b980c79-5542-4b60-a9f9-c4639ddc2cc2","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:JEF","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":22,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"JEF","identity_id":"84c67026-c59b-6363-447b-b593a61cccb4","source_identity_key":"OH:ODOT:NLF:SJEFSR00007**C","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:JEF","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":89,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"JEF","identity_id":"d92bba57-0328-9b22-e119-8c7d3ce199f5","source_identity_key":"OH:ODOT:NLF:SJEFSR00007**N:COMP:2025_000000000306675","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:JEF","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":31,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"JEF","identity_id":"db31c857-6ba0-1c15-07d8-ea9908bec929","source_identity_key":"OH:ODOT:NLF:SJEFSR00007**N:COMP:2025_000000000306617","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:JEF","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":65,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"JEF","identity_id":"e7e27927-4586-1ba7-7d4c-1e41476c9459","source_identity_key":"OH:ODOT:NLF:SJEFSR00152**C:COMP:2025_000000000306854","prior_road_id":null,"road_id":"032e69fc-afdf-49ed-821a-f0921cefeef6","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:JEF","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":33,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"MOE","identity_id":"02f7ec49-7105-9e11-0eac-ec74b286e707","source_identity_key":"OH:ODOT:NLF:SMOESR00800**C","prior_road_id":null,"road_id":"0a8a8721-4d20-41bf-8d95-ec069173e584","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:MOE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":75,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"MOE","identity_id":"b6f043cf-074c-d8dc-ad70-9d94bfc6f1d0","source_identity_key":"OH:ODOT:NLF:SMOESR00026**N","prior_road_id":null,"road_id":"0a96a8b7-e9f6-4607-8d09-20cd3793ff8d","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:MOE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":4,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"MOE","identity_id":"eac06c8b-0000-eb89-1b2e-538622b6ccd8","source_identity_key":"OH:ODOT:NLF:SMOESR00007**N","prior_road_id":null,"road_id":"7c9b1a62-4ed6-4721-94ed-a8bf12ed2f5c","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:MOE","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":7,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"2094accc-7fb9-20f5-86d7-3af8fda2dcd5","source_identity_key":"OH:ODOT:NLF:SNOBSR00821**C","prior_road_id":null,"road_id":"f4cc321a-7010-4f44-a469-c49ca9c32241","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":108,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"23f99311-1e86-b929-f3e2-ce01afea233e","source_identity_key":"OH:ODOT:NLF:SNOBSR00285**C","prior_road_id":null,"road_id":"3deab4c8-2a90-4579-bcb6-373cef11a0ce","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":33,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"2eab7dfb-788a-1181-28e6-b643922b62be","source_identity_key":"OH:ODOT:NLF:SNOBSR00078**C","prior_road_id":null,"road_id":"a6c093cf-cce2-445d-9abe-6bbe05e463ca","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":65,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"459a1640-9852-f34a-f119-cf2b6c4b06e9","source_identity_key":"OH:ODOT:NLF:SNOBSR00265**C","prior_road_id":null,"road_id":"154688cf-a3d1-4c2f-bf9c-65b15ab424a4","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":0,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"abce444e-c709-b445-289e-c9eb76319c9e","source_identity_key":"OH:ODOT:NLF:SNOBSR00313**C:COMP:2025_000000000326394","prior_road_id":null,"road_id":"40d2fcd0-8205-44dc-a4de-a650d46ad890","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":4,"raw_transition_class":"NULL_TO_NONNULL"},
+    {"county_code":"NOB","identity_id":"c8dab0ba-c322-c4a9-87a9-bacb525929cc","source_identity_key":"OH:ODOT:NLF:SNOBSR00313**C:COMP:2025_000000000326395","prior_road_id":null,"road_id":"40d2fcd0-8205-44dc-a4de-a650d46ad890","prior_mapping_status":null,"final_mapping_status":"verified","prior_mapping_method":null,"final_mapping_method":"exact_route_designation","exact_candidate_count":1,"ambiguity_flag":false,"refresh_scope":"OH:NOB","evidence_source":{"designation_source":"identity_exact_components"},"reviewed_identity_46":false,"prior_road_reviewed_37":false,"final_road_reviewed_37":true,"old_active_membership_occurrence_count":13,"raw_transition_class":"NULL_TO_NONNULL"}
+  ]
+$issue97_frozen_mapping_refresh_contract_rows$::jsonb
+) as contract(
+  county_code text,
+  identity_id uuid,
+  source_identity_key text,
+  prior_road_id uuid,
+  road_id uuid,
+  prior_mapping_status text,
+  final_mapping_status text,
+  prior_mapping_method text,
+  final_mapping_method text,
+  exact_candidate_count integer,
+  ambiguity_flag boolean,
+  refresh_scope text,
+  evidence_source jsonb,
+  reviewed_identity_46 boolean,
+  prior_road_reviewed_37 boolean,
+  final_road_reviewed_37 boolean,
+  old_active_membership_occurrence_count bigint,
+  raw_transition_class text
+)
+order by contract.county_code,contract.identity_id,contract.road_id;
 
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtext('brinesearch:issue97:ohio-state-release'));
 select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('brinesearch:issue97:all-pad-routing-pipeline',97));
@@ -343,97 +421,255 @@ begin
     raise exception 'Issue #97 frozen 46-identity/37-road allowlist drifted';
   end if;
 
-  if (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+  if (select count(*) from tmp_issue97_frozen_mapping_refresh_contract)<>42
      or (select count(distinct identity_id)
-         from tmp_issue97_frozen_mapping_refresh_expansion)<>7
+         from tmp_issue97_frozen_mapping_refresh_contract)<>42
      or (select count(distinct road_id)
-         from tmp_issue97_frozen_mapping_refresh_expansion)<>6
-     or (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion
-         where county_code='BEL')<>5
-     or (select count(*) from tmp_issue97_frozen_mapping_refresh_expansion
-         where county_code='CAR')<>2
+         from tmp_issue97_frozen_mapping_refresh_contract)<>23
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='NULL_TO_NONNULL')<>35
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='UNCHANGED_OR_INVALID')<>7
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where final_mapping_method='exact_route_designation')<>34
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where final_mapping_method='exact_source_record_id')<>8
      or (select sum(old_active_membership_occurrence_count)
-         from tmp_issue97_frozen_mapping_refresh_expansion)<>267
+         from tmp_issue97_frozen_mapping_refresh_contract)<>1126
+     or (select sum(old_active_membership_occurrence_count)
+         from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='NULL_TO_NONNULL')<>1066
+     or (select sum(old_active_membership_occurrence_count)
+         from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='UNCHANGED_OR_INVALID')<>60
+     or (select count(*)
+         from tmp_issue97_frozen_mapping_refresh_contract contract
+         where case
+           when contract.raw_transition_class='UNCHANGED_OR_INVALID'
+            and contract.prior_road_id=contract.road_id
+            and contract.prior_mapping_status='verified'
+            and contract.final_mapping_status='verified'
+            and contract.prior_mapping_method='exact_route_designation'
+            and contract.final_mapping_method='exact_source_record_id'
+            and contract.exact_candidate_count=1
+            and not contract.ambiguity_flag
+            and contract.refresh_scope='OH:'||contract.county_code
+           then 'SAME_ROAD_METHOD_UPGRADE'
+           else contract.raw_transition_class
+         end='SAME_ROAD_METHOD_UPGRADE')<>7
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where reviewed_identity_46)<>0
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where final_road_reviewed_37)<>34
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where not final_road_reviewed_37)<>8
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='NULL_TO_NONNULL'
+           and final_road_reviewed_37)<>34
+     or (select count(*) from tmp_issue97_frozen_mapping_refresh_contract
+         where raw_transition_class='NULL_TO_NONNULL'
+           and not final_road_reviewed_37)<>1
      or exists(
        select 1
-       from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       join public.brinesearch_authoritative_road_identities identity
-         on identity.id=expansion.identity_id
-       join public.brinesearch_roads road on road.id=expansion.road_id
-       where identity.state_code is distinct from 'OH'
-          or identity.county_code is distinct from expansion.county_code
-          or identity.source_identity_key is distinct from
-             expansion.source_identity_key
-          or identity.road_class is distinct from expansion.road_class
-          or identity.route_system is distinct from expansion.route_system
-          or identity.route_number is distinct from expansion.route_number
-          or identity.route_suffix is distinct from expansion.route_suffix
-          or identity.route_fraction is distinct from expansion.route_fraction
-          or identity.route_extension is distinct from expansion.route_extension
-          or road.verification_status is distinct from
-             expansion.prior_road_verification_status
+       from (
+         values
+           ('BEL',5,5,0,263,263,0),
+           ('CAR',2,2,0,4,4,0),
+           ('COL',9,9,0,199,199,0),
+           ('GUE',4,4,0,48,48,0),
+           ('HAS',8,1,7,63,3,60),
+           ('JEF',5,5,0,240,240,0),
+           ('MOE',3,3,0,86,86,0),
+           ('NOB',6,6,0,223,223,0)
+       ) expected(
+         county_code,transition_count,road_resolution_count,
+         same_road_upgrade_count,all_occurrences,
+         road_resolution_occurrences,same_road_upgrade_occurrences
+       )
+       left join lateral (
+         select
+           expected.county_code as county_code,
+           count(*)::integer as transition_count,
+           count(*) filter(
+             where contract.raw_transition_class='NULL_TO_NONNULL'
+           )::integer as road_resolution_count,
+           count(*) filter(
+             where contract.raw_transition_class='UNCHANGED_OR_INVALID'
+           )::integer as same_road_upgrade_count,
+           coalesce(sum(contract.old_active_membership_occurrence_count),0)
+             ::bigint as all_occurrences,
+           coalesce(sum(contract.old_active_membership_occurrence_count) filter(
+             where contract.raw_transition_class='NULL_TO_NONNULL'
+           ),0)::bigint as road_resolution_occurrences,
+           coalesce(sum(contract.old_active_membership_occurrence_count) filter(
+             where contract.raw_transition_class='UNCHANGED_OR_INVALID'
+           ),0)::bigint as same_road_upgrade_occurrences
+         from tmp_issue97_frozen_mapping_refresh_contract contract
+         where contract.county_code=expected.county_code
+       ) observed on true
+       where pg_catalog.to_jsonb(observed) is distinct from
+         pg_catalog.to_jsonb(expected)
      )
      or exists(
        select 1
-       from tmp_issue97_frozen_mapping_refresh_expansion expansion
-       where expansion.mapping_status is distinct from 'verified'
-          or expansion.mapping_method is distinct from
-             'exact_route_designation'
-          or expansion.exact_candidate_count is distinct from 1
-          or expansion.ambiguity_flag
-          or expansion.refresh_scope is distinct from
-             'OH:'||expansion.county_code
-          or expansion.designation_source is distinct from
-             'identity_exact_components'
-          or expansion.evidence_family is distinct from
-             'exact_route_designation'
-          or expansion.prior_road_verification_status is distinct from
-             'needs_review'
-          or expansion.new_road_verification_status is distinct from
-             'verified'
-          or not exists(
-            select 1
-            from tmp_issue97_frozen_mapping_targets target
-            where target.road_id=expansion.road_id
-              and target.evidence_basis='exact_route_designation'
+       from tmp_issue97_frozen_mapping_refresh_contract contract
+       left join public.brinesearch_authoritative_road_identities identity
+         on identity.id=contract.identity_id
+       where identity.id is null
+          or not identity.active
+          or identity.state_code is distinct from 'OH'
+          or identity.county_code is distinct from contract.county_code
+          or identity.source_identity_key is distinct from
+             contract.source_identity_key
+          or contract.refresh_scope is distinct from
+             'OH:'||contract.county_code
+          or contract.reviewed_identity_46
+          or exists(
+            select 1 from tmp_issue97_frozen_mapping_targets target
+            where target.identity_id=contract.identity_id
+          )
+          or contract.prior_road_reviewed_37 is distinct from (
+            contract.prior_road_id is not null and exists(
+              select 1 from tmp_issue97_frozen_mapping_targets target
+              where target.road_id=contract.prior_road_id
+            )
+          )
+          or contract.final_road_reviewed_37 is distinct from exists(
+            select 1 from tmp_issue97_frozen_mapping_targets target
+            where target.road_id=contract.road_id
+          )
+          or contract.final_mapping_status is distinct from 'verified'
+          or contract.exact_candidate_count is distinct from 1
+          or contract.ambiguity_flag
+          or (
+            contract.raw_transition_class='NULL_TO_NONNULL'
+            and (
+              contract.prior_road_id is not null
+              or contract.prior_mapping_status is not null
+              or contract.prior_mapping_method is not null
+            )
+          )
+          or (
+            contract.raw_transition_class='UNCHANGED_OR_INVALID'
+            and not (
+              contract.prior_road_id=contract.road_id
+              and contract.prior_mapping_status='verified'
+              and contract.final_mapping_status='verified'
+              and contract.prior_mapping_method='exact_route_designation'
+              and contract.final_mapping_method='exact_source_record_id'
+              and not contract.prior_road_reviewed_37
+              and not contract.final_road_reviewed_37
+            )
+          )
+          or (
+            contract.final_mapping_method='exact_route_designation'
+            and contract.evidence_source is distinct from
+              pg_catalog.jsonb_build_object(
+                'designation_source','identity_exact_components'
+              )
+          )
+          or (
+            contract.final_mapping_method='exact_source_record_id'
+            and (
+              contract.evidence_source->>'road_source_record_id' is null
+              or contract.evidence_source is distinct from
+                pg_catalog.jsonb_build_object(
+                  'road_source_record_id',
+                  contract.evidence_source->>'road_source_record_id'
+                )
+            )
+          )
+          or contract.final_mapping_method not in (
+            'exact_source_record_id','exact_route_designation'
           )
      )
      or (select pg_catalog.md5(pg_catalog.string_agg(
            identity_id::text,',' order by identity_id
          ))
-         from tmp_issue97_frozen_mapping_refresh_expansion)
-        <>'8d8220e71953dc0ae998161ec169b1ae'
+         from tmp_issue97_frozen_mapping_refresh_contract)
+        <>'043d969160dded7b9ff3526b6b09b752'
      or (select pg_catalog.md5(pg_catalog.string_agg(
            road_id::text,',' order by road_id
          ))
          from (
            select distinct road_id
-           from tmp_issue97_frozen_mapping_refresh_expansion
+           from tmp_issue97_frozen_mapping_refresh_contract
          ) roads)
-        <>'b2498ac8d77d75d69e23e528b57de08d'
+        <>'fd835556c06d4b067ca01ff8329a5d1c'
      or (select pg_catalog.md5(pg_catalog.string_agg(
-           identity_id::text||'|'||road_id::text,
+           identity_id::text||'|'||coalesce(road_id::text,'<NULL>'),
            ',' order by identity_id,road_id
          ))
-         from tmp_issue97_frozen_mapping_refresh_expansion)
-        <>'6c2fbf02b44ae04197e6da650a212da3'
-     or (select pg_catalog.md5(pg_catalog.string_agg(
-           pg_catalog.concat_ws(
-             '|',county_code,identity_id::text,source_identity_key,
-             road_id::text,road_class,route_system,route_number,
-             coalesce(route_suffix,''),coalesce(route_fraction,''),
-             coalesce(route_extension,''),mapping_status,mapping_method,
-             exact_candidate_count::text,ambiguity_flag::text,
-             refresh_scope,designation_source,evidence_family,
-             prior_road_verification_status,new_road_verification_status,
-             old_active_membership_occurrence_count::text
-           ),',' order by identity_id
-         ))
-         from tmp_issue97_frozen_mapping_refresh_expansion)
-        <>'1d47469b225657e89e3c54e2d476fecb'
+         from tmp_issue97_frozen_mapping_refresh_contract)
+        <>'cf20cef7b1f18ea57afbfee9a6f5202e'
+     or (
+       select pg_catalog.md5(pg_catalog.string_agg(
+         raw.raw_inventory_row::text,'|' order by
+           raw.county_code,raw.identity_id,
+           raw.prior_road_id nulls first,raw.road_id nulls first
+       ))
+       from (
+         select
+           contract.county_code,
+           contract.identity_id,
+           contract.prior_road_id,
+           contract.road_id,
+           pg_catalog.jsonb_build_object(
+             'road_class',identity.road_class,
+             'county_code',contract.county_code,
+             'identity_id',contract.identity_id,
+             'new_road_id',contract.road_id,
+             'route_number',identity.route_number,
+             'route_suffix',identity.route_suffix,
+             'route_system',identity.route_system,
+             'prior_road_id',contract.prior_road_id,
+             'refresh_scope',contract.refresh_scope,
+             'ambiguity_flag',contract.ambiguity_flag,
+             'route_fraction',identity.route_fraction,
+             'route_extension',identity.route_extension,
+             'transition_class',contract.raw_transition_class,
+             'new_mapping_method',contract.final_mapping_method,
+             'new_mapping_status',contract.final_mapping_status,
+             'source_identity_key',contract.source_identity_key,
+             'prior_mapping_method',contract.prior_mapping_method,
+             'prior_mapping_status',contract.prior_mapping_status,
+             'exact_candidate_count',contract.exact_candidate_count,
+             'new_road_source_method',case
+               when contract.final_road_reviewed_37
+                 then 'issue97_frozen_exact_mapping_wave'
+               else 'issue97_harrison_exact_authoritative_identity_repair'
+             end,
+             'active_machine_mapping_rows',1,
+             'designation_evidence_source',contract.evidence_source,
+             'new_road_verification_status','verified',
+             'post_machine_mapping_methods',
+               array[contract.final_mapping_method]::text[],
+             'frozen_target_evidence_family',case
+               when contract.final_road_reviewed_37
+                 then 'exact_route_designation'
+               else 'not_in_frozen_37'
+             end,
+             'identity_is_among_reviewed_46',
+               contract.reviewed_identity_46,
+             'new_road_is_among_reviewed_37',
+               contract.final_road_reviewed_37,
+             'post_machine_mapping_statuses',
+               array[contract.final_mapping_status]::text[],
+             'prior_road_is_among_reviewed_37',
+               contract.prior_road_reviewed_37,
+             'verified_road_resolution_changed',
+               contract.prior_road_id is distinct from contract.road_id,
+             'old_active_graph_membership_occurrence_count',
+               contract.old_active_membership_occurrence_count
+           ) as raw_inventory_row
+         from tmp_issue97_frozen_mapping_refresh_contract contract
+         join public.brinesearch_authoritative_road_identities identity
+           on identity.id=contract.identity_id
+       ) raw
+     )<>'0b89d8b7f7969a95b6d94f270cd81ccc'
   then
     raise exception
-      'Issue #97 reviewed exact mapping-refresh expansion contract drifted';
+      'Issue #97 complete Ohio mapping-refresh contract drifted';
   end if;
 
   if (select count(*) from tmp_issue97_frozen_mapping_graph_before)<>8
@@ -458,6 +694,76 @@ begin
        and build.activated_at='2026-08-16 11:08:18.355674+00'::timestamptz)<>8
   then
     raise exception 'Issue #97 frozen eight-build prestate pins drifted';
+  end if;
+
+  -- Freeze the complete mapping prestate which the county-scoped refresh is
+  -- allowed to change. The 35 road resolutions begin without any active
+  -- mapping and with NULL old membership road IDs. The seven method upgrades
+  -- begin with one verified exact-designation mapping and already carry the
+  -- same road ID in every old membership occurrence.
+  if exists(
+    select 1
+    from tmp_issue97_frozen_mapping_refresh_contract contract
+    left join lateral (
+      select
+        count(*)::bigint as active_mapping_count,
+        count(*) filter(
+          where mapping.road_id=contract.prior_road_id
+            and mapping.mapping_status=contract.prior_mapping_status
+            and mapping.mapping_method=contract.prior_mapping_method
+        )::bigint as exact_prior_mapping_count
+      from public.brinesearch_road_identity_mappings mapping
+      where mapping.identity_id=contract.identity_id
+        and mapping.mapping_status in ('verified','candidate')
+    ) mapping_state on true
+    left join lateral (
+      select
+        count(*)::bigint as membership_count,
+        count(*) filter(where membership.road_id is not null)::bigint
+          as nonnull_road_count,
+        count(*) filter(where membership.road_id=contract.road_id)::bigint
+          as exact_road_count
+      from tmp_issue97_frozen_mapping_graph_before build
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=build.id
+      join public.brinesearch_road_junction_memberships membership
+        on membership.junction_id=junction.id
+      where build.state_code='OH'
+        and build.county_code=contract.county_code
+        and membership.identity_id=contract.identity_id
+    ) old_memberships on true
+    where old_memberships.membership_count is distinct from
+            contract.old_active_membership_occurrence_count
+       or (
+         contract.raw_transition_class='NULL_TO_NONNULL'
+         and (
+           mapping_state.active_mapping_count<>0
+           or mapping_state.exact_prior_mapping_count<>0
+           or contract.prior_road_id is not null
+           or contract.prior_mapping_status is not null
+           or contract.prior_mapping_method is not null
+           or old_memberships.nonnull_road_count<>0
+         )
+       )
+       or (
+         contract.raw_transition_class='UNCHANGED_OR_INVALID'
+         and (
+           mapping_state.active_mapping_count<>1
+           or mapping_state.exact_prior_mapping_count<>1
+           or contract.prior_road_id is distinct from contract.road_id
+           or contract.prior_mapping_status is distinct from 'verified'
+           or contract.prior_mapping_method is distinct from
+              'exact_route_designation'
+           or old_memberships.nonnull_road_count is distinct from
+              contract.old_active_membership_occurrence_count
+           or old_memberships.exact_road_count is distinct from
+              contract.old_active_membership_occurrence_count
+         )
+       )
+  )
+  then
+    raise exception
+      'Issue #97 complete Ohio mapping-refresh prestate drifted';
   end if;
 
   if (select count(*) from public.brinesearch_authoritative_road_identities identity
@@ -687,6 +993,308 @@ begin
         ))<>46
   then
     raise exception 'Issue #97 exact frozen 46 mapping insert failed';
+  end if;
+
+  -- Reconstruct the two current county refresher candidate branches without
+  -- calling the refresher. Every frozen machine transition must resolve to one
+  -- exact verified road through the same source-record or exact-component
+  -- evidence and jurisdiction predicates used by the live function.
+  create temporary table
+  tmp_issue97_frozen_mapping_refresh_exact_candidates
+  on commit drop
+  as
+  with scope_identities as (
+    select
+      identity.*,
+      pg_catalog.split_part(
+        pg_catalog.replace(
+          identity.source_identity_key,
+          'OH:ODOT:NLF:',
+          ''
+        ),
+        ':',
+        1
+      ) as nlf_base
+    from public.brinesearch_authoritative_road_identities identity
+    join tmp_issue97_frozen_mapping_refresh_contract contract
+      on contract.identity_id=identity.id
+    where identity.active
+      and identity.state_code='OH'
+      and identity.county_code=contract.county_code
+  ),
+  nlf_base_counts as (
+    select
+      pg_catalog.split_part(
+        pg_catalog.replace(
+          identity.source_identity_key,
+          'OH:ODOT:NLF:',
+          ''
+        ),
+        ':',
+        1
+      ) as nlf_base,
+      count(*)::integer as identity_count
+    from public.brinesearch_authoritative_road_identities identity
+    where identity.active
+      and identity.state_code='OH'
+    group by 1
+  ),
+  exact_designations as (
+    select
+      identity.id as identity_id,
+      identity.source_identity_key,
+      identity.state_code,
+      identity.county_code,
+      identity.county_name,
+      identity.township,
+      identity.road_class,
+      identity.nlf_base,
+      pg_catalog.regexp_replace(
+        pg_catalog.upper(
+          pg_catalog.regexp_replace(
+            coalesce(identity.route_number,'')||
+            coalesce(identity.route_suffix,'')||
+            coalesce(identity.route_fraction,'')||
+            coalesce(identity.route_extension,''),
+            '[^0-9A-Z]',
+            '',
+            'g'
+          )
+        ),
+        '^0+',
+        ''
+      ) as route_token,
+      pg_catalog.jsonb_build_object(
+        'route_number',identity.route_number,
+        'route_suffix',identity.route_suffix,
+        'route_fraction',identity.route_fraction,
+        'route_extension',identity.route_extension,
+        'designation_source','identity_exact_components',
+        'refresh_scope','OH:'||identity.county_code
+      ) as component_evidence
+    from scope_identities identity
+    where identity.road_class in (
+      'interstate','us_route','state_route','county','township'
+    )
+  ),
+  raw_candidates as (
+    select
+      identity.id as identity_id,
+      road.id as road_id,
+      0 as priority,
+      'exact_source_record_id'::text as mapping_method,
+      pg_catalog.jsonb_build_object(
+        'road_source_record_id',road.source_record_id,
+        'source_identity_key',identity.source_identity_key,
+        'state_and_jurisdiction_checked',true,
+        'no_name_matching',true,
+        'refresh_scope','OH:'||identity.county_code
+      ) as evidence
+    from scope_identities identity
+    left join nlf_base_counts base
+      on base.nlf_base=identity.nlf_base
+    join public.brinesearch_roads road on (
+      road.source_record_id=identity.source_identity_key
+      or (
+        pg_catalog.split_part(
+          coalesce(road.source_record_id,''),
+          '|',
+          1
+        )=identity.nlf_base
+        and base.identity_count=1
+      )
+    )
+    where road.verification_status='verified'
+      and (
+        road.state='OH'
+        or (
+          road.state is null
+          and road.road_type in ('interstate','us_route')
+        )
+      )
+      and (
+        road.road_type in ('interstate','us_route','state_route')
+        or pg_catalog.lower(coalesce(road.county,''))=
+           pg_catalog.lower(identity.county_name)
+      )
+
+    union all
+
+    select
+      designation.identity_id,
+      road.id,
+      1,
+      'exact_route_designation',
+      pg_catalog.jsonb_build_object(
+        'route_class',designation.road_class,
+        'route_token',designation.route_token,
+        'state_code','OH',
+        'county_name',designation.county_name,
+        'township',designation.township,
+        'source_identity_key',designation.source_identity_key,
+        'designation_not_name',true,
+        'no_fuzzy_or_spatial_matching',true,
+        'refresh_scope','OH:'||designation.county_code
+      )||designation.component_evidence
+    from exact_designations designation
+    join public.brinesearch_roads road
+      on road.road_type=designation.road_class
+     and pg_catalog.regexp_replace(
+       pg_catalog.upper(
+         pg_catalog.regexp_replace(
+           coalesce(road.route_number,''),
+           '[^0-9A-Z]',
+           '',
+           'g'
+         )
+       ),
+       '^0+',
+       ''
+     )=designation.route_token
+     and (
+       designation.road_class in ('interstate','us_route')
+       or (
+         road.state='OH'
+         and designation.road_class='state_route'
+       )
+       or (
+         road.state='OH'
+         and designation.road_class='county'
+         and pg_catalog.lower(coalesce(road.county,''))=
+             pg_catalog.lower(designation.county_name)
+       )
+       or (
+         road.state='OH'
+         and designation.road_class='township'
+         and pg_catalog.lower(coalesce(road.county,''))=
+             pg_catalog.lower(designation.county_name)
+         and nullif(
+           pg_catalog.lower(
+             pg_catalog.btrim(coalesce(designation.township,''))
+           ),
+           ''
+         ) is not null
+         and pg_catalog.lower(
+           pg_catalog.btrim(coalesce(road.township,''))
+         )=pg_catalog.lower(pg_catalog.btrim(designation.township))
+       )
+     )
+    where road.verification_status='verified'
+      and designation.route_token<>''
+  ),
+  deduplicated as (
+    select distinct on(candidate.identity_id,candidate.road_id)
+      candidate.identity_id,
+      candidate.road_id,
+      candidate.mapping_method,
+      candidate.evidence,
+      candidate.priority
+    from raw_candidates candidate
+    order by
+      candidate.identity_id,
+      candidate.road_id,
+      candidate.priority,
+      candidate.mapping_method
+  ),
+  eligible as (
+    select
+      candidate.*,
+      count(*) over(partition by candidate.identity_id)::integer
+        as candidate_count
+    from deduplicated candidate
+    where not exists(
+      select 1
+      from public.brinesearch_road_identity_mappings manual
+      where manual.identity_id=candidate.identity_id
+        and manual.mapping_status<>'retired'
+        and manual.mapping_method not in (
+          'exact_source_record_id','exact_route_designation'
+        )
+    )
+  )
+  select *
+  from eligible
+  order by identity_id,road_id;
+
+  if (select count(*)
+      from tmp_issue97_frozen_mapping_refresh_exact_candidates)<>42
+     or exists(
+       select 1
+       from tmp_issue97_frozen_mapping_refresh_contract contract
+       left join tmp_issue97_frozen_mapping_refresh_exact_candidates candidate
+         on candidate.identity_id=contract.identity_id
+        and candidate.road_id=contract.road_id
+       left join public.brinesearch_authoritative_road_identities identity
+         on identity.id=contract.identity_id
+       left join public.brinesearch_roads road
+         on road.id=contract.road_id
+       where candidate.identity_id is null
+          or candidate.candidate_count is distinct from
+             contract.exact_candidate_count
+          or candidate.candidate_count<>1
+          or candidate.mapping_method is distinct from
+             contract.final_mapping_method
+          or road.verification_status is distinct from 'verified'
+          or candidate.evidence->>'source_identity_key' is distinct from
+             contract.source_identity_key
+          or candidate.evidence->>'refresh_scope' is distinct from
+             contract.refresh_scope
+          or (
+            contract.final_mapping_method='exact_source_record_id'
+            and (
+              candidate.evidence->>'road_source_record_id' is distinct from
+                contract.evidence_source->>'road_source_record_id'
+              or candidate.evidence->>'road_source_record_id' is distinct from
+                road.source_record_id
+              or candidate.evidence->>'state_and_jurisdiction_checked'
+                   is distinct from 'true'
+              or candidate.evidence->>'no_name_matching'
+                   is distinct from 'true'
+            )
+          )
+          or (
+            contract.final_mapping_method='exact_route_designation'
+            and (
+              candidate.evidence->>'designation_source' is distinct from
+                contract.evidence_source->>'designation_source'
+              or candidate.evidence->>'designation_source' is distinct from
+                'identity_exact_components'
+              or candidate.evidence->>'route_class' is distinct from
+                identity.road_class
+              or candidate.evidence->>'route_number' is distinct from
+                identity.route_number
+              or candidate.evidence->>'route_suffix' is distinct from
+                identity.route_suffix
+              or candidate.evidence->>'route_fraction' is distinct from
+                identity.route_fraction
+              or candidate.evidence->>'route_extension' is distinct from
+                identity.route_extension
+              or candidate.evidence->>'designation_not_name'
+                   is distinct from 'true'
+              or candidate.evidence->>'no_fuzzy_or_spatial_matching'
+                   is distinct from 'true'
+            )
+          )
+     )
+     or (select count(*)
+         from tmp_issue97_frozen_mapping_refresh_contract contract
+         join public.brinesearch_roads road on road.id=contract.road_id
+         where contract.identity_id=
+                 'dbcc9da8-07cb-f054-68ca-debe2f8640fc'
+           and contract.road_id=
+                 'c1eefe49-fe29-44fa-84b7-2cfe29180761'
+           and contract.source_identity_key=
+                 'OH:ODOT:NLF:THASTR00225**C'
+           and contract.final_mapping_method='exact_source_record_id'
+           and contract.evidence_source->>'road_source_record_id'=
+                 'THASTR00225**C|route:TR:225'
+           and road.source_record_id=
+                 'THASTR00225**C|route:TR:225'
+           and contract.old_active_membership_occurrence_count=3
+           and not contract.final_road_reviewed_37)<>1
+  then
+    raise exception
+      'Issue #97 complete Ohio exact candidate contract drifted';
   end if;
 
   -- These are newly verified mappings. The active snapshots captured all 1,565
@@ -1091,14 +1699,19 @@ select pg_catalog.jsonb_build_object(
     pg_catalog.to_jsonb(array['BEL','CAR','COL','GUE','HAS','JEF','MOE','NOB']),
   'mapping_ownership','manual_reviewed_source_evidence',
   'machine_refresh_may_retire_target_mappings',false,
-  'reviewed_machine_refresh_expansion_count',7,
-  'reviewed_machine_refresh_expansion_road_count',6,
-  'reviewed_machine_refresh_membership_occurrences',267,
-  'reviewed_machine_refresh_identity_digest','8d8220e71953dc0ae998161ec169b1ae',
-  'reviewed_machine_refresh_road_digest','b2498ac8d77d75d69e23e528b57de08d',
-  'reviewed_machine_refresh_pair_digest','6c2fbf02b44ae04197e6da650a212da3',
-  'reviewed_machine_refresh_contract_digest','1d47469b225657e89e3c54e2d476fecb',
-  'reviewed_machine_refresh_proof_digest','94769e15269d21edca54c50f3330f7a8',
+  'reviewed_machine_refresh_transition_count',42,
+  'reviewed_machine_refresh_final_road_count',23,
+  'reviewed_machine_refresh_road_resolution_count',35,
+  'reviewed_machine_refresh_same_road_method_upgrade_count',7,
+  'reviewed_machine_refresh_same_road_semantic_class',
+    'SAME_ROAD_METHOD_UPGRADE',
+  'reviewed_machine_refresh_membership_occurrences',1126,
+  'reviewed_machine_refresh_road_resolution_occurrences',1066,
+  'reviewed_machine_refresh_same_road_upgrade_occurrences',60,
+  'reviewed_machine_refresh_identity_digest','043d969160dded7b9ff3526b6b09b752',
+  'reviewed_machine_refresh_final_road_digest','fd835556c06d4b067ca01ff8329a5d1c',
+  'reviewed_machine_refresh_identity_road_pair_digest','cf20cef7b1f18ea57afbfee9a6f5202e',
+  'reviewed_machine_refresh_raw_typed_digest','0b89d8b7f7969a95b6d94f270cd81ccc',
   'mapping_dependent_routes',379,'transition_only_routes',33,
   'final_route_count',412,'final_primary_count',340,'final_alternate_count',72,
   'final_route_set_digest','711b1ddd3ba6c47e7642fc700197432f',
