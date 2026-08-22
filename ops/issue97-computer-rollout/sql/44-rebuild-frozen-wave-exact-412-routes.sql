@@ -478,9 +478,12 @@ frozen_routes(route_prep_id) as (
     ('ffd98904-1e68-4208-959a-479db40a18c0'::uuid)
 ),
 -- EXACT_FINAL_412_END
+issue97_frozen_route_authority(route_prep_id) as (
+  select route_prep_id from frozen_routes
+)
 insert into pg_temp.issue97_frozen_routes(ordinal,route_prep_id)
 select pg_catalog.row_number() over(order by route_prep_id)::integer,route_prep_id
-from frozen_routes
+from issue97_frozen_route_authority
 order by route_prep_id;
 
 create temporary table issue97_target_steps on commit drop as
@@ -1446,4 +1449,3 @@ $issue97_route_rebuild_preflight$;
 
   rollback;
 \endif
-

@@ -97,6 +97,8 @@ function validate(source) {
   fail(new Set(routeIds).size === 412, "route list contains a duplicate");
   fail(md5([...routeIds].sort().join("|")) ===
     "711b1ddd3ba6c47e7642fc700197432f", "route digest is wrong");
+  fail(/-- EXACT_FINAL_412_END\nissue97_frozen_route_authority\(route_prep_id\) as \(\n  select route_prep_id from frozen_routes\n\)\ninsert into pg_temp\.issue97_frozen_routes\(ordinal,route_prep_id\)\nselect pg_catalog\.row_number\(\) over\(order by route_prep_id\)::integer,route_prep_id\nfrom issue97_frozen_route_authority\norder by route_prep_id;/.test(source),
+    "terminal frozen-route CTE/INSERT boundary is not parse-safe");
 
   fail(occurrences(source, /begin isolation level serializable;/gi) === 1,
     "transaction is not exactly one SERIALIZABLE transaction");
