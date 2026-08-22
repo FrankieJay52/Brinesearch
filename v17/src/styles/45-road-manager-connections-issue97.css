@@ -1,0 +1,348 @@
+.road-official-search-card-issue97,
+.road-official-detail-card-issue97,
+.road-official-connections-card-issue97,
+.road-canonical-connections-issue97 {
+  display: grid;
+  gap: 16px;
+}
+
+.road-official-search-card-issue97 h2,
+.road-official-detail-card-issue97 h2,
+.road-official-connections-card-issue97 h2,
+.road-canonical-connections-issue97 h3 {
+  margin: 0;
+}
+
+.road-official-search-card-issue97 p,
+.road-official-connections-head-issue97 p,
+.road-canonical-connections-issue97 > div > p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.road-official-filters-issue97 {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.6fr) repeat(5, minmax(120px, .7fr));
+  gap: 9px;
+}
+
+.road-official-filters-issue97 input,
+.road-official-filters-issue97 select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-2, #101d2e);
+  color: var(--text);
+  padding: 9px 11px;
+  font: inherit;
+}
+
+.road-official-search-note-issue97,
+.road-official-order-issue97 {
+  padding: 11px 13px;
+  border: 1px solid rgba(126, 229, 216, .28);
+  border-radius: 13px;
+  background: rgba(126, 229, 216, .07);
+  color: var(--muted);
+  font-size: .82rem;
+  line-height: 1.4;
+}
+
+.road-official-results-issue97,
+.road-official-connections-list-issue97,
+.road-canonical-identity-choices-issue97 {
+  display: grid;
+  gap: 10px;
+}
+
+.road-official-result-issue97 {
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--panel-2, #101d2e);
+}
+
+.road-official-result-issue97.canonical {
+  border-color: rgba(126, 229, 216, .4);
+}
+
+.road-official-result-issue97.candidate {
+  border-color: rgba(242, 180, 59, .44);
+}
+
+.road-official-result-issue97 > button {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 13px 14px;
+  text-align: left;
+}
+
+.road-official-result-issue97 small,
+.road-official-result-issue97 span:not(.road-official-result-title-issue97) {
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.4;
+}
+
+.road-official-result-title-issue97,
+.road-official-detail-head-issue97,
+.road-official-connections-head-issue97,
+.road-official-connection-issue97 > header,
+.road-canonical-identities-summary-issue97 {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.road-official-result-title-issue97 b,
+.road-official-connection-issue97 > header > b {
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: rgba(126, 229, 216, .12);
+  color: var(--accent, #7ee5d8);
+  padding: 5px 8px;
+  font-size: .68rem;
+}
+
+.road-official-eyebrow-issue97 {
+  color: var(--accent, #7ee5d8);
+  font: 800 .7rem/1.35 ui-monospace, SFMono-Regular, Menlo, monospace;
+  overflow-wrap: anywhere;
+}
+
+.road-official-detail-head-issue97 p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.road-official-provenance-issue97 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.road-official-provenance-issue97 > div {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: var(--panel-2, #101d2e);
+  padding: 11px 12px;
+}
+
+.road-official-provenance-issue97 span,
+.road-official-provenance-issue97 a {
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.road-official-map-frame-issue97 {
+  position: relative;
+  min-height: 280px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: var(--panel-2, #101d2e);
+}
+
+.road-official-map-issue97 {
+  min-height: 280px;
+}
+
+.road-official-shared-line-issue97 {
+  fill: none;
+  stroke: #f2b43b;
+  stroke-width: 9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  filter: drop-shadow(0 0 4px rgba(242, 180, 59, .65));
+}
+
+.road-official-junction-dot-issue97,
+.road-official-shared-anchor-issue97 {
+  vector-effect: non-scaling-stroke;
+}
+
+.road-official-junction-dot-issue97 {
+  fill: var(--accent, #7ee5d8);
+  stroke: #07111d;
+  stroke-width: 3;
+}
+
+.road-official-shared-anchor-issue97 {
+  fill: #f2b43b;
+  stroke: #07111d;
+  stroke-width: 3;
+}
+
+.road-official-connection-issue97 {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--panel-2, #101d2e);
+  padding: 13px;
+}
+
+.road-official-connection-issue97 > header > span {
+  display: grid;
+  gap: 3px;
+}
+
+.road-official-connection-issue97 > header small,
+.road-official-connection-issue97 > footer {
+  color: var(--muted);
+  font-size: .72rem;
+  line-height: 1.35;
+}
+
+.road-official-anchors-issue97 {
+  display: grid;
+  gap: 7px;
+}
+
+.road-official-anchors-issue97 > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 9px 10px;
+}
+
+.road-official-anchors-issue97 > div > span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.road-official-anchors-issue97 code,
+.road-official-connection-issue97 footer code {
+  color: var(--accent, #7ee5d8);
+  font-size: .7rem;
+  overflow-wrap: anywhere;
+}
+
+.road-official-memberships-issue97 {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.road-official-memberships-issue97 li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-left: 3px solid var(--line);
+  padding: 8px 9px;
+}
+
+.road-official-memberships-issue97 li.selected {
+  border-left-color: var(--accent, #7ee5d8);
+  background: rgba(126, 229, 216, .06);
+}
+
+.road-official-memberships-issue97 li > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.road-official-memberships-issue97 small,
+.road-official-memberships-issue97 em {
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.road-official-memberships-issue97 em {
+  font-style: normal;
+}
+
+.road-official-connection-issue97 > footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  border-top: 1px solid var(--line);
+  padding-top: 9px;
+}
+
+.road-canonical-connections-issue97 {
+  margin-top: 14px;
+}
+
+.road-canonical-identities-summary-issue97 {
+  margin: 14px 0 8px;
+  color: var(--muted);
+  font-size: .8rem;
+}
+
+.road-canonical-identity-choice-issue97 {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel-2, #101d2e);
+  color: var(--text);
+  padding: 10px 11px;
+  text-align: left;
+}
+
+.road-canonical-identity-choice-issue97 small {
+  color: var(--muted);
+  font-size: .7rem;
+}
+
+@media (max-width: 1100px) {
+  .road-official-filters-issue97 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .road-official-filters-issue97,
+  .road-official-provenance-issue97 {
+    grid-template-columns: 1fr;
+  }
+
+  .road-official-result-title-issue97,
+  .road-official-detail-head-issue97,
+  .road-official-connections-head-issue97,
+  .road-official-connection-issue97 > header,
+  .road-canonical-identities-summary-issue97,
+  .road-official-anchors-issue97 > div,
+  .road-official-connection-issue97 > footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .road-official-anchors-issue97 > div > span:last-child,
+  .road-official-memberships-issue97 li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .road-official-anchors-issue97 .btn,
+  .road-official-memberships-issue97 .btn {
+    width: 100%;
+  }
+}

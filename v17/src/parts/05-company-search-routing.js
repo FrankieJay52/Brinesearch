@@ -213,7 +213,8 @@
     }
 
     function routeDirectionsUrl(route, p) {
-      return googleMapsUrl(p);
+      const authoritative = googleMapsRouteChunks(p);
+      return authoritative.length ? authoritative[0].url : googleMapsUrl(p);
     }
 
 

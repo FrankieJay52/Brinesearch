@@ -6,3 +6,5 @@ v17/public/
 !.env.example
 supabase/functions/.env
 supabase/functions/.env.*
+.issue97-runs/
+.tools/

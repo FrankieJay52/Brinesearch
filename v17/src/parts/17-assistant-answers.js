@@ -88,13 +88,17 @@
       }
       if (field === "directions") {
         const map = googleMapsUrl(p);
+        const googleChunks = googleMapsRouteChunks(p);
         const clearer = has(p.directionsClear)
           ? p.directionsClear
           : smartRewriteDirections(p.writtenDirections, p.Structured_Road_Sequence);
         const text = has(clearer)
           ? `<strong>Step-by-step directions to ${name}:</strong><br><span style="white-space:pre-wrap">${esc(clearer)}</span>`
           : `<strong>${name}</strong> does not have public step-by-step directions available yet.`;
-        return text + (map ? `<div class="chat-result-list"><a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open in Google Maps</a></div>` : "");
+        const links = googleChunks.length
+          ? googleChunks.map(chunk => `<a class="chat-result-link" href="${esc(chunk.url)}" target="_blank" rel="noopener">${googleChunks.length === 1 ? "Open authoritative Google Maps route" : `Open Google route ${chunk.chunk} of ${googleChunks.length}`}</a>`).join("")
+          : (map ? `<a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open exact pad GPS (route not verified)</a>` : "");
+        return text + (links ? `<div class="chat-result-list">${links}</div>` : "");
       }
 
       const details = [
@@ -153,8 +157,16 @@
         const target = targetText ? findRecordsByName(targetText)[0] : current;
         if (!target) return `I couldn’t match that command to a saved pad. Try <strong>api bella</strong>, <strong>route albatross</strong>, or open a pad first.`;
         if (cmd === "navigate") {
-          const map = googleMapsUrl(target);
-          return map ? `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list"><a class="chat-result-link" href="${esc(map)}" target="_blank" rel="noopener">Open navigation</a></div>` : `<strong>${esc(display(target.padName))}</strong> does not have a navigation location available.`;
+          const googleChunks = googleMapsRouteChunks(target);
+          const links = googleChunks.length
+            ? googleChunks.map((chunk, index) => `<a class="chat-result-link" data-google-route-chunk="${index + 1}" data-google-route-count="${googleChunks.length}" href="${esc(chunk.url)}" target="_blank" rel="noopener">${googleChunks.length === 1 ? "Open authoritative Google Maps route" : `Open Google route ${index + 1} of ${googleChunks.length}`}</a>`).join("")
+            : (() => {
+                const exactPad = googleMapsUrl(target);
+                return exactPad ? `<a class="chat-result-link" href="${esc(exactPad)}" target="_blank" rel="noopener">Open exact pad GPS (route not verified)</a>` : "";
+              })();
+          return links
+            ? `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list">${links}</div>`
+            : `<strong>${esc(display(target.padName))}</strong> does not have a navigation location available.`;
         }
         if (cmd === "share") {
           return `<strong>${esc(display(target.padName))}</strong><div class="chat-result-list"><button class="chat-result-link" data-assistant-share="${esc(target._id)}" type="button">Share this pad</button></div>`;

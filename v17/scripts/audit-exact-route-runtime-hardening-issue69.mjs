@@ -8,7 +8,7 @@ const v17Root = path.resolve(scriptDir, '..');
 const root = path.resolve(v17Root, '..');
 const read = file => fs.readFile(file, 'utf8');
 
-const [runtime, foundation, boundaries, spatial, lockdown, orderRaw, baseMigration, hardeningMigration] = await Promise.all([
+const [runtime, foundation, boundaries, spatial, lockdown, orderRaw, baseMigration, hardeningMigration, issue97Migration, issue97Runtime] = await Promise.all([
   read(path.join(v17Root, 'src/parts/21m-road-manager-runtime-hardening-issue69.js')),
   read(path.join(v17Root, 'src/parts/21i-road-manager-structured-route-foundation-issue69.js')),
   read(path.join(v17Root, 'src/parts/21j-road-manager-route-boundaries-issue69.js')),
@@ -16,7 +16,9 @@ const [runtime, foundation, boundaries, spatial, lockdown, orderRaw, baseMigrati
   read(path.join(v17Root, 'src/parts/21l-road-manager-structured-publish-lockdown-issue69.js')),
   read(path.join(v17Root, 'src/parts/part-order.json')),
   read(path.join(root, 'supabase/migrations/20260811031420_issue69_route_geometry_draft_helpers.sql')),
-  read(path.join(root, 'supabase/migrations/20260811031439_issue69_release_hardening.sql'))
+  read(path.join(root, 'supabase/migrations/20260811031439_issue69_release_hardening.sql')),
+  read(path.join(root, 'supabase/migrations/20260811190000_issue97_authoritative_road_junction_graph.sql')),
+  read(path.join(v17Root, 'src/parts/21n-road-manager-connections-issue97.js'))
 ]);
 
 const order = JSON.parse(orderRaw).parts || [];
@@ -102,6 +104,31 @@ for (const token of [
   'private_hold',
   'driver safety information:'
 ]) assert.ok(publisher.includes(token), `Canonical #69 publisher missing ${token}`);
+
+const effectivePublisherStart = issue97Migration.lastIndexOf(
+  'create or replace function public.brinesearch_publish_structured_route('
+);
+const effectivePublisherEnd = issue97Migration.indexOf('\n$$;', effectivePublisherStart);
+assert.ok(effectivePublisherStart >= 0 && effectivePublisherEnd > effectivePublisherStart,
+  'Could not isolate the final #97 structured publisher override.');
+const effectivePublisher = issue97Migration.slice(effectivePublisherStart, effectivePublisherEnd + 4).toLowerCase();
+for (const token of [
+  'entry_junction_anchor_id',
+  'brinesearch_road_junction_memberships',
+  'brinesearch_issue97_graph_build_sources_current',
+  'for share',
+  'junction_digest'
+]) assert.ok(effectivePublisher.includes(token), `Final #97 publisher missing ${token}`);
+assert.ok(!effectivePublisher.includes('st_dumppoints'),
+  'Final #97 publisher still accepts a raw vertex-proximity boundary.');
+for (const token of [
+  'entryJunctionAnchorId',
+  'entry_junction_anchor_id',
+  'entry_junction_id',
+  'junction_build_id',
+  'junction_digest',
+  'window.routeIssue69ValidateStructuredPayload = routeIssue69ValidateStructuredPayload'
+]) assert.ok(issue97Runtime.includes(token), `#97 runtime handoff/round-trip missing ${token}`);
 
 assert.ok(lockdown.includes('routeInteractivePublishV17327 = routeIssue69PublishStructured'), 'Legacy interactive publisher is not locked to the structured route path before runtime hardening.');
 assert.ok(spatial.includes('single way cannot create complete canonical-road coverage'), 'One tapped OSM way can still masquerade as a complete Road Manager road.');

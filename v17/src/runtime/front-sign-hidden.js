@@ -1,5 +1,7 @@
-/* BrineSearch front-sign UI visibility switch and V17 owner-only road guard.
-   Hidden features remain available in source for future controlled use. */
+/* BrineSearch front-sign UI visibility switch and V17 Road Manager access guard.
+   Hidden features remain available in source for future controlled use.
+   Master road writes remain Owner-only; #97 permits Editor/Administrator accounts
+   to inspect authoritative official roads and junctions read-only. */
 (function (root) {
   'use strict';
 
@@ -22,8 +24,8 @@
 
   let hidden = true;
   let refreshQueued = false;
-  let ownerCheckUserId = '';
-  let ownerCheckPromise = null;
+  let roadAccessCheckUserId = '';
+  let roadAccessCheckPromise = null;
 
   function ensureStyle() {
     let style = document.getElementById(STYLE_ID);
@@ -61,13 +63,13 @@
     }
   }
 
-  async function hasOwnerAccess() {
+  async function roadManagerAccessLevel() {
     const session = readEditorSession();
     const userId = session?.user?.id || '';
-    if (!session || !userId) return false;
-    if (ownerCheckPromise && ownerCheckUserId === userId) return ownerCheckPromise;
-    ownerCheckUserId = userId;
-    ownerCheckPromise = fetch(`${SUPABASE_URL}/rest/v1/editor_accounts?user_id=eq.${encodeURIComponent(userId)}&select=role,permissions&limit=1`, {
+    if (!session || !userId) return 'denied';
+    if (roadAccessCheckPromise && roadAccessCheckUserId === userId) return roadAccessCheckPromise;
+    roadAccessCheckUserId = userId;
+    roadAccessCheckPromise = fetch(`${SUPABASE_URL}/rest/v1/editor_accounts?user_id=eq.${encodeURIComponent(userId)}&select=role,permissions&limit=1`, {
       headers: {
         apikey: SUPABASE_PUBLISHABLE_KEY,
         Authorization: `Bearer ${session.access_token}`,
@@ -75,13 +77,19 @@
       },
       cache: 'no-store'
     }).then(async (response) => {
-      if (!response.ok) return false;
+      if (!response.ok) return 'denied';
       const rows = await response.json();
       const record = Array.isArray(rows) ? rows[0] : null;
-      const permissions = Array.isArray(record?.permissions) ? record.permissions.map((value) => String(value).toLowerCase()) : [];
-      return String(record?.role || '').toLowerCase() === 'owner' || permissions.includes('owner');
-    }).catch(() => false);
-    return ownerCheckPromise;
+      const role = String(record?.role || '').toLowerCase();
+      const permissions = Array.isArray(record?.permissions)
+        ? record.permissions.map((value) => String(value).toLowerCase())
+        : [];
+      if (role === 'owner' || permissions.includes('owner')) return 'owner';
+      if (role === 'administrator' || role === 'editor'
+          || permissions.includes('administrator') || permissions.includes('editor')) return 'readonly';
+      return 'denied';
+    }).catch(() => 'denied');
+    return roadAccessCheckPromise;
   }
 
   function suppressLegacyRoadUi(scope) {
@@ -152,10 +160,10 @@
       return;
     }
     document.documentElement.dataset.brinesearchRoadManagerAccess = 'checking';
-    const allowed = await hasOwnerAccess();
+    const access = await roadManagerAccessLevel();
     if (!/^#\/?settings\/roads(?:\/|$)/i.test(root.location?.hash || '')) return;
-    document.documentElement.dataset.brinesearchRoadManagerAccess = allowed ? 'allowed' : 'denied';
-    if (!allowed) {
+    document.documentElement.dataset.brinesearchRoadManagerAccess = access;
+    if (access === 'denied') {
       setTimeout(() => {
         if (/^#\/?settings\/roads(?:\/|$)/i.test(root.location?.hash || '')) root.location.hash = '#/settings';
       }, 0);
@@ -184,6 +192,8 @@
     guardLegacyRoadRoute();
     guardOwnerRoadManagerRoute();
     document.documentElement.dataset.brinesearchFrontSignUi = hidden ? 'hidden' : 'visible';
+    // Master brinesearch_roads writes remain Owner-only in Supabase. The #97
+    // authoritative source/junction view may be read by approved Editors.
     document.documentElement.dataset.brinesearchRoadManager = 'central-owner-only';
   }
 
@@ -207,7 +217,7 @@
   }
 
   const API = {
-    version: '17.2-hidden-ui-road-owner-guard',
+    version: '17.3-issue97-road-read-access',
     get hidden() { return hidden; },
     hide() { return setHidden(true); },
     show() { return setHidden(false); },

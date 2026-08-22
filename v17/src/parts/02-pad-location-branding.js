@@ -26,9 +26,42 @@
       return normalize(p.address);
     }
 
+    function googleMapsRoutePlan(p) {
+      const plan = p?.googleMapsRoutePlanIssue97;
+      return plan && Array.isArray(plan.chunks) && plan.chunks.length ? plan : null;
+    }
+
+    function googleMapsRouteChunks(p) {
+      return googleMapsRoutePlan(p)?.chunks || [];
+    }
+
+    function hasAuthoritativeGoogleRoute(p) {
+      return googleMapsRouteChunks(p).length > 0;
+    }
+
     function googleMapsUrl(p) {
+      const authoritative = googleMapsRouteChunks(p);
+      if (authoritative.length) return authoritative[0].url;
       const target = mapsTarget(p);
       return target ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(target)}` : "";
+    }
+
+    function googleMapsQuickNavigationIssue97(p) {
+      const chunks = googleMapsRouteChunks(p);
+      if (chunks.length === 1) {
+        return { kind: "route", href: chunks[0].url, external: true };
+      }
+      if (chunks.length > 1) {
+        const padId = normalize(p?._id || p?._dbId);
+        if (!padId) return null;
+        return {
+          kind: "route_plan",
+          href: routeUrl(`pad/${encodeURIComponent(padId)}`),
+          external: false
+        };
+      }
+      const exactPad = googleMapsUrl(p);
+      return exactPad ? { kind: "gps", href: exactPad, external: true } : null;
     }
 
     function googleMapsValueUrl(value) {
@@ -179,9 +212,12 @@
 
     function padCard(p) {
       const locationText = [p.county && `${p.county} County`, p.state].filter(has).join(" · ") || "Location not listed";
-      const map = googleMapsUrl(p);
       const owner = isDisposal(p) ? "Disposals" : display(p.company);
       const detailHref = routeUrl(`pad/${encodeURIComponent(p._id)}`);
+      const navigation = googleMapsQuickNavigationIssue97(p);
+      const navigationLabel = navigation?.kind === "route_plan"
+        ? "View full route"
+        : (navigation?.kind === "route" ? "Open route" : "Open GPS");
       return `
         <article class="pad-card clean-card">
           <a class="clean-card-main" href="${detailHref}">
@@ -197,7 +233,7 @@
           </a>
           <div class="clean-card-actions">
             <a href="${detailHref}">View details</a>
-            ${map ? `<a class="navigate" href="${esc(map)}" target="_blank" rel="noopener">Navigate</a>` : `<a class="disabled" aria-disabled="true">No GPS</a>`}
+            ${navigation ? `<a class="navigate" href="${esc(navigation.href)}"${navigation.external ? ' target="_blank" rel="noopener"' : ""}>${navigationLabel}</a>` : `<a class="disabled" aria-disabled="true">No GPS</a>`}
           </div>
         </article>`;
     }

@@ -38,7 +38,8 @@
     "41-road-manager-route-mapper.css",
     "42-road-manager-backtrace-route.css",
     "43-road-manager-interactive-route-map.css",
-    "44-road-manager-step-snap-route-editor.css"
+    "44-road-manager-step-snap-route-editor.css",
+    "45-road-manager-connections-issue97.css"
   ],
   "assembledSha256": ""
 }

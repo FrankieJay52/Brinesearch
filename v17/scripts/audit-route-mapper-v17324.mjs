@@ -29,9 +29,11 @@ if (mapperIndex <= liveFixIndex || mapperIndex >= directionIndex) throw new Erro
 if (!styles.styles.includes('41-road-manager-route-mapper.css')) throw new Error('Route Mapper stylesheet is not loaded.');
 
 for (const token of [
-  'Owner Route Mapper',
+  'Route QA &amp; Exceptions',
   'data-road-manager-tab',
-  'Route Mapper',
+  'Route QA',
+  'review and exception tool',
+  'Automatic route generation remains the product path',
   'routeMapperPadCoordinateV17324',
   'official_pad_record',
   'Saved driver GPS',
@@ -45,8 +47,7 @@ for (const token of [
   'owner_route_mapper',
   'owner_verified',
   'owner_confirmed',
-  'Driver directions were not changed',
-  'does not rewrite the live pad directions'
+  'Driver directions were not changed'
 ]) need(part, token, 'Route Mapper contract');
 
 for (const token of ['route-mapper-map-frame', 'route-mapper-segment', 'route-mapper-road-search', '@media(max-width:720px)']) need(css, token, 'Route Mapper CSS');
@@ -58,9 +59,9 @@ if (!part.includes('if (!editorIsOwner()) return;')) throw new Error('Route Mapp
 console.log(JSON.stringify({
   version: '17.3.24',
   ownerOnly: true,
-  mapPreview: 'OpenStreetMap + Google Maps launch',
+  mapPreview: 'review/exception-only OpenStreetMap + pad GPS launch',
   roadSource: 'master brinesearch_roads',
   saveTarget: 'route-review staging only',
   liveDriverDirectionsChanged: false
 }, null, 2));
-console.log('V17.3.24 Owner Route Mapper audit passed.');
+console.log('V17.3.24 Route QA/exception audit passed.');

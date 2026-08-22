@@ -1,0 +1,1 @@
+Belmont retry after point-membership materialization still times out while building tmp_issue97_point_membership_names. Next safe optimization target: split exact source_segment_key names from unscoped measure-valid names into index-friendly branches, then union/rank/aggregate without changing semantics. Do not move to Jefferson. Cutover OFF.

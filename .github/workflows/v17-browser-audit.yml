@@ -71,6 +71,11 @@ jobs:
           V17_PREVIEW_URL: http://127.0.0.1:4173
         run: node v17/scripts/browser-smoke.mjs
 
+      - name: Audit authenticated Road Manager junction UI
+        env:
+          V17_PREVIEW_URL: http://127.0.0.1:4173
+        run: npm run verify:road-junction-browser
+
       - name: Show preview log on failure
         if: failure()
         run: cat /tmp/v17-preview.log || true
