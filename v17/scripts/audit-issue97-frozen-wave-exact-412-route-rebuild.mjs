@@ -149,7 +149,10 @@ function validate(source) {
     source.includes("identity.source_identity_key is distinct from") &&
     source.includes("identity.source_digest is distinct from blocker.source_digest") &&
     source.includes("brinesearch_issue97_mapping_fingerprint(") &&
-    /brinesearch_issue97_dataset_scope_current\([\s\S]{0,150}\) is distinct from true/.test(source),
+    /brinesearch_issue97_dataset_scope_current\([\s\S]{0,150}\) is distinct from true/.test(source) &&
+    occurrences(source, /brinesearch_issue97_dataset_scope_current\(/g) === 2 &&
+    source.includes("blocker_after.resolution_method not in (") &&
+    source.includes("identity.source_digest is distinct from blocker_after.source_digest"),
   "resolved/unmapped semantic currentness proof missing");
   fail(/from pg_temp\.issue97_resolved_unmapped_after blocker_after\s+except[\s\S]{0,600}from pg_temp\.issue97_resolved_unmapped_before blocker_before/.test(source),
     "no-new-resolved/unmapped subset proof missing");
