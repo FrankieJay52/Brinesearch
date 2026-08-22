@@ -221,7 +221,20 @@ const expectedTriggers = [
   'brinesearch_issue97_state_candidate_manifest_immutable',
   'brinesearch_issue97_state_candidate_manifest_member_immutable',
   'brinesearch_clear_stale_route_step_identity_issue70',
+  'trg_enforce_brinesearch_route_prep_no_guess',
   'brinesearch_issue97_google_route_steps_stale',
+  'trg_prevent_candidate_road_publication',
+  'pads_audit_update',
+  'pads_mark_editor',
+  'pads_set_updated_at',
+];
+
+const expectedCollateralFunctions = [
+  ['public.enforce_brinesearch_route_prep_no_guess()', '60e8630ec37e5dc4a6532de5a9fbbc03'],
+  ['public.prevent_candidate_road_publication()', '5958bb9154013143d064a686c128b525'],
+  ['public.audit_pad_update()', 'b7068f4de6236d83c400caf5312a4336'],
+  ['public.mark_pad_editor()', '7481a42d010c9717e895fb8a2c4362c7'],
+  ['public.set_updated_at()', '082058a59b50aae6fbde4d4adba90749'],
 ];
 
 const expectedPublicRouteMutationPattern = String.raw`E'\\m(?:insert[[:space:]]+into|update|delete[[:space:]]+from|merge[[:space:]]+into)[[:space:]]+(?:public\\.)?brinesearch_(?:route_prep|route_prep_steps|pad_roads)\\M'`;
@@ -314,6 +327,23 @@ function auditProtectedBaselines(value) {
     "'ROUTE_HISTORY_SEQUENCE_AUTHORITY'",
   ], 'route history sequence receipt');
 
+  const padHistoryBlock = marked(value,
+    'pad_edit_history_protected_state as materialized (',
+    '),\nsaved_road_protected_state as materialized (',
+    'pad edit-history protected state');
+  requireTokens(padHistoryBlock, [
+    'public.pad_edit_history', 'public.pad_edit_history_id_seq',
+    'history_rows', 'history_digest', 'sequence_name', 'sequence_oid',
+    'last_value', 'is_called', 'pg_catalog.md5(pg_catalog.to_jsonb(history)::text)',
+  ], 'pad edit-history protected state');
+  requireTokens(value, [
+    'pad_history.history_rows>=0',
+    "pad_history.sequence_name='public.pad_edit_history_id_seq'",
+    "then 'pad_edit_history_ok' end",
+    "'PAD_EDIT_HISTORY_PROTECTED_STATE'",
+    "'pad_edit_history',pg_catalog.to_jsonb(pad_history)",
+  ], 'pad edit-history protected receipt');
+
   const savedBlock = marked(value,
     'saved_road_protected_state as materialized (',
     '),\ngoogle_state as materialized (',
@@ -366,9 +396,9 @@ function auditOperationalAuthority(value) {
     'count(distinct lock_key)',
   ], 'ingest lock authority');
   requireTokens(value, [
-    'ingest_locks.rows=38',
-    'ingest_locks.distinct_lock_rows=38',
-    'ingest_locks.complete_rows=38',
+    'ingest_locks.rows=41',
+    'ingest_locks.distinct_lock_rows=41',
+    'ingest_locks.complete_rows=41',
     "'ingest_lock_count',ingest_locks.rows",
     "'ingest_lock_authority_digest',ingest_locks.authority_digest",
     "'INGEST_LOCK_AUTHORITY'",
@@ -380,7 +410,7 @@ function auditOperationalAuthority(value) {
     'as catalog_md5',
     'as captured_catalog_rows',
     'as catalog_authority_digest',
-    'functions.captured_catalog_rows=24',
+    'functions.captured_catalog_rows=29',
     "'catalog_md5',inventory.catalog_md5",
     "'definition',inventory.definition",
     "'owner_oid',inventory.proowner,'owner_name',inventory.owner_name",
@@ -579,6 +609,7 @@ function auditAuthority(value) {
     "'73eb9adbfd16ea671873da7b4e495f73'",
     "'f6763925461111b2069bde0f60007dd4'",
     "'e3c8fa406c6b4631b25e95a7ebb6d2d2'",
+    "'99fdfd970215224bf717f108b523ceb1'",
     'activation_impact_receipts as materialized',
     'activation_impacts as materialized',
     "then 'junction_missing'",
@@ -625,12 +656,12 @@ function auditAuthority(value) {
     'public_route_relation_trigger_authority as materialized',
     'public_route_triggers.rows=3',
     'public_route_triggers.present_rows=3',
-    'public_route_triggers.trigger_rows=2',
+    'public_route_triggers.trigger_rows=4',
     'public_route_triggers.exact_count_rows=3',
     'public_route_triggers_ok',
     "(1,'public','brinesearch_route_prep',0)",
-    "(2,'public','brinesearch_route_prep_steps',1)",
-    "(3,'public','brinesearch_pad_roads',1)",
+    "(2,'public','brinesearch_route_prep_steps',2)",
+    "(3,'public','brinesearch_pad_roads',2)",
     "'public_route_trigger_authority_digest'",
     "'O'::\"char\",19::smallint,array['raw_text','match_method']",
     "'O'::\"char\",29::smallint,array[]::text[]",
@@ -648,7 +679,12 @@ function auditAuthority(value) {
     'and sources_current is false',
     'other_validated_not_false=0',
     'active_ohio_rows=19',
+    'google.projected_rows=0',
+    'google.expected_post_deferred_rows=0',
+    'google_trigger.event_rows=0',
+    "google_trigger.trigger_pad_digest='d41d8cd98f00b204e9800998ecf8427e'",
     'google_trigger.trigger_routes_outside_frozen=0',
+    'public_detail.current_rows=0 and public_detail.projected_rows=0',
     'public_detail.projected_byte_semantic_noop',
     'projection_view_definition_md5',
     'projection_view.view_definition_md5',
@@ -656,6 +692,13 @@ function auditAuthority(value) {
     'as verification_projection_ok',
     'case when not coalesce(verification_projection_ok,false)',
     'pad_google_update_eligible_exact',
+    'triggers.pad_google_update_eligible_rows=5',
+    'functions.rows=29 and functions.present_rows=29',
+    'functions.hash_exact_rows=29 and functions.captured_hash_rows=29',
+    'functions.volatility_exact_rows=29',
+    'functions.search_path_exact_rows=29 and functions.acl_exact_rows=29',
+    'triggers.rows=16 and triggers.present_rows=16 and triggers.exact_rows=16',
+    'tables.rows=10 and tables.present_rows=10 and tables.rls_exact_rows=10',
     'tgqual',
     'tgnargs',
     'tgargs_hex',
@@ -680,6 +723,13 @@ function auditAuthority(value) {
     'private_verification.brinesearch_issue97_refresh_google_route_transition(uuid)',
     'public.brinesearch_issue97_cutover_active()',
   ]) assert.ok(value.includes(signature), `function inventory missing ${signature}`);
+
+  for (const [signature, definitionHash] of expectedCollateralFunctions) {
+    assert.ok(value.includes(`'${signature}'`),
+      `collateral function inventory missing ${signature}`);
+    assert.ok(value.includes(`'${definitionHash}'`),
+      `collateral function inventory missing definition hash ${definitionHash}`);
+  }
 
   for (const [signature, knownHash] of expectedRouteFunctions) {
     assert.ok(value.includes(`'${signature}'`),
@@ -724,8 +774,12 @@ function auditAuthority(value) {
     'has_function_privilege',
   ], label);
 
-  for (const trigger of expectedTriggers)
-    assert.ok(value.includes(trigger), `trigger inventory missing ${trigger}`);
+  const triggerBlock = marked(value, 'trigger_expected(',
+    '),\ntrigger_inventory as materialized (', 'trigger inventory');
+  for (const trigger of expectedTriggers) {
+    assert.equal(occurrences(triggerBlock, `'${trigger}'`), 1,
+      `trigger inventory must contain ${trigger} exactly once`);
+  }
 
   requireTokens(value, [
     'tgdeferrable', 'tginitdeferred', 'tgisinternal', 'tgattr',
@@ -734,6 +788,8 @@ function auditAuthority(value) {
     "array['status','details']",
     'proconfig', 'proacl', 'aclexplode', 'has_function_privilege',
     'relrowsecurity', 'relforcerowsecurity', 'has_table_privilege',
+    "join google_expected expected on expected.pad_id=pad.id",
+    "('public','pad_edit_history',true,false)",
   ], 'function/trigger/table security catalog');
   assert.equal(occurrences(value,
     'pg_catalog.array_agg(attribute.attname::text order by key.ordinality)'), 2,
@@ -766,6 +822,8 @@ const mutations = [
   source.authority.replaceAll('711b1ddd3ba6c47e7642fc700197432f', '00000000000000000000000000000000'),
   source.authority.replaceAll(expectedRouteFunctions[0][1], '00000000000000000000000000000000'),
   source.authority.replaceAll(expectedTriggers[0], 'unauthorized_trigger_name'),
+  source.authority.replaceAll(expectedCollateralFunctions[0][1],
+    '00000000000000000000000000000000'),
   source.authority.replaceAll("status='validated' and activated_at is null",
     "status='active' and activated_at is not null"),
   source.authority.replace("begin isolation level read committed read only;", 'begin;'),
@@ -803,14 +861,23 @@ const mutations = [
     'private_verification.brinesearch_route_occurrence_receipt_history_missing_id_seq'),
   source.authority.replace('saved_road.run_rows=0',
     'saved_road.run_rows>=0'),
-  source.authority.replace('ingest_locks.rows=38',
+  source.authority.replace('pad_history.history_rows>=0',
+    'pad_history.history_rows>=-1'),
+  source.authority.replace('ingest_locks.rows=41',
     'ingest_locks.rows>=0'),
   source.authority.replace('as membership_digest',
     'as membership_missing_digest'),
-  source.authority.replace('functions.captured_catalog_rows=24',
+  source.authority.replace('functions.captured_catalog_rows=29',
     'functions.captured_catalog_rows>=0'),
-  source.authority.replace('public_route_triggers.trigger_rows=2',
+  source.authority.replace('public_route_triggers.trigger_rows=4',
     'public_route_triggers.trigger_rows>=0'),
+  source.authority.replace('google.projected_rows=0',
+    'google.projected_rows>=0'),
+  source.authority.replace(
+    'join google_expected expected on expected.pad_id=pad.id',
+    'join google_projected_pads projected on projected.pad_id=pad.id'),
+  source.authority.replace('tables.rows=10 and tables.present_rows=10',
+    'tables.rows>=0 and tables.present_rows=10'),
   source.authority.replaceAll('brinesearch_issue97_google_route_steps_stale',
     'unauthorized_public_route_trigger'),
   source.authority.replaceAll(

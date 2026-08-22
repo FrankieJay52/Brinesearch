@@ -1493,7 +1493,7 @@ google_projected_pads as materialized (
 activation_pad_prestate as materialized (
   select pad.id as pad_id,pg_catalog.to_jsonb(pad) as row_value
   from public.pads pad
-  join google_projected_pads projected on projected.pad_id=pad.id
+  join google_expected expected on expected.pad_id=pad.id
 ),
 activation_pad_protection_state as materialized (
   select
@@ -1503,31 +1503,31 @@ activation_pad_protection_state as materialized (
     ),'')) from activation_pad_prestate) as target_digest,
     (select count(*)::integer from public.pads pad
       where not exists(
-        select 1 from google_projected_pads projected
-        where projected.pad_id=pad.id
+        select 1 from google_expected expected
+        where expected.pad_id=pad.id
       )) as non_target_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       pad.id::text||':'||pg_catalog.to_jsonb(pad)::text,
       '|' order by pad.id
     ),'')) from public.pads pad
       where not exists(
-        select 1 from google_projected_pads projected
-        where projected.pad_id=pad.id
+        select 1 from google_expected expected
+        where expected.pad_id=pad.id
       )) as non_target_digest,
     (select count(*)::integer
       from private_verification.brinesearch_google_route_receipts_issue97 receipt
       where not exists(
-        select 1 from google_projected_pads projected
-        where projected.pad_id=receipt.pad_id
+        select 1 from google_expected expected
+        where expected.pad_id=receipt.pad_id
       )) as non_target_google_receipt_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.pad_id::text||':'||pg_catalog.to_jsonb(receipt)::text,
       '|' order by receipt.pad_id
     ),''))
      from private_verification.brinesearch_google_route_receipts_issue97 receipt
-     where not exists(
-       select 1 from google_projected_pads projected
-       where projected.pad_id=receipt.pad_id
+      where not exists(
+       select 1 from google_expected expected
+       where expected.pad_id=receipt.pad_id
      )) as non_target_google_receipt_digest
 ),
 google_latest_event as materialized (
@@ -2032,6 +2032,19 @@ route_history_sequence_state as materialized (
     ),'')) as sequence_state_digest
   from route_history_sequence_authority
 ),
+pad_edit_history_protected_state as materialized (
+  select
+    (select count(*)::bigint from public.pad_edit_history) as history_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      history.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(history)::text),
+      '|' order by history.id
+    ),'')) from public.pad_edit_history history) as history_digest,
+    pg_catalog.pg_get_serial_sequence('public.pad_edit_history','id')
+      as sequence_name,
+    'public.pad_edit_history_id_seq'::regclass::oid as sequence_oid,
+    sequence.last_value,sequence.is_called
+  from public.pad_edit_history_id_seq sequence
+),
 saved_road_protected_state as materialized (
   select
     (select count(*)::integer
@@ -2145,13 +2158,7 @@ google_state as materialized (
       )
     ) from google_current),false) as canonical_exact,
     (select count(*) from google_projected_pads)::integer as projected_rows,
-    not exists(
-      (select pad_id from google_expected
-       except select pad_id from google_projected_pads)
-      union all
-      (select pad_id from google_projected_pads
-       except select pad_id from google_expected)
-    ) as projection_exact,
+    not exists(select 1 from google_projected_pads) as projection_exact,
     (select count(*) from google_expected_post_deferred)::integer
       as expected_post_deferred_rows,
     coalesce((select pg_catalog.bool_and(
@@ -2164,7 +2171,7 @@ google_state as materialized (
       and expected_post_deferred_manifest->>'route_ready'='false'
       and not expected_post_deferred_public_exists
       and not expected_post_deferred_queue_exists
-    ) from google_expected_post_deferred),false) as expected_post_deferred_exact,
+    ) from google_expected_post_deferred),true) as expected_post_deferred_exact,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       pad_id::text||':'||expected_post_deferred_branch||':'||
         expected_post_deferred_status||':'||
@@ -2244,10 +2251,20 @@ function_expected(
     ('public_detail_sync','public.sync_public_pad_detail_projection()',
       '0825fbdd1e0dc28bb46412a0a22222ae','v','projection_path','service_only'),
     ('verification_invalidator','public.pad_verification_invalidate_on_pad_change()',
-      'e5867839affe735a6a4c5d71676f1b90','v','public_path','public_default'),
+      '99fdfd970215224bf717f108b523ceb1','v','public_path','public_default'),
     ('public_detail_sanitizer',
       'private_verification.brinesearch_sanitize_public_pad_detail_issue73()',
-      'ba0cf59e2259fecd7e6bbae0db5aeae6','v','empty','owner_only')
+      'ba0cf59e2259fecd7e6bbae0db5aeae6','v','empty','owner_only'),
+    ('route_no_guess_guard','public.enforce_brinesearch_route_prep_no_guess()',
+      '60e8630ec37e5dc4a6532de5a9fbbc03','v','public_only','service_only'),
+    ('candidate_publication_guard','public.prevent_candidate_road_publication()',
+      '5958bb9154013143d064a686c128b525','v','public_only','service_only'),
+    ('pad_audit_update','public.audit_pad_update()',
+      'b7068f4de6236d83c400caf5312a4336','v','public_only','service_only'),
+    ('pad_mark_editor','public.mark_pad_editor()',
+      '7481a42d010c9717e895fb8a2c4362c7','v','public_only','service_only'),
+    ('pad_set_updated_at','public.set_updated_at()',
+      '082058a59b50aae6fbde4d4adba90749','v','public_only','service_only')
 ),
 function_catalog as materialized (
   select expected.*,
@@ -2299,6 +2316,8 @@ function_inventory as materialized (
         array['search_path=pg_catalog, public, private_verification']::text[]
       when 'public_path' then function.proconfig is not distinct from
         array['search_path=pg_catalog, public']::text[]
+      when 'public_only' then function.proconfig is not distinct from
+        array['search_path=public']::text[]
       when 'route_step_path' then function.proconfig is not distinct from
         array['search_path=public, private_verification, pg_temp']::text[]
       else false
@@ -2312,13 +2331,15 @@ function_state as materialized (
       or actual_md5=expected_md5)::integer as hash_exact_rows,
     count(*) filter(where
       (label in ('sources_current','dataset_scope_current','ingest_run_verified',
-        'route_step_identity_clear')
+        'route_step_identity_clear','route_no_guess_guard',
+        'candidate_publication_guard','pad_mark_editor','pad_set_updated_at')
         and not coalesce(prosecdef,false))
       or (label not in (
         'sources_current','dataset_scope_current','ingest_run_verified',
-        'route_step_identity_clear'
+        'route_step_identity_clear','route_no_guess_guard',
+        'candidate_publication_guard','pad_mark_editor','pad_set_updated_at'
       ) and coalesce(prosecdef,false))
-    )=24 as security_definer_exact,
+    )=29 as security_definer_exact,
     count(*) filter(where actual_md5~'^[0-9a-f]{32}$')::integer
       as captured_hash_rows,
     count(*) filter(where catalog_md5~'^[0-9a-f]{32}$'
@@ -2600,10 +2621,23 @@ trigger_expected(
       'brinesearch_route_prep_steps',
       'private_verification.brinesearch_clear_stale_route_step_identity_issue70()',
       'O'::"char",19::smallint,array['raw_text','match_method'],false,false,false),
+    ('trg_enforce_brinesearch_route_prep_no_guess','public',
+      'brinesearch_route_prep_steps',
+      'public.enforce_brinesearch_route_prep_no_guess()',
+      'O'::"char",23::smallint,array[]::text[],false,false,false),
     ('brinesearch_issue97_google_route_steps_stale','public',
       'brinesearch_pad_roads',
       'private_verification.brinesearch_issue97_invalidate_google_route_trigger()',
       'O'::"char",29::smallint,array[]::text[],false,false,false),
+    ('trg_prevent_candidate_road_publication','public','brinesearch_pad_roads',
+      'public.prevent_candidate_road_publication()',
+      'O'::"char",23::smallint,array['road_id'],false,false,false),
+    ('pads_audit_update','public','pads','public.audit_pad_update()',
+      'O'::"char",17::smallint,array[]::text[],false,false,false),
+    ('pads_mark_editor','public','pads','public.mark_pad_editor()',
+      'O'::"char",19::smallint,array[]::text[],false,false,false),
+    ('pads_set_updated_at','public','pads','public.set_updated_at()',
+      'O'::"char",19::smallint,array[]::text[],false,false,false),
     ('pads_sync_public_pad_detail_projection','public','pads',
       'public.sync_public_pad_detail_projection()',
       'O'::"char",29::smallint,array[]::text[],false,false,false),
@@ -2695,8 +2729,8 @@ public_route_relation_expected(
 ) as (
   values
     (1,'public','brinesearch_route_prep',0),
-    (2,'public','brinesearch_route_prep_steps',1),
-    (3,'public','brinesearch_pad_roads',1)
+    (2,'public','brinesearch_route_prep_steps',2),
+    (3,'public','brinesearch_pad_roads',2)
 ),
 public_route_relation_trigger_authority as materialized (
   select expected.*,relation.oid as relation_oid,
@@ -2843,10 +2877,16 @@ trigger_state as materialized (
     not exists(
       (select tgname from pad_google_update_eligible_triggers
        except values
+         ('pads_audit_update'),
+         ('pads_mark_editor'),
+         ('pads_set_updated_at'),
          ('pads_sync_public_pad_detail_projection'),
          ('trg_pad_verification_invalidate'))
-      union all
-      (select * from (values
+       union all
+       (select * from (values
+         ('pads_audit_update'),
+         ('pads_mark_editor'),
+         ('pads_set_updated_at'),
          ('pads_sync_public_pad_detail_projection'),
          ('trg_pad_verification_invalidate')) expected(tgname)
        except select tgname from pad_google_update_eligible_triggers)
@@ -2863,6 +2903,7 @@ table_security_expected(table_schema,table_name,expected_rls,expected_force) as 
     ('public','public_pad_detail',true,false),
     ('public','pads',null::boolean,null::boolean),
     ('public','pad_verification_status',null::boolean,null::boolean),
+    ('public','pad_edit_history',true,false),
     ('public','brinesearch_road_graph_builds',null::boolean,null::boolean)
 ),
 table_security_inventory as materialized (
@@ -2902,7 +2943,8 @@ table_security_state as materialized (
       where table_name in (
         'brinesearch_google_route_receipts_issue97',
         'brinesearch_google_route_refresh_queue_issue97',
-        'brinesearch_driver_google_routes_public','public_pad_detail'
+        'brinesearch_driver_google_routes_public','public_pad_detail',
+        'pad_edit_history'
       )),false) as browser_write_denied
   from table_security_inventory
 ),
@@ -2967,8 +3009,8 @@ checks as materialized (
       and impact.unmapped_impacts=0 and impact.routes_outside_frozen=0
       and impact.conservative_pad_route_subset_exact
       and impact.route_rows=impact.conservative_pad_route_rows as impacts_ok,
-    ingest_locks.rows=38 and ingest_locks.distinct_lock_rows=38
-      and ingest_locks.complete_rows=38
+    ingest_locks.rows=41 and ingest_locks.distinct_lock_rows=41
+      and ingest_locks.complete_rows=41
       and ingest_locks.authority_digest~'^[0-9a-f]{32}$'
       as ingest_lock_authority_ok,
     build_protection.target_rows=16
@@ -2988,6 +3030,13 @@ checks as materialized (
       and route_sequences.exact_name_rows=4
       and route_sequences.sequence_state_digest~'^[0-9a-f]{32}$'
       as route_history_sequences_ok,
+    pad_history.history_rows>=0
+      and pad_history.history_digest~'^[0-9a-f]{32}$'
+      and pad_history.sequence_name='public.pad_edit_history_id_seq'
+      and pad_history.sequence_oid is not null
+      and pad_history.last_value>=pad_history.history_rows
+      and pad_history.is_called=(pad_history.history_rows>0)
+      as pad_edit_history_ok,
     saved_road.baseline_rows=1
       and saved_road.baseline_digest~'^[0-9a-f]{32}$'
       and saved_road.run_rows=0
@@ -3005,15 +3054,20 @@ checks as materialized (
     google.canonical_rows=9
       and google.pad_digest='450948793c57a9a1535139fac4974792'
       and google.tuple_digest='5a75e5c4c34805b7dc2fdf8d0534a4f6'
-      and google.canonical_exact and google.projected_rows=9
-      and google.projection_exact and google.expected_post_deferred_rows=9
+      and google.canonical_exact and google.projected_rows=0
+      and google.projection_exact and google.expected_post_deferred_rows=0
       and google.expected_post_deferred_exact
-      and google_trigger.trigger_pad_digest='450948793c57a9a1535139fac4974792'
+      and google_trigger.event_rows=0
+      and google_trigger.trigger_event_digest='d41d8cd98f00b204e9800998ecf8427e'
+      and google_trigger.trigger_pad_digest='d41d8cd98f00b204e9800998ecf8427e'
+      and google_trigger.trigger_route_rows=0
+      and google_trigger.trigger_route_digest='d41d8cd98f00b204e9800998ecf8427e'
       and google_trigger.trigger_routes_outside_frozen=0
       as google_projection_ok,
-    public_detail.current_rows=9 and public_detail.projected_rows=9
+    public_detail.current_rows=0 and public_detail.projected_rows=0
       and public_detail.projected_byte_semantic_noop
       and public_detail.current_digest=public_detail.projected_digest
+      and public_detail.current_digest='d41d8cd98f00b204e9800998ecf8427e'
       as collateral_projection_ok,
     projection_view.rows=1 and projection_view.exact as projection_view_ok,
     verification.current_rows between 0 and 9
@@ -3022,11 +3076,11 @@ checks as materialized (
       and verification.semantic_digest~'^[0-9a-f]{32}$'
       and verification.unaffected_digest~'^[0-9a-f]{32}$'
       as verification_projection_ok,
-    functions.rows=24 and functions.present_rows=24
-      and functions.hash_exact_rows=24 and functions.captured_hash_rows=24
-      and functions.captured_catalog_rows=24
-      and functions.volatility_exact_rows=24
-      and functions.search_path_exact_rows=24 and functions.acl_exact_rows=24
+    functions.rows=29 and functions.present_rows=29
+      and functions.hash_exact_rows=29 and functions.captured_hash_rows=29
+      and functions.captured_catalog_rows=29
+      and functions.volatility_exact_rows=29
+      and functions.search_path_exact_rows=29 and functions.acl_exact_rows=29
       and functions.security_definer_exact
       and functions.invalidator_shape_exact
       and functions.queue_processor_shape_exact
@@ -3055,21 +3109,21 @@ checks as materialized (
       and route_relation_triggers.trigger_rows=0
       as route_relation_triggers_ok,
     public_route_triggers.rows=3 and public_route_triggers.present_rows=3
-      and public_route_triggers.trigger_rows=2
+      and public_route_triggers.trigger_rows=4
       and public_route_triggers.exact_count_rows=3
       as public_route_triggers_ok,
-    triggers.rows=11 and triggers.present_rows=11 and triggers.exact_rows=11
+    triggers.rows=16 and triggers.present_rows=16 and triggers.exact_rows=16
       and triggers.graph_catalog_rows=2 and triggers.queue_catalog_rows=1
       and triggers.receipt_catalog_rows=0
       and triggers.public_google_catalog_rows=0
       and triggers.public_detail_catalog_rows=1
       and triggers.verification_catalog_rows=0
       and triggers.route_prep_catalog_rows=0
-      and triggers.route_prep_steps_catalog_rows=1
-      and triggers.pad_roads_catalog_rows=1
-      and triggers.pad_google_update_eligible_rows=2
+      and triggers.route_prep_steps_catalog_rows=2
+      and triggers.pad_roads_catalog_rows=2
+      and triggers.pad_google_update_eligible_rows=5
       and triggers.pad_google_update_eligible_exact as triggers_ok,
-    tables.rows=9 and tables.present_rows=9 and tables.rls_exact_rows=9
+    tables.rows=10 and tables.present_rows=10 and tables.rls_exact_rows=10
       and tables.browser_write_denied as table_security_ok,
     isolation.google_queue=0 and isolation.public_google=0
       and not isolation.cutover and isolation.staging=0
@@ -3085,6 +3139,7 @@ checks as materialized (
   cross join manifest_baseline_state manifest_baseline
   cross join route_relation_protected_digest route_protection
   cross join route_history_sequence_state route_sequences
+  cross join pad_edit_history_protected_state pad_history
   cross join saved_road_protected_state saved_road
   cross join topology_protected_digest topology
   cross join google_state google cross join google_trigger_state google_trigger
@@ -3116,6 +3171,8 @@ failures as materialized (
       then 'protected_baselines_ok' end,
     case when not coalesce(route_history_sequences_ok,false)
       then 'route_history_sequences_ok' end,
+    case when not coalesce(pad_edit_history_ok,false)
+      then 'pad_edit_history_ok' end,
     case when not coalesce(saved_road_state_ok,false)
       then 'saved_road_state_ok' end,
     case when not coalesce(topology_protected_ok,false)
@@ -3187,6 +3244,10 @@ summary_receipt as materialized (
     'route_relation_count',route_protection.relation_rows,
     'route_relations_protected_digest',route_protection.combined_digest,
     'route_history_sequence_state_digest',route_sequences.sequence_state_digest,
+    'pad_edit_history_count',pad_history.history_rows,
+    'pad_edit_history_digest',pad_history.history_digest,
+    'pad_edit_history_sequence_last_value',pad_history.last_value,
+    'pad_edit_history_sequence_is_called',pad_history.is_called,
     'saved_road_baseline_digest',saved_road.baseline_digest,
     'saved_road_reconciliation_run_count',saved_road.run_rows,
     'saved_road_reconciliation_count',saved_road.reconciliation_rows
@@ -3243,6 +3304,7 @@ summary_receipt as materialized (
   cross join manifest_baseline_state manifest_baseline
   cross join route_relation_protected_digest route_protection
   cross join route_history_sequence_state route_sequences
+  cross join pad_edit_history_protected_state pad_history
   cross join saved_road_protected_state saved_road
   cross join topology_protected_digest topology
   cross join google_state google cross join google_trigger_state google_trigger
@@ -3420,6 +3482,7 @@ output_rows as materialized (
     pg_catalog.jsonb_build_object(
       'route_relations',pg_catalog.to_jsonb(route_protection),
       'route_history_sequences',pg_catalog.to_jsonb(route_sequences),
+      'pad_edit_history',pg_catalog.to_jsonb(pad_history),
       'saved_road_state',pg_catalog.to_jsonb(saved_road),
       'topology',pg_catalog.to_jsonb(topology),
       'ingest_locks',pg_catalog.to_jsonb(ingest_locks),
@@ -3429,6 +3492,7 @@ output_rows as materialized (
     )
   from route_relation_protected_digest route_protection
   cross join route_history_sequence_state route_sequences
+  cross join pad_edit_history_protected_state pad_history
   cross join saved_road_protected_state saved_road
   cross join topology_protected_digest topology
   cross join ingest_lock_state ingest_locks
@@ -3457,6 +3521,10 @@ output_rows as materialized (
   select 31,0,'PUBLIC_ROUTE_MUTATION_MATCHER_STATE',
     pg_catalog.to_jsonb(matcher)
   from public_route_mutation_matcher_state matcher
+  union all
+  select 32,0,'PAD_EDIT_HISTORY_PROTECTED_STATE',
+    pg_catalog.to_jsonb(pad_history)
+  from pad_edit_history_protected_state pad_history
 )
 select row_kind||'|'||body::text
 from output_rows cross join gate
