@@ -978,17 +978,17 @@ begin
     raise exception 'Issue #97 successor manifest cache preparation failed';
   end if;
 
-  if (select count(*) from pg_temp.issue97_resolved_unmapped_before)<>70
+  if (select count(*) from pg_temp.issue97_resolved_unmapped_before)<>9
      or (select count(distinct route_prep_id)
-       from pg_temp.issue97_resolved_unmapped_before)<>47
+       from pg_temp.issue97_resolved_unmapped_before)<>7
      or (select count(distinct identity_id)
-       from pg_temp.issue97_resolved_unmapped_before)<>36
+       from pg_temp.issue97_resolved_unmapped_before)<>7
      or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
        blocker.route_prep_id::text||':'||blocker.route_prep_step_id::text||':'||
          blocker.identity_id::text||':'||blocker.source_identity_key,
        '|' order by blocker.route_prep_id,blocker.route_prep_step_id
      ),'')) from pg_temp.issue97_resolved_unmapped_before blocker)
-       <>'4cb91c0970863c971465edd17fb84bfd'
+       <>'db1f515b32bf8a9837f57cf6a22fba8f'
      or exists(
        select 1
        from pg_temp.issue97_resolved_unmapped_before blocker

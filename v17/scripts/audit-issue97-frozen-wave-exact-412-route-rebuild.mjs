@@ -140,10 +140,10 @@ function validate(source) {
 
   fail(occurrences(source, /issue97_resolved_unmapped_before/g) >= 8 &&
     occurrences(source, /issue97_resolved_unmapped_after/g) >= 4 &&
-    /count\(\*\) from pg_temp\.issue97_resolved_unmapped_before\)<>70/.test(source) &&
-    /count\(distinct route_prep_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>47/.test(source) &&
-    /count\(distinct identity_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>36/.test(source) &&
-    occurrences(source, /4cb91c0970863c971465edd17fb84bfd/g) === 1,
+    /count\(\*\) from pg_temp\.issue97_resolved_unmapped_before\)<>9/.test(source) &&
+    /count\(distinct route_prep_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>7/.test(source) &&
+    /count\(distinct identity_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>7/.test(source) &&
+    occurrences(source, /db1f515b32bf8a9837f57cf6a22fba8f/g) === 1,
   "resolved/unmapped before-set authority missing");
   fail(source.includes("blocker.resolution_method<>'route_graph_unique_identity_path'") &&
     source.includes("identity.source_identity_key is distinct from") &&
@@ -289,11 +289,11 @@ const mutations = [
       "'private_verification.brinesearch_route_reconciliation_history_issue97_id_seq',1);\n" +
       "  commit;")],
   ["blocker baseline digest", sql.replace(
-    "4cb91c0970863c971465edd17fb84bfd",
+    "db1f515b32bf8a9837f57cf6a22fba8f",
     "00000000000000000000000000000000")],
   ["blocker baseline count", sql.replace(
-    "from pg_temp.issue97_resolved_unmapped_before)<>70",
-    "from pg_temp.issue97_resolved_unmapped_before)<>71")],
+    "from pg_temp.issue97_resolved_unmapped_before)<>9",
+    "from pg_temp.issue97_resolved_unmapped_before)<>10")],
   ["blocker source currentness", sql.replace(
     "brinesearch_issue97_dataset_scope_current(",
     "brinesearch_issue97_dataset_scope_stale(")],
@@ -320,11 +320,11 @@ console.log(JSON.stringify({
   mutable_private_relations: mutablePrivateRelations.length,
   pinned_function_hashes: expectedFunctionHashes.size,
   mutation_cases: mutations.length,
-  preexisting_resolved_unmapped_receipts: 70,
-  preexisting_resolved_unmapped_routes: 47,
-  preexisting_resolved_unmapped_identities: 36,
+  preexisting_resolved_unmapped_receipts: 9,
+  preexisting_resolved_unmapped_routes: 7,
+  preexisting_resolved_unmapped_identities: 7,
   preexisting_resolved_unmapped_digest:
-    "4cb91c0970863c971465edd17fb84bfd",
+    "db1f515b32bf8a9837f57cf6a22fba8f",
   production_access: false,
   repository_write: false,
 }));
