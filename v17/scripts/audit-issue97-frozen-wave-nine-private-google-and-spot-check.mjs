@@ -55,7 +55,8 @@ function validate(value) {
   for (const token of [
     "\\set issue97_commit 0",
     "select :'issue97_commit' in ('0','1')",
-    '\\if :issue97_commit\ndo $issue97_refresh_exact_nine_private_google$',
+    '\\if :issue97_commit\ncreate temporary table tmp_issue97_sequence_before',
+    'string_agg(pg_catalog.md5(\n    history.id::text||\':\'||pg_catalog.to_jsonb(history)::text),\'|\' order by history.id)',
     'writer_functions_called\',false',
     "'sequence_advance',false",
     'begin isolation level read committed;',
@@ -84,7 +85,7 @@ function validate(value) {
   ]) need(value, token, token);
 
   const writer = marked(value,
-    '\\if :issue97_commit\ndo $issue97_refresh_exact_nine_private_google$',
+    '\\if :issue97_commit\ncreate temporary table tmp_issue97_sequence_before',
     '$issue97_refresh_exact_nine_private_google$;', 'commit-only writer');
   assert.equal((writer.match(/brinesearch_issue97_refresh_google_route_transition_dark\s*\(/g) || []).length,
     1, 'private-dark generator must occur exactly once in the ordered loop');
@@ -135,14 +136,16 @@ const mutations = [
   sql.replace(/\n  \(9,'fcbf5085[\s\S]*?'frozen_412'\);/, ';'),
   sql.replace("'frozen_412'),\n  (3", "'untouched_394'),\n  (3"),
   sql.replace('\\set issue97_commit 0', '\\set issue97_commit 1'),
-  sql.replace('\\if :issue97_commit\ndo $issue97_refresh_exact_nine_private_google$',
-    'do $issue97_refresh_exact_nine_private_google$'),
+  sql.replace('\\if :issue97_commit\ncreate temporary table tmp_issue97_sequence_before',
+    'create temporary table tmp_issue97_sequence_before'),
   sql.replace('brinesearch_issue97_refresh_google_route_transition_dark(',
     'brinesearch_issue97_refresh_google_route_transition('),
   sql.replace('do $issue97_private_google_postcheck$',
     'update public.pads set pad_name=pad_name;\ndo $issue97_private_google_postcheck$'),
   sql.replace('before_state.non_target_google_digest', 'removed_non_target_google_digest'),
   sql.replace('before_state.route_history_digest', 'removed_route_history_digest'),
+  sql.replace('string_agg(pg_catalog.md5(\n    history.id::text||\':\'||pg_catalog.to_jsonb(history)::text)',
+    'string_agg(\n    history.id::text||\':\'||pg_catalog.to_jsonb(history)::text'),
   sql.replace("'ascent--lorraine','LORRAINE','Ascent',null,null", "'ascent--lorraine','ANY','Ascent',null,null"),
   sql.replace('rollback;', ''),
 ];

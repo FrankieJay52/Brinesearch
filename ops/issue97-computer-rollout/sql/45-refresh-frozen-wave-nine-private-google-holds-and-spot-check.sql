@@ -348,6 +348,7 @@ join public.pads pad on pad.legacy_id=fixture.legacy_id
 join public.brinesearch_route_prep route on route.pad_id=pad.id and route.active
   and route.route_group='primary';
 
+\if :issue97_commit
 create temporary table tmp_issue97_sequence_before on commit drop as
 select route_sequence.last_value as route_history_last_value,
   route_sequence.is_called as route_history_is_called,
@@ -437,8 +438,8 @@ select
     where not exists(select 1 from tmp_issue97_nine_expected expected
       where expected.primary_route_id=history.route_prep_id)) as non_target_history_digest,
   (select count(*)::bigint from public.pad_edit_history) as pad_history_rows,
-  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-    history.id::text||':'||pg_catalog.to_jsonb(history)::text,'|' order by history.id),''))
+  (select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.md5(
+    history.id::text||':'||pg_catalog.to_jsonb(history)::text),'|' order by history.id),''))
     from public.pad_edit_history history) as pad_history_digest;
 
 create temporary table tmp_issue97_private_google_results(
@@ -451,7 +452,6 @@ create temporary table tmp_issue97_private_google_results(
 
 -- Mode 0 is deliberately preflight-only. It calls no writer function and thus
 -- cannot consume a route-history or pad-history sequence value.
-\if :issue97_commit
 do $issue97_refresh_exact_nine_private_google$
 declare
   expected record;
@@ -643,8 +643,8 @@ begin
        where not exists(select 1 from tmp_issue97_nine_expected expected
          where expected.primary_route_id=history.route_prep_id))
      or before_state.pad_history_rows<>(select count(*) from public.pad_edit_history)
-     or before_state.pad_history_digest<>(select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-       history.id::text||':'||pg_catalog.to_jsonb(history)::text,'|' order by history.id),''))
+     or before_state.pad_history_digest<>(select pg_catalog.md5(coalesce(pg_catalog.string_agg(pg_catalog.md5(
+       history.id::text||':'||pg_catalog.to_jsonb(history)::text),'|' order by history.id),''))
        from public.pad_edit_history history) then
     raise exception 'Issue #97 private Google refresh changed protected state';
   end if;
