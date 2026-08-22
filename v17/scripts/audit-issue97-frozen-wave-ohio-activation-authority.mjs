@@ -738,6 +738,10 @@ function auditAuthority(value) {
   assert.equal(occurrences(value,
     'pg_catalog.array_agg(attribute.attname::text order by key.ordinality)'), 2,
   'trigger attribute projections must be explicitly typed as text arrays');
+  assert.equal(occurrences(value, 'pg_catalog.current_user'), 0,
+    'current_user is SQL syntax and must not be schema-qualified');
+  assert.equal(occurrences(value, 'current_user,'), 1,
+    'activation privilege check must use the current database role');
 
   assert.match(value, /active_counties_exact|county_registry_exact/i,
     'authority extractor must prove the exact active Ohio county registry');
@@ -787,6 +791,7 @@ const mutations = [
   source.authority.replace(
     'pg_catalog.array_agg(attribute.attname::text order by key.ordinality)',
     'pg_catalog.array_agg(attribute.attname order by key.ordinality)'),
+  source.authority.replace('current_user,', 'pg_catalog.current_user,'),
   source.authority.replace('receipt_route_revision=route_revision',
     'receipt_route_revision<>route_revision'),
   source.authority.replace("set local timezone='UTC';", ''),

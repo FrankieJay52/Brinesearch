@@ -2933,7 +2933,7 @@ isolation_state as materialized (
     pg_catalog.current_setting('session_replication_role')='origin'
       as replication_role_origin,
     pg_catalog.has_function_privilege(
-      pg_catalog.current_user,
+      current_user,
       'public.brinesearch_issue97_activate_graph_build(uuid,text,jsonb)',
       'EXECUTE'
     ) as activation_execute
