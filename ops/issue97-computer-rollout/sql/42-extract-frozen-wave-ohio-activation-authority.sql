@@ -22,6 +22,10 @@
 begin isolation level read committed read only;
 set local statement_timeout='15min';
 set local lock_timeout='2min';
+set local timezone='UTC';
+set local datestyle='ISO, YMD';
+set local extra_float_digits=3;
+set local standard_conforming_strings=on;
 
 -- Freeze the same resources, in the installed writer order, while the authority
 -- receipt is extracted. These locks change no database row and release on
@@ -1223,6 +1227,35 @@ build_state as materialized (
        except select county_code,build_id from active_build_expected)
     ) as active_exact
 ),
+ingest_lock_scope_source as materialized (
+  select distinct (source.value->>'dataset_id')::uuid as dataset_id,
+    source.value->>'state_code' as state_code,
+    source.value->>'county_code' as county_code
+  from expected_members member
+  join public.brinesearch_road_graph_builds build on build.id=member.build_id
+  cross join lateral pg_catalog.jsonb_array_elements(
+    coalesce(build.details->'source_run_vector','[]'::jsonb)
+  ) source(value)
+),
+ingest_lock_authority as materialized (
+  select row_number() over(order by dataset_id,state_code,county_code)::integer
+      as ordinal,
+    dataset_id,state_code,county_code,
+    'brinesearch:issue97:ingest:'||dataset_id::text||':'||county_code as lock_key
+  from ingest_lock_scope_source
+),
+ingest_lock_state as materialized (
+  select count(*)::integer as rows,count(distinct lock_key)::integer
+      as distinct_lock_rows,
+    count(*) filter(where dataset_id is not null and state_code is not null
+      and county_code is not null and lock_key is not null)::integer
+      as complete_rows,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      ordinal::text||':'||dataset_id::text||':'||state_code||':'||county_code||':'||
+        lock_key,'|' order by ordinal
+    ),'')) as authority_digest
+  from ingest_lock_authority
+),
 activation_references as materialized (
   select distinct candidate.county_code,candidate.build_id as new_build_id,
     pad_road.entry_junction_anchor_id as old_anchor_id,
@@ -1777,47 +1810,293 @@ verification_state as materialized (
 ),
 route_relation_protected_state as materialized (
   select
+    (select count(*)::bigint from public.brinesearch_route_prep)
+      as route_prep_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-      pad_road.route_step_id::text||':'||pg_catalog.to_jsonb(pad_road)::text,
+      route.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(route)::text),
+      '|' order by route.id
+    ),'')) from public.brinesearch_route_prep route) as route_prep_digest,
+    (select count(*)::bigint from public.brinesearch_route_prep_steps)
+      as route_prep_steps_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      step.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(step)::text),
+      '|' order by step.id
+    ),'')) from public.brinesearch_route_prep_steps step)
+      as route_prep_steps_digest,
+    (select count(*)::bigint from public.brinesearch_pad_roads)
+      as pad_roads_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      pad_road.route_step_id::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(pad_road)::text),
       '|' order by pad_road.route_step_id
     ),'')) from public.brinesearch_pad_roads pad_road) as pad_roads_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_occurrence_candidates_issue97)
+      as occurrence_candidates_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||
-        pg_catalog.to_jsonb(receipt)::text,
-      '|' order by receipt.route_prep_id,receipt.occurrence_index
+      candidate.route_prep_step_id::text||':'||candidate.identity_id::text||':'||
+        candidate.candidate_basis||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(candidate)::text),
+      '|' order by candidate.route_prep_step_id,candidate.identity_id,
+        candidate.candidate_basis
+    ),''))
+     from private_verification.brinesearch_route_occurrence_candidates_issue97
+       candidate) as occurrence_candidates_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_occurrence_receipts_issue97)
+      as occurrence_receipts_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_step_id::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(receipt)::text),
+      '|' order by receipt.route_prep_step_id
     ),''))
      from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt)
       as occurrence_receipts_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_occurrence_receipt_history_issue97)
+      as occurrence_history_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      history.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(history)::text),
+      '|' order by history.id
+    ),''))
+     from private_verification.brinesearch_route_occurrence_receipt_history_issue97
+       history) as occurrence_history_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_reconciliation_receipts_issue97)
+      as reconciliation_receipts_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_id::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(receipt)::text),
+      '|' order by receipt.route_prep_id
+    ),''))
+     from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt)
+      as reconciliation_receipts_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_reconciliation_history_issue97)
+      as reconciliation_history_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      history.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(history)::text),
+      '|' order by history.id
+    ),''))
+     from private_verification.brinesearch_route_reconciliation_history_issue97
+       history) as reconciliation_history_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_transition_receipts_issue97)
+      as transition_receipts_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
       receipt.route_prep_id::text||':'||receipt.boundary_index::text||':'||
-        pg_catalog.to_jsonb(receipt)::text,
+        pg_catalog.md5(pg_catalog.to_jsonb(receipt)::text),
       '|' order by receipt.route_prep_id,receipt.boundary_index
     ),''))
      from private_verification.brinesearch_route_transition_receipts_issue97 receipt)
       as transition_receipts_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_transition_history_issue97)
+      as transition_history_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-      receipt.route_prep_id::text||':'||receipt.occurrence_index::text||':'||
-        pg_catalog.to_jsonb(receipt)::text,
-      '|' order by receipt.route_prep_id,receipt.occurrence_index
+      history.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(history)::text),
+      '|' order by history.id
+    ),''))
+     from private_verification.brinesearch_route_transition_history_issue97 history)
+      as transition_history_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97)
+      as geometry_receipts_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      receipt.route_prep_step_id::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(receipt)::text),
+      '|' order by receipt.route_prep_step_id
     ),''))
      from private_verification.brinesearch_route_occurrence_geometry_receipts_issue97 receipt)
       as geometry_receipts_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_route_occurrence_geometry_history_issue97)
+      as geometry_history_rows,
     (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
-      receipt.route_prep_id::text||':'||pg_catalog.to_jsonb(receipt)::text,
-      '|' order by receipt.route_prep_id
+      history.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(history)::text),
+      '|' order by history.id
     ),''))
-     from private_verification.brinesearch_route_reconciliation_receipts_issue97 receipt)
-      as reconciliation_receipts_digest
+     from private_verification.brinesearch_route_occurrence_geometry_history_issue97
+       history) as geometry_history_digest
+),
+route_relation_protected_rows(ordinal,relation_name,row_count,row_digest) as (
+  select 1,'public.brinesearch_route_prep',route_prep_rows,route_prep_digest
+    from route_relation_protected_state
+  union all select 2,'public.brinesearch_route_prep_steps',
+    route_prep_steps_rows,route_prep_steps_digest
+    from route_relation_protected_state
+  union all select 3,'public.brinesearch_pad_roads',pad_roads_rows,
+    pad_roads_digest from route_relation_protected_state
+  union all select 4,
+    'private_verification.brinesearch_route_occurrence_candidates_issue97',
+    occurrence_candidates_rows,occurrence_candidates_digest
+    from route_relation_protected_state
+  union all select 5,
+    'private_verification.brinesearch_route_occurrence_receipts_issue97',
+    occurrence_receipts_rows,occurrence_receipts_digest
+    from route_relation_protected_state
+  union all select 6,
+    'private_verification.brinesearch_route_occurrence_receipt_history_issue97',
+    occurrence_history_rows,occurrence_history_digest
+    from route_relation_protected_state
+  union all select 7,
+    'private_verification.brinesearch_route_reconciliation_receipts_issue97',
+    reconciliation_receipts_rows,reconciliation_receipts_digest
+    from route_relation_protected_state
+  union all select 8,
+    'private_verification.brinesearch_route_reconciliation_history_issue97',
+    reconciliation_history_rows,reconciliation_history_digest
+    from route_relation_protected_state
+  union all select 9,
+    'private_verification.brinesearch_route_transition_receipts_issue97',
+    transition_receipts_rows,transition_receipts_digest
+    from route_relation_protected_state
+  union all select 10,
+    'private_verification.brinesearch_route_transition_history_issue97',
+    transition_history_rows,transition_history_digest
+    from route_relation_protected_state
+  union all select 11,
+    'private_verification.brinesearch_route_occurrence_geometry_receipts_issue97',
+    geometry_receipts_rows,geometry_receipts_digest
+    from route_relation_protected_state
+  union all select 12,
+    'private_verification.brinesearch_route_occurrence_geometry_history_issue97',
+    geometry_history_rows,geometry_history_digest
+    from route_relation_protected_state
 ),
 route_relation_protected_digest as materialized (
-  select protected.*,
+  select count(*)::integer as relation_rows,
+    count(distinct relation_name)::integer as distinct_relation_rows,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      ordinal::text||':'||relation_name||':'||row_count::text||':'||row_digest,
+      '|' order by ordinal
+    ),'')) as combined_digest,
+    pg_catalog.jsonb_object_agg(relation_name,pg_catalog.jsonb_build_object(
+      'ordinal',ordinal,'row_count',row_count,'row_digest',row_digest
+    ) order by ordinal) as components
+  from route_relation_protected_rows
+),
+route_history_sequence_authority(
+  ordinal,table_name,expected_sequence_name,sequence_name,sequence_oid,
+  last_value,is_called
+) as materialized (
+  select 1,
+    'private_verification.brinesearch_route_occurrence_receipt_history_issue97',
+    'private_verification.brinesearch_route_occurrence_receipt_history_issue97_id_seq',
+    pg_catalog.pg_get_serial_sequence(
+      'private_verification.brinesearch_route_occurrence_receipt_history_issue97','id'),
+    'private_verification.brinesearch_route_occurrence_receipt_history_issue97_id_seq'::regclass::oid,
+    sequence.last_value,sequence.is_called
+  from private_verification.brinesearch_route_occurrence_receipt_history_issue97_id_seq
+    sequence
+  union all
+  select 2,
+    'private_verification.brinesearch_route_reconciliation_history_issue97',
+    'private_verification.brinesearch_route_reconciliation_history_issue97_id_seq',
+    pg_catalog.pg_get_serial_sequence(
+      'private_verification.brinesearch_route_reconciliation_history_issue97','id'),
+    'private_verification.brinesearch_route_reconciliation_history_issue97_id_seq'::regclass::oid,
+    sequence.last_value,sequence.is_called
+  from private_verification.brinesearch_route_reconciliation_history_issue97_id_seq
+    sequence
+  union all
+  select 3,
+    'private_verification.brinesearch_route_transition_history_issue97',
+    'private_verification.brinesearch_route_transition_history_issue97_id_seq',
+    pg_catalog.pg_get_serial_sequence(
+      'private_verification.brinesearch_route_transition_history_issue97','id'),
+    'private_verification.brinesearch_route_transition_history_issue97_id_seq'::regclass::oid,
+    sequence.last_value,sequence.is_called
+  from private_verification.brinesearch_route_transition_history_issue97_id_seq
+    sequence
+  union all
+  select 4,
+    'private_verification.brinesearch_route_occurrence_geometry_history_issue97',
+    'private_verification.brinesearch_route_occurrence_geometry_history_issue97_id_seq',
+    pg_catalog.pg_get_serial_sequence(
+      'private_verification.brinesearch_route_occurrence_geometry_history_issue97','id'),
+    'private_verification.brinesearch_route_occurrence_geometry_history_issue97_id_seq'::regclass::oid,
+    sequence.last_value,sequence.is_called
+  from private_verification.brinesearch_route_occurrence_geometry_history_issue97_id_seq
+    sequence
+),
+route_history_sequence_state as materialized (
+  select count(*)::integer as rows,count(distinct sequence_oid)::integer
+      as distinct_sequence_rows,
+    count(*) filter(where sequence_name=expected_sequence_name)::integer
+      as exact_name_rows,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      ordinal::text||':'||table_name||':'||sequence_name||':'||
+        last_value::text||':'||is_called::text,
+      '|' order by ordinal
+    ),'')) as sequence_state_digest
+  from route_history_sequence_authority
+),
+saved_road_protected_state as materialized (
+  select
+    (select count(*)::integer
+     from private_verification.brinesearch_issue97_saved_road_release_baseline)
+      as baseline_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      baseline.singleton::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(baseline)::text),
+      '|' order by baseline.singleton
+    ),''))
+     from private_verification.brinesearch_issue97_saved_road_release_baseline
+       baseline) as baseline_digest,
+    (select count(*)::integer
+     from private_verification.brinesearch_issue97_saved_road_reconciliation_runs)
+      as run_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      run.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(run)::text),
+      '|' order by run.id
+    ),''))
+     from private_verification.brinesearch_issue97_saved_road_reconciliation_runs
+       run) as run_digest,
+    (select count(*)::bigint
+     from private_verification.brinesearch_issue97_saved_road_reconciliation)
+      as reconciliation_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      reconciliation.run_id::text||':'||reconciliation.source_kind||':'||
+        reconciliation.occurrence_key||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(reconciliation)::text),
+      '|' order by reconciliation.run_id,reconciliation.source_kind,
+        reconciliation.occurrence_key
+    ),''))
+     from private_verification.brinesearch_issue97_saved_road_reconciliation
+       reconciliation) as reconciliation_digest
+),
+topology_protected_state as materialized (
+  select
+    (select count(*)::bigint from public.brinesearch_road_junctions)
+      as junction_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      junction.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(junction)::text),
+      '|' order by junction.id
+    ),'')) from public.brinesearch_road_junctions junction) as junction_digest,
+    (select count(*)::bigint from public.brinesearch_road_junction_anchors)
+      as anchor_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      anchor.id::text||':'||pg_catalog.md5(pg_catalog.to_jsonb(anchor)::text),
+      '|' order by anchor.id
+    ),'')) from public.brinesearch_road_junction_anchors anchor) as anchor_digest,
+    (select count(*)::bigint from public.brinesearch_road_junction_memberships)
+      as membership_rows,
+    (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      membership.id::text||':'||
+        pg_catalog.md5(pg_catalog.to_jsonb(membership)::text),
+      '|' order by membership.id
+    ),'')) from public.brinesearch_road_junction_memberships membership)
+      as membership_digest
+),
+topology_protected_digest as materialized (
+  select topology.*,
     pg_catalog.md5(pg_catalog.concat_ws('|',
-      (select route_digest from protected_manifest_state),
-      protected.pad_roads_digest,protected.occurrence_receipts_digest,
-      protected.transition_receipts_digest,protected.geometry_receipts_digest,
-      protected.reconciliation_receipts_digest
+      'junctions',junction_rows::text,junction_digest,
+      'anchors',anchor_rows::text,anchor_digest,
+      'memberships',membership_rows::text,membership_digest
     )) as combined_digest
-  from route_relation_protected_state protected
+  from topology_protected_state topology
 ),
 google_state as materialized (
   select
@@ -1939,6 +2218,9 @@ function_expected(
     ('google_invalidator',
       'private_verification.brinesearch_issue97_invalidate_google_route_trigger()',
       'a56b23a241c21b43ef36fd4632bd5f2e','v','empty','owner_only'),
+    ('route_step_identity_clear',
+      'private_verification.brinesearch_clear_stale_route_step_identity_issue70()',
+      null,'v','route_step_path','service_only'),
     ('google_hold',
       'private_verification.brinesearch_issue97_hold_google_route(uuid,bigint,text,jsonb,text)',
       '089cba27c751073b3e60ad121858da7d','v','empty','owner_only'),
@@ -1971,11 +2253,21 @@ function_catalog as materialized (
   select expected.*,
     procedure.oid,procedure.prosecdef,procedure.provolatile,procedure.prokind,
     procedure.proconfig,procedure.proacl,procedure.proowner,
+    owner_role.rolname as owner_name,
     pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid)) as actual_md5,
-    pg_catalog.pg_get_functiondef(procedure.oid) as definition
+    pg_catalog.pg_get_functiondef(procedure.oid) as definition,
+    pg_catalog.md5(pg_catalog.concat_ws('|',
+      procedure.oid::text,
+      pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid)),
+      procedure.proowner::text,owner_role.rolname,
+      procedure.prosecdef::text,procedure.provolatile::text,
+      procedure.prokind::text,coalesce(procedure.proconfig::text,''),
+      coalesce(procedure.proacl::text,'')
+    )) as catalog_md5
   from function_expected expected
   left join pg_catalog.pg_proc procedure
     on procedure.oid=pg_catalog.to_regprocedure(expected.signature)
+  left join pg_catalog.pg_roles owner_role on owner_role.oid=procedure.proowner
 ),
 function_acl as materialized (
   select function.label,acl.grantor,acl.grantee,acl.privilege_type,
@@ -2007,6 +2299,8 @@ function_inventory as materialized (
         array['search_path=pg_catalog, public, private_verification']::text[]
       when 'public_path' then function.proconfig is not distinct from
         array['search_path=pg_catalog, public']::text[]
+      when 'route_step_path' then function.proconfig is not distinct from
+        array['search_path=public, private_verification, pg_temp']::text[]
       else false
     end as search_path_exact
   from function_catalog function
@@ -2017,20 +2311,28 @@ function_state as materialized (
     count(*) filter(where expected_md5 is null
       or actual_md5=expected_md5)::integer as hash_exact_rows,
     count(*) filter(where
-      (label in ('sources_current','dataset_scope_current','ingest_run_verified')
+      (label in ('sources_current','dataset_scope_current','ingest_run_verified',
+        'route_step_identity_clear')
         and not coalesce(prosecdef,false))
       or (label not in (
-        'sources_current','dataset_scope_current','ingest_run_verified'
+        'sources_current','dataset_scope_current','ingest_run_verified',
+        'route_step_identity_clear'
       ) and coalesce(prosecdef,false))
-    )=23 as security_definer_exact,
+    )=24 as security_definer_exact,
     count(*) filter(where actual_md5~'^[0-9a-f]{32}$')::integer
       as captured_hash_rows,
+    count(*) filter(where catalog_md5~'^[0-9a-f]{32}$'
+      and proowner is not null and owner_name is not null)::integer
+      as captured_catalog_rows,
     count(*) filter(where provolatile=expected_volatility::"char")::integer
       as volatility_exact_rows,
     count(*) filter(where search_path_exact)::integer as search_path_exact_rows,
     pg_catalog.md5(coalesce(pg_catalog.string_agg(
       label||':'||coalesce(actual_md5,''),'|' order by label
     ),'')) as authority_digest,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      label||':'||coalesce(catalog_md5,''),'|' order by label
+    ),'')) as catalog_authority_digest,
     count(*) filter(where
       case acl_contract
         when 'owner_only' then not public_execute and not anon_execute
@@ -2065,8 +2367,22 @@ function_state as materialized (
       and definition ilike '%brinesearch_issue97_refresh_google_route_published_core%'
       and definition ilike '%brinesearch_issue97_refresh_google_route_transition%'
       from function_inventory where label='google_dispatcher'),false)
-      as dispatcher_shape_exact
+      as dispatcher_shape_exact,
+    coalesce((select
+      definition ilike '%old.owner_decision=''pending''%'
+      and definition ilike '%new.raw_text is distinct from old.raw_text%'
+      and definition ilike '%unmatched_saved_road_name%'
+      and definition ilike '%explicit_in_saved_directions%'
+      and definition ilike '%state_context_candidate_only%'
+      and definition ilike '%new.road_id:=null%'
+      and definition ilike '%new.distance_miles:=null%'
+      and definition ilike '%new.geometry_status:=''not_started''%'
+      from function_inventory where label='route_step_identity_clear'),false)
+      as route_step_identity_clear_shape_exact
   from function_inventory
+),
+public_route_mutation_matcher(pattern) as (
+  values (E'\\m(?:insert[[:space:]]+into|update|delete[[:space:]]+from|merge[[:space:]]+into)[[:space:]]+(?:public\\.)?brinesearch_(?:route_prep|route_prep_steps|pad_roads)\\M')
 ),
 route_function_expected(ordinal,signature,expected_md5,forbidden_md5) as (
   -- Selected exact-route primitives requested for later 412-route authority.
@@ -2114,9 +2430,19 @@ route_function_authority as materialized (
   select expected.ordinal,procedure.proname as function_name,
     expected.signature,procedure.oid,
     pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid)) as definition_md5,
-    language.lanname as language,procedure.provolatile as volatility,
+    pg_catalog.pg_get_functiondef(procedure.oid) as definition,
+    language.oid as language_oid,language.lanname as language,
+    procedure.prokind,procedure.provolatile as volatility,
     procedure.prosecdef as security_definer,procedure.proconfig,
-    owner.rolname as owner,procedure.proacl,
+    procedure.proowner as owner_oid,owner.rolname as owner,procedure.proacl,
+    pg_catalog.md5(pg_catalog.concat_ws('|',
+      procedure.oid::text,
+      pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid)),
+      procedure.proowner::text,owner.rolname,
+      language.oid::text,language.lanname,procedure.prokind::text,
+      procedure.prosecdef::text,procedure.provolatile::text,
+      coalesce(procedure.proconfig::text,''),coalesce(procedure.proacl::text,'')
+    )) as catalog_md5,
     coalesce((select pg_catalog.bool_or(acl.grantee=0
       and acl.privilege_type='EXECUTE')
       from pg_catalog.aclexplode(coalesce(
@@ -2141,14 +2467,26 @@ route_function_state as materialized (
     count(distinct oid)::integer as distinct_oid_rows,
     count(*) filter(where definition_md5~'^[0-9a-f]{32}$')::integer
       as captured_hash_rows,
+    count(*) filter(where definition is not null
+      and pg_catalog.length(definition)>0)::integer as captured_definition_rows,
+    count(*) filter(where catalog_md5~'^[0-9a-f]{32}$'
+      and owner_oid is not null and owner is not null
+      and language_oid is not null and language is not null)::integer
+      as captured_catalog_rows,
     count(*) filter(where expected_md5 is null
       or definition_md5=expected_md5)::integer as expected_hash_rows,
     count(*) filter(where forbidden_md5 is not null
       and definition_md5 like forbidden_md5||'%')::integer as stale_hash_rows,
     pg_catalog.md5(coalesce(pg_catalog.string_agg(
       signature||':'||coalesce(definition_md5,''),'|' order by ordinal
-    ),'')) as selected_authority_digest
+    ),'')) as selected_authority_digest,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      signature||':'||coalesce(catalog_md5,''),'|' order by ordinal
+    ),'')) as selected_catalog_authority_digest,
+    count(*) filter(where definition~*matcher.pattern)::integer
+      as direct_public_route_mutator_rows
   from route_function_authority
+  cross join public_route_mutation_matcher matcher
 ),
 route_dependency_function_expected(ordinal,signature) as (
   -- Functions called transitively by the selected route-cache and private-dark
@@ -2173,9 +2511,19 @@ route_dependency_function_authority as materialized (
     expected.signature,procedure.oid,
     pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid))
       as definition_md5,
-    language.lanname as language,procedure.provolatile as volatility,
+    pg_catalog.pg_get_functiondef(procedure.oid) as definition,
+    language.oid as language_oid,language.lanname as language,
+    procedure.prokind,procedure.provolatile as volatility,
     procedure.prosecdef as security_definer,procedure.proconfig,
-    owner.rolname as owner,procedure.proacl,
+    procedure.proowner as owner_oid,owner.rolname as owner,procedure.proacl,
+    pg_catalog.md5(pg_catalog.concat_ws('|',
+      procedure.oid::text,
+      pg_catalog.md5(pg_catalog.pg_get_functiondef(procedure.oid)),
+      procedure.proowner::text,owner.rolname,
+      language.oid::text,language.lanname,procedure.prokind::text,
+      procedure.prosecdef::text,procedure.provolatile::text,
+      coalesce(procedure.proconfig::text,''),coalesce(procedure.proacl::text,'')
+    )) as catalog_md5,
     coalesce((select pg_catalog.bool_or(acl.grantee=0
       and acl.privilege_type='EXECUTE')
       from pg_catalog.aclexplode(coalesce(
@@ -2199,10 +2547,30 @@ route_dependency_function_state as materialized (
     count(distinct oid)::integer as distinct_oid_rows,
     count(*) filter(where definition_md5~'^[0-9a-f]{32}$')::integer
       as captured_hash_rows,
+    count(*) filter(where definition is not null
+      and pg_catalog.length(definition)>0)::integer as captured_definition_rows,
+    count(*) filter(where catalog_md5~'^[0-9a-f]{32}$'
+      and owner_oid is not null and owner is not null
+      and language_oid is not null and language is not null)::integer
+      as captured_catalog_rows,
     pg_catalog.md5(coalesce(pg_catalog.string_agg(
       signature||':'||coalesce(definition_md5,''),'|' order by ordinal
-    ),'')) as authority_digest
+    ),'')) as authority_digest,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      signature||':'||coalesce(catalog_md5,''),'|' order by ordinal
+    ),'')) as catalog_authority_digest,
+    count(*) filter(where definition~*matcher.pattern)::integer
+      as direct_public_route_mutator_rows
   from route_dependency_function_authority
+  cross join public_route_mutation_matcher matcher
+),
+public_route_mutation_matcher_state as materialized (
+  select pattern,
+    'UPDATE public.brinesearch_pad_roads SET road_id=road_id'~*pattern
+      as positive_matches,
+    'insert into private_verification.brinesearch_route_transition_history_issue97 default values'~*pattern
+      as negative_matches
+  from public_route_mutation_matcher
 ),
 trigger_expected(
   trigger_name,table_schema,table_name,function_signature,expected_enabled,
@@ -2228,6 +2596,14 @@ trigger_expected(
       'O'::"char",17::smallint,
       array['latitude','longitude','structured_route_revision','road_sequence_status'],
       false,false,false),
+    ('brinesearch_clear_stale_route_step_identity_issue70','public',
+      'brinesearch_route_prep_steps',
+      'private_verification.brinesearch_clear_stale_route_step_identity_issue70()',
+      'O'::"char",19::smallint,array['raw_text','match_method'],false,false,false),
+    ('brinesearch_issue97_google_route_steps_stale','public',
+      'brinesearch_pad_roads',
+      'private_verification.brinesearch_issue97_invalidate_google_route_trigger()',
+      'O'::"char",29::smallint,array[]::text[],false,false,false),
     ('pads_sync_public_pad_detail_projection','public','pads',
       'public.sync_public_pad_detail_projection()',
       'O'::"char",29::smallint,array[]::text[],false,false,false),
@@ -2278,6 +2654,9 @@ relevant_relation(table_schema,table_name) as (
   values
     ('public','brinesearch_road_graph_builds'),
     ('public','pads'),
+    ('public','brinesearch_route_prep'),
+    ('public','brinesearch_route_prep_steps'),
+    ('public','brinesearch_pad_roads'),
     ('private_verification','brinesearch_google_route_receipts_issue97'),
     ('private_verification','brinesearch_google_route_refresh_queue_issue97'),
     ('public','brinesearch_driver_google_routes_public'),
@@ -2310,6 +2689,51 @@ relevant_trigger_catalog as materialized (
   join pg_catalog.pg_proc procedure on procedure.oid=trigger.tgfoid
   join pg_catalog.pg_namespace namespace_proc
     on namespace_proc.oid=procedure.pronamespace
+),
+public_route_relation_expected(
+  ordinal,table_schema,table_name,expected_trigger_count
+) as (
+  values
+    (1,'public','brinesearch_route_prep',0),
+    (2,'public','brinesearch_route_prep_steps',1),
+    (3,'public','brinesearch_pad_roads',1)
+),
+public_route_relation_trigger_authority as materialized (
+  select expected.*,relation.oid as relation_oid,
+    count(trigger.oid)::integer as trigger_count,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      trigger.tgname||':'||trigger.tgenabled::text||':'||trigger.tgtype::text||':'||
+        trigger.tgfoid::text||':'||pg_catalog.pg_get_triggerdef(trigger.oid),
+      '|' order by trigger.tgname
+    ),'')) as trigger_digest,
+    coalesce(pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'trigger_name',trigger.tgname,'function_oid',trigger.tgfoid,
+      'enabled',trigger.tgenabled,'tgtype',trigger.tgtype,
+      'definition',pg_catalog.pg_get_triggerdef(trigger.oid)
+    ) order by trigger.tgname) filter(where trigger.oid is not null),'[]'::jsonb)
+      as triggers
+  from public_route_relation_expected expected
+  left join pg_catalog.pg_namespace namespace
+    on namespace.nspname=expected.table_schema
+  left join pg_catalog.pg_class relation
+    on relation.relnamespace=namespace.oid
+      and relation.relname=expected.table_name
+  left join pg_catalog.pg_trigger trigger
+    on trigger.tgrelid=relation.oid and not trigger.tgisinternal
+  group by expected.ordinal,expected.table_schema,expected.table_name,
+    expected.expected_trigger_count,relation.oid
+),
+public_route_relation_trigger_state as materialized (
+  select count(*)::integer as rows,
+    count(*) filter(where relation_oid is not null)::integer as present_rows,
+    sum(trigger_count)::integer as trigger_rows,
+    count(*) filter(where trigger_count=expected_trigger_count)::integer
+      as exact_count_rows,
+    pg_catalog.md5(coalesce(pg_catalog.string_agg(
+      table_schema||'.'||table_name||':'||trigger_count::text||':'||trigger_digest,
+      '|' order by ordinal
+    ),'')) as authority_digest
+  from public_route_relation_trigger_authority
 ),
 route_relation_expected(ordinal,table_schema,table_name) as (
   values
@@ -2404,6 +2828,16 @@ trigger_state as materialized (
     (select count(*) from relevant_trigger_catalog
       where table_schema='public' and table_name='pad_verification_status')::integer
       as verification_catalog_rows,
+    (select count(*) from relevant_trigger_catalog
+      where table_schema='public' and table_name='brinesearch_route_prep')::integer
+      as route_prep_catalog_rows,
+    (select count(*) from relevant_trigger_catalog
+      where table_schema='public'
+        and table_name='brinesearch_route_prep_steps')::integer
+      as route_prep_steps_catalog_rows,
+    (select count(*) from relevant_trigger_catalog
+      where table_schema='public' and table_name='brinesearch_pad_roads')::integer
+      as pad_roads_catalog_rows,
     (select count(*) from pad_google_update_eligible_triggers)::integer
       as pad_google_update_eligible_rows,
     not exists(
@@ -2533,6 +2967,10 @@ checks as materialized (
       and impact.unmapped_impacts=0 and impact.routes_outside_frozen=0
       and impact.conservative_pad_route_subset_exact
       and impact.route_rows=impact.conservative_pad_route_rows as impacts_ok,
+    ingest_locks.rows=38 and ingest_locks.distinct_lock_rows=38
+      and ingest_locks.complete_rows=38
+      and ingest_locks.authority_digest~'^[0-9a-f]{32}$'
+      as ingest_lock_authority_ok,
     build_protection.target_rows=16
       and build_protection.target_digest~'^[0-9a-f]{32}$'
       and build_protection.non_target_digest~'^[0-9a-f]{32}$'
@@ -2542,8 +2980,28 @@ checks as materialized (
       and pad_protection.non_target_google_receipt_digest~'^[0-9a-f]{32}$'
       and manifest_baseline.header_full_digest~'^[0-9a-f]{32}$'
       and manifest_baseline.members_full_digest~'^[0-9a-f]{32}$'
+      and route_protection.relation_rows=12
+      and route_protection.distinct_relation_rows=12
       and route_protection.combined_digest~'^[0-9a-f]{32}$'
       as protected_baselines_ok,
+    route_sequences.rows=4 and route_sequences.distinct_sequence_rows=4
+      and route_sequences.exact_name_rows=4
+      and route_sequences.sequence_state_digest~'^[0-9a-f]{32}$'
+      as route_history_sequences_ok,
+    saved_road.baseline_rows=1
+      and saved_road.baseline_digest~'^[0-9a-f]{32}$'
+      and saved_road.run_rows=0
+      and saved_road.run_digest='d41d8cd98f00b204e9800998ecf8427e'
+      and saved_road.reconciliation_rows=0
+      and saved_road.reconciliation_digest='d41d8cd98f00b204e9800998ecf8427e'
+      as saved_road_state_ok,
+    topology.junction_rows>0 and topology.anchor_rows>0
+      and topology.membership_rows>0
+      and topology.junction_digest~'^[0-9a-f]{32}$'
+      and topology.anchor_digest~'^[0-9a-f]{32}$'
+      and topology.membership_digest~'^[0-9a-f]{32}$'
+      and topology.combined_digest~'^[0-9a-f]{32}$'
+      as topology_protected_ok,
     google.canonical_rows=9
       and google.pad_digest='450948793c57a9a1535139fac4974792'
       and google.tuple_digest='5a75e5c4c34805b7dc2fdf8d0534a4f6'
@@ -2564,33 +3022,51 @@ checks as materialized (
       and verification.semantic_digest~'^[0-9a-f]{32}$'
       and verification.unaffected_digest~'^[0-9a-f]{32}$'
       as verification_projection_ok,
-    functions.rows=23 and functions.present_rows=23
-      and functions.hash_exact_rows=23 and functions.captured_hash_rows=23
-      and functions.volatility_exact_rows=23
-      and functions.search_path_exact_rows=23 and functions.acl_exact_rows=23
+    functions.rows=24 and functions.present_rows=24
+      and functions.hash_exact_rows=24 and functions.captured_hash_rows=24
+      and functions.captured_catalog_rows=24
+      and functions.volatility_exact_rows=24
+      and functions.search_path_exact_rows=24 and functions.acl_exact_rows=24
       and functions.security_definer_exact
       and functions.invalidator_shape_exact
       and functions.queue_processor_shape_exact
       and functions.transition_projection_shape_exact
-      and functions.dispatcher_shape_exact as functions_ok,
+      and functions.dispatcher_shape_exact
+      and functions.route_step_identity_clear_shape_exact as functions_ok,
     route_functions.rows=33 and route_functions.present_rows=33
       and route_functions.distinct_oid_rows=33
       and route_functions.captured_hash_rows=33
+      and route_functions.captured_definition_rows=33
+      and route_functions.captured_catalog_rows=33
       and route_functions.expected_hash_rows=33
-      and route_functions.stale_hash_rows=0 as route_functions_ok,
+      and route_functions.stale_hash_rows=0
+      and route_functions.direct_public_route_mutator_rows=0
+      as route_functions_ok,
     route_dependencies.rows=11 and route_dependencies.present_rows=11
       and route_dependencies.distinct_oid_rows=11
       and route_dependencies.captured_hash_rows=11
+      and route_dependencies.captured_definition_rows=11
+      and route_dependencies.captured_catalog_rows=11
+      and route_dependencies.direct_public_route_mutator_rows=0
       as route_dependencies_ok,
+    mutation_matcher.positive_matches and not mutation_matcher.negative_matches
+      as public_route_mutation_matcher_ok,
     route_relation_triggers.rows=9 and route_relation_triggers.present_rows=9
       and route_relation_triggers.trigger_rows=0
       as route_relation_triggers_ok,
-    triggers.rows=9 and triggers.present_rows=9 and triggers.exact_rows=9
+    public_route_triggers.rows=3 and public_route_triggers.present_rows=3
+      and public_route_triggers.trigger_rows=2
+      and public_route_triggers.exact_count_rows=3
+      as public_route_triggers_ok,
+    triggers.rows=11 and triggers.present_rows=11 and triggers.exact_rows=11
       and triggers.graph_catalog_rows=2 and triggers.queue_catalog_rows=1
       and triggers.receipt_catalog_rows=0
       and triggers.public_google_catalog_rows=0
       and triggers.public_detail_catalog_rows=1
       and triggers.verification_catalog_rows=0
+      and triggers.route_prep_catalog_rows=0
+      and triggers.route_prep_steps_catalog_rows=1
+      and triggers.pad_roads_catalog_rows=1
       and triggers.pad_google_update_eligible_rows=2
       and triggers.pad_google_update_eligible_exact as triggers_ok,
     tables.rows=9 and tables.present_rows=9 and tables.rls_exact_rows=9
@@ -2603,10 +3079,14 @@ checks as materialized (
   cross join manifest_state manifest cross join build_state builds
   cross join county_registry_state registry cross join route_metrics routes
   cross join non_ohio_state non_ohio cross join impact_state impact
+  cross join ingest_lock_state ingest_locks
   cross join activation_build_protection_state build_protection
   cross join activation_pad_protection_state pad_protection
   cross join manifest_baseline_state manifest_baseline
   cross join route_relation_protected_digest route_protection
+  cross join route_history_sequence_state route_sequences
+  cross join saved_road_protected_state saved_road
+  cross join topology_protected_digest topology
   cross join google_state google cross join google_trigger_state google_trigger
   cross join public_detail_state public_detail
   cross join projection_view_state projection_view
@@ -2614,7 +3094,9 @@ checks as materialized (
   cross join function_state functions
   cross join route_function_state route_functions
   cross join route_dependency_function_state route_dependencies
+  cross join public_route_mutation_matcher_state mutation_matcher
   cross join route_relation_trigger_state route_relation_triggers
+  cross join public_route_relation_trigger_state public_route_triggers
   cross join trigger_state triggers
   cross join table_security_state tables cross join isolation_state isolation
 ),
@@ -2628,8 +3110,16 @@ failures as materialized (
     case when not coalesce(routes_ok,false) then 'routes_ok' end,
     case when not coalesce(non_ohio_ok,false) then 'non_ohio_ok' end,
     case when not coalesce(impacts_ok,false) then 'impacts_ok' end,
+    case when not coalesce(ingest_lock_authority_ok,false)
+      then 'ingest_lock_authority_ok' end,
     case when not coalesce(protected_baselines_ok,false)
       then 'protected_baselines_ok' end,
+    case when not coalesce(route_history_sequences_ok,false)
+      then 'route_history_sequences_ok' end,
+    case when not coalesce(saved_road_state_ok,false)
+      then 'saved_road_state_ok' end,
+    case when not coalesce(topology_protected_ok,false)
+      then 'topology_protected_ok' end,
     case when not coalesce(google_projection_ok,false)
       then 'google_projection_ok' end,
     case when not coalesce(collateral_projection_ok,false)
@@ -2643,8 +3133,12 @@ failures as materialized (
       then 'route_functions_ok' end,
     case when not coalesce(route_dependencies_ok,false)
       then 'route_dependencies_ok' end,
+    case when not coalesce(public_route_mutation_matcher_ok,false)
+      then 'public_route_mutation_matcher_ok' end,
     case when not coalesce(route_relation_triggers_ok,false)
       then 'route_relation_triggers_ok' end,
+    case when not coalesce(public_route_triggers_ok,false)
+      then 'public_route_triggers_ok' end,
     case when not coalesce(triggers_ok,false) then 'triggers_ok' end,
     case when not coalesce(table_security_ok,false) then 'table_security_ok' end,
     case when not coalesce(isolation_ok,false) then 'isolation_ok' end
@@ -2676,6 +3170,8 @@ summary_receipt as materialized (
     'activation_impact_route_count',impact.route_rows,
     'county_impact_set_digest',impact.county_impact_set_digest,
     'impact_route_digest',impact.impact_route_digest,
+    'ingest_lock_count',ingest_locks.rows,
+    'ingest_lock_authority_digest',ingest_locks.authority_digest,
     'target_build_prestate_digest',build_protection.target_digest,
     'non_target_build_count',build_protection.non_target_rows,
     'non_target_build_digest',build_protection.non_target_digest,
@@ -2688,7 +3184,17 @@ summary_receipt as materialized (
       pad_protection.non_target_google_receipt_digest,
     'manifest_header_full_digest',manifest_baseline.header_full_digest,
     'manifest_members_full_digest',manifest_baseline.members_full_digest,
+    'route_relation_count',route_protection.relation_rows,
     'route_relations_protected_digest',route_protection.combined_digest,
+    'route_history_sequence_state_digest',route_sequences.sequence_state_digest,
+    'saved_road_baseline_digest',saved_road.baseline_digest,
+    'saved_road_reconciliation_run_count',saved_road.run_rows,
+    'saved_road_reconciliation_count',saved_road.reconciliation_rows
+  ) || pg_catalog.jsonb_build_object(
+    'topology_junction_count',topology.junction_rows,
+    'topology_anchor_count',topology.anchor_rows,
+    'topology_membership_count',topology.membership_rows,
+    'topology_protected_digest',topology.combined_digest,
     'google_projected_pads',google.projected_rows,
     'google_pad_digest','450948793c57a9a1535139fac4974792',
     'google_tuple_digest','5a75e5c4c34805b7dc2fdf8d0534a4f6',
@@ -2711,21 +3217,34 @@ summary_receipt as materialized (
     'non_ohio_route_digest',non_ohio.route_digest,
     'selected_route_function_authority_digest',
       route_functions.selected_authority_digest,
+    'selected_route_function_catalog_authority_digest',
+      route_functions.selected_catalog_authority_digest,
     'activation_function_authority_digest',functions.authority_digest,
+    'activation_function_catalog_authority_digest',
+      functions.catalog_authority_digest,
     'route_dependency_function_authority_digest',
       route_dependencies.authority_digest,
+    'route_dependency_function_catalog_authority_digest',
+      route_dependencies.catalog_authority_digest,
+    'public_route_mutation_pattern',mutation_matcher.pattern,
     'route_relation_trigger_authority_digest',
       route_relation_triggers.authority_digest,
+    'public_route_trigger_authority_digest',
+      public_route_triggers.authority_digest,
     'queue',isolation.google_queue,'public_google',isolation.public_google,
     'cutover',isolation.cutover,'production_write',false
   ) as body
   from gate cross join permanent_install_state install
   cross join build_state builds
   cross join route_metrics routes cross join impact_state impact
+  cross join ingest_lock_state ingest_locks
   cross join activation_build_protection_state build_protection
   cross join activation_pad_protection_state pad_protection
   cross join manifest_baseline_state manifest_baseline
   cross join route_relation_protected_digest route_protection
+  cross join route_history_sequence_state route_sequences
+  cross join saved_road_protected_state saved_road
+  cross join topology_protected_digest topology
   cross join google_state google cross join google_trigger_state google_trigger
   cross join public_detail_state public_detail
   cross join projection_view_state projection_view
@@ -2733,7 +3252,9 @@ summary_receipt as materialized (
   cross join route_function_state route_functions
   cross join function_state functions
   cross join route_dependency_function_state route_dependencies
+  cross join public_route_mutation_matcher_state mutation_matcher
   cross join route_relation_trigger_state route_relation_triggers
+  cross join public_route_relation_trigger_state public_route_triggers
   cross join isolation_state isolation
 ),
 output_rows as materialized (
@@ -2796,6 +3317,9 @@ output_rows as materialized (
     'FUNCTION_INVENTORY',pg_catalog.jsonb_build_object(
       'label',inventory.label,'signature',inventory.signature,
       'expected_md5',inventory.expected_md5,'actual_md5',inventory.actual_md5,
+      'definition',inventory.definition,
+      'catalog_md5',inventory.catalog_md5,
+      'owner_oid',inventory.proowner,'owner_name',inventory.owner_name,
       'security_definer',inventory.prosecdef,'volatility',inventory.provolatile,
       'kind',inventory.prokind,'proconfig',inventory.proconfig,
       'proacl',inventory.proacl,'public_execute',inventory.public_execute,
@@ -2895,14 +3419,44 @@ output_rows as materialized (
   select 25,0,'PROTECTED_BASELINE_COMPONENTS',
     pg_catalog.jsonb_build_object(
       'route_relations',pg_catalog.to_jsonb(route_protection),
+      'route_history_sequences',pg_catalog.to_jsonb(route_sequences),
+      'saved_road_state',pg_catalog.to_jsonb(saved_road),
+      'topology',pg_catalog.to_jsonb(topology),
+      'ingest_locks',pg_catalog.to_jsonb(ingest_locks),
       'graph_builds',pg_catalog.to_jsonb(build_protection),
       'pads_and_google_receipts',pg_catalog.to_jsonb(pad_protection),
       'manifest',pg_catalog.to_jsonb(manifest_baseline)
     )
   from route_relation_protected_digest route_protection
+  cross join route_history_sequence_state route_sequences
+  cross join saved_road_protected_state saved_road
+  cross join topology_protected_digest topology
+  cross join ingest_lock_state ingest_locks
   cross join activation_build_protection_state build_protection
   cross join activation_pad_protection_state pad_protection
   cross join manifest_baseline_state manifest_baseline
+  union all
+  select 26,authority.ordinal,'ROUTE_HISTORY_SEQUENCE_AUTHORITY',
+    pg_catalog.to_jsonb(authority)
+  from route_history_sequence_authority authority
+  union all
+  select 27,0,'SAVED_ROAD_PROTECTED_STATE',pg_catalog.to_jsonb(saved_road)
+  from saved_road_protected_state saved_road
+  union all
+  select 28,authority.ordinal,'INGEST_LOCK_AUTHORITY',
+    pg_catalog.to_jsonb(authority)
+  from ingest_lock_authority authority
+  union all
+  select 29,0,'TOPOLOGY_PROTECTED_STATE',pg_catalog.to_jsonb(topology)
+  from topology_protected_digest topology
+  union all
+  select 30,authority.ordinal,'PUBLIC_ROUTE_RELATION_TRIGGER_AUTHORITY',
+    pg_catalog.to_jsonb(authority)
+  from public_route_relation_trigger_authority authority
+  union all
+  select 31,0,'PUBLIC_ROUTE_MUTATION_MATCHER_STATE',
+    pg_catalog.to_jsonb(matcher)
+  from public_route_mutation_matcher_state matcher
 )
 select row_kind||'|'||body::text
 from output_rows cross join gate

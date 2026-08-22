@@ -12,6 +12,7 @@ const paths = {
   pins: path.join(sqlDir, '37-frozen-mapping-wave-production-pins.sql'),
   manifest: path.join(sqlDir, '38-frozen-wave-ohio-state-manifest-core.sql'),
   verifyManifest: path.join(sqlDir, '41-verify-frozen-wave-ohio-state-manifest.sql'),
+  routeStepGuard: path.join(root, 'supabase/migrations/20260811093511_issue70_held_source_conflicts.sql'),
   package: path.join(root, 'package.json'),
 };
 
@@ -187,6 +188,28 @@ const expectedRouteDependencyFunctions = [
   'private_verification.brinesearch_issue97_uuid(text)',
 ];
 
+const expectedProtectedRouteRelations = [
+  'public.brinesearch_route_prep',
+  'public.brinesearch_route_prep_steps',
+  'public.brinesearch_pad_roads',
+  'private_verification.brinesearch_route_occurrence_candidates_issue97',
+  'private_verification.brinesearch_route_occurrence_receipts_issue97',
+  'private_verification.brinesearch_route_occurrence_receipt_history_issue97',
+  'private_verification.brinesearch_route_reconciliation_receipts_issue97',
+  'private_verification.brinesearch_route_reconciliation_history_issue97',
+  'private_verification.brinesearch_route_transition_receipts_issue97',
+  'private_verification.brinesearch_route_transition_history_issue97',
+  'private_verification.brinesearch_route_occurrence_geometry_receipts_issue97',
+  'private_verification.brinesearch_route_occurrence_geometry_history_issue97',
+];
+
+const expectedRouteHistorySequences = [
+  'private_verification.brinesearch_route_occurrence_receipt_history_issue97_id_seq',
+  'private_verification.brinesearch_route_reconciliation_history_issue97_id_seq',
+  'private_verification.brinesearch_route_transition_history_issue97_id_seq',
+  'private_verification.brinesearch_route_occurrence_geometry_history_issue97_id_seq',
+];
+
 const expectedTriggers = [
   'brinesearch_issue97_google_route_graph_stale',
   'brinesearch_issue97_stamp_graph_release_receipt',
@@ -197,7 +220,11 @@ const expectedTriggers = [
   'public_pad_detail_sanitize_route_notes_issue73',
   'brinesearch_issue97_state_candidate_manifest_immutable',
   'brinesearch_issue97_state_candidate_manifest_member_immutable',
+  'brinesearch_clear_stale_route_step_identity_issue70',
+  'brinesearch_issue97_google_route_steps_stale',
 ];
+
+const expectedPublicRouteMutationPattern = String.raw`E'\\m(?:insert[[:space:]]+into|update|delete[[:space:]]+from|merge[[:space:]]+into)[[:space:]]+(?:public\\.)?brinesearch_(?:route_prep|route_prep_steps|pad_roads)\\M'`;
 
 function requireTokens(value, tokens, label) {
   for (const token of tokens) assert.ok(value.includes(token), `${label} missing ${token}`);
@@ -228,6 +255,169 @@ function auditLockOnlyDoBodies(value) {
       /\b(?:insert|update|delete|merge|copy|create|alter|drop|truncate|grant|revoke|vacuum|analyze|refresh\s+materialized|execute|call|raise|return)\b/i,
       `${tag} contains an unauthorized statement or dynamic execution`);
   }
+}
+
+function auditProtectedBaselines(value) {
+  const relationState = marked(value,
+    'route_relation_protected_state as materialized (',
+    '),\nroute_relation_protected_rows(ordinal,relation_name,row_count,row_digest) as (',
+    'route protected relation state');
+  const relationRows = marked(value,
+    'route_relation_protected_rows(ordinal,relation_name,row_count,row_digest) as (',
+    '),\nroute_relation_protected_digest as materialized (',
+    'route protected relation rows');
+  let previous = -1;
+  for (const relation of expectedProtectedRouteRelations) {
+    assert.ok(relationState.includes(relation),
+      `route protected state missing ${relation}`);
+    assert.equal(occurrences(relationRows, `'${relation}'`), 1,
+      `route protected row list must contain ${relation} exactly once`);
+    const current = relationRows.indexOf(`'${relation}'`);
+    assert.ok(current > previous, `route protected relation order drifted at ${relation}`);
+    previous = current;
+  }
+  requireTokens(relationState, [
+    'route_prep_rows', 'route_prep_digest',
+    'route_prep_steps_rows', 'route_prep_steps_digest',
+    'pad_roads_rows', 'pad_roads_digest',
+    'occurrence_candidates_rows', 'occurrence_candidates_digest',
+    'occurrence_receipts_rows', 'occurrence_receipts_digest',
+    'occurrence_history_rows', 'occurrence_history_digest',
+    'reconciliation_receipts_rows', 'reconciliation_receipts_digest',
+    'reconciliation_history_rows', 'reconciliation_history_digest',
+    'transition_receipts_rows', 'transition_receipts_digest',
+    'transition_history_rows', 'transition_history_digest',
+    'geometry_receipts_rows', 'geometry_receipts_digest',
+    'geometry_history_rows', 'geometry_history_digest',
+    'pg_catalog.md5(pg_catalog.to_jsonb(',
+  ], 'route protected full-row receipts');
+  requireTokens(value, [
+    'route_protection.relation_rows=12',
+    'route_protection.distinct_relation_rows=12',
+    "'route_relation_count',route_protection.relation_rows",
+    "'route_relations_protected_digest',route_protection.combined_digest",
+  ], 'route protected combined receipt');
+
+  const sequenceBlock = marked(value,
+    'route_history_sequence_authority(',
+    '),\nroute_history_sequence_state as materialized (',
+    'route history sequence authority');
+  for (const sequence of expectedRouteHistorySequences) {
+    assert.equal(occurrences(sequenceBlock, sequence), 3,
+      `route history sequence authority must bind ${sequence} three ways`);
+  }
+  requireTokens(value, [
+    'route_sequences.rows=4',
+    'route_sequences.distinct_sequence_rows=4',
+    'route_sequences.exact_name_rows=4',
+    "'route_history_sequence_state_digest',route_sequences.sequence_state_digest",
+    "'ROUTE_HISTORY_SEQUENCE_AUTHORITY'",
+  ], 'route history sequence receipt');
+
+  const savedBlock = marked(value,
+    'saved_road_protected_state as materialized (',
+    '),\ngoogle_state as materialized (',
+    'saved-road protected state');
+  for (const relation of [
+    'private_verification.brinesearch_issue97_saved_road_release_baseline',
+    'private_verification.brinesearch_issue97_saved_road_reconciliation_runs',
+    'private_verification.brinesearch_issue97_saved_road_reconciliation',
+  ]) assert.ok(savedBlock.includes(relation), `saved-road state missing ${relation}`);
+  requireTokens(value, [
+    'saved_road.baseline_rows=1',
+    'saved_road.run_rows=0',
+    'saved_road.reconciliation_rows=0',
+    "saved_road.run_digest='d41d8cd98f00b204e9800998ecf8427e'",
+    "saved_road.reconciliation_digest='d41d8cd98f00b204e9800998ecf8427e'",
+    "'SAVED_ROAD_PROTECTED_STATE'",
+  ], 'saved-road protected receipt');
+
+  const topologyBlock = marked(value,
+    'topology_protected_state as materialized (',
+    '),\ntopology_protected_digest as materialized (',
+    'topology protected state');
+  for (const relation of [
+    'public.brinesearch_road_junctions',
+    'public.brinesearch_road_junction_anchors',
+    'public.brinesearch_road_junction_memberships',
+  ]) assert.ok(topologyBlock.includes(relation), `topology state missing ${relation}`);
+  requireTokens(topologyBlock, [
+    'junction_rows', 'junction_digest', 'anchor_rows', 'anchor_digest',
+    'membership_rows', 'membership_digest',
+  ], 'topology full-row receipts');
+  requireTokens(value, [
+    'topology.junction_rows>0', 'topology.anchor_rows>0',
+    'topology.membership_rows>0',
+    "'topology_protected_digest',topology.combined_digest",
+    "'TOPOLOGY_PROTECTED_STATE'",
+  ], 'topology protected receipt');
+}
+
+function auditOperationalAuthority(value) {
+  const ingestBlock = marked(value,
+    'ingest_lock_scope_source as materialized (',
+    '),\nactivation_references as materialized (',
+    'ingest lock authority');
+  requireTokens(ingestBlock, [
+    "build.details->'source_run_vector'",
+    'from expected_members member',
+    'order by dataset_id,state_code,county_code',
+    "'brinesearch:issue97:ingest:'||dataset_id::text||':'||county_code",
+    'count(distinct lock_key)',
+  ], 'ingest lock authority');
+  requireTokens(value, [
+    'ingest_locks.rows=38',
+    'ingest_locks.distinct_lock_rows=38',
+    'ingest_locks.complete_rows=38',
+    "'ingest_lock_count',ingest_locks.rows",
+    "'ingest_lock_authority_digest',ingest_locks.authority_digest",
+    "'INGEST_LOCK_AUTHORITY'",
+  ], 'ingest lock output');
+
+  requireTokens(value, [
+    'owner_role.rolname as owner_name',
+    'procedure.proowner::text,owner_role.rolname',
+    'as catalog_md5',
+    'as captured_catalog_rows',
+    'as catalog_authority_digest',
+    'functions.captured_catalog_rows=24',
+    "'catalog_md5',inventory.catalog_md5",
+    "'definition',inventory.definition",
+    "'owner_oid',inventory.proowner,'owner_name',inventory.owner_name",
+    "'activation_function_catalog_authority_digest'",
+  ], 'function catalog authority');
+}
+
+function assertFunctionArity(value, signature, maximumArguments) {
+  const executable = executableSql(value).toLowerCase();
+  const needle = `${signature.toLowerCase()}(`;
+  let offset = 0;
+  let calls = 0;
+  while ((offset = executable.indexOf(needle, offset)) !== -1) {
+    calls += 1;
+    let index = offset + needle.length;
+    let parentheses = 1;
+    let brackets = 0;
+    let commas = 0;
+    let hasArgument = false;
+    for (; index < executable.length && parentheses > 0; index += 1) {
+      const character = executable[index];
+      if (character === '(') parentheses += 1;
+      else if (character === ')') parentheses -= 1;
+      else if (character === '[') brackets += 1;
+      else if (character === ']') brackets -= 1;
+      else if (character === ',' && parentheses === 1 && brackets === 0) commas += 1;
+      else if (parentheses === 1 && !/\s/.test(character)) hasArgument = true;
+      assert.ok(brackets >= 0, `${signature} has an unmatched closing bracket`);
+    }
+    assert.equal(parentheses, 0, `${signature} has an unterminated call`);
+    assert.equal(brackets, 0, `${signature} has an unterminated bracket expression`);
+    const argumentCount = hasArgument ? commas + 1 : 0;
+    assert.ok(argumentCount <= maximumArguments,
+      `${signature} has ${argumentCount} arguments; PostgreSQL permits at most ${maximumArguments}`);
+    offset = index;
+  }
+  assert.ok(calls > 0, `expected at least one ${signature} call`);
 }
 
 const compactSql = (value) => value.replace(/\s+/g, '');
@@ -296,6 +486,9 @@ function assertExactLiteralBlocks(value) {
 function auditAuthority(value) {
   assertExactLiteralBlocks(value);
   auditLockOnlyDoBodies(value);
+  auditProtectedBaselines(value);
+  auditOperationalAuthority(value);
+  assertFunctionArity(value, 'pg_catalog.jsonb_build_object', 100);
   const executable = executableSql(value).toLowerCase();
 
   assert.equal(occurrences(value, '\\set ON_ERROR_STOP on'), 1,
@@ -312,6 +505,42 @@ function auditAuthority(value) {
     'authority extractor must have the exact finite statement timeout');
   assert.match(value, /set local lock_timeout='2min'/i,
     'authority extractor must have the exact finite lock timeout');
+  assert.match(value, /set local timezone='UTC'/i,
+    'authority extractor must canonicalize timestamptz serialization');
+  assert.match(value, /set local datestyle='ISO, YMD'/i,
+    'authority extractor must canonicalize date serialization');
+  assert.match(value, /set local extra_float_digits=3/i,
+    'authority extractor must canonicalize floating-point serialization');
+  assert.match(value, /set local standard_conforming_strings=on/i,
+    'authority extractor must pin standard string semantics');
+
+  const matcherBlock = marked(value,
+    'public_route_mutation_matcher(pattern) as (',
+    '),\nroute_function_expected(ordinal,signature,expected_md5,forbidden_md5) as (',
+    'public-route mutation matcher');
+  assert.equal(compactSql(matcherBlock), `values(${expectedPublicRouteMutationPattern})`,
+    'public-route mutation matcher must use the exact PostgreSQL ARE escape string');
+  const matcherStateBlock = marked(value,
+    'public_route_mutation_matcher_state as materialized (',
+    '),\ntrigger_expected(', 'public-route mutation matcher self-test');
+  requireTokens(matcherStateBlock, [
+    "'UPDATE public.brinesearch_pad_roads SET road_id=road_id'~*pattern",
+    "'insert into private_verification.brinesearch_route_transition_history_issue97 default values'~*pattern",
+    'as positive_matches', 'as negative_matches',
+  ], 'public-route mutation matcher self-test');
+
+  for (const token of [
+    "old.owner_decision='pending'",
+    'new.raw_text is distinct from old.raw_text',
+    'unmatched_saved_road_name', 'explicit_in_saved_directions',
+    'state_context_candidate_only', 'new.road_id:=null',
+    'new.distance_miles:=null', "new.geometry_status:='not_started'",
+  ]) {
+    assert.ok(source.routeStepGuard.includes(token),
+      `tracked route-step guard migration missing ${token}`);
+    assert.ok(value.includes(token.replaceAll("'", "''")),
+      `live route-step guard shape check missing ${token}`);
+  }
 
   assert.doesNotMatch(executable,
     /\b(?:insert|update|delete|merge|copy|create|alter|drop|truncate|grant|revoke|vacuum|analyze|refresh\s+materialized)\b/i,
@@ -370,12 +599,16 @@ function auditAuthority(value) {
     "'ROUTE_FUNCTION_AUTHORITY'",
     "'ROUTE_DEPENDENCY_FUNCTION_AUTHORITY'",
     "'ROUTE_RELATION_TRIGGER_AUTHORITY'",
+    "'PUBLIC_ROUTE_RELATION_TRIGGER_AUTHORITY'",
     'route_function_expected(ordinal,signature,expected_md5,forbidden_md5)',
     'route_function_authority as materialized',
     'route_functions.rows=33',
     'route_functions.present_rows=33',
     'route_functions.distinct_oid_rows=33',
     'route_functions.captured_hash_rows=33',
+    'route_functions.captured_definition_rows=33',
+    'route_functions.captured_catalog_rows=33',
+    'route_functions.direct_public_route_mutator_rows=0',
     'route_functions.stale_hash_rows=0',
     'route_dependency_function_expected(ordinal,signature)',
     'route_dependency_function_authority as materialized',
@@ -383,8 +616,27 @@ function auditAuthority(value) {
     'route_dependencies.present_rows=11',
     'route_dependencies.distinct_oid_rows=11',
     'route_dependencies.captured_hash_rows=11',
+    'route_dependencies.captured_definition_rows=11',
+    'route_dependencies.captured_catalog_rows=11',
+    'route_dependencies.direct_public_route_mutator_rows=0',
     'route_relation_triggers.trigger_rows=0',
     'route_relation_triggers_ok',
+    'public_route_relation_expected(',
+    'public_route_relation_trigger_authority as materialized',
+    'public_route_triggers.rows=3',
+    'public_route_triggers.present_rows=3',
+    'public_route_triggers.trigger_rows=2',
+    'public_route_triggers.exact_count_rows=3',
+    'public_route_triggers_ok',
+    "(1,'public','brinesearch_route_prep',0)",
+    "(2,'public','brinesearch_route_prep_steps',1)",
+    "(3,'public','brinesearch_pad_roads',1)",
+    "'public_route_trigger_authority_digest'",
+    "'O'::\"char\",19::smallint,array['raw_text','match_method']",
+    "'O'::\"char\",29::smallint,array[]::text[]",
+    'route_step_identity_clear_shape_exact',
+    "'selected_route_function_catalog_authority_digest'",
+    "'route_dependency_function_catalog_authority_digest'",
     'receipt_route_revision=route_revision',
     'generated_at=(select install_timestamp from permanent_install_state)',
     'updated_at=(select install_timestamp from permanent_install_state)',
@@ -419,6 +671,7 @@ function auditAuthority(value) {
     'private_verification.brinesearch_issue97_graph_source_content_digest(uuid)',
     'private_verification.brinesearch_issue97_state_candidate_manifest_authorizes_build(text,uuid)',
     'private_verification.brinesearch_issue97_invalidate_google_route_trigger()',
+    'private_verification.brinesearch_clear_stale_route_step_identity_issue70()',
     'private_verification.brinesearch_issue97_hold_google_route(uuid,bigint,text,jsonb,text)',
     'private_verification.brinesearch_issue97_queue_google_route_refresh(uuid,text)',
     'private_verification.brinesearch_issue97_process_google_route_refresh_queue()',
@@ -450,6 +703,26 @@ function auditAuthority(value) {
     'route dependency functions');
   assert.equal((dependencyBlock.match(/\(\d+,'private_verification\.brinesearch_issue97_[a-z0-9_]+\([^\n]*\)'/g) ?? []).length,
     11, 'route dependency authority must contain exactly 11 pinned signatures');
+
+  const selectedAuthorityBlock = marked(value,
+    'route_function_authority as materialized (',
+    '),\nroute_function_state as materialized (',
+    'selected route function authority');
+  const dependencyAuthorityBlock = marked(value,
+    'route_dependency_function_authority as materialized (',
+    '),\nroute_dependency_function_state as materialized (',
+    'route dependency function authority');
+  for (const [label, block] of [
+    ['selected route function authority', selectedAuthorityBlock],
+    ['route dependency function authority', dependencyAuthorityBlock],
+  ]) requireTokens(block, [
+    'pg_catalog.pg_get_functiondef(procedure.oid) as definition',
+    'language.oid as language_oid',
+    'procedure.prokind',
+    'procedure.proowner as owner_oid',
+    'as catalog_md5',
+    'has_function_privilege',
+  ], label);
 
   for (const trigger of expectedTriggers)
     assert.ok(value.includes(trigger), `trigger inventory missing ${trigger}`);
@@ -510,6 +783,42 @@ const mutations = [
     'pg_catalog.octet_length(tgargs)>=0'),
   source.authority.replace('receipt_route_revision=route_revision',
     'receipt_route_revision<>route_revision'),
+  source.authority.replace("set local timezone='UTC';", ''),
+  source.authority.replace('as occurrence_candidates_digest',
+    'as occurrence_candidates_missing_digest'),
+  source.authority.replace('route_protection.relation_rows=12',
+    'route_protection.relation_rows>=0'),
+  source.authority.replace(expectedRouteHistorySequences[0],
+    'private_verification.brinesearch_route_occurrence_receipt_history_missing_id_seq'),
+  source.authority.replace('saved_road.run_rows=0',
+    'saved_road.run_rows>=0'),
+  source.authority.replace('ingest_locks.rows=38',
+    'ingest_locks.rows>=0'),
+  source.authority.replace('as membership_digest',
+    'as membership_missing_digest'),
+  source.authority.replace('functions.captured_catalog_rows=24',
+    'functions.captured_catalog_rows>=0'),
+  source.authority.replace('public_route_triggers.trigger_rows=2',
+    'public_route_triggers.trigger_rows>=0'),
+  source.authority.replaceAll('brinesearch_issue97_google_route_steps_stale',
+    'unauthorized_public_route_trigger'),
+  source.authority.replaceAll(
+    'private_verification.brinesearch_clear_stale_route_step_identity_issue70()',
+    'private_verification.brinesearch_missing_route_step_identity_guard()'),
+  source.authority.replace('route_functions.captured_definition_rows=33',
+    'route_functions.captured_definition_rows>=0'),
+  source.authority.replace('route_dependencies.captured_catalog_rows=11',
+    'route_dependencies.captured_catalog_rows>=0'),
+  source.authority.replace("'definition',inventory.definition",
+    "'definition_omitted',null"),
+  source.authority.replace(expectedPublicRouteMutationPattern,
+    expectedPublicRouteMutationPattern.replaceAll('\\\\', '\\\\\\\\')),
+  source.authority.replace(
+    'UPDATE public.brinesearch_pad_roads SET road_id=road_id',
+    'SELECT road_id FROM public.brinesearch_pad_roads'),
+  source.authority.replace(
+    ") || pg_catalog.jsonb_build_object(\n    'topology_junction_count'",
+    ",\n    'topology_junction_count'"),
   source.authority.replace('-- EXACT_FINAL_412_END',
     "    ('00000000-0000-0000-0000-000000000000'::uuid)\n-- EXACT_FINAL_412_END"),
 ];
