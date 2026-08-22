@@ -735,6 +735,9 @@ function auditAuthority(value) {
     'proconfig', 'proacl', 'aclexplode', 'has_function_privilege',
     'relrowsecurity', 'relforcerowsecurity', 'has_table_privilege',
   ], 'function/trigger/table security catalog');
+  assert.equal(occurrences(value,
+    'pg_catalog.array_agg(attribute.attname::text order by key.ordinality)'), 2,
+  'trigger attribute projections must be explicitly typed as text arrays');
 
   assert.match(value, /active_counties_exact|county_registry_exact/i,
     'authority extractor must prove the exact active Ohio county registry');
@@ -781,6 +784,9 @@ const mutations = [
     'tgqual is null and tgnargs>=0'),
   source.authority.replace('pg_catalog.octet_length(tgargs)=0',
     'pg_catalog.octet_length(tgargs)>=0'),
+  source.authority.replace(
+    'pg_catalog.array_agg(attribute.attname::text order by key.ordinality)',
+    'pg_catalog.array_agg(attribute.attname order by key.ordinality)'),
   source.authority.replace('receipt_route_revision=route_revision',
     'receipt_route_revision<>route_revision'),
   source.authority.replace("set local timezone='UTC';", ''),

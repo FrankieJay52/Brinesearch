@@ -2629,7 +2629,7 @@ trigger_inventory as materialized (
     trigger.tgfoid,trigger.tgconstraint,
     trigger.tgdeferrable,trigger.tginitdeferred,trigger.tgisinternal,
     trigger.tgattr,trigger.tgqual,trigger.tgnargs,trigger.tgargs,
-    coalesce((select pg_catalog.array_agg(attribute.attname order by key.ordinality)
+    coalesce((select pg_catalog.array_agg(attribute.attname::text order by key.ordinality)
       from pg_catalog.unnest(trigger.tgattr::smallint[])
         with ordinality key(attnum,ordinality)
       join pg_catalog.pg_attribute attribute
@@ -2668,7 +2668,7 @@ relevant_trigger_catalog as materialized (
     trigger.tgenabled,trigger.tgtype,trigger.tgfoid,trigger.tgconstraint,
     trigger.tgdeferrable,trigger.tginitdeferred,trigger.tgisinternal,
     trigger.tgattr,trigger.tgqual,trigger.tgnargs,trigger.tgargs,
-    coalesce((select pg_catalog.array_agg(attribute.attname order by key.ordinality)
+    coalesce((select pg_catalog.array_agg(attribute.attname::text order by key.ordinality)
       from pg_catalog.unnest(trigger.tgattr::smallint[])
         with ordinality key(attnum,ordinality)
       join pg_catalog.pg_attribute attribute
