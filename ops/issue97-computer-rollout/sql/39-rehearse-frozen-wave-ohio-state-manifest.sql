@@ -4,6 +4,8 @@
 
 -- Rollback-only production rehearsal. The core owns no transaction ending.
 begin isolation level serializable;
+set local statement_timeout='15min';
+set local lock_timeout='2min';
 set local brinesearch.issue97_frozen_wave_manifest_transaction=
   'issue97-ohio-r3-frozen-wave-manifest-v1';
 \ir 38-frozen-wave-ohio-state-manifest-core.sql
@@ -12,6 +14,7 @@ rollback;
 -- Prove the rollback removed the successor header and every child row.
 begin isolation level repeatable read read only;
 set local statement_timeout='2min';
+set local lock_timeout='2min';
 select
   (select count(*) from private_verification.brinesearch_issue97_state_candidate_manifests)=1
   and (select count(*) from private_verification.brinesearch_issue97_state_candidate_manifests

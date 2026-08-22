@@ -288,11 +288,18 @@ function auditRehearsal(value) {
     'rehearsal must roll back both transactions');
   assert.equal((executable.match(/\bcommit\b/g) ?? []).length, 0,
     'rehearsal must never commit');
+  assert.equal((executable.match(/\bset\s+local\s+statement_timeout\s*=/g) ?? []).length, 2,
+    'rehearsal must set one finite statement timeout per transaction');
+  assert.equal((executable.match(/\bset\s+local\s+lock_timeout\s*=/g) ?? []).length, 2,
+    'rehearsal must set one finite lock timeout per transaction');
   assert.equal(occurrences(value, '\\ir 38-frozen-wave-ohio-state-manifest-core.sql'), 1,
     'rehearsal must include the exact core once');
   requireTokens(value, [
     'begin isolation level serializable;',
     'begin isolation level repeatable read read only;',
+    "set local statement_timeout='15min';",
+    "set local statement_timeout='2min';",
+    "set local lock_timeout='2min';",
     "'issue97-ohio-r3-frozen-wave-manifest-v1'",
     'ISSUE97_FROZEN_WAVE_OHIO_MANIFEST_REHEARSAL|PASS|ROLLBACK_ONLY',
   ], 'rollback rehearsal');
@@ -308,10 +315,16 @@ function auditPersist(value) {
     'permanent wrapper must commit exactly once');
   assert.equal((executable.match(/\brollback\b/g) ?? []).length, 0,
     'permanent wrapper must not contain a retry/rollback branch');
+  assert.equal((executable.match(/\bset\s+local\s+statement_timeout\s*=/g) ?? []).length, 1,
+    'permanent wrapper must set exactly one finite statement timeout');
+  assert.equal((executable.match(/\bset\s+local\s+lock_timeout\s*=/g) ?? []).length, 1,
+    'permanent wrapper must set exactly one finite lock timeout');
   assert.equal(occurrences(value, '\\ir 38-frozen-wave-ohio-state-manifest-core.sql'), 1,
     'permanent wrapper must include the exact core once');
   requireTokens(value, [
     'begin isolation level serializable;',
+    "set local statement_timeout='15min';",
+    "set local lock_timeout='2min';",
     "'issue97-ohio-r3-frozen-wave-manifest-v1'",
     'ISSUE97_FROZEN_WAVE_OHIO_MANIFEST_PERSIST|COMMITTED',
   ], 'permanent wrapper');
