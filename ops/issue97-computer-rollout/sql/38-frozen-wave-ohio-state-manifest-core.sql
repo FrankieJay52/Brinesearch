@@ -354,7 +354,7 @@ with new_manifest as materialized (
       and member_count=19
       and manifest_digest='77cb00cf83ad8bab4a45c9b552626f76'
       and review_details->>'repository_pin_checkpoint_id'='5378340646'
-      and pg_catalog.jsonb_object_length(review_details)=31
+      and (select count(*) from pg_catalog.jsonb_object_keys(review_details))=31
       and review_details->>'reviewed_by'=
         'Codex sole writer under repository-owner production-manifest authorization'
       and nullif(pg_catalog.btrim(review_details->>'reviewed_at'),'') is not null

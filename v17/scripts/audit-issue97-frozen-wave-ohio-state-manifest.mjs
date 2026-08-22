@@ -252,8 +252,10 @@ function auditCore(value) {
   assert.match(value,
     /union[\s\S]*?jsonb_array_elements\s*\([\s\S]*?source_run_vector[\s\S]*?order by lock_scope\.dataset_id,lock_scope\.state_code,lock_scope\.county_code/i,
     'manifest core must lock all exact build source-vector scopes plus required Ohio scopes');
-  assert.match(value, /jsonb_object_length\(review_details\)=31/i,
+  assert.match(value, /\(select count\(\*\) from pg_catalog\.jsonb_object_keys\(review_details\)\)=31/i,
     'manifest core must bind the complete 31-key immutable review receipt');
+  assert.doesNotMatch(value, /jsonb_object_length/i,
+    'manifest core must not use the nonexistent PostgreSQL jsonb_object_length function');
   for (const flag of [
     'activation_authorized', 'activation_impact_reviewed',
     'route_reconciliation_authorized', 'private_google_refresh_authorized',
@@ -389,10 +391,12 @@ function auditVerify(value) {
     "'5653fb3e85b9a9962dbcc9f5af0329e7'",
     "'6471a34ccf42d058b846776d23cb0216'",
     "pg_catalog.current_setting('session_replication_role')='origin'",
-    "pg_catalog.jsonb_object_length(review_details)=31",
+    "(select count(*) from pg_catalog.jsonb_object_keys(review_details))=31",
     "pg_catalog.pg_try_advisory_xact_lock(",
     "coalesce(activity.query,'') ilike '%brinesearch_issue97_activate_graph_build%'",
   ]) assert.ok(value.includes(token), `postcommit verifier missing hardened token ${token}`);
+  assert.doesNotMatch(value, /jsonb_object_length/i,
+    'postcommit verifier must not use the nonexistent PostgreSQL jsonb_object_length function');
 }
 
 auditCore(source.core);
