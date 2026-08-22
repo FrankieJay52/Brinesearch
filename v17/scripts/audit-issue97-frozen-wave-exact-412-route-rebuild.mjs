@@ -138,6 +138,32 @@ function validate(source) {
     source.includes("'7776affed9bb9dd931aa86116e490a68'"),
     "protected public/non-Ohio baseline missing");
 
+  fail(occurrences(source, /issue97_resolved_unmapped_before/g) >= 8 &&
+    occurrences(source, /issue97_resolved_unmapped_after/g) >= 4 &&
+    /count\(\*\) from pg_temp\.issue97_resolved_unmapped_before\)<>70/.test(source) &&
+    /count\(distinct route_prep_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>47/.test(source) &&
+    /count\(distinct identity_id\)[\s\S]{0,80}issue97_resolved_unmapped_before\)<>36/.test(source) &&
+    occurrences(source, /4cb91c0970863c971465edd17fb84bfd/g) === 1,
+  "resolved/unmapped before-set authority missing");
+  fail(source.includes("blocker.resolution_method<>'route_graph_unique_identity_path'") &&
+    source.includes("identity.source_identity_key is distinct from") &&
+    source.includes("identity.source_digest is distinct from blocker.source_digest") &&
+    source.includes("brinesearch_issue97_mapping_fingerprint(") &&
+    /brinesearch_issue97_dataset_scope_current\([\s\S]{0,150}\) is distinct from true/.test(source),
+  "resolved/unmapped semantic currentness proof missing");
+  fail(/from pg_temp\.issue97_resolved_unmapped_after blocker_after\s+except[\s\S]{0,600}from pg_temp\.issue97_resolved_unmapped_before blocker_before/.test(source),
+    "no-new-resolved/unmapped subset proof missing");
+  fail(/receipt\.canonical_road_id is null and exists\([\s\S]{0,300}mapping\.identity_id=receipt\.identity_id[\s\S]{0,200}mapping\.mapping_status='verified'/.test(source) &&
+    /receipt\.canonical_road_id is not null and not exists\([\s\S]{0,300}mapping\.identity_id=receipt\.identity_id[\s\S]{0,200}mapping\.road_id=receipt\.canonical_road_id[\s\S]{0,200}mapping\.mapping_status='verified'/.test(source) &&
+    !source.includes("resolved target occurrence lacks verified mapping"),
+  "resolved occurrence two-way mapping coherence proof missing");
+  fail(source.includes("'resolved_unmapped_before',unmapped_before.receipt_count") &&
+    source.includes("'resolved_unmapped_before_digest',unmapped_before.receipt_digest") &&
+    source.includes("'resolved_unmapped_after',unmapped_after.receipt_count") &&
+    source.includes("'resolved_unmapped_after_digest',unmapped_after.receipt_digest") &&
+    source.includes("'new_resolved_unmapped_blockers',0"),
+  "resolved/unmapped deterministic receipt missing");
+
   for (const relation of mutablePrivateRelations) {
     fail(occurrences(source, new RegExp(escapeRegExp(relation), "g")) >= 2,
       "non-target before/after guard missing for " + relation);
@@ -259,6 +285,24 @@ const mutations = [
     "select pg_catalog.setval(" +
       "'private_verification.brinesearch_route_reconciliation_history_issue97_id_seq',1);\n" +
       "  commit;")],
+  ["blocker baseline digest", sql.replace(
+    "4cb91c0970863c971465edd17fb84bfd",
+    "00000000000000000000000000000000")],
+  ["blocker baseline count", sql.replace(
+    "from pg_temp.issue97_resolved_unmapped_before)<>70",
+    "from pg_temp.issue97_resolved_unmapped_before)<>71")],
+  ["blocker source currentness", sql.replace(
+    "brinesearch_issue97_dataset_scope_current(",
+    "brinesearch_issue97_dataset_scope_stale(")],
+  ["blocker subset", sql.replace(
+    "from pg_temp.issue97_resolved_unmapped_after blocker_after",
+    "from pg_temp.issue97_resolved_unmapped_before blocker_after")],
+  ["null canonical coherence", sql.replace(
+    "or (receipt.canonical_road_id is null and exists(",
+    "or (false and exists(")],
+  ["blocker receipt", sql.replace(
+    "'new_resolved_unmapped_blockers',0",
+    "'new_resolved_unmapped_blockers',1")],
 ];
 for (const [label, mutated] of mutations) {
   assert.ok(validate(mutated).length > 0,
@@ -273,6 +317,11 @@ console.log(JSON.stringify({
   mutable_private_relations: mutablePrivateRelations.length,
   pinned_function_hashes: expectedFunctionHashes.size,
   mutation_cases: mutations.length,
+  preexisting_resolved_unmapped_receipts: 70,
+  preexisting_resolved_unmapped_routes: 47,
+  preexisting_resolved_unmapped_identities: 36,
+  preexisting_resolved_unmapped_digest:
+    "4cb91c0970863c971465edd17fb84bfd",
   production_access: false,
   repository_write: false,
 }));

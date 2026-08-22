@@ -547,6 +547,36 @@ begin
 end
 $issue97_route_rebuild_locks$;
 
+-- The phase-1 release gate intentionally permits an authoritative identity to
+-- be resolved before a reviewed canonical-road mapping exists.  Pin the exact
+-- pre-existing release blockers so this route rebuild may remove/hold them but
+-- can never create a new one.
+create temporary table issue97_resolved_unmapped_before(
+  route_prep_id uuid not null,
+  route_prep_step_id uuid primary key,
+  identity_id uuid not null,
+  source_identity_key text not null,
+  source_digest text not null,
+  mapping_fingerprint text not null,
+  resolution_method text not null
+) on commit drop;
+
+insert into pg_temp.issue97_resolved_unmapped_before
+select receipt.route_prep_id,receipt.route_prep_step_id,receipt.identity_id,
+  receipt.source_identity_key,receipt.source_digest,receipt.mapping_fingerprint,
+  receipt.resolution_method
+from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
+join pg_temp.issue97_frozen_routes frozen
+  on frozen.route_prep_id=receipt.route_prep_id
+where receipt.resolution_status='resolved'
+  and receipt.canonical_road_id is null
+  and not exists(
+    select 1 from public.brinesearch_road_identity_mappings mapping
+    where mapping.identity_id=receipt.identity_id
+      and mapping.mapping_status='verified'
+  )
+order by receipt.route_prep_id,receipt.route_prep_step_id;
+
 create temporary table issue97_non_target_before(
   ordinal integer primary key,
   relation_name text not null unique,
@@ -947,6 +977,38 @@ begin
        where not current) then
     raise exception 'Issue #97 successor manifest cache preparation failed';
   end if;
+
+  if (select count(*) from pg_temp.issue97_resolved_unmapped_before)<>70
+     or (select count(distinct route_prep_id)
+       from pg_temp.issue97_resolved_unmapped_before)<>47
+     or (select count(distinct identity_id)
+       from pg_temp.issue97_resolved_unmapped_before)<>36
+     or (select pg_catalog.md5(coalesce(pg_catalog.string_agg(
+       blocker.route_prep_id::text||':'||blocker.route_prep_step_id::text||':'||
+         blocker.identity_id::text||':'||blocker.source_identity_key,
+       '|' order by blocker.route_prep_id,blocker.route_prep_step_id
+     ),'')) from pg_temp.issue97_resolved_unmapped_before blocker)
+       <>'4cb91c0970863c971465edd17fb84bfd'
+     or exists(
+       select 1
+       from pg_temp.issue97_resolved_unmapped_before blocker
+       left join public.brinesearch_authoritative_road_identities identity
+         on identity.id=blocker.identity_id
+       where blocker.resolution_method<>'route_graph_unique_identity_path'
+          or identity.id is null or not identity.active
+          or identity.source_identity_key is distinct from
+            blocker.source_identity_key
+          or identity.source_digest is distinct from blocker.source_digest
+          or blocker.mapping_fingerprint is distinct from
+            private_verification.brinesearch_issue97_mapping_fingerprint(
+              blocker.identity_id
+            )
+          or private_verification.brinesearch_issue97_dataset_scope_current(
+            identity.dataset_id,identity.state_code,identity.county_code
+          ) is distinct from true
+     ) then
+    raise exception 'Issue #97 pre-existing resolved/unmapped authority changed';
+  end if;
 end
 $issue97_route_rebuild_preflight$;
 
@@ -1142,6 +1204,32 @@ $issue97_route_rebuild_preflight$;
   where not exists(select 1 from pg_temp.issue97_frozen_routes frozen
     where frozen.route_prep_id=history.route_prep_id);
 
+  create temporary table issue97_resolved_unmapped_after(
+    route_prep_id uuid not null,
+    route_prep_step_id uuid primary key,
+    identity_id uuid not null,
+    source_identity_key text not null,
+    source_digest text not null,
+    mapping_fingerprint text not null,
+    resolution_method text not null
+  ) on commit drop;
+
+  insert into pg_temp.issue97_resolved_unmapped_after
+  select receipt.route_prep_id,receipt.route_prep_step_id,receipt.identity_id,
+    receipt.source_identity_key,receipt.source_digest,
+    receipt.mapping_fingerprint,receipt.resolution_method
+  from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
+  join pg_temp.issue97_frozen_routes frozen
+    on frozen.route_prep_id=receipt.route_prep_id
+  where receipt.resolution_status='resolved'
+    and receipt.canonical_road_id is null
+    and not exists(
+      select 1 from public.brinesearch_road_identity_mappings mapping
+      where mapping.identity_id=receipt.identity_id
+        and mapping.mapping_status='verified'
+    )
+  order by receipt.route_prep_id,receipt.route_prep_step_id;
+
   do $issue97_route_rebuild_postcheck$
   declare
     v_transaction_time timestamptz:=pg_catalog.transaction_timestamp();
@@ -1192,19 +1280,69 @@ $issue97_route_rebuild_preflight$;
     end if;
 
     if exists(
+      (select blocker_after.route_prep_id,blocker_after.route_prep_step_id,
+         blocker_after.identity_id,blocker_after.source_identity_key
+       from pg_temp.issue97_resolved_unmapped_after blocker_after
+       except
+       select blocker_before.route_prep_id,blocker_before.route_prep_step_id,
+         blocker_before.identity_id,blocker_before.source_identity_key
+       from pg_temp.issue97_resolved_unmapped_before blocker_before)
+    ) or exists(
+      select 1
+      from pg_temp.issue97_resolved_unmapped_after blocker_after
+      left join public.brinesearch_authoritative_road_identities identity
+        on identity.id=blocker_after.identity_id
+      where blocker_after.resolution_method not in (
+            'explicit_authoritative_source_receipt',
+            'route_graph_unique_identity_path'
+          )
+         or identity.id is null or not identity.active
+         or identity.source_identity_key is distinct from
+           blocker_after.source_identity_key
+         or identity.source_digest is distinct from blocker_after.source_digest
+         or blocker_after.mapping_fingerprint is distinct from
+           private_verification.brinesearch_issue97_mapping_fingerprint(
+             blocker_after.identity_id
+           )
+         or private_verification.brinesearch_issue97_dataset_scope_current(
+           identity.dataset_id,identity.state_code,identity.county_code
+         ) is distinct from true
+    ) then
+      raise exception 'Issue #97 route rebuild created a new resolved/unmapped blocker';
+    end if;
+
+    if exists(
       select 1
       from private_verification.brinesearch_route_occurrence_receipts_issue97 receipt
       join pg_temp.issue97_frozen_routes frozen
         on frozen.route_prep_id=receipt.route_prep_id
-      left join public.brinesearch_road_identity_mappings mapping
-        on mapping.identity_id=receipt.identity_id
-       and mapping.road_id=receipt.canonical_road_id
-       and mapping.mapping_status='verified'
       where receipt.resolution_status='resolved'
-        and (receipt.identity_id is null or receipt.canonical_road_id is null
-          or mapping.identity_id is null)
+        and (
+          receipt.identity_id is null
+          or receipt.source_identity_key is null
+          or receipt.driver_road_name is null
+          or receipt.source_digest is null
+          or receipt.hold_reason is not null
+          or receipt.resolved_at is null
+          or receipt.resolution_method is null
+          or receipt.resolution_method not in (
+            'explicit_authoritative_source_receipt',
+            'route_graph_unique_identity_path'
+          )
+          or (receipt.canonical_road_id is null and exists(
+            select 1 from public.brinesearch_road_identity_mappings mapping
+            where mapping.identity_id=receipt.identity_id
+              and mapping.mapping_status='verified'
+          ))
+          or (receipt.canonical_road_id is not null and not exists(
+            select 1 from public.brinesearch_road_identity_mappings mapping
+            where mapping.identity_id=receipt.identity_id
+              and mapping.road_id=receipt.canonical_road_id
+              and mapping.mapping_status='verified'
+          ))
+        )
     ) then
-      raise exception 'Issue #97 resolved target occurrence lacks verified mapping';
+      raise exception 'Issue #97 resolved target occurrence coherence failed';
     end if;
 
     if exists(
@@ -1345,6 +1483,26 @@ $issue97_route_rebuild_preflight$;
       '|' order by ordinal
     )) as digest
     from pg_temp.issue97_non_target_after
+  ), unmapped_before as (
+    select count(*)::integer as receipt_count,
+      count(distinct route_prep_id)::integer as route_count,
+      count(distinct identity_id)::integer as identity_count,
+      pg_catalog.md5(coalesce(pg_catalog.string_agg(
+        route_prep_id::text||':'||route_prep_step_id::text||':'||
+          identity_id::text||':'||source_identity_key,
+        '|' order by route_prep_id,route_prep_step_id
+      ),'')) as receipt_digest
+    from pg_temp.issue97_resolved_unmapped_before
+  ), unmapped_after as (
+    select count(*)::integer as receipt_count,
+      count(distinct route_prep_id)::integer as route_count,
+      count(distinct identity_id)::integer as identity_count,
+      pg_catalog.md5(coalesce(pg_catalog.string_agg(
+        route_prep_id::text||':'||route_prep_step_id::text||':'||
+          identity_id::text||':'||source_identity_key,
+        '|' order by route_prep_id,route_prep_step_id
+      ),'')) as receipt_digest
+    from pg_temp.issue97_resolved_unmapped_after
   ), sequence_after as (
     select 1 as ordinal,
       'private_verification.brinesearch_route_occurrence_receipt_history_issue97_id_seq'
@@ -1394,13 +1552,24 @@ $issue97_route_rebuild_preflight$;
       'transition_receipts',target.transition_receipts,
       'geometry_receipts',target.geometry_receipts,
       'route_ready',target.route_ready,'needs_review',target.needs_review,
+      'resolved_unmapped_before',unmapped_before.receipt_count,
+      'resolved_unmapped_before_routes',unmapped_before.route_count,
+      'resolved_unmapped_before_identities',unmapped_before.identity_count,
+      'resolved_unmapped_before_digest',unmapped_before.receipt_digest,
+      'resolved_unmapped_after',unmapped_after.receipt_count,
+      'resolved_unmapped_after_routes',unmapped_after.route_count,
+      'resolved_unmapped_after_identities',unmapped_after.identity_count,
+      'resolved_unmapped_after_digest',unmapped_after.receipt_digest,
+      'new_resolved_unmapped_blockers',0,
       'non_target_route_count',394,
       'non_target_private_state_digest',non_target.digest,
       'history_sequences',sequence_receipt.body,
       'queue',0,'public_google',0,'cutover',false,
       'private_google_refreshed',false,'public_google_projected',false
     )::text
-  from target_metrics target cross join non_target cross join sequence_receipt;
+  from target_metrics target cross join non_target
+    cross join unmapped_before cross join unmapped_after
+    cross join sequence_receipt;
 
   commit;
 \else
@@ -1423,6 +1592,16 @@ $issue97_route_rebuild_preflight$;
       '|' order by ordinal
     )) as digest
     from pg_temp.issue97_non_target_before
+  ), unmapped_before as (
+    select count(*)::integer as receipt_count,
+      count(distinct route_prep_id)::integer as route_count,
+      count(distinct identity_id)::integer as identity_count,
+      pg_catalog.md5(coalesce(pg_catalog.string_agg(
+        route_prep_id::text||':'||route_prep_step_id::text||':'||
+          identity_id::text||':'||source_identity_key,
+        '|' order by route_prep_id,route_prep_step_id
+      ),'')) as receipt_digest
+    from pg_temp.issue97_resolved_unmapped_before
   )
   select 'ISSUE97_EXACT_412_ROUTE_REBUILD|'||
     pg_catalog.jsonb_build_object(
@@ -1441,11 +1620,16 @@ $issue97_route_rebuild_preflight$;
       'target_step_digest',target.step_digest,
       'target_pad_count',pads.pad_count,
       'target_pad_digest',pads.pad_digest,
+      'resolved_unmapped_before',unmapped_before.receipt_count,
+      'resolved_unmapped_before_routes',unmapped_before.route_count,
+      'resolved_unmapped_before_identities',unmapped_before.identity_count,
+      'resolved_unmapped_before_digest',unmapped_before.receipt_digest,
       'non_target_route_count',394,
       'non_target_private_state_digest',non_target.digest,
       'queue',0,'public_google',0,'cutover',false
     )::text
-  from target_metrics target cross join pad_metrics pads cross join non_target;
+  from target_metrics target cross join pad_metrics pads cross join non_target
+    cross join unmapped_before;
 
   rollback;
 \endif
