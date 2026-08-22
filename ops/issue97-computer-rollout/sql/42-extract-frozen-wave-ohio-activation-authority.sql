@@ -2134,12 +2134,14 @@ google_state as materialized (
       and pad_status='stale' and pad_revision=route_revision
       and generated_at=(select install_timestamp from permanent_install_state)
       and updated_at=(select install_timestamp from permanent_install_state)
-      and evidence is not null
-      and (select count(*) from pg_catalog.jsonb_object_keys(evidence))=2
+      and google_current.evidence is not null
+      and (select count(*) from pg_catalog.jsonb_object_keys(
+        google_current.evidence
+      ))=2
       and exists(
         select 1 from public.brinesearch_road_identity_mappings witness
-        where witness.identity_id::text=evidence->>'identity_id'
-          and witness.road_id::text=evidence->>'road_id'
+        where witness.identity_id::text=google_current.evidence->>'identity_id'
+          and witness.road_id::text=google_current.evidence->>'road_id'
           and witness.mapping_status='verified'
           and witness.mapping_method in (
             'exact_source_record_id','exact_route_designation'
@@ -2147,13 +2149,13 @@ google_state as materialized (
       )
       and (
         (
-          evidence->>'identity_id'=identity_id::text
-          and evidence->>'road_id'=road_id::text
+          google_current.evidence->>'identity_id'=identity_id::text
+          and google_current.evidence->>'road_id'=road_id::text
         )
         or exists(
           select 1 from public.brinesearch_pad_roads pad_road
           where pad_road.pad_id=google_current.pad_id
-            and pad_road.road_id::text=evidence->>'road_id'
+            and pad_road.road_id::text=google_current.evidence->>'road_id'
         )
       )
     ) from google_current),false) as canonical_exact,
