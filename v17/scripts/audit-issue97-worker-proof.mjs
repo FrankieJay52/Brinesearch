@@ -51,7 +51,7 @@ for (const [file, expected] of new Map([
   ['ops/issue97-computer-rollout/sql/34-frozen-exact-mapping-wave-route-manifest.sql', '298ea15bfd7f8d388f819db07841e2ba2d54c905'],
   ['supabase/tests/issue97_frozen_route_closure_preinstall.sql', '868b85bea10116ed7908efd205581140fb8e2cf1'],
   ['v17/scripts/audit-issue97-frozen-route-closure.mjs', '3354271741221b181c391bb3cd17fc683c7ea60f'],
-  ['package.json', 'dcdc78bb9921861831f88eeaa217e60e5182cbd2'],
+  ['package.json', 'f0884681388a82a0269e7a8f52a2b6528c80ac3e'],
 ])) assert.equal(gitBlob(file), expected, `audited 412-route closure artifact drifted: ${file}`);
 
 assert.equal(manifest.schema_version, 3);
