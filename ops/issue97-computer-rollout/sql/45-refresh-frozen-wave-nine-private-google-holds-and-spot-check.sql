@@ -234,7 +234,7 @@ begin
     )
   ) scope;
 
-  if v_ingest_count<>41 or v_ingest_digest<>'2d3c4c7f7b8e21af7ec4d7aaad612c12'
+  if v_ingest_count<>41 or v_ingest_digest<>'531d542c9197c2f9883e80f7657555bc'
      or (select count(*) from tmp_issue97_nine_expected)<>9
      or (select count(*) from tmp_issue97_nine_expected where route_scope='frozen_412')<>5
      or (select pg_catalog.md5(pg_catalog.string_agg(
