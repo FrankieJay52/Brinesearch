@@ -27,11 +27,13 @@ import {
 import {
   ownerRoadCollection,
   ownerRoadFeatureBounds,
+  ownerRoadFeatureLimit,
   ownerRoadJurisdiction,
   ownerRoadRouteLabel,
   ownerRoadSelection,
   ownerRoadStatusColors,
   ownerRoadStatusLabels,
+  ownerRoadViewportRequestKey,
 } from "./ownerRoadMapModel";
 import "./owner-approved-routes.css";
 
@@ -50,6 +52,8 @@ const padSourceId = "brinesearch-owner-selected-pad";
 const padLayerId = "brinesearch-owner-selected-pad-marker";
 const defaultCenter: [number, number] = [-80.72, 40.05];
 const defaultStatuses = new Set<OwnerRoadStatus>(ownerRoadStatuses.filter((status) => status !== "reference_only"));
+const viewportMoveDelay = 240;
+const viewportRequestTimeout = 15_000;
 
 const roadClassLabels: Record<OwnerRoadClass, string> = {
   interstate: "Interstate",
@@ -148,12 +152,6 @@ function syncSelectedPad(map: MapLibreMap, pad: OwnerPadOption | null) {
     features: [{ type: "Feature" as const, properties: { padId: pad.padId, padName: pad.padName }, geometry: { type: "Point" as const, coordinates: [pad.longitude, pad.latitude] } }],
   } : emptyCollection();
   if (map.getSource(padSourceId)) (map.getSource(padSourceId) as GeoJSONSource).setData(data);
-}
-
-function featureLimit(width: number) {
-  if (width < 620) return 340;
-  if (width < 1_100) return 560;
-  return 800;
 }
 
 function fitRoadBounds(map: MapLibreMap, bounds: OwnerRoadBounds) {
@@ -269,7 +267,11 @@ export function OwnerApprovedRoutesPage() {
   const selectedPadRef = useRef<OwnerPadOption | null>(null);
   const requestRef = useRef(0);
   const viewportController = useRef<AbortController | null>(null);
-  const loadViewportRef = useRef<(() => void) | null>(null);
+  const viewportInFlightKeyRef = useRef<string | null>(null);
+  const viewportLoadedKeyRef = useRef<string | null>(null);
+  const viewportMoveTimerRef = useRef<number | null>(null);
+  const mapReadyRef = useRef(false);
+  const loadViewportRef = useRef<((force?: boolean) => void) | null>(null);
   const selectRoadRef = useRef<((identityId: string, focus: boolean) => void) | null>(null);
 
   featuresRef.current = features;
@@ -279,38 +281,59 @@ export function OwnerApprovedRoutesPage() {
   selectedPadRef.current = selectedPad;
 
   const clearRoads = useCallback((message: string) => {
+    requestRef.current += 1;
+    viewportController.current?.abort();
+    viewportController.current = null;
+    viewportInFlightKeyRef.current = null;
+    viewportLoadedKeyRef.current = null;
     setFeatures([]);
+    setSelectedIdentityId(null);
     if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, []);
+    if (mapRef.current) syncSelectedRoad(mapRef.current, null);
     setMapState("warning");
     setMapMessage(message);
   }, []);
 
-  const loadViewport = useCallback(async () => {
+  const loadViewport = useCallback(async (force = false) => {
     const map = mapRef.current;
-    if (!map || access.state !== "owner") return;
+    if (!map || !mapReadyRef.current || access.state !== "owner") return;
     if (!roadClasses.size) return clearRoads("Choose at least one road type. Nothing was inferred.");
     if (!statuses.size) return clearRoads("Choose at least one approval status. Nothing was inferred.");
     const bounds = map.getBounds();
+    const request = {
+      west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth(),
+      zoom: Math.max(0, Math.min(19, Math.round(map.getZoom()))),
+      state: stateFilter || null,
+      county: countyFilter.trim() || null,
+      roadClasses: [...roadClasses],
+      routeSystems: routeSystem ? [routeSystem] : null,
+      statuses: [...statuses],
+      search: search.trim() || null,
+      padId: padId || null,
+      limit: ownerRoadFeatureLimit(map.getContainer().clientWidth),
+    } satisfies Parameters<typeof loadOwnerRoadViewport>[0];
+    const requestKey = ownerRoadViewportRequestKey(request);
+    if (viewportInFlightKeyRef.current === requestKey || !force && viewportLoadedKeyRef.current === requestKey) return;
     const sequence = ++requestRef.current;
     viewportController.current?.abort();
     const controller = new AbortController();
     viewportController.current = controller;
+    viewportInFlightKeyRef.current = requestKey;
+    let timedOut = false;
+    const requestTimeout = window.setTimeout(() => {
+      if (sequence === requestRef.current && viewportController.current === controller) {
+        timedOut = true;
+        controller.abort();
+      }
+    }, viewportRequestTimeout);
     setMapState("loading");
-    setMapMessage("Loading exact current road identities…");
+    setMapMessage(featuresRef.current.length
+      ? `Refreshing ${featuresRef.current.length.toLocaleString()} exact road identities…`
+      : "Loading exact current road identities…");
     try {
-      const viewport = await loadOwnerRoadViewport({
-        west: bounds.getWest(), south: bounds.getSouth(), east: bounds.getEast(), north: bounds.getNorth(),
-        zoom: Math.max(0, Math.min(19, Math.round(map.getZoom()))),
-        state: stateFilter || null,
-        county: countyFilter.trim() || null,
-        roadClasses: [...roadClasses],
-        routeSystems: routeSystem ? [routeSystem] : null,
-        statuses: [...statuses],
-        search: search.trim() || null,
-        padId: padId || null,
-        limit: featureLimit(map.getContainer().clientWidth),
-      }, controller.signal);
+      const viewport = await loadOwnerRoadViewport(request, controller.signal);
       if (sequence !== requestRef.current) return;
+      viewportLoadedKeyRef.current = requestKey;
       setFeatures(viewport.features);
       syncRoadFeatures(map, viewport.features);
       const nextSelection = ownerRoadSelection(viewport.features, selectedIdentityRef.current);
@@ -327,14 +350,41 @@ export function OwnerApprovedRoutesPage() {
         setMapState("ready"); setMapMessage(`${viewport.features.length.toLocaleString()} exact road ${viewport.features.length === 1 ? "identity" : "identities"} loaded in this view.${selectedName ? ` ${selectedName} is selected and highlighted.` : ""}`);
       }
     } catch (error) {
-      if (sequence !== requestRef.current || error instanceof DOMException && error.name === "AbortError") return;
+      if (sequence !== requestRef.current || mapRef.current !== map) return;
+      if (timedOut) {
+        viewportLoadedKeyRef.current = null;
+        setMapState("error");
+        setMapMessage("The exact-road request took too long. Move closer or tap Refresh view.");
+        return;
+      }
+      if (error instanceof DOMException && error.name === "AbortError") {
+        viewportLoadedKeyRef.current = null;
+        setMapState("warning");
+        setMapMessage("The exact-road request was interrupted. Tap Refresh view to try again.");
+        return;
+      }
+      viewportLoadedKeyRef.current = null;
       setFeatures([]);
       if (map.getSource(sourceId)) syncRoadFeatures(map, []);
       setMapState("error");
       setMapMessage(error instanceof Error ? error.message : "Owner road data could not be loaded.");
+    } finally {
+      window.clearTimeout(requestTimeout);
+      if (sequence === requestRef.current) {
+        viewportInFlightKeyRef.current = null;
+        if (viewportController.current === controller) viewportController.current = null;
+      }
     }
   }, [access.state, clearRoads, countyFilter, padId, roadClasses, routeSystem, search, stateFilter, statuses]);
-  loadViewportRef.current = () => { void loadViewport(); };
+  loadViewportRef.current = (force = false) => { void loadViewport(force); };
+
+  const scheduleViewportLoad = useCallback((delay = viewportMoveDelay) => {
+    if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
+    viewportMoveTimerRef.current = window.setTimeout(() => {
+      viewportMoveTimerRef.current = null;
+      loadViewportRef.current?.();
+    }, delay);
+  }, []);
 
   const selectRoad = useCallback((identityId: string, focus: boolean) => {
     setSelectedIdentityId(identityId);
@@ -383,11 +433,12 @@ export function OwnerApprovedRoutesPage() {
       styleReady = true;
       try {
         ensureOwnerRoadLayers(map);
+        mapReadyRef.current = true;
         syncRoadFeatures(map, featuresRef.current);
         syncSelectedRoad(map, selectedIdentityRef.current);
         syncSelectedPad(map, selectedPadRef.current);
         setMapMessage(fallbackApplied ? "Basemap unavailable. Exact road overlays remain available on a reference background." : "Map ready. Loading exact current road identities…");
-        loadViewportRef.current?.();
+        scheduleViewportLoad(0);
       } catch {
         setMapState("error"); setMapMessage("The exact road layers could not be created. No road geometry was substituted.");
       }
@@ -411,30 +462,50 @@ export function OwnerApprovedRoutesPage() {
     };
     map.on("style.load", onStyleLoad);
     map.on("error", onMapError);
-    map.on("moveend", () => loadViewportRef.current?.());
+    const onMoveEnd = () => scheduleViewportLoad();
+    map.on("moveend", onMoveEnd);
     map.on("click", onClick);
     map.on("mousemove", onMove);
     map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
-    const resizeObserver = new ResizeObserver(() => map.resize());
+    let observedWidth = 0;
+    let observedHeight = 0;
+    const resizeObserver = new ResizeObserver(([entry]) => {
+      const width = Math.round(entry?.contentRect.width || 0);
+      const height = Math.round(entry?.contentRect.height || 0);
+      if (!width || !height || width === observedWidth && height === observedHeight) return;
+      observedWidth = width;
+      observedHeight = height;
+      map.resize();
+    });
     resizeObserver.observe(mapHost.current);
     const styleTimeout = window.setTimeout(onMapError, 8_000);
     mapRef.current = map;
     setMapState("loading");
     return () => {
       window.clearTimeout(styleTimeout);
+      if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
+      viewportMoveTimerRef.current = null;
       resizeObserver.disconnect();
+      mapReadyRef.current = false;
+      requestRef.current += 1;
       viewportController.current?.abort();
+      viewportController.current = null;
+      viewportInFlightKeyRef.current = null;
+      viewportLoadedKeyRef.current = null;
       map.remove();
       mapRef.current = null;
     };
-  }, [access.state]);
+  }, [access.state, scheduleViewportLoad]);
 
   useEffect(() => {
-    if (access.state !== "owner" || !mapRef.current) return;
-    const timeout = window.setTimeout(() => loadViewportRef.current?.(), search || countyFilter ? 320 : 80);
-    return () => window.clearTimeout(timeout);
-  }, [access.state, countyFilter, padId, roadClasses, routeSystem, search, stateFilter, statuses]);
+    if (access.state !== "owner" || !mapRef.current || !mapReadyRef.current) return;
+    scheduleViewportLoad(search || countyFilter ? 320 : 120);
+    return () => {
+      if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
+      viewportMoveTimerRef.current = null;
+    };
+  }, [access.state, countyFilter, padId, roadClasses, routeSystem, scheduleViewportLoad, search, stateFilter, statuses]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -473,7 +544,7 @@ export function OwnerApprovedRoutesPage() {
       <label><span>County</span><input value={countyFilter} onChange={(event) => setCountyFilter(event.target.value.slice(0, 100))} placeholder="Code or name"/></label>
       <label><span>Route system</span><select value={routeSystem} onChange={(event) => setRouteSystem(event.target.value)}><option value="">All exact systems</option>{routeSystemOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
       <label className="owner-road-pad-filter"><span><Icon name="location"/>Selected pad route</span><select value={padId} onChange={(event) => { setPadId(event.target.value); setSelectedIdentityId(null); setDetail(null); }}><option value="">All pads</option>{pads.map((pad) => <option key={pad.padId} value={pad.padId}>{pad.company ? `${pad.company} — ` : ""}{pad.padName}</option>)}</select></label>
-      <button type="button" className="button-secondary owner-road-refresh" onClick={() => { void loadViewport(); }}><Icon name="update"/>Refresh view</button>
+      <button type="button" className="button-secondary owner-road-refresh" onClick={() => { void loadViewport(true); }}><Icon name="update"/>Refresh view</button>
     </section>
 
     <details className="owner-road-layer-filters">
