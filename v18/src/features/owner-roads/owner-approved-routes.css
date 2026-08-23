@@ -653,6 +653,13 @@
   color: var(--muted);
 }
 
+.owner-routes-access-card .owner-access-separation {
+  max-width: 560px;
+  color: var(--muted-strong);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+
 .owner-access-actions {
   display: flex;
   flex-wrap: wrap;

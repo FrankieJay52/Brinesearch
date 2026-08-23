@@ -7,6 +7,11 @@
   flex-wrap: wrap;
   justify-content: center;
   gap: 9px;
+  margin-top: 20px;
+}
+
+.control-lock-card .control-center-actions .button-primary {
+  margin-top: 0;
 }
 
 .road-manager-redesign,
@@ -141,5 +146,9 @@
   .road-manager-steps,
   .road-manager-principles {
     grid-template-columns: 1fr;
+  }
+
+  .control-center-actions > * {
+    width: 100%;
   }
 }

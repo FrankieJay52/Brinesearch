@@ -237,9 +237,10 @@ function AccessBoundary({ state, message, onRefresh }: { state: "signed_out" | "
       <span className="eyebrow">OWNER ONLY</span>
       <h1>{state === "signed_out" ? "Sign in before opening the road map" : state === "denied" ? "Owner access is required" : "Owner access is unavailable"}</h1>
       <p>{message}</p>
+      <p className="owner-access-separation">The owner sign-in opens separately so this V18 page and its Back path stay intact. Return here afterward and check access again.</p>
       <div className="owner-access-actions">
-        <a href={legacyBrineSearchPaths.controlCenter} className="button-primary"><Icon name="control"/> {state === "signed_out" ? "Open Road Manager sign-in" : "Open Road Manager"}</a>
-        <button type="button" className="button-secondary" onClick={onRefresh}><Icon name="update"/> Check access again</button>
+        <button type="button" className="button-primary" onClick={onRefresh}><Icon name="update"/> Check access again</button>
+        <a href={legacyBrineSearchPaths.controlCenter} target="_blank" rel="noopener noreferrer" className="button-secondary"><Icon name="control"/> {state === "signed_out" ? "Owner sign-in (new tab)" : "Legacy editor (new tab)"}</a>
       </div>
     </section>
   </section>;
@@ -461,7 +462,7 @@ export function OwnerApprovedRoutesPage() {
   if (access.state !== "owner") return <AccessBoundary state={access.state} message={access.message} onRefresh={() => { void refresh(); }}/>;
 
   return <section className="content-page owner-routes-page">
-    <header className="subpage-topbar"><Link to="/settings" className="icon-button" aria-label="Back to Settings"><Icon name="back"/></Link><span>Approved Routes Map</span><a href={legacyBrineSearchPaths.controlCenter} className="owner-edit-link">Edit roads</a></header>
+    <header className="subpage-topbar"><Link to="/settings" className="icon-button" aria-label="Back to Settings"><Icon name="back"/></Link><span>Approved Routes Map</span><a href={legacyBrineSearchPaths.controlCenter} target="_blank" rel="noopener noreferrer" className="owner-edit-link" aria-label="Open the legacy road editor in a new tab">Legacy editor ↗</a></header>
     <header className="owner-routes-hero">
       <div><span className="eyebrow">OWNER SETTINGS</span><h1>Approved Routes Map</h1><p>Inspect exact road identities, approval evidence, restrictions, route use, and release-current junctions. This view cannot edit or publish road truth.</p></div>
       <span className="owner-readonly-badge">READ ONLY</span>

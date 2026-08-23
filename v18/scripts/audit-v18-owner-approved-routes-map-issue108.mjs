@@ -95,7 +95,16 @@ requireText(app, '<Route path="/settings/approved-routes" element={<OwnerApprove
 requireText(app, "<OwnerAccessProvider>", "V18 owner access provider wiring");
 requireText(settings, 'access.state === "owner"', "owner-only Settings navigation guard");
 requireText(settings, 'to="/settings/approved-routes"', "Settings to owner map connection");
-requireText(controlCenter, 'to="/settings/approved-routes"', "Road Manager control center to map connection");
+requireText(controlCenter, '<Link to="/settings/approved-routes" className="button-primary">', "Road Manager control center primary V18 map connection");
+forbid(controlCenter, /\{access\.state\s*===\s*["']owner["']\s*&&\s*<Link\s+to=["']\/settings\/approved-routes["']/, "V18 map launch is hidden behind the client-side owner check");
+
+const legacyRoadManagerLaunches = [controlCenter, map].flatMap((source) =>
+  source.match(/<a\b[^>]*href=\{legacyBrineSearchPaths\.controlCenter\}[^>]*>/g) ?? [],
+);
+if (legacyRoadManagerLaunches.length !== 3) errors.push(`expected exactly 3 explicit legacy Road Manager launches, found ${legacyRoadManagerLaunches.length}`);
+if (legacyRoadManagerLaunches.some((launch) => !/target=["']_blank["']/.test(launch) || !/rel=["']noopener noreferrer["']/.test(launch))) {
+  errors.push("a legacy Road Manager launch can replace the current V18 tab/history");
+}
 
 forbid(initialMigration + viewportFix + performanceMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
 forbid(initialMigration + viewportFix + performanceMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");

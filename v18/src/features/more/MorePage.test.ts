@@ -9,6 +9,7 @@ describe("V18 More bridge routing", () => {
   const morePage = source("./MorePage.tsx");
   const fieldUpdatesPage = source("./FieldUpdatesPage.tsx");
   const controlCenterPage = source("../control-center/ControlCenterPage.tsx");
+  const ownerRoadMapPage = source("../owner-roads/OwnerApprovedRoutesPage.tsx");
   const app = source("../../app/App.tsx");
 
   it("routes More through the V18 bridge pages", () => {
@@ -21,6 +22,19 @@ describe("V18 More bridge routing", () => {
   it("keeps the legacy launches inside the bridge pages", () => {
     expect(fieldUpdatesPage).toContain("href={legacyBrineSearchPaths.fieldUpdates}");
     expect(controlCenterPage).toContain("href={legacyBrineSearchPaths.controlCenter}");
+  });
+
+  it("keeps Road Manager navigation in V18 unless legacy editing is explicitly opened separately", () => {
+    expect(controlCenterPage).toContain('<Link to="/settings/approved-routes" className="button-primary">');
+    expect(controlCenterPage).not.toContain('{access.state === "owner" && <Link to="/settings/approved-routes"');
+    expect(controlCenterPage).not.toContain("Open the operational Control Center");
+
+    const legacyLaunches = [controlCenterPage, ownerRoadMapPage].flatMap((page) =>
+      page.match(/<a\b[^>]*href=\{legacyBrineSearchPaths\.controlCenter\}[^>]*>/g) ?? [],
+    );
+    expect(legacyLaunches).toHaveLength(3);
+    expect(legacyLaunches.every((launch) => launch.includes('target="_blank"'))).toBe(true);
+    expect(legacyLaunches.every((launch) => launch.includes('rel="noopener noreferrer"'))).toBe(true);
   });
 
   it("keeps both bridge routes registered by the V18 app", () => {

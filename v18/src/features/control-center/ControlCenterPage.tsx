@@ -15,6 +15,7 @@ const roadManagerSteps: { icon: IconName; title: string; detail: string }[] = [
 
 export function ControlCenterPage() {
   const { access } = useOwnerAccess();
+  const isOwner = access.state === "owner";
   return <section className="content-page control-center-page">
     <header className="subpage-topbar">
       <Link to="/more" className="icon-button" aria-label="Back to More"><Icon name="back"/></Link>
@@ -25,16 +26,16 @@ export function ControlCenterPage() {
     <section className="control-lock-card" aria-labelledby="control-lock-title">
       <span className="control-lock-icon"><Icon name="control"/></span>
       <span className="eyebrow">OWNER WORKFLOW</span>
-      <h1 id="control-lock-title">{access.state === "owner" ? "Choose the owner road workspace" : "Open the operational Control Center"}</h1>
-      <p>{access.state === "owner" ? "Use the native V18 map to inspect and highlight exact road identities. Use the existing Road Manager only when you need its separate editing workflow." : "Owner work continues in the existing authenticated BrineSearch Road Manager. Opening it never grants access; the current server-backed role check still applies."}</p>
+      <h1 id="control-lock-title">{isOwner ? "Choose the owner road workspace" : "Open the V18 road workspace"}</h1>
+      <p>{isOwner ? "Use the native V18 map to inspect and highlight exact road identities. Open the legacy editor separately only when you need its editing workflow." : "Road inspection now stays inside V18. Owner access is still checked by the server, and the separate legacy sign-in never replaces this V18 page."}</p>
       <div className="control-boundary-list">
-        <span><Icon name="route"/><b>Road Manager</b><small>Operational owner tool</small></span>
+        <span><Icon name="map"/><b>Approved Routes Map</b><small>Native V18 inspection</small></span>
         <span><Icon name="graph"/><b>Graph health</b><small>Existing protected workflow</small></span>
         <span><Icon name="google"/><b>Held routes</b><small>Existing owner review</small></span>
       </div>
       <div className="control-center-actions">
-        {access.state === "owner" && <Link to="/settings/approved-routes" className="button-primary"><Icon name="map"/> Open Approved Routes Map</Link>}
-        <a href={legacyBrineSearchPaths.controlCenter} className={access.state === "owner" ? "button-secondary" : "button-primary"}><Icon name="control"/> {access.state === "owner" ? "Open editing Road Manager" : "Open Control Center"}</a>
+        <Link to="/settings/approved-routes" className="button-primary"><Icon name="map"/> {isOwner ? "Open Approved Routes Map" : "Continue to V18 Road Map"}</Link>
+        <a href={legacyBrineSearchPaths.controlCenter} target="_blank" rel="noopener noreferrer" className="button-secondary"><Icon name="control"/> {access.state === "signed_out" ? "Owner sign-in (new tab)" : "Legacy editor (new tab)"}</a>
       </div>
     </section>
 
@@ -42,7 +43,7 @@ export function ControlCenterPage() {
       <header>
         <span className="eyebrow">ROAD MANAGER REDESIGN</span>
         <h2 id="road-manager-redesign-title">One pad. One guided path.</h2>
-        <p>The old Road Manager is not being carried into V18. Its replacement keeps the map visible and asks for one understandable decision at a time.</p>
+        <p>The V18 read-only road map is now the first step. Editing, validation, and publication remain in the separately labeled legacy editor until the guided workflow is complete.</p>
       </header>
       <ol className="road-manager-steps">
         {roadManagerSteps.map((step, index) => <li key={step.title}>
