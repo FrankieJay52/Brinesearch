@@ -32,7 +32,7 @@ const [geometryMigration, performanceMigration, fixMigration, issue69Migration] 
   fs.readFile(issue69Path, 'utf8')
 ]);
 
-const sha256 = value => crypto.createHash('sha256').update(value).digest('hex');
+const sha256 = value => crypto.createHash('sha256').update(value.replace(/\r\n/g, '\n')).digest('hex');
 assert.equal(
   sha256(geometryMigration),
   '73f1b39c930fbf9cc516219b3e4765a5061bb97e86478aad26b3939602e69db1',

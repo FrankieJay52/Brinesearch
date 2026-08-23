@@ -37,6 +37,9 @@ html[data-theme="day"] .direction-pro-step,html[data-theme="day"] .direction-wiz
 .branded-page-hero{position:relative;overflow:hidden;display:grid;place-items:center;text-align:center;margin:10px 0 16px;padding:20px 18px;border:1px solid var(--line);border-radius:22px;background:linear-gradient(145deg,rgba(14,31,49,.98),rgba(7,20,34,.98))}
 .branded-page-hero:after{display:none}
 .branded-page-logo{position:relative;z-index:1;width:min(100%,620px);height:auto;display:block;border-radius:18px;background:#fff;padding:8px;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.branded-page-wordmark{position:relative;z-index:1;display:flex;align-items:center;gap:12px;color:var(--text)}
+.branded-page-wordmark span{display:grid;place-items:center;width:54px;height:54px;border-radius:16px;background:linear-gradient(145deg,#74f0dc,#35b8ba);color:#07131f;font-size:1.75rem;font-weight:950;font-style:italic;box-shadow:0 12px 30px rgba(0,0,0,.22)}
+.branded-page-wordmark strong{font-size:clamp(1.45rem,6vw,2.25rem);letter-spacing:-.04em}
 .branded-page-subtitle{position:relative;z-index:1;margin:8px 0 0;color:var(--muted);font-size:.82rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
 .legal-footer-brand{display:grid;place-items:center;margin:0 auto 3px}
 .legal-footer-brand picture,.legal-footer-brand img{display:block}

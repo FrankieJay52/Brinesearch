@@ -1,10 +1,10 @@
 {
-  "id": "./",
+  "id": "/index.html",
   "name": "BrineSearch",
   "short_name": "BrineSearch",
   "description": "Mobile-first oilfield pad directory, directions, road updates, disposals, and field information.",
-  "start_url": "./#/",
-  "scope": "./",
+  "start_url": "/index.html#/",
+  "scope": "/",
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#08121f",

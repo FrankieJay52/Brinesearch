@@ -170,7 +170,7 @@ const canonicalPublisherStart = draftHelpers.lastIndexOf(
 const canonicalPublisherEnd = draftHelpers.indexOf('\n$$;', canonicalPublisherStart);
 assert.ok(canonicalPublisherStart >= 0 && canonicalPublisherEnd > canonicalPublisherStart,
   'Could not isolate the hardened #69 canonical publisher.');
-const canonicalPublisher = draftHelpers.slice(canonicalPublisherStart, canonicalPublisherEnd + 4);
+const canonicalPublisher = draftHelpers.slice(canonicalPublisherStart, canonicalPublisherEnd + 4).replace(/\r\n/g, '\n');
 for (const token of [
   'security definer',
   "set search_path=''",

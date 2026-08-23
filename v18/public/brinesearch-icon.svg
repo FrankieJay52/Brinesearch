@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="BrineSearch">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="40" x2="430" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102a3f"/>
+      <stop offset="1" stop-color="#06111d"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="140" y1="110" x2="372" y2="402" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#baf8ed"/>
+      <stop offset=".55" stop-color="#58d6c8"/>
+      <stop offset="1" stop-color="#2d9b9a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#07131f"/>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <rect x="44" y="44" width="424" height="424" rx="92" fill="none" stroke="#58d6c8" stroke-opacity=".22" stroke-width="4"/>
+  <path d="M159 114h104c70 0 112 28 112 78 0 34-19 58-55 70 45 11 68 37 68 76 0 56-45 88-124 88H137l22-312Zm77 63-9 58h35c28 0 43-10 43-30 0-19-15-28-46-28h-23Zm-20 119-10 67h57c35 0 52-12 52-35 0-21-17-32-51-32h-48Z" fill="url(#mark)"/>
+  <circle cx="159" cy="385" r="18" fill="#70a8ff"/>
+  <path d="M161 385c55-44 96-70 157-94" fill="none" stroke="#70a8ff" stroke-width="12" stroke-linecap="round" stroke-dasharray="1 24"/>
+</svg>

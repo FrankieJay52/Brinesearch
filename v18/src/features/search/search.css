@@ -1,0 +1,43 @@
+.company-road-hold {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 14px 15px;
+  border: 1px solid color-mix(in srgb, var(--amber) 28%, var(--line));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--amber) 6%, var(--surface));
+}
+
+.company-road-hold > svg {
+  color: var(--amber);
+}
+
+.company-road-hold div {
+  min-width: 0;
+}
+
+.company-road-hold strong {
+  font-size: .78rem;
+}
+
+.company-road-hold p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: .76rem;
+  line-height: 1.45;
+}
+
+.company-road-ready {
+  border-color: color-mix(in srgb, var(--teal) 34%, var(--line));
+  background: color-mix(in srgb, var(--teal) 7%, var(--surface));
+}
+
+.company-road-ready > svg {
+  color: var(--teal-bright);
+}
+
+.company-road-map-action {
+  min-height: 44px;
+  margin-top: 11px;
+}
