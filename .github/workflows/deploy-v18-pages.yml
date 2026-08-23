@@ -62,7 +62,7 @@ jobs:
           test ! -e dist-pages/road-manager.js
 
       - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: dist-pages
 
