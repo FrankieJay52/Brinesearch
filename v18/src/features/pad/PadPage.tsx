@@ -46,6 +46,7 @@ export function PadPage() {
   if (!status) return <LoadingState message={`Checking ${pad.padName} route status…`}/>;
 
   const favorite = favorites.has(pad.padId);
+  const hasSavedRouteFallback = status.routeSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
   const destinationUrl = status.destination.available && status.destination.latitude !== null && status.destination.longitude !== null
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${status.destination.latitude},${status.destination.longitude}`)}`
     : null;
@@ -81,8 +82,10 @@ export function PadPage() {
     </section>
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{status.routeSteps.length ? `${status.routeSteps.length} route steps` : "No structured route"}</h2></div></div>
-      {status.routeSteps.length ? <ol className="route-step-list">{status.routeSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol> : <p className="card-empty">No approved structured road cards are publicly available yet.</p>}
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{status.routeSteps.length ? `${status.routeSteps.length} route steps` : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      {status.routeSteps.length ? <ol className="route-step-list">{status.routeSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
+        : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and Google route launch stays disabled until approval is complete.</p></div>
+        : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
     </section>
 
     {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{status.route.writtenDirections}</p></details>}
