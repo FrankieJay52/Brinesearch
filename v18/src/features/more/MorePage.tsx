@@ -26,7 +26,7 @@ export function MorePage() {
     <section className="more-section" aria-labelledby="more-field-heading">
       <h2 id="more-field-heading">Field information</h2>
       <div className="more-list">
-        <MoreLink to={legacyBrineSearchPaths.fieldUpdates} icon="feed" title="Field Updates" detail="Open the current Field Feed for road and pad updates." badge="Live" sameOriginTool/>
+        <MoreLink to="/field-updates" icon="feed" title="Field Updates" detail="Open the current Field Feed for road and pad updates." badge="Live"/>
         <MoreLink to="/saved" icon="offline" title="Saved locations" detail={`Favorites, recent locations, and ${snapshot?.counts.locations.toLocaleString() || "no"} directory records loaded now.`}/>
         <MoreLink to={legacyBrineSearchPaths.dashboard} icon="more" title="Full driver dashboard" detail="Weather, nearby pads, favorites, offline tools, submissions, and community features." badge="Live" sameOriginTool/>
       </div>
@@ -42,7 +42,7 @@ export function MorePage() {
     <section className="more-section" aria-labelledby="more-owner-heading">
       <h2 id="more-owner-heading">Owner tools</h2>
       <div className="more-list">
-        <MoreLink to={legacyBrineSearchPaths.controlCenter} icon="control" title="Control Center" detail="Open the existing authenticated Road Manager and owner review tools." badge="Live" sameOriginTool/>
+        <MoreLink to="/control-center" icon="control" title="Control Center" detail="Open the existing authenticated Road Manager and owner review tools." badge="Live"/>
       </div>
     </section>
 
