@@ -1,0 +1,33 @@
+{
+  "name": "brinesearch-v18",
+  "private": true,
+  "version": "18.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --config vite.config.ts",
+    "verify:fallback": "node scripts/sanitize-pad-fallback-data.mjs --check && node --test scripts/sanitize-pad-fallback-data.test.mjs",
+    "verify:data-status": "node scripts/audit-v18-driver-directory-status-contract.mjs",
+    "verify:company-roads": "node scripts/audit-v18-public-company-road-overlay-contract.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts",
+    "verify": "npm run verify:fallback && npm run verify:data-status && npm run verify:company-roads && npm run typecheck && npm run test",
+    "build": "npm run verify && vite build --config vite.config.ts && node scripts/verify-built-runtime.mjs",
+    "preview": "vite preview --config vite.config.ts"
+  },
+  "dependencies": {
+    "maplibre-gl": "6.5.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "react-router-dom": "7.18.2"
+  },
+  "devDependencies": {
+    "@types/node": "22.20.1",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "5.2.0",
+    "typescript": "7.0.2",
+    "vite": "^7.1.0",
+    "vite-plugin-pwa": "1.3.0",
+    "vitest": "4.1.11"
+  }
+}

@@ -79,6 +79,9 @@ for (const [name, svg] of Object.entries(iconManifest.icons || {})) {
   if (!String(svg).includes('<svg')) throw new Error(`Invalid Field Mark icon source: ${name}`);
   await fs.writeFile(path.join(publicIconsRoot, name), String(svg).trim() + '\n');
 }
+// The assembled stylesheet retains legacy relative mask URLs. Mirror the same
+// reviewed icon set under /styles/icons so every relative request resolves.
+await fs.cp(publicIconsRoot, path.join(stylesRoot, 'icons'), { recursive: true, force: true });
 const report = {
   version: partManifest.version,
   generatedAt: new Date().toISOString(),

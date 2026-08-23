@@ -1,5 +1,6 @@
 node_modules/
 dist-v17/
+dist-v18/
 v17/public/
 .env
 .env.*
