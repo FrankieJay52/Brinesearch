@@ -1,6 +1,7 @@
 import { access, cp, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { findPrivateCredentialMarker } from "./private-publish-audit.mjs";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const v17Output = path.join(projectRoot, "dist-v17");
@@ -99,8 +100,9 @@ async function verifyLocalReference(reference, sourcePath) {
 
 for (const relativePath of publishedFiles.filter((file) => /\.(?:html|js|mjs|json|webmanifest)$/i.test(file))) {
   const contents = await readFile(path.join(v17Output, relativePath), "utf8");
-  if (/SUPABASE_SERVICE_ROLE_KEY|sb_secret_|service_role\s*[=:]/i.test(contents)) {
-    throw new Error(`Private server credential marker found in publish output: ${relativePath}`);
+  const privateCredentialMarker = findPrivateCredentialMarker(contents);
+  if (privateCredentialMarker) {
+    throw new Error(`Private server credential marker (${privateCredentialMarker}) found in publish output: ${relativePath}`);
   }
   for (const match of contents.matchAll(/brand-kit\/[A-Za-z0-9._-]+/g)) {
     await access(path.join(v17Output, match[0]));
