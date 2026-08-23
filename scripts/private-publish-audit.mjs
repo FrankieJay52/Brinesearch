@@ -1,7 +1,6 @@
 const configuredPrivateVariables = [
   "SUPABASE_SERVICE_ROLE_KEY",
   "SUPABASE_JWT_SECRET",
-  "SUPABASE_DATABASE_URL",
 ];
 
 function containsServiceRoleJwt(contents) {

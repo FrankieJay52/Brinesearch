@@ -11,6 +11,12 @@ test("allows the Supabase browser SDK key-prefix checks and an anonymous JWT", (
   const sdkFragment = 'key.startsWith("sb_publishable_") || key.startsWith("sb_secret_")';
   assert.equal(findPrivateCredentialMarker(sdkFragment, {}), null);
   assert.equal(findPrivateCredentialMarker(jwt({ role: "anon", ref: "public-project" }), {}), null);
+  assert.equal(
+    findPrivateCredentialMarker("https://public-project.supabase.co", {
+      SUPABASE_DATABASE_URL: "https://public-project.supabase.co",
+    }),
+    null,
+  );
 });
 
 test("rejects browser output that names or embeds private Supabase credentials", () => {
