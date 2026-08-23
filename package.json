@@ -42,6 +42,6 @@
     "verify:product": "node v17/scripts/verify-v17-3-31.mjs"
   },
   "devDependencies": {
-    "vite": "^7.1.0"
+    "vite": "^8.2.1"
   }
 }
