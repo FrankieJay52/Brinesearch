@@ -6,7 +6,9 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { saveRecent } from "@/data/offline";
 import { loadPadStatus } from "@/data/status";
-import type { DriverPadStatus } from "@/data/types";
+import type { DriverPadStatus, PadWellIdentifierRow } from "@/data/types";
+import { loadPadWellRows } from "@/data/wellRows";
+import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
 import { PadMapPreview } from "./PadMapPreview";
 
 function StatusColumn({ icon, label, children, detail }: { icon: "route" | "graph" | "google"; label: string; children: ReactNode; detail: string }) {
@@ -32,12 +34,16 @@ export function PadPage() {
   const { findPad, favorites, toggleFavorite, loading, snapshot } = useDirectory();
   const pad = findPad(decodeURIComponent(padId));
   const [status, setStatus] = useState<DriverPadStatus | null>(null);
+  const [wellRows, setWellRows] = useState<PadWellIdentifierRow[] | null | undefined>(undefined);
 
   useEffect(() => {
     if (!pad) return;
     let cancelled = false;
+    setStatus(null);
+    setWellRows(undefined);
     saveRecent(pad).catch(() => undefined);
     loadPadStatus(pad, snapshot?.sourceState).then((next) => !cancelled && setStatus(next));
+    loadPadWellRows(pad, snapshot?.sourceState).then((next) => !cancelled && setWellRows(next));
     return () => { cancelled = true; };
   }, [pad, snapshot?.sourceState]);
 
@@ -46,6 +52,7 @@ export function PadPage() {
   if (!status) return <LoadingState message={`Checking ${pad.padName} route status…`}/>;
 
   const favorite = favorites.has(pad.padId);
+  const identifierGroups = buildPadIdentifierGroups(pad);
   const hasSavedRouteFallback = status.routeSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
   const destinationUrl = status.destination.available && status.destination.latitude !== null && status.destination.longitude !== null
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${status.destination.latitude},${status.destination.longitude}`)}`
@@ -89,7 +96,21 @@ export function PadPage() {
     </section>
 
     {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{status.route.writtenDirections}</p></details>}
-    <details className="detail-card"><summary><span><strong>Pad and well information</strong><small>{pad.wellNames.length} wells · {pad.apiNumbers.length} API numbers</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div><div><small>Wells</small><strong>{pad.wellNames.join(" · ") || "Not listed"}</strong></div><div><small>API numbers</small><strong>{pad.apiNumbers.join(" · ") || "Not listed"}</strong></div></div></details>
+    <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
+      <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div></div>
+      <section className="pad-identifier-board" aria-labelledby="pad-identifiers-title">
+        <header><div><span className="eyebrow">PUBLIC WELL IDENTIFIERS</span><h3 id="pad-identifiers-title">Well names, APIs, and properties</h3></div></header>
+        {wellRows === undefined ? <p className="pad-identifier-loading">Loading reviewed well rows…</p>
+          : wellRows?.length ? <div className="pad-well-table-shell"><table className="pad-well-table"><caption>Reviewed well, API, and property pairings</caption><colgroup><col className="well-column"/><col className="api-column"/><col className="property-column"/></colgroup><thead><tr><th scope="col">Well name</th><th scope="col">API</th><th scope="col">Property</th></tr></thead><tbody>{wellRows.map((row, index) => <tr key={`${index}-${row.wellName || ""}-${row.apiNumber || ""}-${row.propertyNumber || ""}`}><td>{row.wellName || "—"}</td><td>{row.apiNumber || "—"}</td><td>{row.propertyNumber || "—"}</td></tr>)}</tbody></table></div>
+          : <div className="pad-identifier-grid">
+            {identifierGroups.map((group) => <section className={`pad-identifier-group identifier-${group.key}`} key={group.key} aria-label={group.label}>
+              <header><strong>{group.label}</strong><span>{group.values.length}</span></header>
+              {group.values.length ? <ul>{group.values.map((value) => <li key={value}>{value}</li>)}</ul> : <p>Not listed</p>}
+            </section>)}
+          </div>}
+        {wellRows !== undefined && <p className="pad-identifier-note">{wellRows?.length ? "Each row preserves the reviewed production well, API, and property relationship." : "The synchronized row contract is unavailable, so identifiers remain grouped by type and are not paired."}</p>}
+      </section>
+    </details>
     <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Coordinate role</small><strong>{pad.coordinate?.role.replaceAll("_", " ") || "No coordinate"}</strong></div><div><small>Public Google state</small><strong>{status.google.publicState.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
   </article>;

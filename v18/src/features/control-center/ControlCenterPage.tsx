@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "@/components/Icon";
-import { legacyBrineSearchPaths } from "@/app/legacyLinks";
+import { useOwnerAccess } from "@/data/OwnerAccessContext";
 import "./control-center.css";
 
 const roadManagerSteps: { icon: IconName; title: string; detail: string }[] = [
@@ -13,6 +13,8 @@ const roadManagerSteps: { icon: IconName; title: string; detail: string }[] = [
 ];
 
 export function ControlCenterPage() {
+  const { access } = useOwnerAccess();
+  const isOwner = access.state === "owner";
   return <section className="content-page control-center-page">
     <header className="subpage-topbar">
       <Link to="/more" className="icon-button" aria-label="Back to More"><Icon name="back"/></Link>
@@ -23,21 +25,24 @@ export function ControlCenterPage() {
     <section className="control-lock-card" aria-labelledby="control-lock-title">
       <span className="control-lock-icon"><Icon name="control"/></span>
       <span className="eyebrow">OWNER WORKFLOW</span>
-      <h1 id="control-lock-title">Open the operational Control Center</h1>
-      <p>Owner work continues in the existing authenticated BrineSearch Road Manager while the guided V18 replacement is completed. Opening it never grants access; the current server-backed role check still applies.</p>
+      <h1 id="control-lock-title">{isOwner ? "Your road workspace is ready" : "Open the V18 road workspace"}</h1>
+      <p>{isOwner ? "Inspect exact road identities and their authority evidence without leaving V18. The current release is deliberately read-only." : "Sign in here, then inspect approved roads on the native V18 map. The server still verifies Owner access before protected data loads."}</p>
       <div className="control-boundary-list">
-        <span><Icon name="route"/><b>Road Manager</b><small>Operational owner tool</small></span>
-        <span><Icon name="graph"/><b>Graph health</b><small>Existing protected workflow</small></span>
-        <span><Icon name="google"/><b>Held routes</b><small>Existing owner review</small></span>
+        <span><Icon name="map"/><b>Exact road map</b><small>Visible road identities</small></span>
+        <span><Icon name="graph"/><b>Graph evidence</b><small>Release-current only</small></span>
+        <span><Icon name="route"/><b>Pad route context</b><small>No inferred gaps</small></span>
       </div>
-      <a href={legacyBrineSearchPaths.controlCenter} className="button-primary"><Icon name="control"/> Open Control Center</a>
+      <div className="control-center-actions">
+        <Link to="/settings/approved-routes" className="button-primary"><Icon name="map"/> {isOwner ? "Open Approved Routes Map" : "Continue to V18 Road Map"}</Link>
+        <Link to="/sign-in?next=/settings/approved-routes" className="button-secondary"><Icon name="account"/> {isOwner ? "Owner account" : "Sign in to V18"}</Link>
+      </div>
     </section>
 
     <section className="road-manager-redesign" aria-labelledby="road-manager-redesign-title">
       <header>
         <span className="eyebrow">ROAD MANAGER REDESIGN</span>
         <h2 id="road-manager-redesign-title">One pad. One guided path.</h2>
-        <p>The old Road Manager is not being carried into V18. Its replacement keeps the map visible and asks for one understandable decision at a time.</p>
+        <p>The exact read-only road map is the first safe step. Editing stays unavailable until a native guided workflow independently passes its authority and release gates.</p>
       </header>
       <ol className="road-manager-steps">
         {roadManagerSteps.map((step, index) => <li key={step.title}>
@@ -61,6 +66,6 @@ export function ControlCenterPage() {
       </ul>
     </section>
 
-    <p className="safety-footer">The operational link stays on BrineSearch.com and uses the existing authenticated owner boundary. V18 does not copy credentials or grant editing rights.</p>
+    <p className="safety-footer">The native map uses its own V18 session and every protected request is rechecked by the owner-only database boundary. V18 does not grant editing rights or turn a selected road into route authority.</p>
   </section>;
 }

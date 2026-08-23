@@ -360,6 +360,28 @@
   white-space: nowrap;
 }
 
+.settings-owner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 7px;
+}
+
+.settings-owner-actions a {
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line));
+  border-radius: 11px;
+  color: var(--teal-bright);
+  background: var(--surface);
+  font-size: .69rem;
+  font-weight: 850;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .settings-reset-button {
   width: 100%;
   min-height: 48px;
@@ -422,6 +444,11 @@
   .settings-owner-note > a {
     grid-column: 2;
     justify-self: start;
+  }
+
+  .settings-owner-actions {
+    grid-column: 2;
+    justify-content: flex-start;
   }
 }
 

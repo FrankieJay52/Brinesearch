@@ -1,12 +1,30 @@
 [build]
   command = "npm run build:netlify"
-  publish = "dist-v17"
+  publish = "dist-production"
 
 [build.environment]
   NODE_VERSION = "22"
 
 [[redirects]]
   from = "/"
+  to = "/v18/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/index.html"
+  to = "/v18/"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/manifest.webmanifest"
+  to = "/v18/manifest.webmanifest"
+  status = 302
+  force = true
+
+[[redirects]]
+  from = "/v17/*"
   to = "/v18/"
   status = 302
   force = true
@@ -44,17 +62,6 @@
   for = "/v18/"
   [headers.values]
     Cache-Control = "no-cache, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "no-cache, max-age=0, must-revalidate"
-
-[[headers]]
-  for = "/manifest.webmanifest"
-  [headers.values]
-    Cache-Control = "no-cache, max-age=0, must-revalidate"
-    Content-Type = "application/manifest+json; charset=utf-8"
 
 [[headers]]
   for = "/v18/manifest.webmanifest"

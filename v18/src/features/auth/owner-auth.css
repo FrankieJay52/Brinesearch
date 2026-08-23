@@ -1,0 +1,71 @@
+.owner-auth-page {
+  width: min(960px, 100%);
+}
+
+.owner-auth-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, .8fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.owner-auth-intro,
+.owner-auth-card {
+  padding: clamp(22px, 5vw, 38px);
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: var(--surface);
+}
+
+.owner-auth-intro {
+  background: linear-gradient(145deg, color-mix(in srgb, var(--teal) 8%, var(--surface)), var(--surface));
+}
+
+.owner-auth-icon {
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 18px;
+  border-radius: 17px;
+  color: var(--teal-bright);
+  background: color-mix(in srgb, var(--teal) 13%, var(--surface-raised));
+}
+
+.owner-auth-icon svg { width: 1.8rem; height: 1.8rem; }
+.owner-auth-intro h1 { margin: 8px 0 12px; font-size: clamp(2rem, 5vw, 3.2rem); }
+.owner-auth-intro > p { color: var(--muted); line-height: 1.58; }
+.owner-auth-intro ul { display: grid; gap: 9px; margin: 24px 0 0; padding: 0; list-style: none; }
+.owner-auth-intro li { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 11px; padding: 12px; border-radius: 14px; background: var(--surface-raised); }
+.owner-auth-intro li > svg { color: var(--teal-bright); }
+.owner-auth-intro li span { display: grid; gap: 4px; }
+.owner-auth-intro li strong { font-size: .8rem; }
+.owner-auth-intro li small { color: var(--muted); font-size: .72rem; line-height: 1.4; }
+
+.owner-auth-card,
+.owner-auth-card form { display: grid; align-content: center; gap: 13px; }
+.owner-auth-card h2 { margin: 3px 0 0; font-size: 1.42rem; }
+.owner-auth-card p { margin: 0; color: var(--muted); line-height: 1.5; }
+.owner-auth-card label { display: grid; gap: 7px; color: var(--muted-strong); font-size: .72rem; font-weight: 820; }
+.owner-auth-card input { width: 100%; min-height: 50px; padding: 0 13px; border: 1px solid var(--line); border-radius: 13px; color: var(--text); background: var(--surface-raised); }
+.owner-password-field { position: relative; display: block; }
+.owner-password-field input { padding-right: 70px; }
+.owner-password-field button { position: absolute; top: 6px; right: 6px; min-height: 38px; padding: 0 10px; border: 0; border-radius: 9px; color: var(--teal-bright); background: var(--surface); font-size: .68rem; font-weight: 850; cursor: pointer; }
+.owner-auth-card .button-primary,
+.owner-auth-card .button-secondary { width: 100%; }
+.owner-auth-card button:disabled { opacity: .55; cursor: wait; }
+.owner-auth-state { width: fit-content; display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted-strong); font-size: .64rem; font-weight: 880; }
+.owner-auth-state i { width: 8px; height: 8px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 0 4px color-mix(in srgb, var(--teal) 14%, transparent); }
+.owner-auth-state.is-owner { color: var(--green); border-color: color-mix(in srgb, var(--green) 30%, var(--line)); }
+.owner-auth-state.is-owner i { background: var(--green); }
+.owner-auth-state.is-warning { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 34%, var(--line)); }
+.owner-auth-state.is-warning i { background: var(--amber); }
+.owner-auth-message { padding: 10px 11px; border: 1px solid color-mix(in srgb, var(--amber) 34%, var(--line)); border-radius: 11px; color: var(--muted-strong) !important; background: color-mix(in srgb, var(--amber) 7%, var(--surface)); font-size: .73rem; }
+.owner-auth-privacy { color: var(--muted); font-size: .67rem; line-height: 1.45; text-align: center; }
+
+@media (max-width: 760px) {
+  .owner-auth-layout { grid-template-columns: 1fr; }
+  .owner-auth-card { order: -1; min-height: 0; }
+  .owner-auth-intro { padding-bottom: 24px; }
+  .owner-auth-intro ul { margin-top: 18px; }
+}

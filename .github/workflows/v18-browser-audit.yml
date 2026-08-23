@@ -1,0 +1,73 @@
+name: Audit BrineSearch V18 preview
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'v18/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'netlify.toml'
+      - '.github/workflows/v18-browser-audit.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'v18/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'netlify.toml'
+      - '.github/workflows/v18-browser-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  browser-audit:
+    name: Browser-test V18 mobile and desktop
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v18/package-lock.json
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build V18-only production output
+        run: npm run build:netlify
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save playwright@1.62.1
+          npx playwright install --with-deps chromium
+
+      - name: Start V18 preview
+        run: |
+          npm --prefix v18 run preview -- --host 127.0.0.1 --port 4181 > /tmp/brinesearch-v18-preview.log 2>&1 &
+          echo $! > /tmp/brinesearch-v18-preview.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:4181/v18/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/brinesearch-v18-preview.log
+          exit 1
+
+      - name: Audit V18 iPhone and desktop navigation
+        env:
+          V18_PREVIEW_URL: http://127.0.0.1:4181/v18/
+        run: node v18/scripts/browser-smoke.mjs
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/brinesearch-v18-preview.log || true

@@ -1,10 +1,9 @@
 # BrineSearch V18 map-first release
 
-V18 is the mobile-first public driver experience. Its production build is
-scoped to `/v18/`, including its web-app manifest and service worker, and the
-main BrineSearch URL redirects there. The operational V17 dashboard, Field
-Feed, and authenticated Road Manager remain available at explicit
-`/index.html#/...` links until their V18 replacements are complete.
+V18 is the mobile-first public driver and owner experience. Its production
+build is scoped to `/v18/`, including its web-app manifest and service worker,
+and every main or legacy BrineSearch entry point redirects there. V17 pages and
+runtime assets are not included in either production deployment.
 
 ## Product shape
 
@@ -13,10 +12,11 @@ Feed, and authenticated Road Manager remain available at explicit
 - **Saved** shows favorites, recent locations, and the complete directory source
   available on this device. Individual saved route/detail downloads are a later
   release and are not claimed by this release.
-- **More** contains personal Settings plus links to the operational Field Feed,
-  full driver dashboard, and Control Center.
-- **Control Center** opens the existing authenticated Road Manager. A link
-  never grants owner access; the server-backed role check remains authoritative.
+- **More** contains personal Settings plus the native V18 Field Updates and
+  Control Center pages.
+- **Control Center** opens the native V18 owner sign-in and exact read-only road
+  map. A link never grants owner access; the server-backed role check remains
+  authoritative.
 - The pad screen always separates route source, road-graph state, and public
   Google availability.
 
@@ -71,7 +71,12 @@ transactions and were installed as the exact production migration receipts in
 their filenames. The covering-index migration is
 `../supabase/migrations/20260823003031_v18_overlay_foreign_key_indexes.sql`.
 The company overlay installs empty and fail-closed; populating it still requires
-its dedicated owner-approved public-overlay release authority. The composite
-Netlify build keeps V17 at `/index.html`, stages this build at `/v18/`, excludes
-source maps, and verifies both service workers. The V17 root worker explicitly
-bypasses `/v18/`; the V18 worker remains limited to that scope.
+its dedicated owner-approved public-overlay release authority. Netlify and
+GitHub Pages publish only V18 runtime files. Netlify redirects `/`,
+`/index.html`, the former root manifest, and `/v17/*` to V18. Its minimal root
+retirement worker deletes V17 caches and moves installed old clients to V18
+while leaving the `/v18/` service-worker scope untouched.
+
+Historical source and database evidence remain in the repository only to
+preserve reviewed road, map, graph, and migration provenance. Root commands and
+continuous-integration workflows neither execute nor publish the retired app.

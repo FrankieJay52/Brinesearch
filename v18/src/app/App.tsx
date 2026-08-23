@@ -4,6 +4,7 @@ import { Brand } from "@/components/Brand";
 import { Icon, type IconName } from "@/components/Icon";
 import { DirectoryProvider, useDirectory } from "@/data/DirectoryContext";
 import { CompanyRoadsProvider } from "@/data/CompanyRoadsContext";
+import { OwnerAccessProvider } from "@/data/OwnerAccessContext";
 import { MapPage } from "@/features/map/MapPage";
 import { SearchPage } from "@/features/search/SearchPage";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
@@ -13,6 +14,8 @@ import { MorePage } from "@/features/more/MorePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { ControlCenterPage } from "@/features/control-center/ControlCenterPage";
 import { FieldUpdatesPage } from "@/features/more/FieldUpdatesPage";
+import { OwnerApprovedRoutesPage } from "@/features/owner-roads/OwnerApprovedRoutesPage";
+import { OwnerSignInPage } from "@/features/auth/OwnerSignInPage";
 import { useAppUpdate } from "./useAppUpdate";
 
 const navigation: { to: string; label: string; icon: IconName }[] = [
@@ -39,14 +42,14 @@ function AppHeader() {
 
 function BottomNavigation() {
   const location = useLocation();
-  const hidden = location.pathname.startsWith("/pad/");
+  const hidden = location.pathname.startsWith("/pad/") || location.pathname === "/sign-in";
   if (hidden) return null;
   return <nav className="bottom-navigation" aria-label="Main navigation">{navigation.map((item) => {
     const active = item.to === "/"
       ? location.pathname === "/"
       : location.pathname === item.to
         || (item.to === "/search" && location.pathname.startsWith("/search/"))
-        || (item.to === "/more" && ["/settings", "/control-center", "/field-updates"].some((path) => location.pathname.startsWith(path)));
+        || (item.to === "/more" && ["/settings", "/control-center", "/field-updates", "/sign-in"].some((path) => location.pathname.startsWith(path)));
     return <NavLink key={item.to} to={item.to} end={item.to === "/"} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
       <Icon name={item.icon}/><span>{item.label}</span>
     </NavLink>;
@@ -87,7 +90,9 @@ function AppRoutes() {
         <Route path="/saved" element={<SavedPage/>}/>
         <Route path="/more" element={<MorePage/>}/>
         <Route path="/settings" element={<SettingsPage/>}/>
+        <Route path="/settings/approved-routes" element={<OwnerApprovedRoutesPage/>}/>
         <Route path="/control-center" element={<ControlCenterPage/>}/>
+        <Route path="/sign-in" element={<OwnerSignInPage/>}/>
         <Route path="/field-updates" element={<FieldUpdatesPage/>}/>
         <Route path="/pad/:padId" element={<PadPage/>}/>
         <Route path="*" element={<Navigate to="/" replace/>}/>
@@ -99,5 +104,5 @@ function AppRoutes() {
 }
 
 export function App() {
-  return <DirectoryProvider><CompanyRoadsProvider><div className="app-shell"><AppRoutes/></div></CompanyRoadsProvider></DirectoryProvider>;
+  return <OwnerAccessProvider><DirectoryProvider><CompanyRoadsProvider><div className="app-shell"><AppRoutes/></div></CompanyRoadsProvider></DirectoryProvider></OwnerAccessProvider>;
 }
