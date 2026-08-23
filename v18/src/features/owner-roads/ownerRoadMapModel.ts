@@ -1,4 +1,4 @@
-import type { OwnerRoadFeature, OwnerRoadStatus } from "@/data/ownerRoads";
+import type { OwnerRoadFeature, OwnerRoadStatus, OwnerRoadViewportRequest } from "@/data/ownerRoads";
 
 export const ownerRoadStatusLabels: Record<OwnerRoadStatus, string> = {
   approved_by_policy: "Approved by policy",
@@ -17,6 +17,26 @@ export const ownerRoadStatusColors: Record<OwnerRoadStatus, string> = {
   restricted: "#f06b52",
   reference_only: "#8f9aa5",
 };
+
+export function ownerRoadFeatureLimit(width: number) {
+  if (width < 620) return 160;
+  if (width < 1_100) return 440;
+  return 700;
+}
+
+export function ownerRoadViewportRequestKey(request: OwnerRoadViewportRequest) {
+  const coordinate = (value: number) => Number(value.toFixed(6));
+  return JSON.stringify({
+    ...request,
+    west: coordinate(request.west),
+    south: coordinate(request.south),
+    east: coordinate(request.east),
+    north: coordinate(request.north),
+    roadClasses: [...request.roadClasses].sort(),
+    routeSystems: request.routeSystems ? [...request.routeSystems].sort() : null,
+    statuses: [...request.statuses].sort(),
+  });
+}
 
 export function ownerRoadJurisdiction(road: OwnerRoadFeature["properties"]) {
   return [...new Set([road.stateCode, road.countyName || road.countyCode, road.township, road.municipality].filter(Boolean))].join(" · ") || "Jurisdiction unavailable";

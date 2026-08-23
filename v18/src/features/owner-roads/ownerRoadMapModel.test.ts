@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
-import type { OwnerRoadFeature } from "@/data/ownerRoads";
-import { ownerRoadCollection, ownerRoadFeatureBounds, ownerRoadJurisdiction, ownerRoadSelection } from "./ownerRoadMapModel";
+import type { OwnerRoadFeature, OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import {
+  ownerRoadCollection,
+  ownerRoadFeatureBounds,
+  ownerRoadFeatureLimit,
+  ownerRoadJurisdiction,
+  ownerRoadSelection,
+  ownerRoadViewportRequestKey,
+} from "./ownerRoadMapModel";
 
 const feature: OwnerRoadFeature = {
   type: "Feature",
@@ -32,6 +39,37 @@ const feature: OwnerRoadFeature = {
 };
 
 describe("owner road map model", () => {
+  it("keeps phone viewport payloads bounded while retaining a useful exact-road layer", () => {
+    expect(ownerRoadFeatureLimit(390)).toBe(160);
+    expect(ownerRoadFeatureLimit(820)).toBe(440);
+    expect(ownerRoadFeatureLimit(1_280)).toBe(700);
+  });
+
+  it("deduplicates semantically identical viewport requests", () => {
+    const request: OwnerRoadViewportRequest = {
+      west: -80.9800002,
+      south: 39.8000002,
+      east: -80.4599998,
+      north: 40.2999998,
+      zoom: 10,
+      state: null,
+      county: null,
+      roadClasses: ["county", "interstate"],
+      routeSystems: null,
+      statuses: ["held", "approved_by_policy"],
+      search: null,
+      padId: null,
+      limit: 160,
+    };
+    expect(ownerRoadViewportRequestKey(request)).toBe(ownerRoadViewportRequestKey({
+      ...request,
+      west: -80.9800001,
+      roadClasses: ["interstate", "county"],
+      statuses: ["approved_by_policy", "held"],
+    }));
+    expect(ownerRoadViewportRequestKey(request)).not.toBe(ownerRoadViewportRequestKey({ ...request, state: "OH" }));
+  });
+
   it("keeps exact identity and status on the selectable map feature", () => {
     expect(ownerRoadCollection([feature]).features[0].properties).toEqual({
       identityId: feature.properties.identityId,
