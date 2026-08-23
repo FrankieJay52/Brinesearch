@@ -9,6 +9,7 @@ create or replace function public.owner_approved_routes_map_viewport(
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '8s'
 as $$
 declare
   v_bbox extensions.geometry;

@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "@/components/Icon";
 import { legacyBrineSearchPaths } from "@/app/legacyLinks";
+import { useOwnerAccess } from "@/data/OwnerAccessContext";
 import "./control-center.css";
 
 const roadManagerSteps: { icon: IconName; title: string; detail: string }[] = [
@@ -13,6 +14,7 @@ const roadManagerSteps: { icon: IconName; title: string; detail: string }[] = [
 ];
 
 export function ControlCenterPage() {
+  const { access } = useOwnerAccess();
   return <section className="content-page control-center-page">
     <header className="subpage-topbar">
       <Link to="/more" className="icon-button" aria-label="Back to More"><Icon name="back"/></Link>
@@ -23,14 +25,17 @@ export function ControlCenterPage() {
     <section className="control-lock-card" aria-labelledby="control-lock-title">
       <span className="control-lock-icon"><Icon name="control"/></span>
       <span className="eyebrow">OWNER WORKFLOW</span>
-      <h1 id="control-lock-title">Open the operational Control Center</h1>
-      <p>Owner work continues in the existing authenticated BrineSearch Road Manager while the guided V18 replacement is completed. Opening it never grants access; the current server-backed role check still applies.</p>
+      <h1 id="control-lock-title">{access.state === "owner" ? "Choose the owner road workspace" : "Open the operational Control Center"}</h1>
+      <p>{access.state === "owner" ? "Use the native V18 map to inspect and highlight exact road identities. Use the existing Road Manager only when you need its separate editing workflow." : "Owner work continues in the existing authenticated BrineSearch Road Manager. Opening it never grants access; the current server-backed role check still applies."}</p>
       <div className="control-boundary-list">
         <span><Icon name="route"/><b>Road Manager</b><small>Operational owner tool</small></span>
         <span><Icon name="graph"/><b>Graph health</b><small>Existing protected workflow</small></span>
         <span><Icon name="google"/><b>Held routes</b><small>Existing owner review</small></span>
       </div>
-      <a href={legacyBrineSearchPaths.controlCenter} className="button-primary"><Icon name="control"/> Open Control Center</a>
+      <div className="control-center-actions">
+        {access.state === "owner" && <Link to="/settings/approved-routes" className="button-primary"><Icon name="map"/> Open Approved Routes Map</Link>}
+        <a href={legacyBrineSearchPaths.controlCenter} className={access.state === "owner" ? "button-secondary" : "button-primary"}><Icon name="control"/> {access.state === "owner" ? "Open editing Road Manager" : "Open Control Center"}</a>
+      </div>
     </section>
 
     <section className="road-manager-redesign" aria-labelledby="road-manager-redesign-title">
@@ -61,6 +66,6 @@ export function ControlCenterPage() {
       </ul>
     </section>
 
-    <p className="safety-footer">The operational link stays on BrineSearch.com and uses the existing authenticated owner boundary. V18 does not copy credentials or grant editing rights.</p>
+    <p className="safety-footer">The native map reuses the current BrineSearch owner session and every data request is rechecked by the owner-only database boundary. V18 does not grant editing rights or turn a selected road into route authority.</p>
   </section>;
 }

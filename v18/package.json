@@ -8,9 +8,10 @@
     "verify:fallback": "node scripts/sanitize-pad-fallback-data.mjs --check && node --test scripts/sanitize-pad-fallback-data.test.mjs",
     "verify:data-status": "node scripts/audit-v18-driver-directory-status-contract.mjs",
     "verify:company-roads": "node scripts/audit-v18-public-company-road-overlay-contract.mjs",
+    "verify:owner-roads": "node scripts/audit-v18-owner-approved-routes-map-issue108.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --config vitest.config.ts",
-    "verify": "npm run verify:fallback && npm run verify:data-status && npm run verify:company-roads && npm run typecheck && npm run test",
+    "verify": "npm run verify:fallback && npm run verify:data-status && npm run verify:company-roads && npm run verify:owner-roads && npm run typecheck && npm run test",
     "build": "npm run verify && vite build --config vite.config.ts && node scripts/verify-built-runtime.mjs",
     "preview": "vite preview --config vite.config.ts"
   },

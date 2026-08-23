@@ -4,6 +4,7 @@ import { Icon, type IconName } from "@/components/Icon";
 import { useTheme, type ThemePreference } from "@/app/ThemeProvider";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { useDirectory } from "@/data/DirectoryContext";
+import { useOwnerAccess } from "@/data/OwnerAccessContext";
 import "./settings.css";
 
 function Toggle({ checked, label, detail, onChange }: { checked: boolean; label: string; detail: string; onChange: (checked: boolean) => void }) {
@@ -79,6 +80,7 @@ export function SettingsPage() {
   const { theme, resolvedTheme, setTheme } = useTheme();
   const { largeText, reducedMotion, highContrast, setLargeText, setReducedMotion, setHighContrast, resetPreferences } = usePreferences();
   const { snapshot } = useDirectory();
+  const { access } = useOwnerAccess();
   const locationPermission = useLocationPermission();
   const [updateCheck, setUpdateCheck] = useState("Ready to check");
   const [online, setOnline] = useState(() => navigator.onLine);
@@ -206,10 +208,10 @@ export function SettingsPage() {
       </div>
     </section>
 
-    <aside className="settings-owner-note">
+    <aside className={`settings-owner-note${access.state === "owner" ? " is-owner" : ""}`}>
       <Icon name="control"/>
-      <div><strong>Looking for Road Manager?</strong><p>Owner tools now live in a separate Control Center so drivers cannot accidentally enter an editing workflow.</p></div>
-      <Link to="/control-center">Open Control Center</Link>
+      <div><strong>{access.state === "owner" ? "Owner road tools" : "Looking for Road Manager?"}</strong><p>{access.state === "owner" ? "Inspect and highlight exact road identities in V18. Editing remains separate in the authenticated Road Manager." : "Owner tools live in a separate Control Center so drivers cannot accidentally enter an editing workflow."}</p></div>
+      {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/settings/approved-routes">Approved Routes Map</Link><Link to="/control-center">Road Manager</Link></span> : <Link to="/control-center">Open Control Center</Link>}
     </aside>
   </section>;
 }

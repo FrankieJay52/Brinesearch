@@ -2,6 +2,13 @@
   width: min(920px, 100%);
 }
 
+.control-center-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 9px;
+}
+
 .road-manager-redesign,
 .road-manager-principles {
   margin-top: 30px;

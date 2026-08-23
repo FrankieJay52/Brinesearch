@@ -4,6 +4,7 @@ import { Brand } from "@/components/Brand";
 import { Icon, type IconName } from "@/components/Icon";
 import { DirectoryProvider, useDirectory } from "@/data/DirectoryContext";
 import { CompanyRoadsProvider } from "@/data/CompanyRoadsContext";
+import { OwnerAccessProvider } from "@/data/OwnerAccessContext";
 import { MapPage } from "@/features/map/MapPage";
 import { SearchPage } from "@/features/search/SearchPage";
 import { SearchOverlay } from "@/features/search/SearchOverlay";
@@ -13,6 +14,7 @@ import { MorePage } from "@/features/more/MorePage";
 import { SettingsPage } from "@/features/settings/SettingsPage";
 import { ControlCenterPage } from "@/features/control-center/ControlCenterPage";
 import { FieldUpdatesPage } from "@/features/more/FieldUpdatesPage";
+import { OwnerApprovedRoutesPage } from "@/features/owner-roads/OwnerApprovedRoutesPage";
 import { useAppUpdate } from "./useAppUpdate";
 
 const navigation: { to: string; label: string; icon: IconName }[] = [
@@ -87,6 +89,7 @@ function AppRoutes() {
         <Route path="/saved" element={<SavedPage/>}/>
         <Route path="/more" element={<MorePage/>}/>
         <Route path="/settings" element={<SettingsPage/>}/>
+        <Route path="/settings/approved-routes" element={<OwnerApprovedRoutesPage/>}/>
         <Route path="/control-center" element={<ControlCenterPage/>}/>
         <Route path="/field-updates" element={<FieldUpdatesPage/>}/>
         <Route path="/pad/:padId" element={<PadPage/>}/>
@@ -99,5 +102,5 @@ function AppRoutes() {
 }
 
 export function App() {
-  return <DirectoryProvider><CompanyRoadsProvider><div className="app-shell"><AppRoutes/></div></CompanyRoadsProvider></DirectoryProvider>;
+  return <OwnerAccessProvider><DirectoryProvider><CompanyRoadsProvider><div className="app-shell"><AppRoutes/></div></CompanyRoadsProvider></DirectoryProvider></OwnerAccessProvider>;
 }

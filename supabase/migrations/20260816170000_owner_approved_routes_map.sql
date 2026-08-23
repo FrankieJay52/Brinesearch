@@ -19,6 +19,7 @@ create or replace function public.owner_approved_routes_map_viewport(
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '8s'
 as $$
 declare
   v_bbox extensions.geometry;
@@ -161,6 +162,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '5s'
 as $$
 declare
   v_result jsonb;
@@ -241,6 +243,8 @@ begin
     join public.brinesearch_road_junctions j on j.build_id=gb.id
     join public.brinesearch_road_junction_memberships mine
       on mine.junction_id=j.id and mine.identity_id=p_identity_id
+    where j.junction_type<>'shared_segment'
+      and extensions.st_geometrytype(j.geom)='ST_Point'
   ), junction_count as materialized (
     select count(*)::integer total from junction_base
   ), junction_rows as materialized (
@@ -379,7 +383,7 @@ begin
     'junctions_truncated',(select total>100 from junction_count),
     'junctions',(select rows from junctions),
     'graph_summary',(select case when id is null then null else pg_catalog.concat('build ',id,' · ',algorithm_version,' · activated ',activated_at) end from current_build),
-    'verification_date',greatest(c.updated_at,c.dataset_fetched_at,c.dataset_source_timestamp)
+    'verification_date',greatest(c.last_seen_at,c.dataset_fetched_at,c.dataset_source_timestamp)
   ) into v_result from classified c cross join geom g;
   if v_result is null then
     raise exception 'road identity not found' using errcode='P0002';
@@ -393,6 +397,7 @@ returns jsonb
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '3s'
 as $$
 declare v_result jsonb;
 begin

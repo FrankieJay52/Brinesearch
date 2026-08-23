@@ -27,6 +27,7 @@ create function public.owner_approved_routes_map_viewport(
 language plpgsql
 security definer
 set search_path = ''
+set statement_timeout = '8s'
 as $$
 declare
   v_bbox extensions.geometry;
@@ -226,9 +227,13 @@ begin
         'type','Feature',
         'geometry',extensions.st_asgeojson(
           case when v_tol=0
-            then extensions.st_collect(extensions.st_intersection(s.geom,v_bbox))
+            then extensions.st_collectionextract(
+              extensions.st_collect(extensions.st_intersection(s.geom,v_bbox)),2
+            )
             else extensions.st_simplifypreservetopology(
-              extensions.st_collect(extensions.st_intersection(s.geom,v_bbox)),v_tol
+              extensions.st_collectionextract(
+                extensions.st_collect(extensions.st_intersection(s.geom,v_bbox)),2
+              ),v_tol
             )
           end,6
         )::jsonb,

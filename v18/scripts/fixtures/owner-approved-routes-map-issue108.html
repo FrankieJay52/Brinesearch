@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" data-theme="night">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>V18 Owner Approved Routes Map fixture</title>
+  <link rel="stylesheet" href="/src/styles/app.css">
+  <link rel="stylesheet" href="/src/features/owner-roads/owner-approved-routes.css">
+  <style>
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.fixture-shell{padding:18px}.fixture-map{position:absolute;inset:0;width:100%;height:100%;background:linear-gradient(145deg,#173546,#0c2231)}.fixture-map .context{fill:none;stroke:#71808b;stroke-width:4;opacity:.45}.fixture-map .candidate{fill:none;stroke:#f1bd58;stroke-width:7}.fixture-map .selected-halo{fill:none;stroke:#fff;stroke-width:19;stroke-linecap:round}.fixture-map .selected{fill:none;stroke:#ffbe3d;stroke-width:12;stroke-linecap:round}.fixture-map text{fill:#dce8ef;font-size:18px;font-weight:800;paint-order:stroke;stroke:#07131f;stroke-width:5}.fixture-nav{min-height:44px;display:grid;grid-template-columns:auto 1fr auto;align-items:center}.fixture-nav span{text-align:center;color:var(--muted)}.fixture-nav a{color:var(--teal-bright);text-decoration:none}.fixture-owner-icon{width:42px}.fixture-spacer{width:42px}
+  </style>
+</head>
+<body>
+  <main class="fixture-shell">
+    <section class="content-page owner-routes-page">
+      <header class="fixture-nav"><a href="#">← Settings</a><span>Approved Routes Map</span><a href="#">Edit roads</a></header>
+      <header class="owner-routes-hero"><div><span class="eyebrow">OWNER SETTINGS</span><h1>Approved Routes Map</h1><p>Inspect exact road identities, approval evidence, restrictions, route use, and release-current junctions. This view cannot edit or publish road truth.</p></div><span class="owner-readonly-badge">READ ONLY</span></header>
+      <section class="owner-road-toolbar" aria-label="Owner road map filters">
+        <label class="owner-road-search"><span>Road or exact identity</span><input value="Bannock" aria-label="Road or exact identity"></label>
+        <label><span>State</span><select aria-label="State"><option>Ohio</option></select></label>
+        <label><span>County</span><input value="Belmont" aria-label="County"></label>
+        <label><span>Route system</span><select aria-label="Route system"><option>All exact systems</option></select></label>
+        <label class="owner-road-pad-filter"><span>Selected pad route</span><select aria-label="Selected pad route"><option>Ascent — Bannock</option></select></label>
+        <button class="button-secondary owner-road-refresh">Refresh view</button>
+      </section>
+      <details class="owner-road-layer-filters"><summary>Road layers and classifications</summary></details>
+      <aside class="owner-pad-route-context"><span class="fixture-owner-icon">↝</span><span><strong>Ascent — Bannock</strong><small>Map and results show only exact mapped road occurrences for this pad in the current view. Unresolved route gaps stay unplotted and are never promoted to approved.</small></span></aside>
+      <div class="owner-routes-workspace">
+        <section class="owner-map-column">
+          <div class="owner-map-shell">
+            <div class="owner-map-canvas">
+              <svg class="fixture-map" viewBox="0 0 900 560" role="img" aria-label="Fixture exact roads with selected Lafferty-Bannock Road highlighted">
+                <path class="context" d="M60 90 C250 115 390 80 610 140 S780 215 850 180"/>
+                <path class="context" d="M100 500 C260 420 390 455 540 350 S720 250 840 290"/>
+                <path class="candidate" d="M190 430 C280 360 350 330 430 300"/>
+                <path class="selected-halo" data-road-halo="bannock" d="M430 300 C510 267 585 236 680 220 S785 230 840 195"/>
+                <path class="selected" data-road-highlight="bannock" d="M430 300 C510 267 585 236 680 220 S785 230 840 195"/>
+                <text x="505" y="245">Lafferty-Bannock Rd / CR-10</text>
+                <circle cx="795" cy="220" r="10" fill="#62ddc6" stroke="#fff" stroke-width="4"/>
+              </svg>
+            </div>
+            <div class="owner-map-status is-ready" role="status"><span></span>2 exact candidate road identities loaded in this view. Lafferty-Bannock Rd is selected.</div>
+          </div>
+          <div class="owner-map-legend"><span><i style="background:#45e693"></i>Approved by policy</span><span><i style="background:#22c9b0"></i>Explicitly approved</span><span><i style="background:#f1bd58"></i>Candidate</span><span><i style="background:#9a83d8"></i>Held</span><span><i style="background:#f06b52"></i>Restricted</span><strong>Selected exact road</strong><small>Reference-only roads are not approved. Selection changes display focus only.</small></div>
+        </section>
+        <aside class="owner-road-results" aria-label="Road results"><header><div><span class="eyebrow">CURRENT MAP VIEW</span><h2>Road identities</h2></div><b>2</b></header><div class="owner-road-result-list">
+          <button class="is-selected" aria-pressed="true" data-fixture-road="bannock"><span class="owner-road-result-heading"><i style="background:#f1bd58"></i><strong>Lafferty-Bannock Rd</strong></span><small>OH · Belmont · Kirkwood</small><small>county road</small><code>OH:ODOT:NLF:CBELCR00010**C</code><span class="owner-road-status status-candidate">Candidate</span></button>
+          <button aria-pressed="false" data-fixture-road="oh331"><span class="owner-road-result-heading"><i style="background:#45e693"></i><strong>OH-331</strong></span><small>OH · Belmont</small><small>3 331 · state route</small><code>OH:ODOT:NLF:PBELSR00331**C</code><span class="owner-road-status status-approved_by_policy">Approved by policy</span></button>
+        </div></aside>
+      </div>
+      <article class="owner-road-detail-card"><header><div><span class="owner-road-status status-candidate">Candidate</span><h2>Lafferty-Bannock Rd</h2><p>OH · Belmont · Kirkwood</p></div><button class="button-secondary">Focus map</button></header><section class="owner-road-identity-callout"><span>Exact official identity</span><code>OH:ODOT:NLF:CBELCR00010**C</code><button>Copy identity</button></section><dl class="owner-road-detail-grid"><dt>Approval basis</dt><dd>Current saved route use exists, but exact positive truck approval is absent.</dd><dt>Geometry</dt><dd>exact current authoritative geometry · 45 source segments</dd><dt>Current graph</dt><dd>release-current Belmont build</dd><dt>Restriction</dt><dd>None in exact evidence</dd></dl></article>
+      <footer class="owner-road-authority-note"><span>⚙</span><span><strong>Authority stays separate.</strong> Viewing or selecting a road does not approve it, create route steps or geometry, change the graph, reconcile a route, or publish Google output.</span></footer>
+    </section>
+  </main>
+</body>
+</html>
