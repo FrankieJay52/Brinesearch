@@ -1,4 +1,4 @@
-name: Deploy BrineSearch V17.3.1 to GitHub Pages
+name: Deploy BrineSearch V18 to GitHub Pages
 
 on:
   push:
@@ -22,6 +22,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PAGES_BASE_PATH: /${{ github.event.repository.name }}
+      VITE_V18_BASE_PATH: /${{ github.event.repository.name }}/
     steps:
       - name: Check out repository
         uses: actions/checkout@v6
@@ -35,22 +36,27 @@ jobs:
       - name: Install project dependencies
         run: npm ci
 
-      - name: Verify and build BrineSearch V17.3.1
-        run: npm run build
+      - name: Install V18 dependencies
+        run: npm ci --prefix v18 --include=dev
 
-      - name: Prepare repository-path assets for GitHub Pages
-        run: node v17/scripts/prepare-pages.mjs
+      - name: Verify and build BrineSearch V18
+        run: npm --prefix v18 run build
+
+      - name: Prepare V18-only GitHub Pages site
+        run: npm run prepare:pages:v18
 
       - name: Verify deployable files
         run: |
           test -f dist-pages/index.html
           test -f dist-pages/404.html
           test -f dist-pages/.nojekyll
-          test -f dist-pages/app/front-sign-structured.js
+          test -f dist-pages/sw.js
+          test -f dist-pages/manifest.webmanifest
+          test -f dist-pages/maplibre/maplibre-gl-worker.mjs
           test -f dist-pages/pages-deployment.json
-          grep -q "/${{ github.event.repository.name }}/app/brinesearch-app.js" dist-pages/index.html
-          grep -q "/${{ github.event.repository.name }}/styles/app.css" dist-pages/index.html
-          grep -q '"version": "17.3.1"' dist-pages/pages-deployment.json
+          grep -q "/${{ github.event.repository.name }}/assets/" dist-pages/index.html
+          grep -q '"version": "18.0.0"' dist-pages/pages-deployment.json
+          test ! -e dist-pages/road-manager.js
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4
@@ -90,7 +96,7 @@ jobs:
         run: |
           if [ "$DEPLOY_OUTCOME" = "success" ]; then
             STATE="success"
-            DESCRIPTION="BrineSearch V17.3.1 is live"
+            DESCRIPTION="BrineSearch V18 is live"
             TARGET_URL="${PAGE_URL:-$FALLBACK_PAGE_URL}"
           else
             STATE="failure"
