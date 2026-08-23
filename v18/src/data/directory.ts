@@ -150,7 +150,7 @@ function mapRecord(row: RawRecord, source: DirectorySourceState): PadSummary {
     apiNumbers: list(row.apis ?? row.api),
     propertyNumbers: list(row.propertyNumbers ?? row.property_number ?? row.property),
     safeRoadTerms: list(row.safeRoadTerms ?? row.safe_road_terms),
-    structuredRoadSequence: text(row.structured_road_sequence ?? row.Structured_Road_Sequence),
+    structuredRoadSequence: text(row.structuredRoadSequence ?? row.structured_road_sequence ?? row.Structured_Road_Sequence),
     writtenDirections: text(row.written_directions ?? row.writtenDirections ?? row.directions_clear),
     verificationStatus: text(row.verificationState ?? row.verification_status ?? row.verificationStatus),
     operatingStatus: text(row.operatingState ?? row.operating_status ?? row.operatingStatus),
