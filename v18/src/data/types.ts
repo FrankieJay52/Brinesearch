@@ -45,6 +45,12 @@ export interface PadSummary {
   updatedAt: string | null;
 }
 
+export interface PadWellIdentifierRow {
+  wellName: string | null;
+  apiNumber: string | null;
+  propertyNumber: string | null;
+}
+
 export interface DirectorySnapshot {
   schemaVersion: 1;
   snapshotId: string;
