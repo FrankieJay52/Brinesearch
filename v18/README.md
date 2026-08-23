@@ -76,3 +76,7 @@ GitHub Pages publish only V18 runtime files. Netlify redirects `/`,
 `/index.html`, the former root manifest, and `/v17/*` to V18. Its minimal root
 retirement worker deletes V17 caches and moves installed old clients to V18
 while leaving the `/v18/` service-worker scope untouched.
+
+Historical source and database evidence remain in the repository only to
+preserve reviewed road, map, graph, and migration provenance. Root commands and
+continuous-integration workflows neither execute nor publish the retired app.

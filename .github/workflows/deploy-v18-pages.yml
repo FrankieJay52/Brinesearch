@@ -32,6 +32,9 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v18/package-lock.json
 
       - name: Install project dependencies
         run: npm ci

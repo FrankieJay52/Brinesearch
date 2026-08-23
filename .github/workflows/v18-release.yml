@@ -1,0 +1,72 @@
+name: Build BrineSearch V18
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: brinesearch-v18-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test-package:
+    name: Build, verify, and package V18
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            v18/package-lock.json
+
+      - name: Install project dependencies
+        run: npm ci
+
+      - name: Build the V18-only production bundle
+        run: npm run build:netlify
+
+      - name: Verify retired runtime is absent
+        run: |
+          test -f dist-production/v18/index.html
+          test -f dist-production/v18/sw.js
+          test -f dist-production/sw.js
+          test ! -e dist-production/index.html
+          test ! -e dist-production/manifest.webmanifest
+          test ! -e dist-production/road-manager.js
+          test ! -e dist-production/road-database.js
+          test ! -e dist-production/front-sign-scanner.js
+          test ! -e dist-production/pad-fallback-data.json
+          grep -q 'const V18_ENTRY = "/v18/#/"' dist-production/sw.js
+
+      - name: Package BrineSearch V18
+        run: |
+          cd dist-production
+          zip -r ../BrineSearch-V18.zip .
+          cd ..
+          sha256sum BrineSearch-V18.zip > BrineSearch-V18.sha256
+
+      - name: Upload V18 release file
+        uses: actions/upload-artifact@v4
+        with:
+          name: BrineSearch-V18
+          path: |
+            BrineSearch-V18.zip
+            BrineSearch-V18.sha256
+          if-no-files-found: error
+          retention-days: 30
