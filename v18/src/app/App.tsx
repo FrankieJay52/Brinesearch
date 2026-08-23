@@ -6,6 +6,7 @@ import { DirectoryProvider, useDirectory } from "@/data/DirectoryContext";
 import { CompanyRoadsProvider } from "@/data/CompanyRoadsContext";
 import { MapPage } from "@/features/map/MapPage";
 import { SearchPage } from "@/features/search/SearchPage";
+import { SearchOverlay } from "@/features/search/SearchOverlay";
 import { PadPage } from "@/features/pad/PadPage";
 import { SavedPage } from "@/features/saved/SavedPage";
 import { MorePage } from "@/features/more/MorePage";
@@ -43,7 +44,9 @@ function BottomNavigation() {
   return <nav className="bottom-navigation" aria-label="Main navigation">{navigation.map((item) => {
     const active = item.to === "/"
       ? location.pathname === "/"
-      : location.pathname === item.to || (item.to === "/more" && ["/settings", "/control-center", "/field-updates"].some((path) => location.pathname.startsWith(path)));
+      : location.pathname === item.to
+        || (item.to === "/search" && location.pathname.startsWith("/search/"))
+        || (item.to === "/more" && ["/settings", "/control-center", "/field-updates"].some((path) => location.pathname.startsWith(path)));
     return <NavLink key={item.to} to={item.to} end={item.to === "/"} className={active ? "active" : ""} aria-current={active ? "page" : undefined}>
       <Icon name={item.icon}/><span>{item.label}</span>
     </NavLink>;
@@ -68,6 +71,10 @@ function UpdateNotice() {
   </aside>;
 }
 
+function SearchOverlayRoute() {
+  return <><MapPage/><SearchOverlay/></>;
+}
+
 function AppRoutes() {
   return <>
     <RouteScrollReset />
@@ -75,7 +82,8 @@ function AppRoutes() {
     <main className="app-main">
       <Routes>
         <Route path="/" element={<MapPage/>}/>
-        <Route path="/search" element={<SearchPage/>}/>
+        <Route path="/search" element={<SearchOverlayRoute/>}/>
+        <Route path="/search/all" element={<SearchPage/>}/>
         <Route path="/saved" element={<SavedPage/>}/>
         <Route path="/more" element={<MorePage/>}/>
         <Route path="/settings" element={<SettingsPage/>}/>
