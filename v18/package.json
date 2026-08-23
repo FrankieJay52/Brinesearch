@@ -16,6 +16,7 @@
     "preview": "vite preview --config vite.config.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.112.3",
     "maplibre-gl": "6.5.0",
     "react": "19.2.8",
     "react-dom": "19.2.8",

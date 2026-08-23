@@ -15,6 +15,7 @@ export type IconName =
   | "update"
   | "feed"
   | "control"
+  | "account"
   | "back"
   | "close"
   | "share"
@@ -36,6 +37,7 @@ const paths: Record<IconName, ReactNode> = {
   update: <><path d="M20 7v5h-5"/><path d="M4 17v-5h5"/><path d="M6.1 8a7 7 0 0 1 11.2-1L20 12M4 12l2.7 5a7 7 0 0 0 11.2-1"/></>,
   feed: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/></>,
   control: <><path d="M4 7h10M18 7h2M4 17h2M10 17h10"/><circle cx="16" cy="7" r="2"/><circle cx="8" cy="17" r="2"/></>,
+  account: <><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></>,
   back: <path d="m15 18-6-6 6-6"/>,
   close: <path d="m6 6 12 12M18 6 6 18"/>,
   share: <><circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/></>,

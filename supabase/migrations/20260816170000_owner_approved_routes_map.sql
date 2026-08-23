@@ -39,8 +39,8 @@ begin
   if v_zoom < 8 then
     return pg_catalog.jsonb_build_object('type','FeatureCollection','features','[]'::jsonb,'pads','[]'::jsonb,'zoom_required',8,'truncated',false);
   end if;
-  if (p_east-p_west) > case when v_zoom>=12 then 1.2 else 3.5 end
-     or (p_north-p_south) > case when v_zoom>=12 then 0.9 else 2.5 end then
+  if (p_east-p_west) > (case when v_zoom>=12 then 1.2 else 3.5 end)
+     or (p_north-p_south) > (case when v_zoom>=12 then 0.9 else 2.5 end) then
     raise exception 'map bounds too large for zoom level' using errcode='22023';
   end if;
   v_bbox := extensions.st_makeenvelope(p_west,p_south,p_east,p_north,4326);

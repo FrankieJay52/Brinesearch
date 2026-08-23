@@ -7,17 +7,29 @@ const root = path.resolve(here, "../..");
 const read = (relative) => fs.readFileSync(path.join(root, relative), "utf8").replace(/\r\n/g, "\n");
 const compact = (value) => value.replace(/\s+/g, " ").trim().toLowerCase();
 
+function runtimeSource(directory) {
+  return fs.readdirSync(directory, { withFileTypes: true }).map((entry) => {
+    const target = path.join(directory, entry.name);
+    if (entry.isDirectory()) return runtimeSource(target);
+    return /\.(?:ts|tsx)$/.test(entry.name) && !/\.test\./.test(entry.name) ? fs.readFileSync(target, "utf8") : "";
+  }).join("\n");
+}
+
 const initialMigration = read("supabase/migrations/20260816170000_owner_approved_routes_map.sql");
 const viewportFix = read("supabase/migrations/20260816170100_owner_approved_routes_map_viewport_fix.sql");
 const performanceMigration = read("supabase/migrations/20260816170200_owner_approved_routes_map_viewport_performance.sql");
 const session = read("v18/src/data/ownerSession.ts");
+const supabaseClient = read("v18/src/data/supabaseClient.ts");
 const access = read("v18/src/data/OwnerAccessContext.tsx");
+const fieldUpdates = read("v18/src/data/fieldUpdates.ts");
 const adapter = read("v18/src/data/ownerRoads.ts");
 const adapterTest = read("v18/src/data/ownerRoads.test.ts");
 const map = read("v18/src/features/owner-roads/OwnerApprovedRoutesPage.tsx");
 const app = read("v18/src/app/App.tsx");
 const settings = read("v18/src/features/settings/SettingsPage.tsx");
 const controlCenter = read("v18/src/features/control-center/ControlCenterPage.tsx");
+const signIn = read("v18/src/features/auth/OwnerSignInPage.tsx");
+const runtime = runtimeSource(path.join(root, "v18/src"));
 const errors = [];
 
 function requireText(source, needle, label = needle) {
@@ -27,6 +39,8 @@ function requireText(source, needle, label = needle) {
 function forbid(source, pattern, label) {
   if (pattern.test(source)) errors.push(label);
 }
+
+forbid(initialMigration + viewportFix + performanceMigration, />\s*case\s+when\s+v_zoom/i, "viewport limit CASE expression is not parenthesized for PL/pgSQL parsing");
 
 for (const [name, source] of [["initial migration", initialMigration], ["final viewport migration", performanceMigration]]) {
   requireText(source, "security definer", `${name} SECURITY DEFINER`);
@@ -67,12 +81,15 @@ requireText(initialMigration, "extensions.st_geometrytype(j.geom)='ST_Point'", "
 requireText(initialMigration, "greatest(c.last_seen_at,c.dataset_fetched_at,c.dataset_source_timestamp)", "current production identity verification timestamp");
 forbid(initialMigration, /greatest\(c\.updated_at\s*,/i, "road detail references the nonexistent authoritative identity updated_at column");
 
-requireText(session, '"brinesearch.editorSession.v1"', "same-origin Road Manager session bridge");
+requireText(supabaseClient, '"brinesearch.v18AuthSession.v1"', "V18-only persisted auth namespace");
+requireText(session, "signInWithPassword", "native V18 password sign-in");
+requireText(session, 'signOut({ scope: "local" })', "local-device V18 sign-out");
 requireText(session, '"owner_approved_routes_map_viewport"', "owner RPC allowlist viewport");
 requireText(session, '"owner_approved_routes_map_road_detail"', "owner RPC allowlist detail");
 requireText(session, '"owner_approved_routes_map_pad_options"', "owner RPC allowlist pad options");
 requireText(session, "my_editor_status", "server-returned UI owner role check");
-requireText(session, "Authorization: `Bearer ${session.accessToken}`", "authenticated owner RPC transport");
+requireText(session, "Authorization: `Bearer ${session.access_token}`", "authenticated owner RPC transport");
+forbid(runtime, /legacyBrineSearchPaths|https?:\/\/brinesearch\.com\/index\.html#|brinesearch\.editorSession\.v1/i, "reachable V18 runtime still contains an old-app bridge or session contract");
 forbid(session + adapter + map, /service[_-]?role/i, "privileged service-role material appears in V18 owner feature");
 forbid(session + adapter + map, /method:\s*["'](?:PUT|PATCH|DELETE)["']/i, "owner feature contains a write HTTP method");
 
@@ -92,19 +109,16 @@ requireText(map, "does not approve it, create route steps or geometry, change th
 
 requireText(access, "checkOwnerAccess", "shared UI owner access provider");
 requireText(app, '<Route path="/settings/approved-routes" element={<OwnerApprovedRoutesPage/>}/>', "Owner Settings route");
+requireText(app, '<Route path="/sign-in" element={<OwnerSignInPage/>}/>', "native V18 owner sign-in route");
 requireText(app, "<OwnerAccessProvider>", "V18 owner access provider wiring");
 requireText(settings, 'access.state === "owner"', "owner-only Settings navigation guard");
 requireText(settings, 'to="/settings/approved-routes"', "Settings to owner map connection");
 requireText(controlCenter, '<Link to="/settings/approved-routes" className="button-primary">', "Road Manager control center primary V18 map connection");
+requireText(controlCenter, 'to="/sign-in?next=/settings/approved-routes"', "Control Center native V18 sign-in connection");
+requireText(signIn, "signIn(email, password)", "native V18 owner form submission");
+requireText(fieldUpdates, "/rest/v1/rpc/field_feed_list?select=", "public-field-selected V18 Field Updates RPC");
+forbid(fieldUpdates, /author_id|real_name|image_urls/i, "nonessential Field Feed identity or image field appears in the V18 adapter");
 forbid(controlCenter, /\{access\.state\s*===\s*["']owner["']\s*&&\s*<Link\s+to=["']\/settings\/approved-routes["']/, "V18 map launch is hidden behind the client-side owner check");
-
-const legacyRoadManagerLaunches = [controlCenter, map].flatMap((source) =>
-  source.match(/<a\b[^>]*href=\{legacyBrineSearchPaths\.controlCenter\}[^>]*>/g) ?? [],
-);
-if (legacyRoadManagerLaunches.length !== 3) errors.push(`expected exactly 3 explicit legacy Road Manager launches, found ${legacyRoadManagerLaunches.length}`);
-if (legacyRoadManagerLaunches.some((launch) => !/target=["']_blank["']/.test(launch) || !/rel=["']noopener noreferrer["']/.test(launch))) {
-  errors.push("a legacy Road Manager launch can replace the current V18 tab/history");
-}
 
 forbid(initialMigration + viewportFix + performanceMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
 forbid(initialMigration + viewportFix + performanceMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");

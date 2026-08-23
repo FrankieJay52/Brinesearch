@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "@/components/Icon";
-import { legacyBrineSearchPaths } from "@/app/legacyLinks";
 import { useOwnerAccess } from "@/data/OwnerAccessContext";
 import "./control-center.css";
 
@@ -26,16 +25,16 @@ export function ControlCenterPage() {
     <section className="control-lock-card" aria-labelledby="control-lock-title">
       <span className="control-lock-icon"><Icon name="control"/></span>
       <span className="eyebrow">OWNER WORKFLOW</span>
-      <h1 id="control-lock-title">{isOwner ? "Choose the owner road workspace" : "Open the V18 road workspace"}</h1>
-      <p>{isOwner ? "Use the native V18 map to inspect and highlight exact road identities. Open the legacy editor separately only when you need its editing workflow." : "Road inspection now stays inside V18. Owner access is still checked by the server, and the separate legacy sign-in never replaces this V18 page."}</p>
+      <h1 id="control-lock-title">{isOwner ? "Your road workspace is ready" : "Open the V18 road workspace"}</h1>
+      <p>{isOwner ? "Inspect exact road identities and their authority evidence without leaving V18. The current release is deliberately read-only." : "Sign in here, then inspect approved roads on the native V18 map. The server still verifies Owner access before protected data loads."}</p>
       <div className="control-boundary-list">
-        <span><Icon name="map"/><b>Approved Routes Map</b><small>Native V18 inspection</small></span>
-        <span><Icon name="graph"/><b>Graph health</b><small>Existing protected workflow</small></span>
-        <span><Icon name="google"/><b>Held routes</b><small>Existing owner review</small></span>
+        <span><Icon name="map"/><b>Exact road map</b><small>Visible road identities</small></span>
+        <span><Icon name="graph"/><b>Graph evidence</b><small>Release-current only</small></span>
+        <span><Icon name="route"/><b>Pad route context</b><small>No inferred gaps</small></span>
       </div>
       <div className="control-center-actions">
         <Link to="/settings/approved-routes" className="button-primary"><Icon name="map"/> {isOwner ? "Open Approved Routes Map" : "Continue to V18 Road Map"}</Link>
-        <a href={legacyBrineSearchPaths.controlCenter} target="_blank" rel="noopener noreferrer" className="button-secondary"><Icon name="control"/> {access.state === "signed_out" ? "Owner sign-in (new tab)" : "Legacy editor (new tab)"}</a>
+        <Link to="/sign-in?next=/settings/approved-routes" className="button-secondary"><Icon name="account"/> {isOwner ? "Owner account" : "Sign in to V18"}</Link>
       </div>
     </section>
 
@@ -43,7 +42,7 @@ export function ControlCenterPage() {
       <header>
         <span className="eyebrow">ROAD MANAGER REDESIGN</span>
         <h2 id="road-manager-redesign-title">One pad. One guided path.</h2>
-        <p>The V18 read-only road map is now the first step. Editing, validation, and publication remain in the separately labeled legacy editor until the guided workflow is complete.</p>
+        <p>The exact read-only road map is the first safe step. Editing stays unavailable until a native guided workflow independently passes its authority and release gates.</p>
       </header>
       <ol className="road-manager-steps">
         {roadManagerSteps.map((step, index) => <li key={step.title}>
@@ -67,6 +66,6 @@ export function ControlCenterPage() {
       </ul>
     </section>
 
-    <p className="safety-footer">The native map reuses the current BrineSearch owner session and every data request is rechecked by the owner-only database boundary. V18 does not grant editing rights or turn a selected road into route authority.</p>
+    <p className="safety-footer">The native map uses its own V18 session and every protected request is rechecked by the owner-only database boundary. V18 does not grant editing rights or turn a selected road into route authority.</p>
   </section>;
 }

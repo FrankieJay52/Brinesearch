@@ -6,7 +6,7 @@
   margin-bottom: 16px;
 }
 
-.owner-edit-link {
+.owner-account-link {
   min-height: 38px;
   display: inline-flex;
   align-items: center;
@@ -19,6 +19,11 @@
   font-size: .72rem;
   font-weight: 800;
   text-decoration: none;
+}
+
+.owner-account-link svg {
+  width: 16px;
+  height: 16px;
 }
 
 .owner-routes-hero {

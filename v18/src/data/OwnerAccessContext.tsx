@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { checkOwnerAccess, ownerSessionStorageKey, type OwnerAccessResult } from "./ownerSession";
+import { checkOwnerAccess, signInOwner, signOutOwner, type OwnerAccessResult } from "./ownerSession";
+import { supabase } from "./supabaseClient";
 
 type OwnerAccessState = { state: "checking"; message: string } | OwnerAccessResult;
 
 type OwnerAccessContextValue = {
   access: OwnerAccessState;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<OwnerAccessResult>;
+  signIn: (email: string, password: string) => Promise<OwnerAccessResult>;
+  signOut: () => Promise<void>;
 };
 
 const OwnerAccessContext = createContext<OwnerAccessContextValue | null>(null);
@@ -17,6 +20,19 @@ export function OwnerAccessProvider({ children }: { children: ReactNode }) {
     setAccess({ state: "checking", message: "Checking owner access…" });
     const result = await checkOwnerAccess();
     setAccess(result);
+    return result;
+  }, []);
+
+  const signIn = useCallback(async (email: string, password: string) => {
+    setAccess({ state: "checking", message: "Signing in securely…" });
+    const result = await signInOwner(email, password);
+    setAccess(result);
+    return result;
+  }, []);
+
+  const signOut = useCallback(async () => {
+    await signOutOwner();
+    setAccess({ state: "signed_out", message: "You are signed out of V18 on this device." });
   }, []);
 
   useEffect(() => {
@@ -26,17 +42,16 @@ export function OwnerAccessProvider({ children }: { children: ReactNode }) {
         setAccess({ state: "error", message: "Owner access could not be verified. No owner road data was loaded." });
       }
     });
-    const storageChanged = (event: StorageEvent) => {
-      if (event.key === ownerSessionStorageKey) refresh();
-    };
-    window.addEventListener("storage", storageChanged);
+    const { data: listener } = supabase.auth.onAuthStateChange(() => {
+      window.setTimeout(() => { void refresh(); }, 0);
+    });
     return () => {
       controller.abort();
-      window.removeEventListener("storage", storageChanged);
+      listener.subscription.unsubscribe();
     };
   }, [refresh]);
 
-  const value = useMemo(() => ({ access, refresh }), [access, refresh]);
+  const value = useMemo(() => ({ access, refresh, signIn, signOut }), [access, refresh, signIn, signOut]);
   return <OwnerAccessContext.Provider value={value}>{children}</OwnerAccessContext.Provider>;
 }
 

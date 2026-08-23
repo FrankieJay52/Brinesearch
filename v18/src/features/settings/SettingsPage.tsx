@@ -210,8 +210,8 @@ export function SettingsPage() {
 
     <aside className={`settings-owner-note${access.state === "owner" ? " is-owner" : ""}`}>
       <Icon name="control"/>
-      <div><strong>{access.state === "owner" ? "Owner road tools" : "Looking for Road Manager?"}</strong><p>{access.state === "owner" ? "Inspect and highlight exact road identities in V18. Editing remains separate in the authenticated Road Manager." : "Owner tools live in a separate Control Center so drivers cannot accidentally enter an editing workflow."}</p></div>
-      {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/settings/approved-routes">Approved Routes Map</Link><Link to="/control-center">Road Manager</Link></span> : <Link to="/control-center">Open Control Center</Link>}
+      <div><strong>{access.state === "owner" ? "Owner road tools" : "Owner road workspace"}</strong><p>{access.state === "owner" ? "Inspect and highlight exact road identities in V18. Editing and publication remain unavailable in this read-only release." : "Sign-in and owner tools stay inside V18 so driver navigation never drops into an older app."}</p></div>
+      {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/settings/approved-routes">Approved Routes Map</Link><Link to="/sign-in?next=/settings">Owner account</Link></span> : <span className="settings-owner-actions"><Link to="/control-center">Control Center</Link><Link to="/sign-in?next=/settings/approved-routes">Sign in</Link></span>}
     </aside>
   </section>;
 }

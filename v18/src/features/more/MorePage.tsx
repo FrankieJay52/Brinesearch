@@ -1,16 +1,15 @@
 import { Link } from "react-router-dom";
 import { Icon, type IconName } from "@/components/Icon";
 import { useDirectory } from "@/data/DirectoryContext";
-import { legacyBrineSearchPaths } from "@/app/legacyLinks";
 
-function MoreLink({ to, icon, title, detail, badge, sameOriginTool = false }: { to: string; icon: IconName; title: string; detail: string; badge?: string; sameOriginTool?: boolean }) {
+function MoreLink({ to, icon, title, detail, badge }: { to: string; icon: IconName; title: string; detail: string; badge?: string }) {
   const content = <>
     <span className="more-row-icon"><Icon name={icon}/></span>
     <span className="more-row-copy"><strong>{title}</strong><small>{detail}</small></span>
     {badge && <span className="more-row-badge">{badge}</span>}
     <span className="result-arrow" aria-hidden="true">›</span>
   </>;
-  return sameOriginTool ? <a className="more-row" href={to}>{content}</a> : <Link className="more-row" to={to}>{content}</Link>;
+  return <Link className="more-row" to={to}>{content}</Link>;
 }
 
 export function MorePage() {
@@ -26,9 +25,9 @@ export function MorePage() {
     <section className="more-section" aria-labelledby="more-field-heading">
       <h2 id="more-field-heading">Field information</h2>
       <div className="more-list">
-        <MoreLink to="/field-updates" icon="feed" title="Field Updates" detail="Open the current Field Feed for road and pad updates." badge="Live"/>
+        <MoreLink to="/field-updates" icon="feed" title="Field Updates" detail="Read moderated road and pad updates without leaving V18." badge="Live"/>
         <MoreLink to="/saved" icon="offline" title="Saved locations" detail={`Favorites, recent locations, and ${snapshot?.counts.locations.toLocaleString() || "no"} directory records loaded now.`}/>
-        <MoreLink to={legacyBrineSearchPaths.dashboard} icon="more" title="Full driver dashboard" detail="Weather, nearby pads, favorites, offline tools, submissions, and community features." badge="Live" sameOriginTool/>
+        <MoreLink to="/" icon="map" title="Driver map" detail="Return to the live V18 map, directory, and approved company-road overlays."/>
       </div>
     </section>
 
@@ -42,7 +41,7 @@ export function MorePage() {
     <section className="more-section" aria-labelledby="more-owner-heading">
       <h2 id="more-owner-heading">Owner tools</h2>
       <div className="more-list">
-        <MoreLink to="/control-center" icon="control" title="Control Center" detail="Open the existing authenticated Road Manager and owner review tools." badge="Live"/>
+        <MoreLink to="/control-center" icon="control" title="Control Center" detail="Open the native V18 owner account and exact read-only road map." badge="Owner"/>
       </div>
     </section>
 

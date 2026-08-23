@@ -63,8 +63,8 @@ begin
       'zoom_required',8,'truncated',false,'limit',v_limit,'zoom',v_zoom
     );
   end if;
-  if (p_east-p_west) > case when v_zoom>=12 then 1.2 else 3.5 end
-     or (p_north-p_south) > case when v_zoom>=12 then .9 else 2.5 end then
+  if (p_east-p_west) > (case when v_zoom>=12 then 1.2 else 3.5 end)
+     or (p_north-p_south) > (case when v_zoom>=12 then .9 else 2.5 end) then
     raise exception 'map bounds too large for zoom level' using errcode='22023';
   end if;
 
