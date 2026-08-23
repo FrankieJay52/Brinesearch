@@ -176,6 +176,8 @@ describe("V18 reviewed saved-directions contract", () => {
     expect(migration).toContain("when v_route_source='legacy_written'");
     expect(migration).toContain("and v_route_state in ('written_only','held','stale')");
     expect(migration).toContain("grant execute on function public.brinesearch_v18_driver_pad_status(uuid)");
+    expect(migration).toContain("'search_path=\"\"'");
+    expect(migration).not.toContain("'search_path=',");
     expect(migration).not.toMatch(/\b(insert|update|delete|truncate)\s+(into|from|public\.)/i);
   });
 });

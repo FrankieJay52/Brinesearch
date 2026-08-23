@@ -308,7 +308,7 @@ begin
 
   if not v_function.prosecdef
      or not (v_function.proconfig @> array[
-       'search_path=',
+       'search_path=""',
        'statement_timeout=2500ms',
        'lock_timeout=500ms'
      ]) then
