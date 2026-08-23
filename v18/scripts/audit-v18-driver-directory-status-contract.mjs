@@ -12,8 +12,9 @@ const sqlTestPath = path.join(
   root,
   "supabase/tests/v18_driver_directory_status_contract.sql",
 );
-const migration = fs.readFileSync(migrationPath, "utf8");
-const sqlTest = fs.readFileSync(sqlTestPath, "utf8");
+const normalizeNewlines = (value) => value.replace(/\r\n?/g, "\n");
+const migration = normalizeNewlines(fs.readFileSync(migrationPath, "utf8"));
+const sqlTest = normalizeNewlines(fs.readFileSync(sqlTestPath, "utf8"));
 
 function normalized(value) {
   return value.replace(/\s+/g, " ").trim().toLowerCase();

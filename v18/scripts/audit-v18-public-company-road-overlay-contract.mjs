@@ -12,8 +12,9 @@ const testPath = path.join(
   root,
   "supabase/tests/v18_public_company_road_overlay_contract.sql",
 );
-const migration = fs.readFileSync(migrationPath, "utf8");
-const sqlTest = fs.readFileSync(testPath, "utf8");
+const normalizeNewlines = (value) => value.replace(/\r\n?/g, "\n");
+const migration = normalizeNewlines(fs.readFileSync(migrationPath, "utf8"));
+const sqlTest = normalizeNewlines(fs.readFileSync(testPath, "utf8"));
 
 function compact(value) {
   return value.replace(/\s+/g, " ").trim().toLowerCase();
