@@ -1,6 +1,8 @@
 # Issue #97 held-route checkpoint — 2026-08-24
 
-Status: **production writes stopped after a failed rollback-only rehearsal**. The
+Status: **production writes stopped after the one permanent GUE attempt failed
+before commit**. The corrected rollback rehearsal passed, but the permanent
+installer's additional directory-digest assertion was nondeterministic. The
 transaction was explicitly rolled back and the required persisted-state readback
 proved zero delta. No permanent GUE/HAS migration, public Google publication, or
 cutover occurred.
@@ -8,7 +10,7 @@ cutover occurred.
 ## Repository and deployed V18
 
 - Current `main` and `origin/main`: `b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48`.
-- Current worktree branch: `fix/issue97-held-routes`, a local two-commit series
+- Current worktree branch: `fix/issue97-held-routes`, a local three-commit series
   atop `origin/main`; the first exact-evidence checkpoint is
   `f4a76d7284acd4317cb7c33c7899ac6ddd237e3d`.
 - Current main already contains the fail-closed full-screen approved-road viewer
@@ -151,7 +153,56 @@ incorrectly asserted that the queue was already empty. Read-only recovery pinned
 the exact current dependency sets: GUE affects BLAYNEY, JENNINGS, and SHUTWAY;
 HAS affects BANJO, BESECE, BLAYNEY, COLOGIE, PICKENS, SCOUT, and SHUTWAY.
 
-## Local correction prepared — not run in production
+## Fourth corrected GUE rollback rehearsal — passed and rolled back
+
+- Started from the exact unchanged baseline at
+  `2026-08-24T15:35:10.002529Z`.
+- Rehearsed exact migration SHA-256:
+  `b81fe6934e956aad4900a406207d48f42d3a3e4479a61329dfad046e433b4233`.
+- Completed successfully in 695 seconds with one explicit transaction.
+- Inside the transaction, the migration produced release-current GUE build
+  `3f692445-d7b6-4d71-8fef-866045dc6196`, graph digest
+  `b6c8618795fa8692427b8c47a473d551`, and source revision digest
+  `082daf6c993fa38f1e8069bb5a20e9db`.
+- It created exactly 2 canonical roads and 3 exact mappings, resolved exactly
+  10 Cooper/Lorraine public occurrences, adopted the exact five-identity OH-258
+  family, and refreshed the exact 3-pad dependent private-Google set.
+- Cooper private access and the Titus/Sligo raw crossing remained held;
+  Cooper/Lorraine Google remained `not_evaluated`; public Google remained 0;
+  cutover remained OFF; queue/overlays/reconciliation remained 0.
+- The rehearsal explicitly rolled back. The after-state at
+  `2026-08-24T15:46:44.634018Z` matched the before-state exactly with
+  `zeroPersistentDelta=true`.
+
+## One permanent GUE attempt — installer gate failed and rolled back
+
+- Fresh drift guards passed at `2026-08-24T15:52:23.755564Z`.
+- The exact rehearsed migration completed all of its own assertions in about
+  695 seconds. It produced candidate active build
+  `79a5164e-564b-4760-b90e-bc15db96931d` with the same deterministic graph
+  digest `b6c8618795fa8692427b8c47a473d551`, exactly 2 roads, 3 mappings,
+  10 resolved public occurrences, held Cooper private authority, public Google
+  0, and cutover OFF.
+- Before commit, the installer's extra inside-verification gate failed with:
+  `Directory digest diverged from rehearsal`.
+- The rehearsal directory SHA was
+  `56d2a1b2b120bb924f5ea8abb9fea333510ce6efa8b1c0d107cfd3fdcd1d4309`;
+  the permanent transaction's valid revision-4 directory SHA was
+  `7ca7c75b2c9a014c9152fca140eef8c9ae8cf22d7d56a1c2c20e48606d73d68b`.
+  New build/manifest/snapshot IDs and generation timestamps make exact directory
+  bytes nondeterministic across otherwise equivalent executions. The migration
+  correctly requires current revision 4 and exact row counts, not a rehearsed
+  content SHA.
+- No `COMMIT` was attempted. The transaction, including its provisional migration
+  ledger row, rolled back successfully.
+- The single persisted-state inspection at
+  `2026-08-24T16:03:59.484092Z` proved the original GUE build/digests, directory
+  revision 3/digest, 19/1 active graphs, staging 0, target roads/mappings/manifest
+  0, migration ledger 0, queue/public Google/overlays/reconciliation 0, cutover
+  OFF, and all protected digests unchanged.
+- Per fail-stop, no permanent retry, HAS action, merge, or deployment followed.
+
+## Local correction prepared — permanent retry not authorized
 
 Migration
 `20260824122000_issue97_gue_held_route_exact_identity_receipts.sql` now:
@@ -173,10 +224,13 @@ Migration
 Prepared migration SHA-256:
 `b81fe6934e956aad4900a406207d48f42d3a3e4479a61329dfad046e433b4233`.
 
-It has **not** been rehearsed or applied after the deferred-trigger correction.
-The fail-stop rule requires a new explicit post-failure authorization before one
-new rollback-only GUE rehearsal. HAS/Scout remains serially gated behind a
-passing and permanently verified GUE migration.
+The exact migration passed its corrected rollback rehearsal. It has not been
+permanently installed. The local one-shot installer now verifies a newly issued
+64-character directory SHA, revision 4, 1,214/1,214 rows, and a new snapshot
+instead of requiring nondeterministic equality with the rehearsal SHA. The
+fail-stop rule requires a new explicit post-failure authorization before one
+new permanent GUE attempt. HAS/Scout remains serially gated behind a permanently
+verified GUE migration.
 
 The HAS exact-source collision audit is also clean: each reviewed CR-36/36A
 identity has one exact NLF record, is current/public/drivable with authoritative
@@ -242,14 +296,14 @@ Exact underlying blockers remain:
   highlights, and per-pad endpoints are present without old-app bridges or
   private fields.
 - Production assembly: 19 V18 files; every V17 page/runtime asset absent.
-- Latest resource check: 1.48 GB RAM and 4.86 GB disk free.
+- Latest resource check: 1.50 GB RAM and 4.77 GB disk free.
 
 ## Remaining gates
 
-1. One newly authorized rollback-only rehearsal of the deferred-trigger-
-   corrected GUE migration.
-2. Permanent GUE apply only if that rehearsal passes, followed by exact readback.
-3. Separate HAS/Scout rehearsal and permanent apply only after GUE passes.
+1. One newly authorized permanent GUE attempt using the already-passed exact
+   migration and corrected deterministic installer gates.
+2. Exact persisted GUE readback after commit.
+3. Separate HAS/Scout rehearsal and permanent apply only after GUE is installed.
 4. Re-verify all target receipts/graphs/private Google holds; public Google stays
    0 and cutover stays OFF.
 5. The user authorized merge and deployment after every database gate passes;
