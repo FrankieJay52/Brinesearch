@@ -101,7 +101,7 @@ export function ownerRoadSelection(features: OwnerRoadFeature[], currentIdentity
   if (currentIdentityId && features.some((feature) => feature.properties.identityId === currentIdentityId)) {
     return currentIdentityId;
   }
-  return features[0]?.properties.identityId ?? null;
+  return null;
 }
 
 export function ownerRoadCollection(features: OwnerRoadFeature[], padFocused = false) {

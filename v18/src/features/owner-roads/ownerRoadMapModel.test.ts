@@ -97,8 +97,8 @@ describe("owner road map model", () => {
     expect(ownerRoadJurisdiction(feature.properties)).toBe("OH · Monroe");
   });
 
-  it("always selects an exact visible identity when roads are loaded", () => {
-    expect(ownerRoadSelection([feature], null)).toBe(feature.properties.identityId);
+  it("loads expensive release-current detail only after an explicit road selection", () => {
+    expect(ownerRoadSelection([feature], null)).toBeNull();
     expect(ownerRoadSelection([feature], feature.properties.identityId)).toBe(feature.properties.identityId);
     expect(ownerRoadSelection([], feature.properties.identityId)).toBeNull();
   });
