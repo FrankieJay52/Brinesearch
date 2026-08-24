@@ -3,11 +3,14 @@ import type { OwnerPadOption, OwnerRoadFeature, OwnerRoadViewportRequest } from 
 import type { PadSummary } from "@/data/types";
 import {
   ownerRoadCollection,
+  ownerRoadCompanyOptions,
+  ownerRoadCoverage,
   ownerRoadFeatureBounds,
   ownerRoadFeaturesBounds,
   ownerRoadFeatureLimit,
   ownerRoadJurisdiction,
   ownerRoadPadOptions,
+  ownerRoadPadSearchResults,
   ownerRoadSelection,
   ownerRoadStateCode,
   ownerRoadViewportRequestKey,
@@ -86,6 +89,34 @@ describe("owner road map model", () => {
     expect(ownerRoadCollection([feature], true).features[0].properties.padFocused).toBe(true);
   });
 
+  it("summarizes only returned exact evidence without inventing route coverage", () => {
+    const endpoint: OwnerRoadFeature = {
+      ...feature,
+      properties: {
+        ...feature.properties,
+        identityId: "22222222-2222-4222-8222-222222222222",
+        approvalStatus: "held",
+        occurrenceCount: 2,
+        displayBoundary: "pad_endpoint_projection",
+        endpointOffsetMeters: 3.2,
+      },
+    };
+    expect(ownerRoadCoverage([feature, endpoint])).toEqual({
+      identityCount: 2,
+      occurrenceCount: 3,
+      endpointCount: 1,
+      statusCounts: {
+        approved_by_policy: 0,
+        explicitly_approved: 0,
+        candidate: 1,
+        held: 1,
+        restricted: 0,
+        reference_only: 0,
+      },
+    });
+    expect(ownerRoadCoverage([]).occurrenceCount).toBe(0);
+  });
+
   it("focuses the complete returned exact geometry", () => {
     expect(ownerRoadFeatureBounds(feature)).toEqual({ west: -81.3, south: 39.7, east: -81.05, north: 40 });
     expect(ownerRoadFeaturesBounds([feature, {
@@ -124,5 +155,31 @@ describe("owner road map model", () => {
     expect(merged.find((pad) => pad.padName === "Bannock")).toMatchObject({ state: "OH", latitude: 40.2, longitude: -81.3 });
     expect(merged.find((pad) => pad.padName === "Directions only")).toMatchObject({ state: "WV", latitude: 39.7, longitude: -80.5 });
     expect(ownerRoadStateCode("Pennsylvania")).toBe("PA");
+  });
+
+  it("separates the bounded pad picker by exact company and pad-name text", () => {
+    const pads: OwnerPadOption[] = [
+      { padId: "11111111-1111-4111-8111-111111111111", padName: "Bannock", company: "Ascent", state: "OH", latitude: 40, longitude: -81 },
+      { padId: "22222222-2222-4222-8222-222222222222", padName: "Banjo", company: "Ascent", state: "OH", latitude: 40, longitude: -81 },
+      { padId: "33333333-3333-4333-8333-333333333333", padName: "Bannock South", company: "EQT", state: "OH", latitude: 40, longitude: -81 },
+      { padId: "44444444-4444-4444-8444-444444444444", padName: "Cabin", company: "", state: "WV", latitude: 40, longitude: -81 },
+    ];
+    expect(ownerRoadCompanyOptions(pads)).toEqual(["Ascent", "EQT"]);
+    expect(ownerRoadPadSearchResults(pads, "Ascent", "bann").map((pad) => pad.padName)).toEqual(["Bannock"]);
+    expect(ownerRoadPadSearchResults(pads, "", "nno").map((pad) => pad.padName)).toEqual(["Bannock", "Bannock South"]);
+    expect(ownerRoadPadSearchResults(pads, "EQT", "banjo")).toEqual([]);
+  });
+
+  it("never renders the entire pad directory as search choices", () => {
+    const pads: OwnerPadOption[] = Array.from({ length: 80 }, (_, index) => ({
+      padId: `${String(index).padStart(8, "0")}-1111-4111-8111-111111111111`,
+      padName: `Pad ${String(index).padStart(2, "0")}`,
+      company: "Ascent",
+      state: "OH",
+      latitude: 40,
+      longitude: -81,
+    }));
+    expect(ownerRoadPadSearchResults(pads, "Ascent", "", 12)).toHaveLength(12);
+    expect(ownerRoadPadSearchResults(pads, "Ascent", "", 500)).toHaveLength(50);
   });
 });
