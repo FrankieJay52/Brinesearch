@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { validateOwnerPadOptions, validateOwnerRoadDetail, validateOwnerRoadViewport } from "./ownerRoads";
 
 const roadProperties = {
-  identity_id: "11111111-1111-4111-8111-111111111111",
+  // Production road identities are valid Postgres UUIDs but can use
+  // deterministic version/variant nibbles outside RFC 4122 versions 1-5.
+  identity_id: "1a054581-6c44-73b2-e89f-8b6d8054b93c",
   canonical_road_id: null,
   display_name: "Lafferty-Bannock Rd",
   canonical_name: "Lafferty-Bannock Road",
@@ -74,6 +76,15 @@ describe("owner road viewport contract", () => {
         type: "Feature",
         geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] },
         properties: { ...roadProperties, municipality: { private_review_notes: "hidden" } },
+      }],
+      pads: [], truncated: false, limit: 340, zoom: 13,
+    })).toBeNull();
+    expect(validateOwnerRoadViewport({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] },
+        properties: { ...roadProperties, identity_id: "1a054581-6c44-73b2-e89f-not-a-uuid" },
       }],
       pads: [], truncated: false, limit: 340, zoom: 13,
     })).toBeNull();
