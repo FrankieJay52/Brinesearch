@@ -26,6 +26,8 @@ const roadProperties = {
   source_agency: "Ohio Department of Transportation",
   source_dataset: "ODOT NLF",
   source_version: "2026-08",
+  display_boundary: "pad_endpoint_projection",
+  endpoint_offset_m: 8.583,
 };
 
 describe("owner road viewport contract", () => {
@@ -47,6 +49,8 @@ describe("owner road viewport contract", () => {
       identityId: roadProperties.identity_id,
       approvalStatus: "candidate",
       sourceIdentityKey: roadProperties.source_identity_key,
+      displayBoundary: "pad_endpoint_projection",
+      endpointOffsetMeters: 8.583,
     });
     expect(JSON.stringify(parsed)).not.toContain("private_review_notes");
     expect(JSON.stringify(parsed)).not.toContain("must not escape");
@@ -67,6 +71,15 @@ describe("owner road viewport contract", () => {
         type: "Feature",
         geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] },
         properties: { ...roadProperties, canonical_road_id: "not-a-uuid" },
+      }],
+      pads: [], truncated: false, limit: 340, zoom: 13,
+    })).toBeNull();
+    expect(validateOwnerRoadViewport({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] },
+        properties: { ...roadProperties, endpoint_offset_m: null },
       }],
       pads: [], truncated: false, limit: 340, zoom: 13,
     })).toBeNull();

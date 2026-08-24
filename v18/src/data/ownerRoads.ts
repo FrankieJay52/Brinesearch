@@ -3,6 +3,7 @@ import { ownerRpc } from "./ownerSession";
 type JsonObject = Record<string, unknown>;
 export type OwnerRoadStatus = "approved_by_policy" | "explicitly_approved" | "candidate" | "held" | "restricted" | "reference_only";
 export type OwnerRoadClass = "interstate" | "us_route" | "state_route" | "county" | "township" | "municipal" | "local" | "ramp" | "other";
+export type OwnerRoadDisplayBoundary = "identity_viewport" | "pad_endpoint_projection";
 export type OwnerRoadGeometry =
   | { type: "LineString"; coordinates: [number, number][] }
   | { type: "MultiLineString"; coordinates: [number, number][][] };
@@ -33,6 +34,8 @@ export type OwnerRoadFeature = {
     sourceAgency: string;
     sourceDataset: string;
     sourceVersion: string;
+    displayBoundary: OwnerRoadDisplayBoundary;
+    endpointOffsetMeters: number | null;
   };
 };
 
@@ -150,6 +153,10 @@ function coordinate(value: unknown, min: number, max: number) {
   return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max ? value : null;
 }
 
+function finiteNumber(value: unknown, min: number, max: number) {
+  return typeof value === "number" && Number.isFinite(value) && value >= min && value <= max ? value : null;
+}
+
 function uuid(value: unknown) {
   return typeof value === "string" && uuidPattern.test(value) ? value : null;
 }
@@ -198,16 +205,26 @@ function roadProperties(value: unknown): OwnerRoadFeature["properties"] | null {
   const sourceAgency = requiredText(row.source_agency, 200);
   const sourceDataset = requiredText(row.source_dataset, 300);
   const sourceVersion = requiredText(row.source_version, 200);
+  const displayBoundary = row.display_boundary === undefined
+    ? "identity_viewport"
+    : new Set<OwnerRoadDisplayBoundary>(["identity_viewport", "pad_endpoint_projection"]).has(row.display_boundary as OwnerRoadDisplayBoundary)
+      ? row.display_boundary as OwnerRoadDisplayBoundary
+      : null;
+  const endpointOffsetMeters = row.endpoint_offset_m === undefined || row.endpoint_offset_m === null
+    ? null
+    : finiteNumber(row.endpoint_offset_m, 0, 25);
   if (!identityId || canonicalRoadId === undefined || !displayName || canonicalName === undefined || routeSystem === undefined
     || routeNumber === undefined || routeDesignation === undefined || !roadClass || !stateCode || countyCode === undefined
     || countyName === undefined || township === undefined || municipality === undefined || !approvalStatus
     || typeof row.source_current !== "boolean" || typeof row.mapping_conflict !== "boolean"
-    || occurrenceCount === null || padCount === null || !sourceIdentityKey || !sourceAgency || !sourceDataset || !sourceVersion) return null;
+    || occurrenceCount === null || padCount === null || !sourceIdentityKey || !sourceAgency || !sourceDataset || !sourceVersion
+    || !displayBoundary || displayBoundary === "pad_endpoint_projection" && endpointOffsetMeters === null
+    || displayBoundary === "identity_viewport" && endpointOffsetMeters !== null) return null;
   return {
     identityId, canonicalRoadId, displayName, canonicalName, routeSystem, routeNumber, routeDesignation, roadClass,
     stateCode, countyCode, countyName, township, municipality, approvalStatus,
     sourceCurrent: row.source_current, mappingConflict: row.mapping_conflict, occurrenceCount, padCount,
-    sourceIdentityKey, sourceAgency, sourceDataset, sourceVersion,
+    sourceIdentityKey, sourceAgency, sourceDataset, sourceVersion, displayBoundary, endpointOffsetMeters,
   };
 }
 

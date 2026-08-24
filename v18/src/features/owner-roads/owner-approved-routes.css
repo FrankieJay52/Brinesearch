@@ -598,6 +598,21 @@
   font-weight: 800;
 }
 
+.owner-road-detail-boundary {
+  margin: 0;
+  padding: 12px 14px;
+  border: 1px solid color-mix(in srgb, var(--amber) 42%, var(--line));
+  border-radius: 14px;
+  color: var(--muted-strong);
+  background: color-mix(in srgb, var(--amber) 8%, var(--surface-raised));
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.owner-road-detail-boundary strong {
+  color: var(--amber);
+}
+
 .owner-road-identity-callout button,
 .owner-road-related li > button {
   min-height: 34px;

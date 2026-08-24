@@ -39,6 +39,8 @@ const feature: OwnerRoadFeature = {
     sourceAgency: "Test",
     sourceDataset: "Test roads",
     sourceVersion: "1",
+    displayBoundary: "identity_viewport",
+    endpointOffsetMeters: null,
   },
 };
 

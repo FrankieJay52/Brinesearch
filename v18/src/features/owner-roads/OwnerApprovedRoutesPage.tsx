@@ -197,7 +197,7 @@ function connectedRoadLabel(road: OwnerRoadDetail["junctions"][number]["connecte
   return [road.roadNameAtJunction || road.displayName, route || road.roadClass.replaceAll("_", " "), jurisdiction].filter(Boolean).join(" — ");
 }
 
-function OwnerRoadDetails({ detail, loading, error, onFocus }: { detail: OwnerRoadDetail | null; loading: boolean; error: string | null; onFocus: (bounds: OwnerRoadBounds) => void }) {
+function OwnerRoadDetails({ detail, displayFeature, loading, error, onFocus }: { detail: OwnerRoadDetail | null; displayFeature: OwnerRoadFeature | null; loading: boolean; error: string | null; onFocus: (bounds: OwnerRoadBounds) => void }) {
   const [copyNotice, setCopyNotice] = useState("");
   const copy = async (value: string, label: string) => {
     try {
@@ -220,6 +220,9 @@ function OwnerRoadDetails({ detail, loading, error, onFocus }: { detail: OwnerRo
       <span>Exact official identity</span><code>{detail.sourceIdentityKey}</code>
       <button type="button" onClick={() => copy(detail.sourceIdentityKey, "Identity")}>Copy identity</button>
     </section>
+    {displayFeature?.properties.displayBoundary === "pad_endpoint_projection" && <p className="owner-road-detail-boundary">
+      <strong>Selected-pad display boundary:</strong> {displayFeature.properties.displayName} stops at this pad&apos;s exact-road projection, {Math.round(displayFeature.properties.endpointOffsetMeters || 0)} m from its GPS marker. This Candidate line does not extend approval, route, graph, or Google authority.
+    </p>}
     {copyNotice && <p className="owner-copy-notice" role="status">{copyNotice}</p>}
     <dl className="owner-road-detail-grid">
       <dt>Canonical name</dt><dd>{detail.canonicalName || "No verified canonical mapping"}</dd>
@@ -312,6 +315,8 @@ export function OwnerApprovedRoutesPage() {
   const directoryById = useMemo(() => new Map((snapshot?.rows || []).flatMap((pad) => pad.canonicalId ? [[pad.canonicalId, pad] as const] : [])), [snapshot]);
   const selectedPad = useMemo(() => pads.find((pad) => pad.padId === padId) || null, [padId, pads]);
   const selectedDirectoryPad = directoryById.get(padId) || null;
+  const selectedFeature = useMemo(() => features.find((feature) => feature.properties.identityId === selectedIdentityId) || null, [features, selectedIdentityId]);
+  const endpointFeatureCount = useMemo(() => features.filter((feature) => feature.properties.displayBoundary === "pad_endpoint_projection").length, [features]);
   const protectedPadIds = useMemo(() => new Set(protectedPads.map((pad) => pad.padId)), [protectedPads]);
   selectedPadRef.current = selectedPad;
 
@@ -646,7 +651,8 @@ export function OwnerApprovedRoutesPage() {
           {selectedDirectoryPad && <Link to={`/pad/${selectedDirectoryPad.padId}`}>Open driver card</Link>}
         </header>
         <div className="owner-pad-route-badges">
-          <b className={features.length ? "is-ready" : "is-held"}>{features.length ? `${features.length} exact graph ${features.length === 1 ? "road" : "roads"} in view` : "No exact graph road in view"}</b>
+          <b className={features.length ? "is-ready" : "is-held"}>{features.length ? `${features.length} exact road ${features.length === 1 ? "evidence line" : "evidence lines"} in view` : "No exact road evidence in view"}</b>
+          {endpointFeatureCount>0 && <b className="is-ready">{endpointFeatureCount} pad endpoint {endpointFeatureCount === 1 ? "boundary" : "boundaries"} in view</b>}
           <b>{selectedPadStatusLoading ? "Checking reviewed directions…" : selectedPadStatus?.route.writtenDirections ? "Reviewed directions available" : "No reviewed directions published"}</b>
           {selectedPadStatus && <b>Route {selectedPadStatus.route.state.replaceAll("_", " ")} · graph {selectedPadStatus.graph.state.replaceAll("_", " ")}</b>}
         </div>
@@ -654,7 +660,7 @@ export function OwnerApprovedRoutesPage() {
         {selectedPadStatus?.route.writtenDirections
           ? <details className="owner-pad-directions" open><summary>Reviewed field directions</summary><p>{selectedPadStatus.route.writtenDirections}</p></details>
           : !selectedPadStatusLoading && <p className="owner-pad-direction-hold">No reviewed public written directions are available for this location. Nothing was generated from private notes or inferred from road names.</p>}
-        <p className="owner-pad-graph-note">Teal map lines are exact mapped road occurrences for this selected location from the current authoritative road identity layer. Gold marks the road being inspected. Held, restricted, unresolved, and reference-only roads keep their real status; missing gaps remain unplotted.</p>
+        <p className="owner-pad-graph-note">Teal map lines are exact road evidence for this selected location. When a reviewed per-pad endpoint receipt exists, a non-approved local-road line stops at that pad&apos;s exact-road projection instead of continuing beyond it. Gold marks the road being inspected. Held, restricted, unresolved, and reference-only roads keep their real status; missing gaps remain unplotted.</p>
       </div>
     </section>}
 
@@ -664,7 +670,7 @@ export function OwnerApprovedRoutesPage() {
           <div ref={mapHost} className="owner-map-canvas" aria-label="Interactive owner approved routes map"/>
           <div className={`owner-map-status is-${mapState}`} role={mapState === "error" ? "alert" : "status"}><span/>{mapMessage}</div>
         </div>
-        <div className="owner-map-legend" aria-label="Road approval legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{padId && <strong className="owner-pad-focus-key">Selected location exact graph roads</strong>}<strong>Gold inspection road</strong><small>Reference-only roads are not approved. Location and road selection change display focus only.</small></div>
+        <div className="owner-map-legend" aria-label="Road approval legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{padId && <strong className="owner-pad-focus-key">Selected location exact road evidence</strong>}<strong>Gold inspection road</strong><small>Reference-only and endpoint-display roads are not approved. Location and road selection change display focus only.</small></div>
       </section>
       <aside className="owner-road-results" aria-label="Road results">
         <header><div><span className="eyebrow">CURRENT MAP VIEW</span><h2>Road identities</h2></div><b>{features.length.toLocaleString()}</b></header>
@@ -673,6 +679,7 @@ export function OwnerApprovedRoutesPage() {
           return <button key={road.identityId} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => selectRoad(road.identityId, true)}>
             <span className="owner-road-result-heading"><i style={{ background: ownerRoadStatusColors[road.approvalStatus] }}/><strong>{road.displayName}</strong></span>
             <small>{ownerRoadJurisdiction(road)}</small><small>{ownerRoadRouteLabel(road)}</small><code>{road.sourceIdentityKey}</code>
+            {road.displayBoundary === "pad_endpoint_projection" && <small>Ends at selected pad road projection · {Math.round(road.endpointOffsetMeters || 0)} m from GPS</small>}
             <span className={`owner-road-status status-${road.approvalStatus}`}>{ownerRoadStatusLabels[road.approvalStatus]}</span>
           </button>;
         }) : <p className="owner-road-empty">No exact identities are loaded in this view.</p>}</div>
@@ -680,7 +687,7 @@ export function OwnerApprovedRoutesPage() {
       </aside>
     </div>
 
-    <OwnerRoadDetails detail={detail} loading={detailLoading} error={detailError} onFocus={(bounds) => mapRef.current && fitRoadBounds(mapRef.current, bounds)}/>
+    <OwnerRoadDetails detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onFocus={(bounds) => mapRef.current && fitRoadBounds(mapRef.current, bounds)}/>
     <footer className="owner-road-authority-note"><Icon name="control"/><span><strong>Authority stays separate.</strong> Viewing or selecting a road does not approve it, create route steps or geometry, change the graph, reconcile a route, or publish Google output.</span></footer>
   </section>;
 }
