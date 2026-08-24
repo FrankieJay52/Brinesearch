@@ -123,6 +123,34 @@ HAS are now corrected locally to require a nonempty changed source revision and
 to bind the new source revision plus graph digest to the exact immutable state-
 manifest member.
 
+## Third GUE rollback rehearsal — failed and rolled back
+
+- Started from the exact unchanged baseline at
+  `2026-08-24T14:42:52.616924Z`.
+- Rehearsed migration bytes SHA-256:
+  `fe64b9d07defa4f9fab986edf23089de11dc289748432e980500e4f03c7af7df`.
+- One explicit transaction was used. No retry was issued.
+- Failure after 664 seconds:
+  `P0001 — Issue #97 GUE public Google/cutover/global authority changed`.
+- PostgreSQL rollback succeeded.
+- One persisted-state inspection completed at
+  `2026-08-24T14:53:56.920216Z` and proved the complete original state again:
+  GUE build/digests, directory revision 3 and exact digest, 19/1 active graphs,
+  no staging build, 4,106 receipts, zero target roads/mappings/manifest, zero
+  Google queue rows, public Google 0, cutover OFF, zero overlays/reconciliation
+  runs, and the exact original pad, public-direction, target-step, and target-
+  receipt digests.
+
+The third failure exposed a deferred-trigger timing mismatch in the rehearsal,
+not a route, graph, or Google authority change. Exact identity/mapping refreshes
+normally queue dependent private-Google receipts. Constraint trigger
+`private_verification.brinesearch_issue97_google_route_refresh_deferred` is
+`DEFERRABLE INITIALLY DEFERRED`, so a permanent transaction drains that queue at
+commit. A rollback-only rehearsal never reaches commit, but the migration
+incorrectly asserted that the queue was already empty. Read-only recovery pinned
+the exact current dependency sets: GUE affects BLAYNEY, JENNINGS, and SHUTWAY;
+HAS affects BANJO, BESECE, BLAYNEY, COLOGIE, PICKENS, SCOUT, and SHUTWAY.
+
 ## Local correction prepared — not run in production
 
 Migration
@@ -134,26 +162,32 @@ Migration
    official ODOT geometry.
 3. Uses exact source-record mapping for the one GUE identity.
 4. Creates only the reviewed Martha Road and Tanglewood Lane canonical roads.
-5. Rebuilds only GUE, binds the immutable 19-county Ohio manifest/cache, and
-   reruns only Cooper/Lorraine.
-6. Requires activation impact 0, keeps Cooper private access and the Titus/Sligo
-   raw crossing held, keeps target private Google non-ready, keeps public Google
-   at 0, and keeps cutover OFF.
+5. Rebuilds only GUE, binds the immutable 19-county Ohio manifest/cache, reruns
+   Cooper/Lorraine plus the exact three-pad GUE private-Google dependency set,
+   then explicitly executes the existing deferred constraint trigger so the
+   rollback rehearsal exercises real commit-time behavior.
+6. Requires the exact pre-drain queue and an empty post-drain queue, activation
+   impact 0, held Cooper private access/Titus-Sligo crossing, no ready receipt
+   for the three dependent held pads, public Google 0, and cutover OFF.
 
 Prepared migration SHA-256:
-`fe64b9d07defa4f9fab986edf23089de11dc289748432e980500e4f03c7af7df`.
+`b81fe6934e956aad4900a406207d48f42d3a3e4479a61329dfad046e433b4233`.
 
-It has **not** been rehearsed or applied after the source-generation assertion
-correction. The fail-stop rule requires a new explicit post-failure
-authorization before one new rollback-only GUE rehearsal. HAS/Scout remains
-serially gated behind a passing and permanently verified GUE migration.
+It has **not** been rehearsed or applied after the deferred-trigger correction.
+The fail-stop rule requires a new explicit post-failure authorization before one
+new rollback-only GUE rehearsal. HAS/Scout remains serially gated behind a
+passing and permanently verified GUE migration.
 
 The HAS exact-source collision audit is also clean: each reviewed CR-36/36A
 identity has one exact NLF record, is current/public/drivable with authoritative
 geometry, has zero verified mappings, and no existing Harrison county road with
 normalized route number 36 or 36A competes with either new canonical road.
 The prepared HAS migration SHA-256 is
-`e095456b0a06e774b57623d8fd4a060024f9c0170e714141f727dfd58efaca79`.
+`c8b8f1bcd6c81af927bbcd3257dd29d6a378b59f2ec064d2a4f6ffd3aad44f76`.
+It now reruns the exact seven-pad HAS dependency set, requires the exact deferred
+queue, explicitly executes the existing commit-time constraint trigger, proves
+COLOGIE remains privately ready, proves the other six remain non-ready, and
+keeps public Google at 0.
 
 ## Issue #108 read-only production probe
 
@@ -212,10 +246,11 @@ Exact underlying blockers remain:
 
 ## Remaining gates
 
-1. One newly authorized rollback-only rehearsal of the corrected GUE migration.
+1. One newly authorized rollback-only rehearsal of the deferred-trigger-
+   corrected GUE migration.
 2. Permanent GUE apply only if that rehearsal passes, followed by exact readback.
 3. Separate HAS/Scout rehearsal and permanent apply only after GUE passes.
 4. Re-verify all target receipts/graphs/private Google holds; public Google stays
    0 and cutover stays OFF.
-5. Repository merge and deployment remain prohibited until the user explicitly
-   says `MERGE` or `DEPLOY`.
+5. The user authorized merge and deployment after every database gate passes;
+   the failed GUE gate means neither action is currently eligible.

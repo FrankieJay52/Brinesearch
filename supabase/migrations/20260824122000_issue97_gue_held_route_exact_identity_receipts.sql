@@ -46,6 +46,19 @@ select b.state_code,b.county_code,b.id,b.status,b.source_revision_digest,
 from public.brinesearch_road_graph_builds b
 where b.status='active';
 
+-- Rebuilding the county refreshes every current GUE source identity. The
+-- existing invalidation trigger therefore queues every published pad that
+-- depends on one of those identities, even when its identity bytes did not
+-- change. Pin that exact dependency set before any source/mapping mutation.
+create temporary table tmp_issue97_gue_deferred_google_pads on commit drop as
+select distinct pad.id as pad_id,pad.legacy_id
+from public.brinesearch_authoritative_road_identities identity
+join public.brinesearch_road_identity_mappings mapping
+  on mapping.identity_id=identity.id and mapping.mapping_status='verified'
+join public.brinesearch_pad_roads step on step.road_id=mapping.road_id
+join public.pads pad on pad.id=step.pad_id
+where identity.active and identity.state_code='OH' and identity.county_code='GUE';
+
 create temporary table tmp_issue97_gue_non_target_google_before on commit drop as
 select pg_catalog.md5(coalesce(pg_catalog.string_agg(
   p.id::text||':'||coalesce(p.brinesearch_google_route_status_issue97,'')||':'||
@@ -157,6 +170,13 @@ begin
     '44245144-3e39-45fe-907b-95e2b01b9c32'
   ) then
     raise exception 'Issue #97 GUE active graph checkpoint diverged';
+  end if;
+
+  if (select pg_catalog.array_agg(legacy_id order by legacy_id)
+      from tmp_issue97_gue_deferred_google_pads) is distinct from array[
+        'ascent--blayney','ascent--jennings','ascent--shutway'
+      ]::text[] then
+    raise exception 'Issue #97 GUE deferred Google dependency set diverged';
   end if;
 
   select count(*) into v_count
@@ -707,7 +727,10 @@ declare v_pad record; v_result jsonb;
 begin
   for v_pad in
     select p.id,p.legacy_id from public.pads p
-    where p.legacy_id in ('ascent--cooper','ascent--lorraine') order by p.legacy_id
+    where p.legacy_id in ('ascent--cooper','ascent--lorraine')
+       or exists(select 1 from tmp_issue97_gue_deferred_google_pads dependency
+         where dependency.pad_id=p.id)
+    order by p.legacy_id
   loop
     v_result:=public.brinesearch_issue97_run_all_pad_routing_pipeline(v_pad.id);
     if not coalesce((v_result->>'pipeline_complete_through_google_manifest')::boolean,false) then
@@ -716,6 +739,48 @@ begin
   end loop;
 end
 $issue97_gue_reconcile_targets$;
+
+do $issue97_gue_verify_deferred_google_queue$
+declare v_queued text[];
+begin
+  select pg_catalog.array_agg(pad.legacy_id order by pad.legacy_id)
+  into v_queued
+  from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+  join public.pads pad on pad.id=queue.pad_id;
+  if v_queued is distinct from array[
+       'ascent--blayney','ascent--jennings','ascent--shutway'
+     ]::text[] then
+    raise exception 'Issue #97 GUE deferred Google queue diverged before drain: %',v_queued;
+  end if;
+end
+$issue97_gue_verify_deferred_google_queue$;
+
+-- A rollback rehearsal never reaches COMMIT, so explicitly execute the same
+-- existing constraint trigger that a permanent commit must execute. It only
+-- refreshes/holds the exact queued private manifests and deletes their queue
+-- rows; cutover remains off and public projection remains impossible.
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;
+
+do $issue97_gue_verify_deferred_google_drain$
+begin
+  if exists(select 1
+      from private_verification.brinesearch_google_route_refresh_queue_issue97)
+     or exists(
+       select 1
+       from private_verification.brinesearch_google_route_receipts_issue97 receipt
+       join public.pads pad on pad.id=receipt.pad_id
+       where pad.legacy_id in ('ascent--blayney','ascent--jennings','ascent--shutway')
+         and receipt.status='ready'
+     )
+     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0 then
+    raise exception 'Issue #97 GUE deferred Google drain failed closed';
+  end if;
+end
+$issue97_gue_verify_deferred_google_drain$;
+
+-- Restore the transaction-local default so any later unexpected queue event
+-- remains visible to the final zero-queue postcondition instead of self-draining.
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;
 
 create temporary table tmp_issue97_gue_directory_result on commit drop as
 select private_verification.brinesearch_v18_refresh_directory_snapshot() as result;
@@ -947,6 +1012,7 @@ select pg_catalog.jsonb_build_object(
   'adoptedRoadFamily','OH-258','adoptedRoadFamilyIdentityCount',5,
   'identityMappingsCreated',3,
   'resolvedPublicOccurrences',10,
+  'dependentPrivateGoogleReceiptsRefreshed',3,
   'affectedGraph',(
     select pg_catalog.jsonb_build_object(
       'countyCode','GUE','oldBuildId',target.old_build_id,

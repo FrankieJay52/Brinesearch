@@ -48,6 +48,17 @@ select b.state_code,b.county_code,b.id,b.status,b.source_revision_digest,
 from public.brinesearch_road_graph_builds b
 where b.status='active';
 
+-- Pin every published pad that depends on a current HAS source identity before
+-- the county refresh fires the normal deferred private-Google invalidation.
+create temporary table tmp_issue97_has_deferred_google_pads on commit drop as
+select distinct pad.id as pad_id,pad.legacy_id
+from public.brinesearch_authoritative_road_identities identity
+join public.brinesearch_road_identity_mappings mapping
+  on mapping.identity_id=identity.id and mapping.mapping_status='verified'
+join public.brinesearch_pad_roads step on step.road_id=mapping.road_id
+join public.pads pad on pad.id=step.pad_id
+where identity.active and identity.state_code='OH' and identity.county_code='HAS';
+
 create temporary table tmp_issue97_has_non_target_google_before on commit drop as
 select pg_catalog.md5(coalesce(pg_catalog.string_agg(
   p.id::text||':'||coalesce(p.brinesearch_google_route_status_issue97,'')||':'||
@@ -149,6 +160,14 @@ begin
     '0870470a-11f8-4f33-8af3-08d6849d5f34'
   ) then
     raise exception 'Issue #97 HAS active graph checkpoint diverged';
+  end if;
+
+  if (select pg_catalog.array_agg(legacy_id order by legacy_id)
+      from tmp_issue97_has_deferred_google_pads) is distinct from array[
+        'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
+        'ascent--pickens','ascent--scout','ascent--shutway'
+      ]::text[] then
+    raise exception 'Issue #97 HAS deferred Google dependency set diverged';
   end if;
 
   if (select count(*)
@@ -581,17 +600,73 @@ begin
 end
 $issue97_has_prepare_manifest_cache$;
 
-do $issue97_has_reconcile_scout$
-declare v_result jsonb;
+do $issue97_has_reconcile_targets$
+declare v_pad record; v_result jsonb;
 begin
-  v_result:=public.brinesearch_issue97_run_all_pad_routing_pipeline(
-    '6ef0746f-341a-4d29-9399-a81cfbec11e8'
-  );
-  if not coalesce((v_result->>'pipeline_complete_through_google_manifest')::boolean,false) then
-    raise exception 'Issue #97 HAS Scout pipeline failed: %',v_result;
+  for v_pad in
+    select pad.id,pad.legacy_id
+    from public.pads pad
+    join tmp_issue97_has_deferred_google_pads dependency on dependency.pad_id=pad.id
+    order by pad.legacy_id
+  loop
+    v_result:=public.brinesearch_issue97_run_all_pad_routing_pipeline(v_pad.id);
+    if not coalesce((v_result->>'pipeline_complete_through_google_manifest')::boolean,false) then
+      raise exception 'Issue #97 HAS target pipeline failed for %: %',v_pad.legacy_id,v_result;
+    end if;
+  end loop;
+end
+$issue97_has_reconcile_targets$;
+
+do $issue97_has_verify_deferred_google_queue$
+declare v_queued text[];
+begin
+  select pg_catalog.array_agg(pad.legacy_id order by pad.legacy_id)
+  into v_queued
+  from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+  join public.pads pad on pad.id=queue.pad_id;
+  if v_queued is distinct from array[
+       'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
+       'ascent--pickens','ascent--scout','ascent--shutway'
+     ]::text[] then
+    raise exception 'Issue #97 HAS deferred Google queue diverged before drain: %',v_queued;
   end if;
 end
-$issue97_has_reconcile_scout$;
+$issue97_has_verify_deferred_google_queue$;
+
+-- A rollback rehearsal never reaches COMMIT, so explicitly execute the same
+-- existing constraint trigger that a permanent commit must execute. It only
+-- refreshes/holds the exact queued private manifests and deletes their queue
+-- rows; cutover remains off and public projection remains impossible.
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;
+
+do $issue97_has_verify_deferred_google_drain$
+begin
+  if exists(select 1
+      from private_verification.brinesearch_google_route_refresh_queue_issue97)
+     or not exists(
+       select 1
+       from private_verification.brinesearch_google_route_receipts_issue97 receipt
+       join public.pads pad on pad.id=receipt.pad_id
+       where pad.legacy_id='ascent--cologie' and receipt.status='ready'
+     )
+     or exists(
+       select 1
+       from private_verification.brinesearch_google_route_receipts_issue97 receipt
+       join public.pads pad on pad.id=receipt.pad_id
+       where pad.legacy_id in (
+         'ascent--banjo','ascent--besece','ascent--blayney',
+         'ascent--pickens','ascent--scout','ascent--shutway'
+       ) and receipt.status='ready'
+     )
+     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0 then
+    raise exception 'Issue #97 HAS deferred Google drain failed closed';
+  end if;
+end
+$issue97_has_verify_deferred_google_drain$;
+
+-- Restore the transaction-local default so any later unexpected queue event
+-- remains visible to the final zero-queue postcondition instead of self-draining.
+set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;
 
 create temporary table tmp_issue97_has_directory_result on commit drop as
 select private_verification.brinesearch_v18_refresh_directory_snapshot() as result;
@@ -790,6 +865,7 @@ select pg_catalog.jsonb_build_object(
   'issue',97,'scope','Scout exact source occurrence repair',
   'canonicalRoadsCreated',2,'identityMappingsCreated',2,
   'resolvedPublicOccurrences',5,
+  'dependentPrivateGoogleReceiptsRefreshed',7,
   'affectedGraph',(
     select pg_catalog.jsonb_build_object(
       'countyCode','HAS','oldBuildId',target.old_build_id,

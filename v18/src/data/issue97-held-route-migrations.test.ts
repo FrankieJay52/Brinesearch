@@ -31,6 +31,12 @@ const expectCommonFailClosedContract = (sql: string) => {
   expect(sql).toContain("'fuzzy_matching_used',false");
   expect(sql).toContain("'nearest_road_used',false");
   expect(sql).toContain("from public.brinesearch_driver_google_routes_public)<>0");
+  expect(sql).toContain(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;",
+  );
+  expect(sql).toContain(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;",
+  );
   expect(sql).toContain("select cutover_at from public.brinesearch_issue97_release_state where singleton");
   expect(sql).not.toMatch(/insert\s+into\s+public\.brinesearch_driver_google_routes_public/i);
   expect(sql).not.toMatch(/update\s+public\.brinesearch_issue97_release_state/i);
@@ -47,6 +53,23 @@ const expectOrderedStatements = (sql: string, tags: string[]) => {
   }
 };
 
+const expectDeferredGoogleDrain = (sql: string, scope: "gue" | "has") => {
+  const queue = sql.indexOf(`do $issue97_${scope}_verify_deferred_google_queue$`);
+  const immediate = sql.indexOf(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;",
+  );
+  const drain = sql.indexOf(`do $issue97_${scope}_verify_deferred_google_drain$`);
+  const deferred = sql.indexOf(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;",
+  );
+  const directory = sql.indexOf(`create temporary table tmp_issue97_${scope}_directory_result`);
+
+  expect(immediate).toBeGreaterThan(queue);
+  expect(drain).toBeGreaterThan(immediate);
+  expect(deferred).toBeGreaterThan(drain);
+  expect(directory).toBeGreaterThan(deferred);
+};
+
 describe("Issue #97 held-route exact-identity migrations", () => {
   it("splits GUE rebuild, manifest, activation, and cache work into separate timed statements", () => {
     expectCommonFailClosedContract(gue);
@@ -58,8 +81,11 @@ describe("Issue #97 held-route exact-identity migrations", () => {
       "issue97_gue_activate",
       "issue97_gue_prepare_manifest_cache",
       "issue97_gue_reconcile_targets",
+      "issue97_gue_verify_deferred_google_queue",
+      "issue97_gue_verify_deferred_google_drain",
       "issue97_gue_postconditions",
     ]);
+    expectDeferredGoogleDrain(gue, "gue");
     expect(gue).toContain("where p.legacy_id in ('ascent--cooper','ascent--lorraine')");
     expect(gue).toContain("where legacy_id in ('ascent--cooper','ascent--lorraine')");
     expect(gue).toContain("'adoptedRoadFamily','OH-258'");
@@ -70,6 +96,10 @@ describe("Issue #97 held-route exact-identity migrations", () => {
     expect(gue).toContain("point->>'identity_id'='1d61e8f0-527b-582a-022a-673001d546df'");
     expect(gue).toContain("'cooperPrivateAccess','held'");
     expect(gue).toContain("'cooperTitusSligoGraphCrossing','held'");
+    expect(gue).toContain(
+      "'ascent--blayney','ascent--jennings','ascent--shutway'",
+    );
+    expect(gue).toContain("'dependentPrivateGoogleReceiptsRefreshed',3");
     expect(gue.match(/brinesearch_issue97_state_candidate_manifest_current\(/g)).toHaveLength(1);
     expect(gue.match(/brinesearch_issue97_candidate_manifest_authorizes_build\(/g)).toHaveLength(1);
   });
@@ -81,14 +111,22 @@ describe("Issue #97 held-route exact-identity migrations", () => {
       "issue97_has_manifest",
       "issue97_has_activate",
       "issue97_has_prepare_manifest_cache",
-      "issue97_has_reconcile_scout",
+      "issue97_has_reconcile_targets",
+      "issue97_has_verify_deferred_google_queue",
+      "issue97_has_verify_deferred_google_drain",
       "issue97_has_postconditions",
     ]);
+    expectDeferredGoogleDrain(has, "has");
     expect(has).toContain("'internal_source_boundary_continuation',true");
     expect(has).toContain("'display_as_new_maneuver',false");
     expect(has).toContain("adjacent_same_road_split_requires_explicit_source_boundary");
     expect(has).toContain("'scoutUs250SourceBoundary','held_explicit_boundary_required'");
     expect(has).toContain("'newDriverManeuverCreated',false");
+    expect(has).toContain(
+      "'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie'",
+    );
+    expect(has).toContain("where pad.legacy_id='ascent--cologie' and receipt.status='ready'");
+    expect(has).toContain("'dependentPrivateGoogleReceiptsRefreshed',7");
     // One invocation checks the installed GUE predecessor. The other match is
     // the pinned function signature; no redundant HAS pre/post invocation remains.
     expect(has.match(/brinesearch_issue97_state_candidate_manifest_current\(/g)).toHaveLength(2);
