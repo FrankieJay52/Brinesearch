@@ -84,6 +84,31 @@ describe("owner road viewport contract", () => {
       type: "FeatureCollection", features: [], pads: [], truncated: false, limit: 340, zoom: 13, zoomRequired: null,
     });
   });
+
+  it("accepts the deliberately minimal selected-pad marker returned by the viewport RPC", () => {
+    const parsed = validateOwnerRoadViewport({
+      type: "FeatureCollection",
+      features: [],
+      pads: [{
+        pad_id: "333598ca-37b3-4b44-9411-a490cc3da672",
+        pad_name: "Bannock",
+        company: "Ascent",
+        lat: 40.1,
+        lng: -81.2,
+      }],
+      truncated: false,
+      limit: 160,
+      zoom: 9,
+    });
+    expect(parsed?.pads[0]).toEqual({
+      padId: "333598ca-37b3-4b44-9411-a490cc3da672",
+      padName: "Bannock",
+      company: "Ascent",
+      state: "",
+      latitude: 40.1,
+      longitude: -81.2,
+    });
+  });
 });
 
 describe("owner road detail contract", () => {

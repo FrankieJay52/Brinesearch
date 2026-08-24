@@ -1,4 +1,5 @@
-import type { OwnerRoadFeature, OwnerRoadStatus, OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import type { OwnerPadOption, OwnerRoadBounds, OwnerRoadFeature, OwnerRoadStatus, OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import type { PadSummary } from "@/data/types";
 
 export const ownerRoadStatusLabels: Record<OwnerRoadStatus, string> = {
   approved_by_policy: "Approved by policy",
@@ -57,6 +58,45 @@ export function ownerRoadFeatureBounds(feature: OwnerRoadFeature) {
   return Number.isFinite(west) ? { west, south, east, north } : null;
 }
 
+export function ownerRoadFeaturesBounds(features: OwnerRoadFeature[]): OwnerRoadBounds | null {
+  let west = Infinity; let south = Infinity; let east = -Infinity; let north = -Infinity;
+  for (const feature of features) {
+    const bounds = ownerRoadFeatureBounds(feature);
+    if (!bounds) continue;
+    west = Math.min(west, bounds.west); south = Math.min(south, bounds.south);
+    east = Math.max(east, bounds.east); north = Math.max(north, bounds.north);
+  }
+  return Number.isFinite(west) ? { west, south, east, north } : null;
+}
+
+export function ownerRoadStateCode(value: string): "OH" | "WV" | "PA" | null {
+  const normalized = value.trim().toUpperCase();
+  if (normalized === "OH" || normalized === "OHIO") return "OH";
+  if (normalized === "WV" || normalized === "WEST VIRGINIA") return "WV";
+  if (normalized === "PA" || normalized === "PENNSYLVANIA") return "PA";
+  return null;
+}
+
+export function ownerRoadPadOptions(directoryRows: readonly PadSummary[], protectedOptions: readonly OwnerPadOption[]) {
+  const protectedById = new Map(protectedOptions.map((pad) => [pad.padId, pad]));
+  const merged = new Map<string, OwnerPadOption>();
+  for (const row of directoryRows) {
+    if (!row.canonicalId) continue;
+    const protectedPad = protectedById.get(row.canonicalId);
+    merged.set(row.canonicalId, {
+      padId: row.canonicalId,
+      padName: row.padName,
+      company: row.company,
+      state: protectedPad?.state || ownerRoadStateCode(row.state) || row.state,
+      latitude: protectedPad?.latitude ?? row.coordinate?.latitude ?? null,
+      longitude: protectedPad?.longitude ?? row.coordinate?.longitude ?? null,
+    });
+  }
+  for (const pad of protectedOptions) if (!merged.has(pad.padId)) merged.set(pad.padId, pad);
+  return [...merged.values()].sort((left, right) => left.company.localeCompare(right.company)
+    || left.padName.localeCompare(right.padName) || left.padId.localeCompare(right.padId));
+}
+
 export function ownerRoadSelection(features: OwnerRoadFeature[], currentIdentityId: string | null) {
   if (currentIdentityId && features.some((feature) => feature.properties.identityId === currentIdentityId)) {
     return currentIdentityId;
@@ -64,7 +104,7 @@ export function ownerRoadSelection(features: OwnerRoadFeature[], currentIdentity
   return features[0]?.properties.identityId ?? null;
 }
 
-export function ownerRoadCollection(features: OwnerRoadFeature[]) {
+export function ownerRoadCollection(features: OwnerRoadFeature[], padFocused = false) {
   return {
     type: "FeatureCollection" as const,
     features: features.map((feature) => ({
@@ -74,6 +114,7 @@ export function ownerRoadCollection(features: OwnerRoadFeature[]) {
         identityId: feature.properties.identityId,
         displayName: feature.properties.displayName,
         approvalStatus: feature.properties.approvalStatus,
+        padFocused,
       },
     })),
   };

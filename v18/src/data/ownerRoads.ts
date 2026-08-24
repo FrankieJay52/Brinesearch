@@ -212,7 +212,11 @@ function pad(value: unknown): OwnerPadOption | null {
   const padId = uuid(row.pad_id);
   const padName = requiredText(row.pad_name, 300);
   const company = nullableText(row.company, 300);
-  const state = nullableText(row.state, 100);
+  // The pad-options RPC includes state, while the bounded viewport marker
+  // intentionally returns only identity/name/company/coordinates. Treat an
+  // omitted state as unavailable without weakening validation of a supplied
+  // state value.
+  const state = row.state === undefined ? "" : nullableText(row.state, 100);
   const latitude = row.lat === null ? null : coordinate(Number(row.lat), 36.5, 43.5);
   const longitude = row.lng === null ? null : coordinate(Number(row.lng), -84.5, -73.5);
   if (!padId || !padName || company === undefined || state === undefined || latitude === null && row.lat !== null || longitude === null && row.lng !== null) return null;
