@@ -20,7 +20,8 @@ export type IconName =
   | "close"
   | "share"
   | "sun"
-  | "moon";
+  | "moon"
+  | "expand";
 
 const paths: Record<IconName, ReactNode> = {
   map: <><path d="m3 6 5-3 8 3 5-3v15l-5 3-8-3-5 3Z"/><path d="M8 3v15M16 6v15"/></>,
@@ -43,6 +44,7 @@ const paths: Record<IconName, ReactNode> = {
   share: <><circle cx="18" cy="5" r="2"/><circle cx="6" cy="12" r="2"/><circle cx="18" cy="19" r="2"/><path d="m8 11 8-5M8 13l8 5"/></>,
   sun: <><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></>,
   moon: <path d="M20 15.5A8 8 0 0 1 8.5 4 8.5 8.5 0 1 0 20 15.5Z"/>,
+  expand: <><path d="M8 3H3v5M16 3h5v5M21 16v5h-5M3 16v5h5"/><path d="m3 8 5-5M16 3l5 5M21 16l-5 5M8 21l-5-5"/></>,
 };
 
 export function Icon({ name, ...props }: SVGProps<SVGSVGElement> & { name: IconName }) {

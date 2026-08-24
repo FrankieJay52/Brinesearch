@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateCompanyRoadPage } from "./companyRoads";
+import { validateCompanyRoadPage, validateCompanyRoadReleaseApproval } from "./companyRoads";
 
 const directorySnapshotId = "11111111-1111-4111-8111-111111111111";
 
@@ -67,5 +67,21 @@ describe("company approved-road page validation", () => {
     expect(validateCompanyRoadPage(all, directorySnapshotId, "all", 0)).not.toBeNull();
     (all.rows as Array<Record<string, unknown>>)[0].companyLabel = "Ascent";
     expect(validateCompanyRoadPage(all, directorySnapshotId, "all", 0)).toBeNull();
+  });
+});
+
+describe("company approved-road release approval", () => {
+  it("accepts only the bounded safe owner approval envelope", () => {
+    const approval = {
+      schemaVersion: 1,
+      approvalState: "approved",
+      directorySnapshotId,
+      approvedAt: "2026-08-24T05:00:00Z",
+      expiresAt: "2026-08-24T05:15:00Z",
+    };
+    expect(validateCompanyRoadReleaseApproval(approval)).toEqual(approval);
+    expect(validateCompanyRoadReleaseApproval({ ...approval, approvedBy: "private" })).toBeNull();
+    expect(validateCompanyRoadReleaseApproval({ ...approval, approvalState: "ready" })).toBeNull();
+    expect(validateCompanyRoadReleaseApproval({ ...approval, expiresAt: "2026-08-24T05:30:00Z" })).toBeNull();
   });
 });

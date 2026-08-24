@@ -165,6 +165,11 @@ export function SettingsPage() {
           <span><strong>{permission.label}</strong><small>{permission.detail}</small></span>
           <Link to="/" className="settings-row-action">Open Map</Link>
         </div>
+        <div className="settings-info-row">
+          <span className="settings-state-icon"><Icon name="route"/></span>
+          <span><strong>Approved Routes Map</strong><small>Full-screen viewer with exact approved roads, pad search, and per-pad inbound-route focus.</small></span>
+          <Link to="/?view=roads" className="settings-row-action">Open viewer</Link>
+        </div>
         <div className="settings-info-row settings-locked-row">
           <span className="settings-state-icon"><Icon name="route"/></span>
           <span><strong>Approved route roads only</strong><small>Company overlays show only the exact released subset; held, stale, legacy-only, unpublished, or guessed roads stay hidden.</small></span>
@@ -211,7 +216,7 @@ export function SettingsPage() {
     <aside className={`settings-owner-note${access.state === "owner" ? " is-owner" : ""}`}>
       <Icon name="control"/>
       <div><strong>{access.state === "owner" ? "Owner road tools" : "Owner road workspace"}</strong><p>{access.state === "owner" ? "Inspect and highlight exact road identities in V18. Editing and publication remain unavailable in this read-only release." : "Sign-in and owner tools stay inside V18 so driver navigation never drops into an older app."}</p></div>
-      {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/settings/approved-routes">Approved Routes Map</Link><Link to="/sign-in?next=/settings">Owner account</Link></span> : <span className="settings-owner-actions"><Link to="/control-center">Control Center</Link><Link to="/sign-in?next=/settings/approved-routes">Sign in</Link></span>}
+      {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/?view=roads">Map viewer</Link><Link to="/settings/approved-routes">Road Manager</Link><Link to="/sign-in?next=/settings">Owner account</Link></span> : <span className="settings-owner-actions"><Link to="/?view=roads">Approved Routes Map</Link><Link to="/control-center">Control Center</Link><Link to="/sign-in?next=/settings/approved-routes">Sign in</Link></span>}
     </aside>
   </section>;
 }

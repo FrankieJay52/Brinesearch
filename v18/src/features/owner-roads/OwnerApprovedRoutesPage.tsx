@@ -12,6 +12,7 @@ import { Icon } from "@/components/Icon";
 import { LoadingState } from "@/components/LoadingState";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useOwnerAccess } from "@/data/OwnerAccessContext";
+import { authorizeCompanyRoadOverlayRelease } from "@/data/companyRoads";
 import { loadPadStatus } from "@/data/status";
 import type { DriverPadStatus } from "@/data/types";
 import {
@@ -291,6 +292,9 @@ export function OwnerApprovedRoutesPage() {
   const [statuses, setStatuses] = useState<Set<OwnerRoadStatus>>(() => new Set(defaultStatuses));
   const [mapState, setMapState] = useState<MapState>("starting");
   const [mapMessage, setMapMessage] = useState("Starting the owner road map…");
+  const [viewerReleaseBusy, setViewerReleaseBusy] = useState(false);
+  const [viewerReleaseNotice, setViewerReleaseNotice] = useState("");
+  const [viewerReleaseError, setViewerReleaseError] = useState(false);
   const mapHost = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const featuresRef = useRef<OwnerRoadFeature[]>([]);
@@ -612,6 +616,21 @@ export function OwnerApprovedRoutesPage() {
     setStatuses(new Set(ownerRoadStatuses));
   };
 
+  const authorizeViewerRelease = async () => {
+    setViewerReleaseBusy(true);
+    setViewerReleaseError(false);
+    setViewerReleaseNotice("Authorizing one bounded approved-road viewer refresh…");
+    try {
+      const approval = await authorizeCompanyRoadOverlayRelease();
+      setViewerReleaseNotice(`Authorized for the current directory until ${formatDate(approval.expiresAt)}. The one-time exact overlay refresh can now run.`);
+    } catch (reason) {
+      setViewerReleaseError(true);
+      setViewerReleaseNotice(reason instanceof Error ? reason.message : "Approved-road viewer authorization failed.");
+    } finally {
+      setViewerReleaseBusy(false);
+    }
+  };
+
   if (access.state === "checking") return <LoadingState message="Checking owner access…"/>;
   if (access.state !== "owner") return <AccessBoundary state={access.state} message={access.message} onRefresh={() => { void refresh(); }}/>;
 
@@ -621,6 +640,13 @@ export function OwnerApprovedRoutesPage() {
       <div><span className="eyebrow">OWNER SETTINGS</span><h1>Approved Routes Map</h1><p>Inspect exact road identities, approval evidence, restrictions, route use, and release-current junctions. This view cannot edit or publish road truth.</p></div>
       <span className="owner-readonly-badge">READ ONLY</span>
     </header>
+
+    <section className="owner-viewer-release" aria-labelledby="owner-viewer-release-title">
+      <Icon name="map"/>
+      <div><span className="eyebrow">DRIVER MAP VIEWER</span><h2 id="owner-viewer-release-title">Approved-road display layer</h2><p>The driver viewer uses a separate exact, public-safe snapshot. Authorization lasts 15 minutes and does not approve roads, rebuild graphs, reconcile routes, or publish Google.</p></div>
+      <div className="owner-viewer-release-actions"><Link to="/?view=roads" className="button-secondary"><Icon name="expand"/>Open viewer</Link><button type="button" className="button-primary" disabled={viewerReleaseBusy} onClick={() => { void authorizeViewerRelease(); }}><Icon name="control"/>{viewerReleaseBusy ? "Authorizing…" : "Authorize one refresh"}</button></div>
+      {viewerReleaseNotice && <p className={`owner-viewer-release-notice${viewerReleaseError ? " is-error" : ""}`} role={viewerReleaseError ? "alert" : "status"}>{viewerReleaseNotice}</p>}
+    </section>
 
     <section className="owner-road-toolbar" aria-label="Owner road map filters">
       <label className="owner-road-search"><span><Icon name="search"/>Road or exact identity</span><input type="search" value={search} onChange={(event) => setSearch(event.target.value.slice(0, 120))} placeholder="Name, route, jurisdiction, source identity…"/></label>
