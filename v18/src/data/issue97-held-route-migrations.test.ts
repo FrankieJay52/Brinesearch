@@ -17,6 +17,14 @@ const expectCommonFailClosedContract = (sql: string) => {
   expect(sql).toContain("'cache_miss_policy'<>'fail_closed'");
   expect(sql).toContain("'release_current_count'<>'19'");
   expect(sql).toContain("'impact_count')::integer,-1)<>0");
+  expect(sql).toContain("or nullif(build.source_revision_digest,'') is null");
+  expect(sql).toContain("or build.source_revision_digest=(select before.source_revision_digest");
+  expect(sql).toContain(
+    "member.member_value->>'source_revision_digest'=build.source_revision_digest",
+  );
+  expect(sql).toContain("member.member_value->>'graph_digest'=build.graph_digest");
+  expect(sql).toContain("'source_revision_changed',build.source_revision_digest is distinct from");
+  expect(sql).toContain("'cache_current',coalesce((select cache.current");
   expect(sql).toContain("'global_cutover_authorized',false");
   expect(sql).toContain("'public_google_authorized',false");
   expect(sql).toContain("'route_authority_upgrade',false");

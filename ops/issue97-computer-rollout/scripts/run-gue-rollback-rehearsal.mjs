@@ -19,7 +19,7 @@ const migrationPath = path.join(
 );
 const migrationSql = fs.readFileSync(migrationPath, "utf8");
 const migrationSha256 = crypto.createHash("sha256").update(migrationSql).digest("hex");
-const expectedMigrationSha256 = "d9b01535f3cfb49382bb7b638da6530e4bcc75ceb753f85d511192efcf2864a0";
+const expectedMigrationSha256 = "fe64b9d07defa4f9fab986edf23089de11dc289748432e980500e4f03c7af7df";
 
 if (migrationSha256 !== expectedMigrationSha256) {
   throw new Error(`Migration digest diverged: ${migrationSha256}`);

@@ -660,13 +660,31 @@ begin
     select 1 from tmp_issue97_has_new_graph target
     join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
     where build.status<>'active'
-      or build.source_revision_digest<>(select before.source_revision_digest
+      or nullif(build.source_revision_digest,'') is null
+      or build.source_revision_digest=(select before.source_revision_digest
         from tmp_issue97_has_graph_before before where before.id=target.old_build_id)
       or not coalesce((select cache.current
         from pg_temp.tmp_issue97_graph_release_current_cache cache
         where cache.build_id=build.id),false)
   ) then
-    raise exception 'Issue #97 HAS graph currentness/source generation failed';
+    raise exception 'Issue #97 HAS graph currentness/source generation failed: %',(
+      select pg_catalog.jsonb_build_object(
+        'old_build_id',target.old_build_id,
+        'new_build_id',target.new_build_id,
+        'build_status',build.status,
+        'old_source_revision_digest',(select before.source_revision_digest
+          from tmp_issue97_has_graph_before before where before.id=target.old_build_id),
+        'new_source_revision_digest',build.source_revision_digest,
+        'source_revision_changed',build.source_revision_digest is distinct from
+          (select before.source_revision_digest from tmp_issue97_has_graph_before before
+           where before.id=target.old_build_id),
+        'cache_current',coalesce((select cache.current
+          from pg_temp.tmp_issue97_graph_release_current_cache cache
+          where cache.build_id=build.id),false)
+      )
+      from tmp_issue97_has_new_graph target
+      join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
+    );
   end if;
 
   if not exists(
@@ -678,6 +696,7 @@ begin
     join private_verification.brinesearch_issue97_state_candidate_manifest_members member
       on member.manifest_id=manifest.id and member.member_key='OH:HAS'
      and member.member_value->>'build_id'=target.new_build_id::text
+    join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
     where manifest.manifest_key='issue97-ohio-r5-has-scout-exact-identity-candidate'
       and manifest.state_code='OH' and manifest.member_count=19
       and manifest.generation_key=target.candidate_manifest_generation
@@ -690,6 +709,8 @@ begin
       and target.cache_result->>'manifest_id'=manifest.id::text
       and target.cache_result->>'manifest_digest'=manifest.manifest_digest
       and target.cache_result->>'release_current_count'='19'
+      and member.member_value->>'source_revision_digest'=build.source_revision_digest
+      and member.member_value->>'graph_digest'=build.graph_digest
       and exists(select 1 from pg_temp.tmp_issue97_graph_release_current_cache cache
         where cache.build_id=target.new_build_id and cache.current)
   ) then

@@ -8,7 +8,9 @@ cutover occurred.
 ## Repository and deployed V18
 
 - Current `main` and `origin/main`: `b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48`.
-- Current worktree branch: `fix/issue97-held-routes` at the same commit.
+- Current worktree branch: `fix/issue97-held-routes`, a local two-commit series
+  atop `origin/main`; the first exact-evidence checkpoint is
+  `f4a76d7284acd4317cb7c33c7899ac6ddd237e3d`.
 - Current main already contains the fail-closed full-screen approved-road viewer
   (`3ac98f8`), Issue #108 endpoint display (`995e418`), and Issue #108 timeout
   correction (`095799e`).
@@ -16,6 +18,12 @@ cutover occurred.
   `/v18/`. The deployed `/v18/?view=roads` bundle is
   `/v18/assets/index-BpouKL4P.js`; it contains full-screen road mode, selected-pad
   route focus, and the no-inference route fallback, with no V17 loading chrome.
+- A fresh live readback returned HTTP 200 from Netlify with HSTS and no-cache;
+  the deployed bundle SHA-256 is
+  `22cd13be31c8f10b2bd2fb94e00198e5b09292dd15dcfa52383e4ed64a754ff0`
+  and contains the explicit full-screen control, approved-roads mode, exact
+  selected-pad inbound-route message, fail-closed no-inference message, and Exit
+  control. It contains neither the V17.3 marker nor old loading-directory chrome.
 - Local production build emitted the same `index-BpouKL4P.js` asset and passed.
 
 ## Installed production baseline
@@ -89,6 +97,32 @@ Read-only evidence for a safe family adoption:
   Google receipt references, so replacing the empty placeholder geometry does
   not invalidate a published exact route or a Google manifest.
 
+## Second GUE rollback rehearsal — failed and rolled back
+
+- Started from the exact unchanged baseline at
+  `2026-08-24T14:15:37.929805Z`.
+- Rehearsed migration bytes SHA-256:
+  `d9b01535f3cfb49382bb7b638da6530e4bcc75ceb753f85d511192efcf2864a0`.
+- One explicit transaction was used. No retry was issued.
+- Failure after 657 seconds:
+  `P0001 — Issue #97 GUE graph currentness/source generation failed`.
+- PostgreSQL rollback succeeded.
+- One persisted-state inspection completed at
+  `2026-08-24T14:26:35.157740Z` and again proved the complete original state:
+  GUE build/digests, 19/1 active graphs, no staging build, 4,106 receipts,
+  directory revision 3 and exact digest, zero target roads/mappings/manifest,
+  public Google 0, cutover OFF, zero queue/overlay/reconciliation rows, and the
+  original pad, public-direction, target-step, and target-receipt digests.
+
+The second failure was an evidence-assertion defect, not a graph build failure.
+`brinesearch_issue97_rebuild_county_graph` includes the verified identity-
+mapping digest in `source_revision_digest`. This migration adds three verified
+exact mappings, so the rebuilt GUE source revision must differ from the old GUE
+source revision. The postcondition incorrectly required equality. Both GUE and
+HAS are now corrected locally to require a nonempty changed source revision and
+to bind the new source revision plus graph digest to the exact immutable state-
+manifest member.
+
 ## Local correction prepared — not run in production
 
 Migration
@@ -107,12 +141,19 @@ Migration
    at 0, and keeps cutover OFF.
 
 Prepared migration SHA-256:
-`d9b01535f3cfb49382bb7b638da6530e4bcc75ceb753f85d511192efcf2864a0`.
+`fe64b9d07defa4f9fab986edf23089de11dc289748432e980500e4f03c7af7df`.
 
-It has **not** been rehearsed or applied after this correction. The fail-stop
-rule requires a new explicit post-failure authorization before one new
-rollback-only GUE rehearsal. HAS/Scout remains serially gated behind a passing
-and permanently verified GUE migration.
+It has **not** been rehearsed or applied after the source-generation assertion
+correction. The fail-stop rule requires a new explicit post-failure
+authorization before one new rollback-only GUE rehearsal. HAS/Scout remains
+serially gated behind a passing and permanently verified GUE migration.
+
+The HAS exact-source collision audit is also clean: each reviewed CR-36/36A
+identity has one exact NLF record, is current/public/drivable with authoritative
+geometry, has zero verified mappings, and no existing Harrison county road with
+normalized route number 36 or 36A competes with either new canonical road.
+The prepared HAS migration SHA-256 is
+`e095456b0a06e774b57623d8fd4a060024f9c0170e714141f727dfd58efaca79`.
 
 ## Issue #108 read-only production probe
 
@@ -167,7 +208,7 @@ Exact underlying blockers remain:
   highlights, and per-pad endpoints are present without old-app bridges or
   private fields.
 - Production assembly: 19 V18 files; every V17 page/runtime asset absent.
-- Latest resource check: 1.38 GB RAM and 4.79 GB disk free.
+- Latest resource check: 1.48 GB RAM and 4.86 GB disk free.
 
 ## Remaining gates
 
