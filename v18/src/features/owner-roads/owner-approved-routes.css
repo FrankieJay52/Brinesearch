@@ -208,19 +208,110 @@
   color: var(--amber);
 }
 
-.owner-pad-route-context span {
+.owner-pad-route-body {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+
+.owner-pad-route-body > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.owner-pad-route-body > header > span {
   display: grid;
   gap: 4px;
 }
 
-.owner-pad-route-context strong {
+.owner-pad-route-body > header strong {
   color: var(--text);
   font-size: .78rem;
 }
 
-.owner-pad-route-context small {
+.owner-pad-route-body > header small {
   font-size: .69rem;
   line-height: 1.45;
+}
+
+.owner-pad-route-body > header a {
+  flex: 0 0 auto;
+  color: var(--teal-bright);
+  font-size: .68rem;
+  font-weight: 850;
+}
+
+.owner-pad-route-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.owner-pad-route-badges b {
+  padding: 5px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted-strong);
+  background: var(--surface-raised);
+  font-size: .61rem;
+  line-height: 1.2;
+}
+
+.owner-pad-route-badges b.is-ready {
+  color: var(--teal-bright);
+  border-color: color-mix(in srgb, var(--teal) 44%, var(--line));
+}
+
+.owner-pad-route-badges b.is-held {
+  color: var(--amber);
+  border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
+}
+
+.owner-pad-sequence,
+.owner-pad-directions {
+  padding: 10px 11px;
+  border: 1px solid var(--line-soft);
+  border-radius: 11px;
+  background: var(--surface-raised);
+}
+
+.owner-pad-sequence span,
+.owner-pad-directions summary {
+  color: var(--muted);
+  font-size: .62rem;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: .045em;
+}
+
+.owner-pad-sequence p,
+.owner-pad-directions p,
+.owner-pad-direction-hold,
+.owner-pad-graph-note {
+  margin: 6px 0 0;
+  color: var(--muted-strong);
+  font-size: .69rem;
+  line-height: 1.5;
+}
+
+.owner-pad-directions summary {
+  cursor: pointer;
+}
+
+.owner-pad-directions p {
+  white-space: pre-line;
+}
+
+.owner-pad-direction-hold {
+  margin: 0;
+  color: var(--amber);
+}
+
+.owner-pad-graph-note {
+  margin: 0;
+  color: var(--muted);
 }
 
 .owner-routes-workspace {
@@ -307,6 +398,11 @@
   padding-left: 15px;
   color: #ffbe3d;
   border-left: 3px solid #fff;
+}
+
+.owner-map-legend strong.owner-pad-focus-key {
+  color: #62ddc6;
+  border-left-color: #62ddc6;
 }
 
 .owner-map-legend small {
@@ -732,6 +828,16 @@
 
   .owner-road-layer-filters label {
     min-height: 38px;
+  }
+
+  .owner-pad-route-body > header {
+    display: grid;
+  }
+
+  .owner-pad-route-body > header a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
   }
 
   .owner-map-shell {

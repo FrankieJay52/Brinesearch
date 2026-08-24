@@ -10,7 +10,10 @@ import {
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { LoadingState } from "@/components/LoadingState";
+import { useDirectory } from "@/data/DirectoryContext";
 import { useOwnerAccess } from "@/data/OwnerAccessContext";
+import { loadPadStatus } from "@/data/status";
+import type { DriverPadStatus } from "@/data/types";
 import {
   loadOwnerPadOptions,
   loadOwnerRoadDetail,
@@ -27,10 +30,13 @@ import {
 import {
   ownerRoadCollection,
   ownerRoadFeatureBounds,
+  ownerRoadFeaturesBounds,
   ownerRoadFeatureLimit,
   ownerRoadJurisdiction,
+  ownerRoadPadOptions,
   ownerRoadRouteLabel,
   ownerRoadSelection,
+  ownerRoadStateCode,
   ownerRoadStatusColors,
   ownerRoadStatusLabels,
   ownerRoadViewportRequestKey,
@@ -46,6 +52,8 @@ const fallbackMapStyle: StyleSpecification = {
 const sourceId = "brinesearch-owner-roads";
 const roadCasingLayerId = "brinesearch-owner-roads-casing";
 const roadLayerId = "brinesearch-owner-roads-line";
+const selectedPadHaloLayerId = "brinesearch-owner-pad-road-halo";
+const selectedPadLayerId = "brinesearch-owner-pad-road-line";
 const selectedHaloLayerId = "brinesearch-owner-road-selected-halo";
 const selectedLayerId = "brinesearch-owner-road-selected";
 const padSourceId = "brinesearch-owner-selected-pad";
@@ -110,6 +118,23 @@ function ensureOwnerRoadLayers(map: MapLibreMap) {
     paint: { "line-color": colorExpression(), "line-width": ["interpolate", ["linear"], ["zoom"], 8, 2, 14, 4.5, 18, 7] as never, "line-opacity": ["case", ["==", ["get", "approvalStatus"], "reference_only"], .55, .9] as never },
     layout: { "line-cap": "round", "line-join": "round" },
   }, before);
+  const padFocus = ["==", ["get", "padFocused"], true] as never;
+  if (!map.getLayer(selectedPadHaloLayerId)) map.addLayer({
+    id: selectedPadHaloLayerId,
+    type: "line",
+    source: sourceId,
+    filter: padFocus,
+    paint: { "line-color": "rgba(255,255,255,.96)", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 8, 14, 13, 18, 18] as never, "line-opacity": .96 },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
+  if (!map.getLayer(selectedPadLayerId)) map.addLayer({
+    id: selectedPadLayerId,
+    type: "line",
+    source: sourceId,
+    filter: padFocus,
+    paint: { "line-color": "#62ddc6", "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 8, 18, 12] as never, "line-opacity": 1 },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
   const noSelection = ["==", ["get", "identityId"], ""] as never;
   if (!map.getLayer(selectedHaloLayerId)) map.addLayer({
     id: selectedHaloLayerId,
@@ -135,9 +160,9 @@ function ensureOwnerRoadLayers(map: MapLibreMap) {
   }, before);
 }
 
-function syncRoadFeatures(map: MapLibreMap, features: OwnerRoadFeature[]) {
+function syncRoadFeatures(map: MapLibreMap, features: OwnerRoadFeature[], padFocused = false) {
   if (!map.getSource(sourceId)) return;
-  (map.getSource(sourceId) as GeoJSONSource).setData(ownerRoadCollection(features));
+  (map.getSource(sourceId) as GeoJSONSource).setData(ownerRoadCollection(features, padFocused));
 }
 
 function syncSelectedRoad(map: MapLibreMap, identityId: string | null) {
@@ -245,13 +270,16 @@ function AccessBoundary({ state, message, onRefresh }: { state: "signed_out" | "
 
 export function OwnerApprovedRoutesPage() {
   const { access, refresh } = useOwnerAccess();
+  const { snapshot } = useDirectory();
   const [features, setFeatures] = useState<OwnerRoadFeature[]>([]);
-  const [pads, setPads] = useState<OwnerPadOption[]>([]);
+  const [protectedPads, setProtectedPads] = useState<OwnerPadOption[]>([]);
   const [selectedIdentityId, setSelectedIdentityId] = useState<string | null>(null);
   const [detail, setDetail] = useState<OwnerRoadDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
-  const [stateFilter, setStateFilter] = useState<"OH" | "WV" | "PA" | "">("");
+  const [selectedPadStatus, setSelectedPadStatus] = useState<DriverPadStatus | null>(null);
+  const [selectedPadStatusLoading, setSelectedPadStatusLoading] = useState(false);
+  const [stateFilter, setStateFilter] = useState<"OH" | "WV" | "PA" | "">("OH");
   const [countyFilter, setCountyFilter] = useState("");
   const [search, setSearch] = useState("");
   const [routeSystem, setRouteSystem] = useState("");
@@ -271,13 +299,20 @@ export function OwnerApprovedRoutesPage() {
   const viewportLoadedKeyRef = useRef<string | null>(null);
   const viewportMoveTimerRef = useRef<number | null>(null);
   const mapReadyRef = useRef(false);
+  const selectedPadIdRef = useRef("");
+  const fittedPadRef = useRef<string | null>(null);
   const loadViewportRef = useRef<((force?: boolean) => void) | null>(null);
   const selectRoadRef = useRef<((identityId: string, focus: boolean) => void) | null>(null);
 
   featuresRef.current = features;
   selectedIdentityRef.current = selectedIdentityId;
+  selectedPadIdRef.current = padId;
 
+  const pads = useMemo(() => ownerRoadPadOptions(snapshot?.rows || [], protectedPads), [protectedPads, snapshot]);
+  const directoryById = useMemo(() => new Map((snapshot?.rows || []).flatMap((pad) => pad.canonicalId ? [[pad.canonicalId, pad] as const] : [])), [snapshot]);
   const selectedPad = useMemo(() => pads.find((pad) => pad.padId === padId) || null, [padId, pads]);
+  const selectedDirectoryPad = directoryById.get(padId) || null;
+  const protectedPadIds = useMemo(() => new Set(protectedPads.map((pad) => pad.padId)), [protectedPads]);
   selectedPadRef.current = selectedPad;
 
   const clearRoads = useCallback((message: string) => {
@@ -288,7 +323,7 @@ export function OwnerApprovedRoutesPage() {
     viewportLoadedKeyRef.current = null;
     setFeatures([]);
     setSelectedIdentityId(null);
-    if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, []);
+    if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, [], Boolean(selectedPadIdRef.current));
     if (mapRef.current) syncSelectedRoad(mapRef.current, null);
     setMapState("warning");
     setMapMessage(message);
@@ -335,19 +370,31 @@ export function OwnerApprovedRoutesPage() {
       if (sequence !== requestRef.current) return;
       viewportLoadedKeyRef.current = requestKey;
       setFeatures(viewport.features);
-      syncRoadFeatures(map, viewport.features);
+      syncRoadFeatures(map, viewport.features, Boolean(padId));
       const nextSelection = ownerRoadSelection(viewport.features, selectedIdentityRef.current);
       if (nextSelection !== selectedIdentityRef.current) setSelectedIdentityId(nextSelection);
       syncSelectedRoad(map, nextSelection);
       const selectedName = viewport.features.find((feature) => feature.properties.identityId === nextSelection)?.properties.displayName;
+      if (padId && viewport.features.length && fittedPadRef.current !== padId) {
+        const routeBounds = ownerRoadFeaturesBounds(viewport.features);
+        if (routeBounds) {
+          fittedPadRef.current = padId;
+          fitRoadBounds(map, routeBounds);
+        }
+      }
       if (viewport.zoomRequired) {
         setMapState("warning"); setMapMessage(`Zoom to level ${viewport.zoomRequired} or closer to load roads.`);
       } else if (viewport.truncated) {
-        setMapState("warning"); setMapMessage(`Showing ${viewport.features.length.toLocaleString()} exact identities. Zoom in or narrow the filters.`);
+        setMapState("warning"); setMapMessage(`Showing ${viewport.features.length.toLocaleString()} exact identities. Zoom in or narrow the filters.${padId ? " Selected-location graph roads are emphasized only where exact geometry was returned." : ""}`);
       } else if (!viewport.features.length) {
-        setMapState("warning"); setMapMessage("No matching exact road identities are in this map view.");
+        setMapState("warning"); setMapMessage(padId
+          ? "No exact graph-mapped road identity is available for this location in the current view. Reviewed directions remain display-only."
+          : "No matching exact road identities are in this map view.");
       } else {
-        setMapState("ready"); setMapMessage(`${viewport.features.length.toLocaleString()} exact road ${viewport.features.length === 1 ? "identity" : "identities"} loaded in this view.${selectedName ? ` ${selectedName} is selected and highlighted.` : ""}`);
+        const graphLabel = stateFilter === "OH" ? "Ohio graph road" : "exact graph road";
+        setMapState("ready"); setMapMessage(padId
+          ? `${viewport.features.length.toLocaleString()} ${graphLabel} ${viewport.features.length === 1 ? "identity" : "identities"} highlighted for the selected location in this view.${selectedName ? ` ${selectedName} has the gold inspection focus.` : ""}`
+          : `${viewport.features.length.toLocaleString()} exact road ${viewport.features.length === 1 ? "identity" : "identities"} loaded in this view.${selectedName ? ` ${selectedName} is selected and highlighted.` : ""}`);
       }
     } catch (error) {
       if (sequence !== requestRef.current || mapRef.current !== map) return;
@@ -365,7 +412,7 @@ export function OwnerApprovedRoutesPage() {
       }
       viewportLoadedKeyRef.current = null;
       setFeatures([]);
-      if (map.getSource(sourceId)) syncRoadFeatures(map, []);
+      if (map.getSource(sourceId)) syncRoadFeatures(map, [], Boolean(padId));
       setMapState("error");
       setMapMessage(error instanceof Error ? error.message : "Owner road data could not be loaded.");
     } finally {
@@ -413,9 +460,23 @@ export function OwnerApprovedRoutesPage() {
   }, [access.state, selectedIdentityId]);
 
   useEffect(() => {
+    let cancelled = false;
+    setSelectedPadStatus(null);
+    if (access.state !== "owner" || !selectedDirectoryPad) {
+      setSelectedPadStatusLoading(false);
+      return () => { cancelled = true; };
+    }
+    setSelectedPadStatusLoading(true);
+    loadPadStatus(selectedDirectoryPad, snapshot?.sourceState)
+      .then((status) => { if (!cancelled) setSelectedPadStatus(status); })
+      .finally(() => { if (!cancelled) setSelectedPadStatusLoading(false); });
+    return () => { cancelled = true; };
+  }, [access.state, selectedDirectoryPad, snapshot?.sourceState]);
+
+  useEffect(() => {
     if (access.state !== "owner") return;
     const controller = new AbortController();
-    loadOwnerPadOptions(controller.signal).then(setPads).catch(() => setPads([]));
+    loadOwnerPadOptions(controller.signal).then(setProtectedPads).catch(() => setProtectedPads([]));
     return () => controller.abort();
   }, [access.state]);
 
@@ -434,7 +495,7 @@ export function OwnerApprovedRoutesPage() {
       try {
         ensureOwnerRoadLayers(map);
         mapReadyRef.current = true;
-        syncRoadFeatures(map, featuresRef.current);
+        syncRoadFeatures(map, featuresRef.current, Boolean(selectedPadIdRef.current));
         syncSelectedRoad(map, selectedIdentityRef.current);
         syncSelectedPad(map, selectedPadRef.current);
         setMapMessage(fallbackApplied ? "Basemap unavailable. Exact road overlays remain available on a reference background." : "Map ready. Loading exact current road identities…");
@@ -517,7 +578,7 @@ export function OwnerApprovedRoutesPage() {
     if (!map || access.state !== "owner") return;
     syncSelectedPad(map, selectedPad);
     if (selectedPad?.latitude !== null && selectedPad?.latitude !== undefined && selectedPad.longitude !== null) {
-      map.easeTo({ center: [selectedPad.longitude, selectedPad.latitude], zoom: Math.max(map.getZoom(), 13), duration: 420 });
+      map.easeTo({ center: [selectedPad.longitude, selectedPad.latitude], zoom: 9, duration: 420 });
     }
   }, [access.state, selectedPad]);
 
@@ -527,6 +588,24 @@ export function OwnerApprovedRoutesPage() {
   const toggleStatus = (status: OwnerRoadStatus) => setStatuses((current) => {
     const next = new Set(current); if (next.has(status)) next.delete(status); else next.add(status); return next;
   });
+  const choosePad = (nextPadId: string) => {
+    clearRoads(nextPadId ? "Loading exact roads for the selected location…" : "Loading the current exact-road view…");
+    setMapState("loading");
+    setPadId(nextPadId);
+    setSelectedIdentityId(null);
+    setDetail(null);
+    setSelectedPadStatus(null);
+    setSelectedPadStatusLoading(Boolean(nextPadId));
+    fittedPadRef.current = null;
+    if (!nextPadId) return;
+    const nextPad = pads.find((pad) => pad.padId === nextPadId);
+    const nextState = ownerRoadStateCode(nextPad?.state || "");
+    if (nextState) setStateFilter(nextState);
+    // A selected route must show every exact occurrence, including held,
+    // restricted, and reference-only evidence. Color continues to state the
+    // authority class; visual focus never upgrades approval.
+    setStatuses(new Set(ownerRoadStatuses));
+  };
 
   if (access.state === "checking") return <LoadingState message="Checking owner access…"/>;
   if (access.state !== "owner") return <AccessBoundary state={access.state} message={access.message} onRefresh={() => { void refresh(); }}/>;
@@ -543,7 +622,11 @@ export function OwnerApprovedRoutesPage() {
       <label><span>State</span><select value={stateFilter} onChange={(event) => setStateFilter(event.target.value as typeof stateFilter)}><option value="">OH + WV + PA</option><option value="OH">Ohio</option><option value="WV">West Virginia</option><option value="PA">Pennsylvania</option></select></label>
       <label><span>County</span><input value={countyFilter} onChange={(event) => setCountyFilter(event.target.value.slice(0, 100))} placeholder="Code or name"/></label>
       <label><span>Route system</span><select value={routeSystem} onChange={(event) => setRouteSystem(event.target.value)}><option value="">All exact systems</option>{routeSystemOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label className="owner-road-pad-filter"><span><Icon name="location"/>Selected pad route</span><select value={padId} onChange={(event) => { setPadId(event.target.value); setSelectedIdentityId(null); setDetail(null); }}><option value="">All pads</option>{pads.map((pad) => <option key={pad.padId} value={pad.padId}>{pad.company ? `${pad.company} — ` : ""}{pad.padName}</option>)}</select></label>
+      <label className="owner-road-pad-filter"><span><Icon name="location"/>Location directions + graph roads</span><select value={padId} onChange={(event) => choosePad(event.target.value)}><option value="">All {pads.length.toLocaleString()} locations</option>{pads.map((pad) => {
+        const directoryPad = directoryById.get(pad.padId);
+        const evidence = protectedPadIds.has(pad.padId) ? "route prep" : directoryPad?.structuredRoadSequence ? "saved sequence" : "directory location";
+        return <option key={pad.padId} value={pad.padId}>{pad.company ? `${pad.company} — ` : ""}{pad.padName} · {evidence}</option>;
+      })}</select></label>
       <button type="button" className="button-secondary owner-road-refresh" onClick={() => { void loadViewport(true); }}><Icon name="update"/>Refresh view</button>
     </section>
 
@@ -555,7 +638,25 @@ export function OwnerApprovedRoutesPage() {
       </div>
     </details>
 
-    {selectedPad && <aside className="owner-pad-route-context"><Icon name="route"/><span><strong>{selectedPad.company ? `${selectedPad.company} — ` : ""}{selectedPad.padName}</strong><small>Map and results show only exact mapped road occurrences for this pad in the current view. Unresolved route gaps stay unplotted and are never promoted to approved.</small></span></aside>}
+    {selectedPad && <section className="owner-pad-route-context" aria-label="Selected location route context">
+      <Icon name="route"/>
+      <div className="owner-pad-route-body">
+        <header>
+          <span><strong>{selectedPad.company ? `${selectedPad.company} — ` : ""}{selectedPad.padName}</strong><small>{selectedDirectoryPad ? [selectedDirectoryPad.recordType === "disposal" ? "Disposal" : "Pad", selectedDirectoryPad.county, selectedDirectoryPad.state].filter(Boolean).join(" · ") : selectedPad.state || "Location"}</small></span>
+          {selectedDirectoryPad && <Link to={`/pad/${selectedDirectoryPad.padId}`}>Open driver card</Link>}
+        </header>
+        <div className="owner-pad-route-badges">
+          <b className={features.length ? "is-ready" : "is-held"}>{features.length ? `${features.length} exact graph ${features.length === 1 ? "road" : "roads"} in view` : "No exact graph road in view"}</b>
+          <b>{selectedPadStatusLoading ? "Checking reviewed directions…" : selectedPadStatus?.route.writtenDirections ? "Reviewed directions available" : "No reviewed directions published"}</b>
+          {selectedPadStatus && <b>Route {selectedPadStatus.route.state.replaceAll("_", " ")} · graph {selectedPadStatus.graph.state.replaceAll("_", " ")}</b>}
+        </div>
+        {selectedDirectoryPad?.structuredRoadSequence && <div className="owner-pad-sequence"><span>Saved road sequence</span><p>{selectedDirectoryPad.structuredRoadSequence}</p></div>}
+        {selectedPadStatus?.route.writtenDirections
+          ? <details className="owner-pad-directions" open><summary>Reviewed field directions</summary><p>{selectedPadStatus.route.writtenDirections}</p></details>
+          : !selectedPadStatusLoading && <p className="owner-pad-direction-hold">No reviewed public written directions are available for this location. Nothing was generated from private notes or inferred from road names.</p>}
+        <p className="owner-pad-graph-note">Teal map lines are exact mapped road occurrences for this selected location from the current authoritative road identity layer. Gold marks the road being inspected. Held, restricted, unresolved, and reference-only roads keep their real status; missing gaps remain unplotted.</p>
+      </div>
+    </section>}
 
     <div className="owner-routes-workspace">
       <section className="owner-map-column">
@@ -563,7 +664,7 @@ export function OwnerApprovedRoutesPage() {
           <div ref={mapHost} className="owner-map-canvas" aria-label="Interactive owner approved routes map"/>
           <div className={`owner-map-status is-${mapState}`} role={mapState === "error" ? "alert" : "status"}><span/>{mapMessage}</div>
         </div>
-        <div className="owner-map-legend" aria-label="Road approval legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}<strong>Selected exact road</strong><small>Reference-only roads are not approved. Selection changes display focus only.</small></div>
+        <div className="owner-map-legend" aria-label="Road approval legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{padId && <strong className="owner-pad-focus-key">Selected location exact graph roads</strong>}<strong>Gold inspection road</strong><small>Reference-only roads are not approved. Location and road selection change display focus only.</small></div>
       </section>
       <aside className="owner-road-results" aria-label="Road results">
         <header><div><span className="eyebrow">CURRENT MAP VIEW</span><h2>Road identities</h2></div><b>{features.length.toLocaleString()}</b></header>

@@ -18,12 +18,14 @@ function runtimeSource(directory) {
 const initialMigration = read("supabase/migrations/20260816170000_owner_approved_routes_map.sql");
 const viewportFix = read("supabase/migrations/20260816170100_owner_approved_routes_map_viewport_fix.sql");
 const performanceMigration = read("supabase/migrations/20260816170200_owner_approved_routes_map_viewport_performance.sql");
+const primaryFocusMigration = read("supabase/migrations/20260823203500_v18_owner_map_primary_route_focus.sql");
 const session = read("v18/src/data/ownerSession.ts");
 const supabaseClient = read("v18/src/data/supabaseClient.ts");
 const access = read("v18/src/data/OwnerAccessContext.tsx");
 const fieldUpdates = read("v18/src/data/fieldUpdates.ts");
 const adapter = read("v18/src/data/ownerRoads.ts");
 const adapterTest = read("v18/src/data/ownerRoads.test.ts");
+const mapModel = read("v18/src/features/owner-roads/ownerRoadMapModel.ts");
 const map = read("v18/src/features/owner-roads/OwnerApprovedRoutesPage.tsx");
 const app = read("v18/src/app/App.tsx");
 const settings = read("v18/src/features/settings/SettingsPage.tsx");
@@ -40,9 +42,9 @@ function forbid(source, pattern, label) {
   if (pattern.test(source)) errors.push(label);
 }
 
-forbid(initialMigration + viewportFix + performanceMigration, />\s*case\s+when\s+v_zoom/i, "viewport limit CASE expression is not parenthesized for PL/pgSQL parsing");
+forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration, />\s*case\s+when\s+v_zoom/i, "viewport limit CASE expression is not parenthesized for PL/pgSQL parsing");
 
-for (const [name, source] of [["initial migration", initialMigration], ["final viewport migration", performanceMigration]]) {
+for (const [name, source] of [["initial migration", initialMigration], ["performance migration", performanceMigration], ["primary-focus migration", primaryFocusMigration]]) {
   requireText(source, "security definer", `${name} SECURITY DEFINER`);
   requireText(source, "set search_path = ''", `${name} fixed empty search_path`);
   requireText(source, "public.is_brinesearch_owner(auth.uid())", `${name} inner owner gate`);
@@ -62,8 +64,14 @@ requireText(performanceMigration, "limit v_limit+1", "bounded viewport truncatio
 requireText(performanceMigration, "limit v_limit", "bounded viewport payload");
 requireText(performanceMigration, "p_route_systems text[]", "exact route-system filter");
 requireText(performanceMigration, "extensions.st_collectionextract", "line-only clipped geometry output");
+requireText(primaryFocusMigration, "rp.pad_id=p_pad_id", "selected-location exact pad filter");
+requireText(primaryFocusMigration, "and rp.route_group='primary'", "selected-location primary route gate");
+requireText(primaryFocusMigration, "and rp.variant_index=1", "selected-location primary variant gate");
+requireText(primaryFocusMigration, "pg_catalog.strpos(", "valid schema-qualified primary-route assertion");
+forbid(primaryFocusMigration, /pg_catalog\.position\s*\(/i, "primary-route migration schema-qualifies PostgreSQL POSITION special syntax");
+forbid(primaryFocusMigration, /(?:route_group\s*=\s*'alternate'|variant_index\s*=\s*2)/i, "selected-location focus includes an alternate route variant");
 
-const finalSql = compact(performanceMigration);
+const finalSql = compact(primaryFocusMigration);
 const precedence = [
   "then 'restricted'",
   "when not b.current_scope then 'held'",
@@ -98,17 +106,24 @@ forbid(adapter, /private_review_notes|owner_notes|review_notes|evidence_payload/
 requireText(adapter, "validateOwnerRoadViewport", "safe viewport response validator");
 requireText(adapter, "validateOwnerRoadDetail", "safe detail response validator");
 requireText(adapter, "p_route_systems", "route-system request mapping");
+requireText(adapter, 'row.state === undefined ? ""', "minimal selected-pad viewport marker contract");
 
 requireText(map, "selectedHaloLayerId", "selected-road halo layer");
+requireText(map, "selectedPadLayerId", "selected-location graph-road highlight layer");
 requireText(map, "syncSelectedRoad", "selected-road source/filter synchronization");
 requireText(map, "ownerRoadSelection", "deterministic visible-road selection");
+requireText(map, "ownerRoadPadOptions", "complete directory-to-owner selector connection");
+requireText(mapModel, "for (const row of directoryRows)", "all-directory-location selector merge");
+requireText(map, "loadPadStatus(selectedDirectoryPad", "reviewed public direction status connection");
+requireText(map, "Reviewed field directions", "reviewed direction display");
+requireText(map, "setStatuses(new Set(ownerRoadStatuses))", "all exact selected-location status classes included");
 requireText(map, "mapReadyRef.current", "style-ready viewport request gate");
 requireText(map, "viewportInFlightKeyRef.current === requestKey", "duplicate in-flight viewport request guard");
 requireText(map, "viewportRequestTimeout", "bounded viewport request lifetime");
 requireText(map, "scheduleViewportLoad", "debounced move viewport reload");
 requireText(map, "queryRenderedFeatures", "interactive road hit testing");
-requireText(map, "Selection changes display focus only", "selection authority legend");
-requireText(map, "Unresolved route gaps stay unplotted", "pad route unresolved-gap disclosure");
+requireText(map, "Location and road selection change display focus only", "selection authority legend");
+requireText(map, "missing gaps remain unplotted", "pad route unresolved-gap disclosure");
 requireText(map, "does not approve it, create route steps or geometry, change the graph", "route/graph authority disclosure");
 
 requireText(access, "checkOwnerAccess", "shared UI owner access provider");
@@ -124,8 +139,8 @@ requireText(fieldUpdates, "/rest/v1/rpc/field_feed_list?select=", "public-field-
 forbid(fieldUpdates, /author_id|real_name|image_urls/i, "nonessential Field Feed identity or image field appears in the V18 adapter");
 forbid(controlCenter, /\{access\.state\s*===\s*["']owner["']\s*&&\s*<Link\s+to=["']\/settings\/approved-routes["']/, "V18 map launch is hidden behind the client-side owner check");
 
-forbid(initialMigration + viewportFix + performanceMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
-forbid(initialMigration + viewportFix + performanceMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");
+forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
+forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");
 
 if (errors.length) throw new Error(`V18 owner approved-routes map audit failed:\n- ${errors.join("\n- ")}`);
-console.log("V18 owner approved-routes map audit passed: owner-only RPCs, bounded exact geometry, fail-closed classifications, V18 wiring, and selected-road highlight are intact.");
+console.log("V18 owner approved-routes map audit passed: owner-only RPCs, all-location reviewed directions, bounded exact graph geometry, fail-closed classifications, and selected-location highlights are intact.");
