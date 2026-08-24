@@ -111,7 +111,11 @@ export type OwnerRoadViewportRequest = OwnerRoadBounds & {
 export const ownerRoadStatuses: OwnerRoadStatus[] = ["approved_by_policy", "explicitly_approved", "candidate", "held", "restricted", "reference_only"];
 export const ownerRoadClasses: OwnerRoadClass[] = ["interstate", "us_route", "state_route", "county", "township", "municipal", "local", "ramp", "other"];
 
-const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// PostgreSQL's uuid type accepts every 128-bit UUID value. Authoritative road
+// identities are deterministic database IDs and are not required to carry an
+// RFC 4122 version 1-5 / variant nibble, so validate their canonical text
+// representation without rejecting otherwise valid Postgres UUIDs.
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const statusSet = new Set(ownerRoadStatuses);
 const roadClassSet = new Set(ownerRoadClasses);
 
