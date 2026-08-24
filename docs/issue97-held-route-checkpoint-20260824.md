@@ -345,3 +345,29 @@ Exact underlying blockers remain:
    0 and cutover stays OFF.
 4. Merge and deployment remain gated behind the HAS database gates and final
    exact verification.
+
+## HAS/Scout rollback rehearsal fail-stop
+
+- The corrected read-only preflight passed at
+  `2026-08-24T17:21:26.876925Z` for migration SHA-256
+  `c8b8f1bcd6c81af927bbcd3257dd29d6a378b59f2ec064d2a4f6ffd3aad44f76`.
+- The one authorized rollback-only rehearsal started from that exact checkpoint.
+- At 513 seconds the migration failed with SQLSTATE `P0001`:
+  `Issue #97 OH state candidate requires exactly one release-current
+  validated/active build for each of 19 counties; found 18`.
+- The failure came from
+  `private_verification.brinesearch_issue97_persist_state_candidate_manifest`
+  line 65 while the HAS migration was persisting its Ohio candidate manifest.
+- The explicit transaction rollback succeeded. No retry was attempted.
+- The one post-failure persisted-state inspection at
+  `2026-08-24T17:30:09.097578Z` proved the original HAS and GUE builds/digests,
+  19 Ohio / 1 West Virginia active graphs, 0 staging graphs, directory revision
+  4 and 1,214/1,214 rows, 4,106 occurrence receipts, and all protected digests
+  unchanged. HAS target roads, mappings, route step, manifest, and migration
+  ledger remain absent. Public Google and queue remain 0, cutover remains OFF,
+  and overlays/reconciliation remain 0.
+- The permanent HAS apply, retry, PR, merge, and deployment gates are stopped.
+  Because the predecessor manifest had all 19 members and the rehearsal changes
+  only HAS before the failing candidate count, the transient HAS successor is
+  the inferred missing release-current member. That inference is not authority
+  for a second fix or retry.
