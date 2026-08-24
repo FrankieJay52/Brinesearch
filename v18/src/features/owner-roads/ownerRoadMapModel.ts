@@ -1,4 +1,4 @@
-import type { OwnerPadOption, OwnerRoadBounds, OwnerRoadFeature, OwnerRoadStatus, OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import { ownerRoadStatuses, type OwnerPadOption, type OwnerRoadBounds, type OwnerRoadFeature, type OwnerRoadStatus, type OwnerRoadViewportRequest } from "@/data/ownerRoads";
 import type { PadSummary } from "@/data/types";
 
 export const ownerRoadStatusLabels: Record<OwnerRoadStatus, string> = {
@@ -18,6 +18,23 @@ export const ownerRoadStatusColors: Record<OwnerRoadStatus, string> = {
   restricted: "#f06b52",
   reference_only: "#8f9aa5",
 };
+
+export function ownerRoadCoverage(features: readonly OwnerRoadFeature[]) {
+  const statusCounts = Object.fromEntries(ownerRoadStatuses.map((status) => [status, 0])) as Record<OwnerRoadStatus, number>;
+  let occurrenceCount = 0;
+  let endpointCount = 0;
+  for (const feature of features) {
+    occurrenceCount += feature.properties.occurrenceCount;
+    statusCounts[feature.properties.approvalStatus] += 1;
+    if (feature.properties.displayBoundary === "pad_endpoint_projection") endpointCount += 1;
+  }
+  return {
+    identityCount: features.length,
+    occurrenceCount,
+    endpointCount,
+    statusCounts,
+  };
+}
 
 export function ownerRoadFeatureLimit(width: number) {
   if (width < 620) return 160;
@@ -95,6 +112,31 @@ export function ownerRoadPadOptions(directoryRows: readonly PadSummary[], protec
   for (const pad of protectedOptions) if (!merged.has(pad.padId)) merged.set(pad.padId, pad);
   return [...merged.values()].sort((left, right) => left.company.localeCompare(right.company)
     || left.padName.localeCompare(right.padName) || left.padId.localeCompare(right.padId));
+}
+
+export function ownerRoadCompanyOptions(pads: readonly OwnerPadOption[]) {
+  return [...new Set(pads.map((pad) => pad.company.trim()).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right));
+}
+
+export function ownerRoadPadSearchResults(
+  pads: readonly OwnerPadOption[],
+  company: string,
+  query: string,
+  limit = 12,
+) {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  const boundedLimit = Math.max(1, Math.min(50, Math.trunc(limit) || 12));
+  return pads
+    .filter((pad) => (!company || pad.company === company)
+      && (!normalizedQuery || pad.padName.toLocaleLowerCase().includes(normalizedQuery)))
+    .sort((left, right) => {
+      const leftStarts = normalizedQuery && left.padName.toLocaleLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+      const rightStarts = normalizedQuery && right.padName.toLocaleLowerCase().startsWith(normalizedQuery) ? 0 : 1;
+      return leftStarts - rightStarts || left.padName.localeCompare(right.padName)
+        || left.company.localeCompare(right.company) || left.padId.localeCompare(right.padId);
+    })
+    .slice(0, boundedLimit);
 }
 
 export function ownerRoadSelection(features: OwnerRoadFeature[], currentIdentityId: string | null) {

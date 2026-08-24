@@ -30,11 +30,14 @@ import {
 } from "@/data/ownerRoads";
 import {
   ownerRoadCollection,
+  ownerRoadCompanyOptions,
+  ownerRoadCoverage,
   ownerRoadFeatureBounds,
   ownerRoadFeaturesBounds,
   ownerRoadFeatureLimit,
   ownerRoadJurisdiction,
   ownerRoadPadOptions,
+  ownerRoadPadSearchResults,
   ownerRoadRouteLabel,
   ownerRoadSelection,
   ownerRoadStateCode,
@@ -59,10 +62,13 @@ const selectedHaloLayerId = "brinesearch-owner-road-selected-halo";
 const selectedLayerId = "brinesearch-owner-road-selected";
 const padSourceId = "brinesearch-owner-selected-pad";
 const padLayerId = "brinesearch-owner-selected-pad-marker";
+const fullscreenFadeSourceId = "brinesearch-owner-fullscreen-fade";
+const fullscreenFadeLayerId = "brinesearch-owner-fullscreen-fade-layer";
 const defaultCenter: [number, number] = [-80.72, 40.05];
 const defaultStatuses = new Set<OwnerRoadStatus>(ownerRoadStatuses.filter((status) => status !== "reference_only"));
 const viewportMoveDelay = 240;
 const viewportRequestTimeout = 15_000;
+const roadResultPageSize = 60;
 
 const roadClassLabels: Record<OwnerRoadClass, string> = {
   interstate: "Interstate",
@@ -161,6 +167,35 @@ function ensureOwnerRoadLayers(map: MapLibreMap) {
   }, before);
 }
 
+function syncFullscreenPresentation(map: MapLibreMap, fullscreen: boolean) {
+  if (fullscreen) {
+    if (!map.getSource(fullscreenFadeSourceId)) map.addSource(fullscreenFadeSourceId, {
+      type: "geojson",
+      data: {
+        type: "Feature",
+        properties: {},
+        geometry: { type: "Polygon", coordinates: [[[-180, -85], [180, -85], [180, 85], [-180, 85], [-180, -85]]] },
+      },
+    });
+    if (!map.getLayer(fullscreenFadeLayerId)) map.addLayer({
+      id: fullscreenFadeLayerId,
+      type: "fill",
+      source: fullscreenFadeSourceId,
+      paint: { "fill-color": getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#07131f", "fill-opacity": .5 },
+    });
+    for (const layerId of [roadCasingLayerId, roadLayerId, selectedPadHaloLayerId, selectedPadLayerId, selectedHaloLayerId, selectedLayerId, padLayerId]) {
+      if (map.getLayer(layerId)) map.moveLayer(layerId);
+    }
+    return;
+  }
+  if (map.getLayer(fullscreenFadeLayerId)) map.removeLayer(fullscreenFadeLayerId);
+  if (map.getSource(fullscreenFadeSourceId)) map.removeSource(fullscreenFadeSourceId);
+  const before = map.getStyle().layers?.find((layer) => layer.type === "symbol")?.id;
+  for (const layerId of [roadCasingLayerId, roadLayerId, selectedPadHaloLayerId, selectedPadLayerId, selectedHaloLayerId, selectedLayerId, padLayerId]) {
+    if (map.getLayer(layerId)) map.moveLayer(layerId, before);
+  }
+}
+
 function syncRoadFeatures(map: MapLibreMap, features: OwnerRoadFeature[], padFocused = false) {
   if (!map.getSource(sourceId)) return;
   (map.getSource(sourceId) as GeoJSONSource).setData(ownerRoadCollection(features, padFocused));
@@ -182,8 +217,8 @@ function syncSelectedPad(map: MapLibreMap, pad: OwnerPadOption | null) {
 
 function fitRoadBounds(map: MapLibreMap, bounds: OwnerRoadBounds) {
   const samePoint = Math.abs(bounds.east - bounds.west) < .00001 && Math.abs(bounds.north - bounds.south) < .00001;
-  if (samePoint) map.easeTo({ center: [bounds.west, bounds.south], zoom: Math.max(map.getZoom(), 15), duration: 420 });
-  else map.fitBounds(new LngLatBounds([bounds.west, bounds.south], [bounds.east, bounds.north]), { padding: 72, maxZoom: 16, duration: 420 });
+  if (samePoint) map.easeTo({ center: [bounds.west, bounds.south], zoom: Math.max(map.getZoom(), 15), duration: 280 });
+  else map.fitBounds(new LngLatBounds([bounds.west, bounds.south], [bounds.east, bounds.north]), { padding: 72, maxZoom: 16, duration: 300 });
 }
 
 function formatDate(value: string | null) {
@@ -198,7 +233,56 @@ function connectedRoadLabel(road: OwnerRoadDetail["junctions"][number]["connecte
   return [road.roadNameAtJunction || road.displayName, route || road.roadClass.replaceAll("_", " "), jurisdiction].filter(Boolean).join(" — ");
 }
 
-function OwnerRoadDetails({ detail, displayFeature, loading, error, onFocus }: { detail: OwnerRoadDetail | null; displayFeature: OwnerRoadFeature | null; loading: boolean; error: string | null; onFocus: (bounds: OwnerRoadBounds) => void }) {
+function ConnectedPadList({ pads, onChoosePad, compact = false }: {
+  pads: OwnerRoadDetail["pads"];
+  onChoosePad: (padId: string) => void;
+  compact?: boolean;
+}) {
+  const groups = [...pads.reduce((grouped, pad) => {
+    const company = pad.company.trim() || "Company unavailable";
+    const companyPads = grouped.get(company) || [];
+    companyPads.push(pad);
+    grouped.set(company, companyPads);
+    return grouped;
+  }, new Map<string, OwnerRoadDetail["pads"]>())]
+    .sort(([left], [right]) => left.localeCompare(right));
+  if (!groups.length) return <p>No current saved pad-route use.</p>;
+  return <div className={`owner-road-pad-groups${compact ? " is-compact" : ""}`}>{groups.map(([company, companyPads]) => <section key={company}>
+    <header><strong>{company}</strong><small>{companyPads.length} connected {companyPads.length === 1 ? "pad" : "pads"}</small></header>
+    <ul>{companyPads.sort((left, right) => left.padName.localeCompare(right.padName) || left.padId.localeCompare(right.padId)).map((pad) => <li key={pad.padId}>
+      <span><strong>{pad.padName}</strong><small>{pad.occurrenceCount} exact saved route {pad.occurrenceCount === 1 ? "step" : "steps"}</small></span>
+      <span className="owner-road-pad-actions"><button type="button" onClick={() => onChoosePad(pad.padId)}>Show roads</button><Link to={`/pad/${pad.padId}`}>Pad card</Link></span>
+    </li>)}</ul>
+  </section>)}</div>;
+}
+
+function FullscreenRoadInspector({ detail, displayFeature, loading, error, onClose, onChoosePad }: {
+  detail: OwnerRoadDetail | null;
+  displayFeature: OwnerRoadFeature | null;
+  loading: boolean;
+  error: string | null;
+  onClose: () => void;
+  onChoosePad: (padId: string) => void;
+}) {
+  const road = detail || displayFeature?.properties || null;
+  return <aside className="owner-map-road-inspector" aria-label="Selected exact road and connected pads">
+    <header>
+      <span><small>SELECTED EXACT ROAD</small><strong>{road?.displayName || "Loading road…"}</strong></span>
+      <button type="button" onClick={onClose} aria-label="Close selected road details"><Icon name="close"/></button>
+    </header>
+    {road && <span className={`owner-road-status status-${road.approvalStatus}`}>{ownerRoadStatusLabels[road.approvalStatus]}</span>}
+    {loading && <p>Loading exact connected pads…</p>}
+    {error && <p className="is-error" role="alert">{error}</p>}
+    {detail && <>
+      <p>{ownerRoadJurisdiction(detail)} · {detail.sourceIdentityKey}</p>
+      <div className="owner-map-connected-heading"><strong>Pads connected by saved exact route use</strong><small>{detail.pads.length} {detail.pads.length === 1 ? "pad" : "pads"}</small></div>
+      <ConnectedPadList pads={detail.pads} onChoosePad={onChoosePad} compact/>
+      <small className="owner-map-road-proof">Connections come only from the exact saved route occurrence returned for this road. Proximity and name matching are not used.</small>
+    </>}
+  </aside>;
+}
+
+function OwnerRoadDetails({ detail, displayFeature, loading, error, onFocus, onChoosePad }: { detail: OwnerRoadDetail | null; displayFeature: OwnerRoadFeature | null; loading: boolean; error: string | null; onFocus: (bounds: OwnerRoadBounds) => void; onChoosePad: (padId: string) => void }) {
   const [copyNotice, setCopyNotice] = useState("");
   const copy = async (value: string, label: string) => {
     try {
@@ -243,7 +327,7 @@ function OwnerRoadDetails({ detail, displayFeature, loading, error, onFocus }: {
     </dl>
     <section className="owner-road-related">
       <h3>Pads using this exact road</h3>
-      {detail.pads.length ? <ul>{detail.pads.map((pad) => <li key={pad.padId}><span><strong>{pad.padName}</strong><small>{pad.company || "Company unavailable"}</small></span><b>{pad.occurrenceCount} step{pad.occurrenceCount === 1 ? "" : "s"}</b></li>)}</ul> : <p>No current saved pad-route use.</p>}
+      <ConnectedPadList pads={detail.pads} onChoosePad={onChoosePad}/>
     </section>
     <section className="owner-road-related">
       <header><h3>Release-current physical junctions</h3><small>{detail.knownPhysicalJunctions.toLocaleString()} known{detail.junctionsTruncated ? " · first 100 returned" : ""}</small></header>
@@ -288,10 +372,16 @@ export function OwnerApprovedRoutesPage() {
   const [search, setSearch] = useState("");
   const [routeSystem, setRouteSystem] = useState("");
   const [padId, setPadId] = useState("");
+  const [companyFilter, setCompanyFilter] = useState("");
+  const [padSearch, setPadSearch] = useState("");
+  const [padPickerOpen, setPadPickerOpen] = useState(false);
   const [roadClasses, setRoadClasses] = useState<Set<OwnerRoadClass>>(() => new Set(ownerRoadClasses));
   const [statuses, setStatuses] = useState<Set<OwnerRoadStatus>>(() => new Set(defaultStatuses));
   const [mapState, setMapState] = useState<MapState>("starting");
   const [mapMessage, setMapMessage] = useState("Starting the owner road map…");
+  const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [viewportTruncated, setViewportTruncated] = useState(false);
+  const [visibleRoadLimit, setVisibleRoadLimit] = useState(roadResultPageSize);
   const [viewerReleaseBusy, setViewerReleaseBusy] = useState(false);
   const [viewerReleaseNotice, setViewerReleaseNotice] = useState("");
   const [viewerReleaseError, setViewerReleaseError] = useState(false);
@@ -308,19 +398,23 @@ export function OwnerApprovedRoutesPage() {
   const mapReadyRef = useRef(false);
   const selectedPadIdRef = useRef("");
   const fittedPadRef = useRef<string | null>(null);
+  const fullscreenRef = useRef(false);
   const loadViewportRef = useRef<((force?: boolean) => void) | null>(null);
   const selectRoadRef = useRef<((identityId: string, focus: boolean) => void) | null>(null);
 
   featuresRef.current = features;
   selectedIdentityRef.current = selectedIdentityId;
   selectedPadIdRef.current = padId;
+  fullscreenRef.current = mapFullscreen;
 
   const pads = useMemo(() => ownerRoadPadOptions(snapshot?.rows || [], protectedPads), [protectedPads, snapshot]);
+  const companies = useMemo(() => ownerRoadCompanyOptions(pads), [pads]);
+  const padSearchResults = useMemo(() => ownerRoadPadSearchResults(pads, companyFilter, padSearch), [companyFilter, padSearch, pads]);
   const directoryById = useMemo(() => new Map((snapshot?.rows || []).flatMap((pad) => pad.canonicalId ? [[pad.canonicalId, pad] as const] : [])), [snapshot]);
   const selectedPad = useMemo(() => pads.find((pad) => pad.padId === padId) || null, [padId, pads]);
   const selectedDirectoryPad = directoryById.get(padId) || null;
   const selectedFeature = useMemo(() => features.find((feature) => feature.properties.identityId === selectedIdentityId) || null, [features, selectedIdentityId]);
-  const endpointFeatureCount = useMemo(() => features.filter((feature) => feature.properties.displayBoundary === "pad_endpoint_projection").length, [features]);
+  const coverage = useMemo(() => ownerRoadCoverage(features), [features]);
   const protectedPadIds = useMemo(() => new Set(protectedPads.map((pad) => pad.padId)), [protectedPads]);
   selectedPadRef.current = selectedPad;
 
@@ -331,6 +425,7 @@ export function OwnerApprovedRoutesPage() {
     viewportInFlightKeyRef.current = null;
     viewportLoadedKeyRef.current = null;
     setFeatures([]);
+    setViewportTruncated(false);
     setSelectedIdentityId(null);
     if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, [], Boolean(selectedPadIdRef.current));
     if (mapRef.current) syncSelectedRoad(mapRef.current, null);
@@ -379,6 +474,7 @@ export function OwnerApprovedRoutesPage() {
       if (sequence !== requestRef.current) return;
       viewportLoadedKeyRef.current = requestKey;
       setFeatures(viewport.features);
+      setViewportTruncated(viewport.truncated);
       syncRoadFeatures(map, viewport.features, Boolean(padId));
       const nextSelection = ownerRoadSelection(viewport.features, selectedIdentityRef.current);
       if (nextSelection !== selectedIdentityRef.current) setSelectedIdentityId(nextSelection);
@@ -421,6 +517,7 @@ export function OwnerApprovedRoutesPage() {
       }
       viewportLoadedKeyRef.current = null;
       setFeatures([]);
+      setViewportTruncated(false);
       if (map.getSource(sourceId)) syncRoadFeatures(map, [], Boolean(padId));
       setMapState("error");
       setMapMessage(error instanceof Error ? error.message : "Owner road data could not be loaded.");
@@ -436,10 +533,15 @@ export function OwnerApprovedRoutesPage() {
 
   const scheduleViewportLoad = useCallback((delay = viewportMoveDelay) => {
     if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
-    viewportMoveTimerRef.current = window.setTimeout(() => {
+    const runWhenIdle = () => {
+      if (mapRef.current?.isMoving()) {
+        viewportMoveTimerRef.current = window.setTimeout(runWhenIdle, 100);
+        return;
+      }
       viewportMoveTimerRef.current = null;
       loadViewportRef.current?.();
-    }, delay);
+    };
+    viewportMoveTimerRef.current = window.setTimeout(runWhenIdle, delay);
   }, []);
 
   const selectRoad = useCallback((identityId: string, focus: boolean) => {
@@ -455,6 +557,56 @@ export function OwnerApprovedRoutesPage() {
     }
   }, []);
   selectRoadRef.current = selectRoad;
+
+  const clearRoadSelection = useCallback(() => {
+    setSelectedIdentityId(null);
+    setDetail(null);
+    setDetailError(null);
+    setDetailLoading(false);
+    if (mapRef.current) syncSelectedRoad(mapRef.current, null);
+  }, []);
+
+  const focusLoadedRoads = useCallback(() => {
+    const map = mapRef.current;
+    const bounds = ownerRoadFeaturesBounds(featuresRef.current);
+    if (map && bounds) {
+      fitRoadBounds(map, bounds);
+      return;
+    }
+    const pad = selectedPadRef.current;
+    if (map && pad?.latitude !== null && pad?.latitude !== undefined && pad.longitude !== null) {
+      map.easeTo({ center: [pad.longitude, pad.latitude], zoom: Math.max(map.getZoom(), 13), duration: 280 });
+    }
+  }, []);
+
+  useEffect(() => {
+    setVisibleRoadLimit(roadResultPageSize);
+  }, [features]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (map) {
+      if (mapFullscreen) map.cooperativeGestures.disable();
+      else map.cooperativeGestures.enable();
+      if (mapReadyRef.current) syncFullscreenPresentation(map, mapFullscreen);
+    }
+    const resizeFrame = window.requestAnimationFrame(() => mapRef.current?.resize());
+    if (!mapFullscreen) return () => window.cancelAnimationFrame(resizeFrame);
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousRootOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    const exitOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMapFullscreen(false);
+    };
+    window.addEventListener("keydown", exitOnEscape);
+    return () => {
+      window.cancelAnimationFrame(resizeFrame);
+      window.removeEventListener("keydown", exitOnEscape);
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousRootOverflow;
+    };
+  }, [mapFullscreen]);
 
   useEffect(() => {
     if (!selectedIdentityId || access.state !== "owner") {
@@ -493,7 +645,22 @@ export function OwnerApprovedRoutesPage() {
     if (access.state !== "owner" || !mapHost.current || mapRef.current) return;
     let map: MapLibreMap;
     try {
-      map = new MapLibreMap({ container: mapHost.current, style: mapStyle, center: defaultCenter, zoom: 10, attributionControl: { compact: true } });
+      map = new MapLibreMap({
+        container: mapHost.current,
+        style: mapStyle,
+        center: defaultCenter,
+        zoom: 10,
+        attributionControl: { compact: true },
+        cooperativeGestures: true,
+        dragRotate: false,
+        touchPitch: false,
+        pitchWithRotate: false,
+        renderWorldCopies: false,
+        fadeDuration: 0,
+        trackResize: false,
+        pixelRatio: Math.min(Math.max(window.devicePixelRatio || 1, 1), 2),
+      });
+      map.touchZoomRotate.disableRotation();
     } catch {
       setMapState("error"); setMapMessage("The map renderer could not start. Road results remain fail-closed."); return;
     }
@@ -507,6 +674,7 @@ export function OwnerApprovedRoutesPage() {
         syncRoadFeatures(map, featuresRef.current, Boolean(selectedPadIdRef.current));
         syncSelectedRoad(map, selectedIdentityRef.current);
         syncSelectedPad(map, selectedPadRef.current);
+        syncFullscreenPresentation(map, fullscreenRef.current);
         setMapMessage(fallbackApplied ? "Basemap unavailable. Exact road overlays remain available on a reference background." : "Map ready. Loading exact current road identities…");
         scheduleViewportLoad(0);
       } catch {
@@ -522,31 +690,44 @@ export function OwnerApprovedRoutesPage() {
     };
     const onClick = (event: MapMouseEvent) => {
       if (!map.getLayer(roadLayerId)) return;
-      const hit = map.queryRenderedFeatures(event.point, { layers: [selectedLayerId, roadLayerId] })[0];
+      const hit = map.queryRenderedFeatures(event.point, { layers: [selectedLayerId, selectedPadLayerId, roadLayerId], validate: false })[0];
       const identityId = typeof hit?.properties?.identityId === "string" ? hit.properties.identityId : null;
       if (identityId) selectRoadRef.current?.(identityId, false);
     };
+    let hoverFrame: number | null = null;
+    let hoverPoint: [number, number] | null = null;
     const onMove = (event: MapMouseEvent) => {
-      if (!map.getLayer(roadLayerId)) return;
-      map.getCanvas().style.cursor = map.queryRenderedFeatures(event.point, { layers: [selectedLayerId, roadLayerId] }).length ? "pointer" : "";
+      hoverPoint = [event.point.x, event.point.y];
+      if (hoverFrame !== null) return;
+      hoverFrame = window.requestAnimationFrame(() => {
+        hoverFrame = null;
+        if (!hoverPoint || !map.getLayer(roadLayerId)) return;
+        map.getCanvas().style.cursor = map.queryRenderedFeatures(hoverPoint, { layers: [selectedLayerId, selectedPadLayerId, roadLayerId], validate: false }).length ? "pointer" : "";
+      });
     };
     map.on("style.load", onStyleLoad);
     map.on("error", onMapError);
     const onMoveEnd = () => scheduleViewportLoad();
     map.on("moveend", onMoveEnd);
     map.on("click", onClick);
-    map.on("mousemove", onMove);
+    const hoverEnabled = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+    if (hoverEnabled) map.on("mousemove", onMove);
     map.on("mouseout", () => { map.getCanvas().style.cursor = ""; });
     map.addControl(new NavigationControl({ showCompass: false }), "top-right");
     let observedWidth = 0;
     let observedHeight = 0;
+    let resizeFrame: number | null = null;
     const resizeObserver = new ResizeObserver(([entry]) => {
       const width = Math.round(entry?.contentRect.width || 0);
       const height = Math.round(entry?.contentRect.height || 0);
       if (!width || !height || width === observedWidth && height === observedHeight) return;
       observedWidth = width;
       observedHeight = height;
-      map.resize();
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null;
+        map.resize();
+      });
     });
     resizeObserver.observe(mapHost.current);
     const styleTimeout = window.setTimeout(onMapError, 8_000);
@@ -554,6 +735,8 @@ export function OwnerApprovedRoutesPage() {
     setMapState("loading");
     return () => {
       window.clearTimeout(styleTimeout);
+      if (hoverFrame !== null) window.cancelAnimationFrame(hoverFrame);
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
       if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
       viewportMoveTimerRef.current = null;
       resizeObserver.disconnect();
@@ -587,7 +770,7 @@ export function OwnerApprovedRoutesPage() {
     if (!map || access.state !== "owner") return;
     syncSelectedPad(map, selectedPad);
     if (selectedPad?.latitude !== null && selectedPad?.latitude !== undefined && selectedPad.longitude !== null) {
-      map.easeTo({ center: [selectedPad.longitude, selectedPad.latitude], zoom: 9, duration: 420 });
+      map.easeTo({ center: [selectedPad.longitude, selectedPad.latitude], zoom: 9, duration: 280 });
     }
   }, [access.state, selectedPad]);
 
@@ -598,22 +781,44 @@ export function OwnerApprovedRoutesPage() {
     const next = new Set(current); if (next.has(status)) next.delete(status); else next.add(status); return next;
   });
   const choosePad = (nextPadId: string) => {
+    const nextPad = pads.find((pad) => pad.padId === nextPadId) || null;
     clearRoads(nextPadId ? "Loading exact roads for the selected location…" : "Loading the current exact-road view…");
     setMapState("loading");
     setPadId(nextPadId);
+    setPadSearch(nextPad?.padName || "");
+    if (nextPad?.company) setCompanyFilter(nextPad.company);
+    setPadPickerOpen(false);
     setSelectedIdentityId(null);
     setDetail(null);
     setSelectedPadStatus(null);
     setSelectedPadStatusLoading(Boolean(nextPadId));
     fittedPadRef.current = null;
     if (!nextPadId) return;
-    const nextPad = pads.find((pad) => pad.padId === nextPadId);
     const nextState = ownerRoadStateCode(nextPad?.state || "");
     if (nextState) setStateFilter(nextState);
     // A selected route must show every exact occurrence, including held,
     // restricted, and reference-only evidence. Color continues to state the
     // authority class; visual focus never upgrades approval.
     setStatuses(new Set(ownerRoadStatuses));
+  };
+
+  const chooseCompany = (nextCompany: string) => {
+    setCompanyFilter(nextCompany);
+    setPadSearch("");
+    setPadPickerOpen(true);
+    if (selectedPad && (!nextCompany || selectedPad.company !== nextCompany)) choosePad("");
+  };
+
+  const showAllRoads = () => {
+    setCompanyFilter("");
+    setPadSearch("");
+    setPadPickerOpen(false);
+    setSearch("");
+    setCountyFilter("");
+    setRouteSystem("");
+    setRoadClasses(new Set(ownerRoadClasses));
+    setStatuses(new Set(ownerRoadStatuses));
+    choosePad("");
   };
 
   const authorizeViewerRelease = async () => {
@@ -653,11 +858,28 @@ export function OwnerApprovedRoutesPage() {
       <label><span>State</span><select value={stateFilter} onChange={(event) => setStateFilter(event.target.value as typeof stateFilter)}><option value="">OH + WV + PA</option><option value="OH">Ohio</option><option value="WV">West Virginia</option><option value="PA">Pennsylvania</option></select></label>
       <label><span>County</span><input value={countyFilter} onChange={(event) => setCountyFilter(event.target.value.slice(0, 100))} placeholder="Code or name"/></label>
       <label><span>Route system</span><select value={routeSystem} onChange={(event) => setRouteSystem(event.target.value)}><option value="">All exact systems</option>{routeSystemOptions.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
-      <label className="owner-road-pad-filter"><span><Icon name="location"/>Location directions + graph roads</span><select value={padId} onChange={(event) => choosePad(event.target.value)}><option value="">All {pads.length.toLocaleString()} locations</option>{pads.map((pad) => {
-        const directoryPad = directoryById.get(pad.padId);
-        const evidence = protectedPadIds.has(pad.padId) ? "route prep" : directoryPad?.structuredRoadSequence ? "saved sequence" : "directory location";
-        return <option key={pad.padId} value={pad.padId}>{pad.company ? `${pad.company} — ` : ""}{pad.padName} · {evidence}</option>;
-      })}</select></label>
+      <div className="owner-road-pad-picker" onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setPadPickerOpen(false);
+      }}>
+        <span className="owner-road-pad-picker-label"><Icon name="location"/>Company and exact pad</span>
+        <div className="owner-road-pad-picker-fields">
+          <label><span>Company</span><select value={companyFilter} onChange={(event) => chooseCompany(event.target.value)} aria-label="Separate pads by company"><option value="">All companies</option>{companies.map((company) => <option key={company} value={company}>{company}</option>)}</select></label>
+          <label className="owner-road-pad-search"><span>Search pad</span><input type="search" value={padSearch} onChange={(event) => { setPadSearch(event.target.value.slice(0, 120)); setPadPickerOpen(true); }} onFocus={() => setPadPickerOpen(true)} placeholder="Type a pad name…" role="combobox" aria-autocomplete="list" aria-expanded={padPickerOpen} aria-controls="owner-road-pad-results"/></label>
+        </div>
+        {padPickerOpen && <div id="owner-road-pad-results" className="owner-road-pad-search-results" role="listbox" aria-label="Exact pad search results">
+          {padSearchResults.length ? padSearchResults.map((pad) => {
+            const directoryPad = directoryById.get(pad.padId);
+            const evidence = protectedPadIds.has(pad.padId) ? "route prep" : directoryPad?.structuredRoadSequence ? "saved sequence" : "directory location";
+            return <button key={pad.padId} type="button" role="option" aria-selected={pad.padId === padId} onClick={() => choosePad(pad.padId)}><strong>{pad.padName}</strong><span>{pad.company || "Company unavailable"} · {pad.state || "State unavailable"} · {evidence}</span></button>;
+          }) : <p>No pad name contains that exact text for this company.</p>}
+          {padSearchResults.length === 12 && <small>Showing the first 12 matches. Type more of the exact pad name to narrow the list.</small>}
+        </div>}
+        <div className="owner-road-pad-picker-actions">
+          <button type="button" className={!padId ? "is-active" : ""} aria-pressed={!padId} onClick={showAllRoads}><Icon name="map"/>All roads in view</button>
+          {selectedPad && <span><strong>{selectedPad.padName}</strong><small>{selectedPad.company || "Company unavailable"}</small><button type="button" onClick={() => choosePad("")} aria-label={`Clear ${selectedPad.padName}`}>Clear</button></span>}
+        </div>
+        <small className="owner-road-pad-picker-proof">Company separates the pad finder. Selecting a pad loads only its exact saved primary-route road evidence; no company route is inferred.</small>
+      </div>
       <button type="button" className="button-secondary owner-road-refresh" onClick={() => { void loadViewport(true); }}><Icon name="update"/>Refresh view</button>
     </section>
 
@@ -677,11 +899,17 @@ export function OwnerApprovedRoutesPage() {
           {selectedDirectoryPad && <Link to={`/pad/${selectedDirectoryPad.padId}`}>Open driver card</Link>}
         </header>
         <div className="owner-pad-route-badges">
-          <b className={features.length ? "is-ready" : "is-held"}>{features.length ? `${features.length} exact road ${features.length === 1 ? "evidence line" : "evidence lines"} in view` : "No exact road evidence in view"}</b>
-          {endpointFeatureCount>0 && <b className="is-ready">{endpointFeatureCount} pad endpoint {endpointFeatureCount === 1 ? "boundary" : "boundaries"} in view</b>}
+          <b className={coverage.identityCount ? "is-ready" : "is-held"}>{coverage.identityCount ? `${coverage.occurrenceCount} mapped route ${coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · ${coverage.identityCount} exact ${coverage.identityCount === 1 ? "identity" : "identities"}` : "No exact road evidence in view"}</b>
+          <b className={viewportTruncated ? "is-held" : "is-ready"}>{viewportTruncated ? "Map-window limit reached · zoom closer" : "Current map window fully returned"}</b>
+          {coverage.endpointCount>0 && <b className="is-ready">{coverage.endpointCount} pad endpoint {coverage.endpointCount === 1 ? "boundary" : "boundaries"} in view</b>}
           <b>{selectedPadStatusLoading ? "Checking reviewed directions…" : selectedPadStatus?.route.writtenDirections ? "Reviewed directions available" : "No reviewed directions published"}</b>
           {selectedPadStatus && <b>Route {selectedPadStatus.route.state.replaceAll("_", " ")} · graph {selectedPadStatus.graph.state.replaceAll("_", " ")}</b>}
         </div>
+        {coverage.identityCount>0 && <div className="owner-pad-coverage-check" aria-label="Selected location exact-road coverage check">
+          <span>Map-window authority check</span>
+          <div>{ownerRoadStatuses.filter((status) => coverage.statusCounts[status]>0).map((status) => <b key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{coverage.statusCounts[status]} {ownerRoadStatusLabels[status]}</b>)}</div>
+          <p>{viewportTruncated ? "This map window hit its safe response limit. Zoom closer before checking every returned identity." : "Every exact selected-pad identity returned for this map window is listed below."} This does not prove an unplotted route gap is mapped or approved; missing evidence stays blank.</p>
+        </div>}
         {selectedDirectoryPad?.structuredRoadSequence && <div className="owner-pad-sequence"><span>Saved road sequence</span><p>{selectedDirectoryPad.structuredRoadSequence}</p></div>}
         {selectedPadStatus?.route.writtenDirections
           ? <details className="owner-pad-directions" open><summary>Reviewed field directions</summary><p>{selectedPadStatus.route.writtenDirections}</p></details>
@@ -691,16 +919,26 @@ export function OwnerApprovedRoutesPage() {
     </section>}
 
     <div className="owner-routes-workspace">
-      <section className="owner-map-column">
-        <div className="owner-map-shell">
+      <section className={`owner-map-column${mapFullscreen ? " is-fullscreen" : ""}`} aria-label={mapFullscreen ? "Full-screen Road Manager map" : undefined}>
+        <div className={`owner-map-shell${mapFullscreen && selectedIdentityId ? " has-road-inspector" : ""}`} data-fullscreen={mapFullscreen ? "true" : "false"}>
           <div ref={mapHost} className="owner-map-canvas" aria-label="Interactive owner approved routes map"/>
+          <div className="owner-map-actions" aria-label="Road Manager map controls">
+            <button type="button" onClick={() => setMapFullscreen((current) => !current)} aria-expanded={mapFullscreen}><Icon name={mapFullscreen ? "close" : "expand"}/>{mapFullscreen ? "Exit" : "Full screen"}</button>
+            <button type="button" onClick={showAllRoads} aria-pressed={!padId}><Icon name="map"/>All roads</button>
+            <button type="button" onClick={focusLoadedRoads} disabled={!coverage.identityCount}><Icon name="location"/>Fit exact roads</button>
+          </div>
+          {mapFullscreen && <div className="owner-map-fullscreen-summary" role="status">
+            <span><strong>{selectedPad ? `${selectedPad.company ? `${selectedPad.company} — ` : ""}${selectedPad.padName}` : "Current map view"}</strong><small>{coverage.occurrenceCount} mapped route {coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · {coverage.identityCount} exact {coverage.identityCount === 1 ? "identity" : "identities"}</small></span>
+            <b className={viewportTruncated ? "is-held" : "is-ready"}>{viewportTruncated ? "Zoom closer to check all in this window" : "Map window checked"}</b>
+          </div>}
+          {mapFullscreen && selectedIdentityId && <FullscreenRoadInspector detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onClose={clearRoadSelection} onChoosePad={choosePad}/>}
           <div className={`owner-map-status is-${mapState}`} role={mapState === "error" ? "alert" : "status"}><span/>{mapMessage}</div>
         </div>
         <div className="owner-map-legend" aria-label="Road approval legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{padId && <strong className="owner-pad-focus-key">Selected location exact road evidence</strong>}<strong>Gold inspection road</strong><small>Reference-only and endpoint-display roads are not approved. Location and road selection change display focus only.</small></div>
       </section>
       <aside className="owner-road-results" aria-label="Road results">
         <header><div><span className="eyebrow">CURRENT MAP VIEW</span><h2>Road identities</h2></div><b>{features.length.toLocaleString()}</b></header>
-        <div className="owner-road-result-list">{features.length ? features.slice(0, 180).map((feature) => {
+        <div className="owner-road-result-list">{features.length ? features.slice(0, visibleRoadLimit).map((feature) => {
           const road = feature.properties; const selected = road.identityId === selectedIdentityId;
           return <button key={road.identityId} type="button" className={selected ? "is-selected" : ""} aria-pressed={selected} onClick={() => selectRoad(road.identityId, true)}>
             <span className="owner-road-result-heading"><i style={{ background: ownerRoadStatusColors[road.approvalStatus] }}/><strong>{road.displayName}</strong></span>
@@ -709,11 +947,12 @@ export function OwnerApprovedRoutesPage() {
             <span className={`owner-road-status status-${road.approvalStatus}`}>{ownerRoadStatusLabels[road.approvalStatus]}</span>
           </button>;
         }) : <p className="owner-road-empty">No exact identities are loaded in this view.</p>}</div>
-        {features.length > 180 && <p className="owner-road-result-limit">The map shows {features.length.toLocaleString()} identities; this list shows the first 180. Narrow filters to inspect the rest.</p>}
+        {features.length > visibleRoadLimit && <button type="button" className="owner-road-result-more" onClick={() => setVisibleRoadLimit((current) => Math.min(current + roadResultPageSize, features.length))}>Show {Math.min(roadResultPageSize, features.length-visibleRoadLimit)} more exact identities</button>}
+        {viewportTruncated && <p className="owner-road-result-limit">The safe map response limit was reached. Zoom closer or narrow filters before treating this map window as checked.</p>}
       </aside>
     </div>
 
-    <OwnerRoadDetails detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onFocus={(bounds) => mapRef.current && fitRoadBounds(mapRef.current, bounds)}/>
+    <OwnerRoadDetails detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onFocus={(bounds) => mapRef.current && fitRoadBounds(mapRef.current, bounds)} onChoosePad={choosePad}/>
     <footer className="owner-road-authority-note"><Icon name="control"/><span><strong>Authority stays separate.</strong> Viewing or selecting a road does not approve it, create route steps or geometry, change the graph, reconcile a route, or publish Google output.</span></footer>
   </section>;
 }
