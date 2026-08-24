@@ -1,4 +1,5 @@
 import { isSafePublicList, isSafePublicText } from "./publicFields";
+import { supabase } from "./supabaseClient";
 import type { CompanyRoadGeometry, CompanyRoadOverlay, CompanyRoadOverlayRow } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
@@ -18,12 +19,40 @@ export type CompanyRoadAvailability = {
   reason: string | null;
 };
 
+export type CompanyRoadReleaseApproval = {
+  schemaVersion: 1;
+  approvalState: "approved";
+  directorySnapshotId: string;
+  approvedAt: string;
+  expiresAt: string;
+};
+
 function object(value: unknown): JsonObject {
   return value && typeof value === "object" && !Array.isArray(value) ? value as JsonObject : {};
 }
 
 function exactKeys(value: JsonObject, keys: string[]) {
   return Object.keys(value).length === keys.length && Object.keys(value).every((key) => keys.includes(key));
+}
+
+export function validateCompanyRoadReleaseApproval(value: unknown): CompanyRoadReleaseApproval | null {
+  const approval = object(value);
+  if (!exactKeys(approval, ["schemaVersion", "approvalState", "directorySnapshotId", "approvedAt", "expiresAt"])) return null;
+  if (approval.schemaVersion !== 1 || approval.approvalState !== "approved") return null;
+  if (typeof approval.directorySnapshotId !== "string" || !uuidPattern.test(approval.directorySnapshotId)) return null;
+  if (typeof approval.approvedAt !== "string" || typeof approval.expiresAt !== "string") return null;
+  const approvedAt = Date.parse(approval.approvedAt);
+  const expiresAt = Date.parse(approval.expiresAt);
+  if (!Number.isFinite(approvedAt) || !Number.isFinite(expiresAt) || expiresAt <= approvedAt || expiresAt - approvedAt > 15 * 60 * 1_000 + 1_000) return null;
+  return approval as CompanyRoadReleaseApproval;
+}
+
+export async function authorizeCompanyRoadOverlayRelease() {
+  const { data, error } = await supabase.rpc("brinesearch_v18_authorize_company_road_overlay_release");
+  if (error) throw new Error(error.message || "Approved-road viewer release authorization failed.");
+  const approval = validateCompanyRoadReleaseApproval(data);
+  if (!approval) throw new Error("Approved-road viewer release authorization failed validation.");
+  return approval;
 }
 
 function safeUniqueArray(value: unknown, max: number, validator: (entry: string) => boolean, min = 0): value is string[] {

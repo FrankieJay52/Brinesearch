@@ -1,4 +1,20 @@
 import type { PadSummary } from "@/data/types";
+import { searchDirectory } from "@/data/search";
+
+export type MapViewerMode = "standard" | "fullscreen" | "roads";
+
+export function mapViewerModeFromParam(value: string | null | undefined): MapViewerMode {
+  if (value === "roads") return "roads";
+  if (value === "map") return "fullscreen";
+  return "standard";
+}
+
+export function mapPadSearchResults(rows: PadSummary[], query: string, limit = 8) {
+  if (!query.trim()) return [];
+  return searchDirectory(rows, query, { type: "pad", route: "all" }, Math.max(100, limit * 10))
+    .filter(hasSafeCoordinate)
+    .slice(0, limit);
+}
 
 export function hasSafeCoordinate(row: PadSummary) {
   const coordinate = row.coordinate;

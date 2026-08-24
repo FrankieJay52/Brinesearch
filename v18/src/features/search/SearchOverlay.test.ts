@@ -10,12 +10,14 @@ describe("V18 map search dropdown", () => {
   const mapPage = source("../map/MapPage.tsx");
   const overlay = source("./SearchOverlay.tsx");
 
-  it("opens /search as a map-backed dropdown instead of the full Search page", () => {
+  it("keeps /search map-backed while the main map also supports direct pad focus", () => {
     expect(app).toContain('path="/search" element={<SearchOverlayRoute/>}');
     expect(app).toContain('function SearchOverlayRoute()');
     expect(app).toContain('<><MapPage/><SearchOverlay/></>');
     expect(app).not.toContain('path="/search" element={<SearchPage/>}');
-    expect(mapPage).toContain('navigate("/search")');
+    expect(mapPage).toContain('mapPadSearchResults(snapshot?.rows || [], mapSearch)');
+    expect(mapPage).toContain('placeholder="Search pad name on this map"');
+    expect(mapPage).toContain('focusPad(searchResults[0])');
   });
 
   it("preserves the complete Search page at a secondary route", () => {

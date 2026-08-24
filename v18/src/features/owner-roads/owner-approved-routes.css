@@ -62,6 +62,73 @@
   letter-spacing: .12em;
 }
 
+.owner-viewer-release {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 16px;
+  border: 1px solid color-mix(in srgb, var(--teal) 30%, var(--line));
+  border-radius: 17px;
+  background: color-mix(in srgb, var(--teal) 7%, var(--surface));
+}
+
+.owner-viewer-release > svg {
+  width: 25px;
+  height: 25px;
+  color: var(--teal-bright);
+}
+
+.owner-viewer-release h2 {
+  margin: 3px 0 5px;
+  font-size: 1rem;
+}
+
+.owner-viewer-release p {
+  max-width: 720px;
+  margin: 0;
+  color: var(--muted);
+  font-size: .77rem;
+  line-height: 1.48;
+}
+
+.owner-viewer-release-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.owner-viewer-release-actions a,
+.owner-viewer-release-actions button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  white-space: nowrap;
+}
+
+.owner-viewer-release-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.owner-viewer-release-notice {
+  grid-column: 2 / -1;
+  padding: 9px 11px;
+  border: 1px solid color-mix(in srgb, var(--teal) 32%, var(--line));
+  border-radius: 10px;
+  color: var(--text) !important;
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface-raised));
+}
+
+.owner-viewer-release-notice.is-error {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--line));
+  color: var(--danger) !important;
+}
+
 .owner-road-toolbar {
   display: grid;
   grid-template-columns: minmax(230px, 1.7fr) repeat(3, minmax(130px, .75fr)) minmax(220px, 1.3fr) auto;
@@ -795,6 +862,24 @@
 }
 
 @media (max-width: 840px) {
+  .owner-viewer-release {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .owner-viewer-release-actions,
+  .owner-viewer-release-notice {
+    grid-column: 1 / -1;
+  }
+
+  .owner-viewer-release-actions {
+    justify-content: stretch;
+  }
+
+  .owner-viewer-release-actions a,
+  .owner-viewer-release-actions button {
+    flex: 1 1 190px;
+  }
+
   .owner-routes-workspace {
     grid-template-columns: 1fr;
   }
@@ -820,6 +905,24 @@
 
   .owner-readonly-badge {
     justify-self: start;
+  }
+
+  .owner-viewer-release {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-viewer-release > svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .owner-viewer-release-actions,
+  .owner-viewer-release-notice {
+    grid-column: auto;
+  }
+
+  .owner-viewer-release-actions {
+    display: grid;
   }
 
   .owner-road-toolbar {
