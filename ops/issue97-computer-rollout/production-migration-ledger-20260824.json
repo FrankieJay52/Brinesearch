@@ -1,0 +1,857 @@
+{
+  "captured_at": "2026-08-24",
+  "issue": 97,
+  "project_id": "wvxzqtoiwhrgovzddtvz",
+  "row_count": 121,
+  "first_version": "20260811233400",
+  "last_version": "20260823032513",
+  "migrations": [
+    {
+      "version": "20260811233400",
+      "name": "issue97_authoritative_road_junction_graph",
+      "statement_count": 1,
+      "statement_chars": 509,
+      "statement_trimmed_md5": "fdcb140e0c8b254cd26071d87e5076fc"
+    },
+    {
+      "version": "20260811233438",
+      "name": "issue97_confirmed_pad_county_scope",
+      "statement_count": 1,
+      "statement_chars": 504,
+      "statement_trimmed_md5": "b81b8de81388f114df02142e43ebc60b"
+    },
+    {
+      "version": "20260811233446",
+      "name": "issue97_automatic_google_routes",
+      "statement_count": 1,
+      "statement_chars": 501,
+      "statement_trimmed_md5": "d1063b53979d7b86ba9dfbb5a70b8534"
+    },
+    {
+      "version": "20260811233459",
+      "name": "issue97_all_pad_google_route_accounting",
+      "statement_count": 1,
+      "statement_chars": 515,
+      "statement_trimmed_md5": "0fadf1016a590617e671edf64a5df907"
+    },
+    {
+      "version": "20260811233508",
+      "name": "issue97_route_corpus_reconciliation",
+      "statement_count": 1,
+      "statement_chars": 505,
+      "statement_trimmed_md5": "6ce6d8cfdf0ccb6c0a891716d2edad4d"
+    },
+    {
+      "version": "20260811233521",
+      "name": "issue97_refresh_source_scope",
+      "statement_count": 1,
+      "statement_chars": 505,
+      "statement_trimmed_md5": "c065c44c5cf1a9cf511ecdc49a5c76b2"
+    },
+    {
+      "version": "20260811233537",
+      "name": "issue97_route_transition_receipts",
+      "statement_count": 1,
+      "statement_chars": 509,
+      "statement_trimmed_md5": "ddcc47c93b72dd582affb3ff577fc4e9"
+    },
+    {
+      "version": "20260811233550",
+      "name": "issue97_transition_runtime_hardening",
+      "statement_count": 1,
+      "statement_chars": 512,
+      "statement_trimmed_md5": "30895af992d52aee3e00005d61c5602e"
+    },
+    {
+      "version": "20260811233602",
+      "name": "issue97_occurrence_geometry_receipts",
+      "statement_count": 1,
+      "statement_chars": 513,
+      "statement_trimmed_md5": "9ae9cc6558be8beffc4d5924fecde8b5"
+    },
+    {
+      "version": "20260811233617",
+      "name": "issue97_turn_normalization_hardening",
+      "statement_count": 1,
+      "statement_chars": 512,
+      "statement_trimmed_md5": "5404b5487b7e44027b2f0b5b592c8ed0"
+    },
+    {
+      "version": "20260811233630",
+      "name": "issue97_turn_segment_hardening",
+      "statement_count": 1,
+      "statement_chars": 500,
+      "statement_trimmed_md5": "0137764371c045b226bc308e7444fb79"
+    },
+    {
+      "version": "20260811233644",
+      "name": "issue97_transition_google_manifests",
+      "statement_count": 1,
+      "statement_chars": 509,
+      "statement_trimmed_md5": "2eeb410456a1eef1efb5f27c81d69aaf"
+    },
+    {
+      "version": "20260812000616",
+      "name": "issue97_wvdot_multipart_ingest_hardening",
+      "statement_count": 1,
+      "statement_chars": 412,
+      "statement_trimmed_md5": "7bf9c6cadcfa28fc1d0efe0003518906"
+    },
+    {
+      "version": "20260812000626",
+      "name": "issue97_odot_valid_nonsimple_source_preservation",
+      "statement_count": 1,
+      "statement_chars": 419,
+      "statement_trimmed_md5": "0a4ffa0007b89e215088c03b74461757"
+    },
+    {
+      "version": "20260812002735",
+      "name": "issue97_ingest_generation_timestamp_hardening",
+      "statement_count": 1,
+      "statement_chars": 5757,
+      "statement_trimmed_md5": "c2b34c0e581b676ed855d0c3d00e5b97"
+    },
+    {
+      "version": "20260812003651",
+      "name": "issue97_source_identity_retirement_hardening",
+      "statement_count": 1,
+      "statement_chars": 12135,
+      "statement_trimmed_md5": "3ffd594090c79dbb020f57c0e032eb89"
+    },
+    {
+      "version": "20260812005823",
+      "name": "issue97_oh_supplemental_alias_materialization_performance",
+      "statement_count": 1,
+      "statement_chars": 15341,
+      "statement_trimmed_md5": "abf65127efa0e24ed2ed35ff195cc0b8"
+    },
+    {
+      "version": "20260812013637",
+      "name": "issue97_oh_supplemental_overlap_projection_cache",
+      "statement_count": 1,
+      "statement_chars": 16981,
+      "statement_trimmed_md5": "f8d3c69559281c4b91768ea518abd5c2"
+    },
+    {
+      "version": "20260812013651",
+      "name": "issue97_graph_builder_internal_segment_performance",
+      "statement_count": 1,
+      "statement_chars": 3021,
+      "statement_trimmed_md5": "6b173007cc17d4a46db68031cf4b2f48"
+    },
+    {
+      "version": "20260812015134",
+      "name": "issue97_graph_builder_target_geography_index",
+      "statement_count": 1,
+      "statement_chars": 1579,
+      "statement_trimmed_md5": "70336b16c3416b882f1fabb54c392ec9"
+    },
+    {
+      "version": "20260812020651",
+      "name": "issue97_oh_supplemental_odot_pk_join",
+      "statement_count": 1,
+      "statement_chars": 5116,
+      "statement_trimmed_md5": "e6cb8e480bc0a8c9b47e8db957ac2c2a"
+    },
+    {
+      "version": "20260812022305",
+      "name": "issue97_odot_source_segment_key_index",
+      "statement_count": 1,
+      "statement_chars": 476,
+      "statement_trimmed_md5": "34af8e0d6bf9af43c7103ac256f9d65e"
+    },
+    {
+      "version": "20260812022339",
+      "name": "issue97_oh_component_builder_performance",
+      "statement_count": 1,
+      "statement_chars": 8358,
+      "statement_trimmed_md5": "fb8a5cbc89b0044c7bf685d7b34a654c"
+    },
+    {
+      "version": "20260812022342",
+      "name": "issue97_supplemental_valid_nonsimple_source_preservation",
+      "statement_count": 1,
+      "statement_chars": 4628,
+      "statement_trimmed_md5": "8d75ceff57989f734ea52c8399c15dae"
+    },
+    {
+      "version": "20260812022438",
+      "name": "issue97_oh_identity_retirement_assignment_presence",
+      "statement_count": 1,
+      "statement_chars": 2701,
+      "statement_trimmed_md5": "f0c145916f68d00d5d7f0b394230bc6f"
+    },
+    {
+      "version": "20260812025535",
+      "name": "issue97_oh_supplemental_overlap_endpoint_projection",
+      "statement_count": 1,
+      "statement_chars": 5933,
+      "statement_trimmed_md5": "00829f2e501a05773166373be11c9537"
+    },
+    {
+      "version": "20260812025558",
+      "name": "issue97_oh_supplemental_nlf_mapping_performance",
+      "statement_count": 1,
+      "statement_chars": 6525,
+      "statement_trimmed_md5": "f4ae31f9b8f5bc2ebefd7507bc19536c"
+    },
+    {
+      "version": "20260812025618",
+      "name": "issue97_oh_supplemental_overlap_endpoint_projection",
+      "statement_count": 1,
+      "statement_chars": 5933,
+      "statement_trimmed_md5": "00829f2e501a05773166373be11c9537"
+    },
+    {
+      "version": "20260812025620",
+      "name": "issue97_oh_supplemental_verified_projection_cache",
+      "statement_count": 1,
+      "statement_chars": 3201,
+      "statement_trimmed_md5": "93e14e368c830c2601ded7274658d723"
+    },
+    {
+      "version": "20260812025631",
+      "name": "issue97_supplemental_scope_indexes",
+      "statement_count": 1,
+      "statement_chars": 1262,
+      "statement_trimmed_md5": "6e481970e43ebaf7e00a49cc44040067"
+    },
+    {
+      "version": "20260812025732",
+      "name": "issue97_supplemental_scope_indexes",
+      "statement_count": 1,
+      "statement_chars": 1262,
+      "statement_trimmed_md5": "6e481970e43ebaf7e00a49cc44040067"
+    },
+    {
+      "version": "20260812025853",
+      "name": "issue97_scope_bound_content_digest",
+      "statement_count": 1,
+      "statement_chars": 6059,
+      "statement_trimmed_md5": "b6ec49de9ec62234bd183a4376d3facd"
+    },
+    {
+      "version": "20260812032822",
+      "name": "issue97_route_scope_freshness_cache",
+      "statement_count": 1,
+      "statement_chars": 6283,
+      "statement_trimmed_md5": "de46f0be589c53bfc5e74fc9b8d68886"
+    },
+    {
+      "version": "20260812032834",
+      "name": "issue97_cutover_active_helper",
+      "statement_count": 1,
+      "statement_chars": 1181,
+      "statement_trimmed_md5": "330b11f4378b8763802016c8687ab235"
+    },
+    {
+      "version": "20260812032843",
+      "name": "issue97_oh_supplemental_mapping_candidate_cache",
+      "statement_count": 1,
+      "statement_chars": 7856,
+      "statement_trimmed_md5": "7b567eba3b7cea5fcb1dcff5bcdd4000"
+    },
+    {
+      "version": "20260812032906",
+      "name": "issue97_compact_scope_content_digest",
+      "statement_count": 1,
+      "statement_chars": 3864,
+      "statement_trimmed_md5": "08b4cdff41d1a91a9d515e31a64d77d1"
+    },
+    {
+      "version": "20260812032923",
+      "name": "issue97_oh_supplemental_compact_name_provenance",
+      "statement_count": 1,
+      "statement_chars": 2082,
+      "statement_trimmed_md5": "eb480ac13cce45dbc85c51d08045c4c2"
+    },
+    {
+      "version": "20260812035929",
+      "name": "issue97_failed_retry_freshness_hardening",
+      "statement_count": 1,
+      "statement_chars": 5794,
+      "statement_trimmed_md5": "9042c69f3958f4ee4c7a0735af91110e"
+    },
+    {
+      "version": "20260812044101",
+      "name": "issue97_endpoint_on_interior_t_junctions",
+      "statement_count": 1,
+      "statement_chars": 8873,
+      "statement_trimmed_md5": "5be90af22caed955b360353cd1c9929f"
+    },
+    {
+      "version": "20260812050332",
+      "name": "issue97_authoritative_occurrence_geometry",
+      "statement_count": 1,
+      "statement_chars": 417,
+      "statement_trimmed_md5": "8832f1e8b53332b94592c14569d04fa9"
+    },
+    {
+      "version": "20260812050341",
+      "name": "issue97_saved_turn_geometry_ambiguity",
+      "statement_count": 1,
+      "statement_chars": 400,
+      "statement_trimmed_md5": "6fe74a3294219a1a3045b705a71b0ef0"
+    },
+    {
+      "version": "20260812052441",
+      "name": "issue97_oh_bbox_candidate_id_cache",
+      "statement_count": 1,
+      "statement_chars": 404,
+      "statement_trimmed_md5": "43eedd1843e65b635657acd66b110777"
+    },
+    {
+      "version": "20260812081005",
+      "name": "issue97_current_safety_dependency_helpers",
+      "statement_count": 1,
+      "statement_chars": 375,
+      "statement_trimmed_md5": "a49d7b7b5e7e01837bab063a31abbe47"
+    },
+    {
+      "version": "20260812091607",
+      "name": "issue97_wvdot_endpoint_loop_source_split",
+      "statement_count": 1,
+      "statement_chars": 17994,
+      "statement_trimmed_md5": "0ebf24f8464969e54f4005ed012831ba"
+    },
+    {
+      "version": "20260812095314",
+      "name": "issue97_wvdot_non_simple_source_geometry_holds",
+      "statement_count": 1,
+      "statement_chars": 34349,
+      "statement_trimmed_md5": "c17191da83dca2416a6904af731194de"
+    },
+    {
+      "version": "20260812102157",
+      "name": "issue97_pa_source_geometry_holds_and_nlf_sentinel",
+      "statement_count": 1,
+      "statement_chars": 403,
+      "statement_trimmed_md5": "b70a27fe597ae37cecb3eacd874ba28d"
+    },
+    {
+      "version": "20260812104222",
+      "name": "issue97_pa_at_grade_source_node_holds",
+      "statement_count": 1,
+      "statement_chars": 401,
+      "statement_trimmed_md5": "5b00c16bb1c911e0e54ffd5e3e4858a2"
+    },
+    {
+      "version": "20260812110215",
+      "name": "issue97_pa_supplemental_external_segment_fastpath",
+      "statement_count": 1,
+      "statement_chars": 425,
+      "statement_trimmed_md5": "dda723e3bdba2345ca8016149cd7eac8"
+    },
+    {
+      "version": "20260812120452",
+      "name": "issue97_supplemental_feature_identity_accounting",
+      "statement_count": 1,
+      "statement_chars": 12040,
+      "statement_trimmed_md5": "3a9d6a1b2835051dcbc1a8e39f481808"
+    },
+    {
+      "version": "20260812122731",
+      "name": "issue97_supplemental_source_geometry_holds",
+      "statement_count": 1,
+      "statement_chars": 25429,
+      "statement_trimmed_md5": "39292b1fccc93c8a1a735864ff81152a"
+    },
+    {
+      "version": "20260812124406",
+      "name": "issue97_pa_supplemental_spatial_prefilter",
+      "statement_count": 1,
+      "statement_chars": 3982,
+      "statement_trimmed_md5": "1f40844bf1ce43b07507b0dd116119d0"
+    },
+    {
+      "version": "20260812125029",
+      "name": "issue97_pa_supplemental_qualified_bbox_operator",
+      "statement_count": 1,
+      "statement_chars": 2495,
+      "statement_trimmed_md5": "b43a5560226921804e57fd028a728500"
+    },
+    {
+      "version": "20260812130706",
+      "name": "issue97_supplemental_source_occurrence_keys",
+      "statement_count": 1,
+      "statement_chars": 6401,
+      "statement_trimmed_md5": "2736a1c03b3115ec20794d8988e1ad61"
+    },
+    {
+      "version": "20260812183104",
+      "name": "issue97_route_occurrence_indexed_exact_candidate_lookup",
+      "statement_count": 1,
+      "statement_chars": 11790,
+      "statement_trimmed_md5": "c6bb596418eb4c358103126832de7dd3"
+    },
+    {
+      "version": "20260812190621",
+      "name": "issue97_oh_structured_route_candidate_cleanup",
+      "statement_count": 1,
+      "statement_chars": 9534,
+      "statement_trimmed_md5": "87f61b927882a0c6eab0e8486590c416"
+    },
+    {
+      "version": "20260812191916",
+      "name": "issue97_route_receipt_authoritative_geometry",
+      "statement_count": 1,
+      "statement_chars": 6699,
+      "statement_trimmed_md5": "cf812a89469df7fe3955b01ad824459c"
+    },
+    {
+      "version": "20260812204506",
+      "name": "issue97_oh_route_used_canonical_adoption",
+      "statement_count": 1,
+      "statement_chars": 18278,
+      "statement_trimmed_md5": "9d8db7da720ed6902b948d1177ea961e"
+    },
+    {
+      "version": "20260812210422",
+      "name": "issue97_oh_exact_mapping_refresh_for_graphs",
+      "statement_count": 1,
+      "statement_chars": 10065,
+      "statement_trimmed_md5": "794a4f74be3fe026bc2b4817d1ed24b5"
+    },
+    {
+      "version": "20260812210548",
+      "name": "issue97_oh_us40_canonical_adoption",
+      "statement_count": 1,
+      "statement_chars": 7977,
+      "statement_trimmed_md5": "b8a4f79668a766fcdfbbe2666e044c53"
+    },
+    {
+      "version": "20260812212019",
+      "name": "issue97_oh_county_scoped_mapping_refresh",
+      "statement_count": 1,
+      "statement_chars": 9194,
+      "statement_trimmed_md5": "b8c0c0fd58bd61678d64c4b7a68d3e56"
+    },
+    {
+      "version": "20260812220354",
+      "name": "issue97_phase1_release_gate",
+      "statement_count": 1,
+      "statement_chars": 14123,
+      "statement_trimmed_md5": "aeceba53e0d1d468e2dafc51cd803237"
+    },
+    {
+      "version": "20260812220414",
+      "name": "issue97_oh_sr331_canonical_adoption",
+      "statement_count": 1,
+      "statement_chars": 7665,
+      "statement_trimmed_md5": "c490889a2fec9b3513f9e190ac8b43ce"
+    },
+    {
+      "version": "20260812221230",
+      "name": "issue97_wv_pa_exact_name_candidate_performance",
+      "statement_count": 1,
+      "statement_chars": 6020,
+      "statement_trimmed_md5": "1d5c703ed21808282cfa5b1d0aeb9858"
+    },
+    {
+      "version": "20260812221704",
+      "name": "issue97_wv_pa_indexed_exact_name_candidates",
+      "statement_count": 1,
+      "statement_chars": 6407,
+      "statement_trimmed_md5": "edcac5b4c5f939e4c1bce71b50b1c07a"
+    },
+    {
+      "version": "20260812221717",
+      "name": "issue97_wv_pa_designation_candidate_cache",
+      "statement_count": 1,
+      "statement_chars": 6105,
+      "statement_trimmed_md5": "3f43e4fba125ca40af6785bbbc6765d3"
+    },
+    {
+      "version": "20260812222044",
+      "name": "issue97_graph_currentness_cache",
+      "statement_count": 1,
+      "statement_chars": 3990,
+      "statement_trimmed_md5": "20b4fc91310b28ad018828da2f7716f3"
+    },
+    {
+      "version": "20260812222220",
+      "name": "issue97_route_reconciliation_graph_current_cache",
+      "statement_count": 1,
+      "statement_chars": 1638,
+      "statement_trimmed_md5": "c26409e562187c39c0de1be43821e023"
+    },
+    {
+      "version": "20260812222606",
+      "name": "issue97_graph_current_cache_fail_closed",
+      "statement_count": 1,
+      "statement_chars": 1358,
+      "statement_trimmed_md5": "beb1cd35442fba6130ff22afcb96c224"
+    },
+    {
+      "version": "20260812222645",
+      "name": "issue97_graph_currentness_set_based_mapping",
+      "statement_count": 1,
+      "statement_chars": 5564,
+      "statement_trimmed_md5": "7eede05d6d2f23befd0038a518a7fed9"
+    },
+    {
+      "version": "20260812222828",
+      "name": "issue97_phase1_gate_road_occurrence_scope",
+      "statement_count": 1,
+      "statement_chars": 1513,
+      "statement_trimmed_md5": "5b4d0cc5a7e8be4240dbb567193ee301"
+    },
+    {
+      "version": "20260812231732",
+      "name": "issue97_source_finalize_scope_identity_indexes",
+      "statement_count": 1,
+      "statement_chars": 902,
+      "statement_trimmed_md5": "74aa19b7ba25df35f05d8df773f823b3"
+    },
+    {
+      "version": "20260813001711",
+      "name": "issue97_graph_registry_node_digest_prefilter",
+      "statement_count": 1,
+      "statement_chars": 2910,
+      "statement_trimmed_md5": "d952c2df59224ecb1256118076f00861"
+    },
+    {
+      "version": "20260813002504",
+      "name": "issue97_graph_membership_name_lookup_indexes",
+      "statement_count": 1,
+      "statement_chars": 961,
+      "statement_trimmed_md5": "f82ae8b6fd76aa61216a9863494ff84c"
+    },
+    {
+      "version": "20260813004531",
+      "name": "issue97_graph_point_membership_name_materialization",
+      "statement_count": 1,
+      "statement_chars": 6888,
+      "statement_trimmed_md5": "67bdf8a7bea72864569b4e93892cffea"
+    },
+    {
+      "version": "20260813011343",
+      "name": "issue97_graph_point_membership_name_union_branches",
+      "statement_count": 1,
+      "statement_chars": 7048,
+      "statement_trimmed_md5": "71bc504ae18d42f96e607deac9f1325d"
+    },
+    {
+      "version": "20260813013246",
+      "name": "issue97_graph_name_change_endpoint_materialization_v2",
+      "statement_count": 1,
+      "statement_chars": 9988,
+      "statement_trimmed_md5": "25edc65c733f33fff86f30beb4c37d4d"
+    },
+    {
+      "version": "20260813013648",
+      "name": "issue97_graph_name_change_preferred_name_keyset_v2",
+      "statement_count": 1,
+      "statement_chars": 4994,
+      "statement_trimmed_md5": "3cb7055741bb8d3a2d31ad0e12704a16"
+    },
+    {
+      "version": "20260813013936",
+      "name": "issue97_graph_name_change_least_qualification",
+      "statement_count": 1,
+      "statement_chars": 1401,
+      "statement_trimmed_md5": "256adeaf054ce57280aba23402a352f5"
+    },
+    {
+      "version": "20260813020127",
+      "name": "issue97_graph_point_values_set_based",
+      "statement_count": 1,
+      "statement_chars": 5394,
+      "statement_trimmed_md5": "d45ab5bea4da0d9026389773b4fc5e2d"
+    },
+    {
+      "version": "20260813023621",
+      "name": "issue97_graph_preferred_name_covering_index",
+      "statement_count": 1,
+      "statement_chars": 1198,
+      "statement_trimmed_md5": "8eaab2955986a036957867c6ccd5cb63"
+    },
+    {
+      "version": "20260813030035",
+      "name": "issue97_graph_name_change_candidate_temp_table",
+      "statement_count": 1,
+      "statement_chars": 9522,
+      "statement_trimmed_md5": "2ab0add931f3ecc0579056c7a576bc15"
+    },
+    {
+      "version": "20260813062608",
+      "name": "issue97_graph_mapping_semantic_fingerprint",
+      "statement_count": 1,
+      "statement_chars": 20052,
+      "statement_trimmed_md5": "eb12d8eff1365e37a6ce0be016ad7071"
+    },
+    {
+      "version": "20260813062757",
+      "name": "issue97_non_oh_county_scoped_mapping_refresh",
+      "statement_count": 1,
+      "statement_chars": 12197,
+      "statement_trimmed_md5": "54d90804465fc9584f9915dba2532d0c"
+    },
+    {
+      "version": "20260813062931",
+      "name": "issue97_wvdot_endpoint_measure_precision",
+      "statement_count": 1,
+      "statement_chars": 21780,
+      "statement_trimmed_md5": "6a9d61050d3e4e6432d3b959a2ebf89a"
+    },
+    {
+      "version": "20260813103300",
+      "name": "issue97_oh_exact_adoption_refresh_stability",
+      "statement_count": 1,
+      "statement_chars": 9961,
+      "statement_trimmed_md5": "0c55eb84c02e521c44dcf9e3ce1ee02d"
+    },
+    {
+      "version": "20260813103332",
+      "name": "issue97_noble_graph_mapping_semantic_upgrade",
+      "statement_count": 1,
+      "statement_chars": 20085,
+      "statement_trimmed_md5": "c2ed038637921a9e123d2ca01671e6cc"
+    },
+    {
+      "version": "20260813201540",
+      "name": "issue97_google_route_dispatcher_policy_readiness",
+      "statement_count": 1,
+      "statement_chars": 8182,
+      "statement_trimmed_md5": "8e6ff331a11c4b2a4015494f771046b5"
+    },
+    {
+      "version": "20260813210802",
+      "name": "issue97_wvdot_measure_runtime_dispatch",
+      "statement_count": 1,
+      "statement_chars": 11723,
+      "statement_trimmed_md5": "29c9eb37e490af87aa924abb874ecd3f"
+    },
+    {
+      "version": "20260813213500",
+      "name": "issue97_wvdot_measure_provenance_type_stability",
+      "statement_count": 1,
+      "statement_chars": 47038,
+      "statement_trimmed_md5": "7565bddfc59dc392661b4ed92dd3e87a"
+    },
+    {
+      "version": "20260814010300",
+      "name": "issue97_wvdot_json_numeric_receipts",
+      "statement_count": 1,
+      "statement_chars": 11525,
+      "statement_trimmed_md5": "8264f26ceed3a04252aab43ba2e65333"
+    },
+    {
+      "version": "20260814074500",
+      "name": "issue97_graph_builder_temp_geography_index",
+      "statement_count": 1,
+      "statement_chars": 8780,
+      "statement_trimmed_md5": "9625f0734f77618914d96a46ef1ab1be"
+    },
+    {
+      "version": "20260814160000",
+      "name": "issue97_saved_road_release_baseline_current",
+      "statement_count": 1,
+      "statement_chars": 23032,
+      "statement_trimmed_md5": "df85a59b9e9ddd532e0f0ffc04831ce4"
+    },
+    {
+      "version": "20260814160050",
+      "name": "issue97_saved_road_pad_gps_binding",
+      "statement_count": 1,
+      "statement_chars": 10654,
+      "statement_trimmed_md5": "a84f4b81d40d5fff3f57ec01d52972f6"
+    },
+    {
+      "version": "20260814161000",
+      "name": "issue97_possum_reviewed_subsegment_bridge_registry",
+      "statement_count": 1,
+      "statement_chars": 10197,
+      "statement_trimmed_md5": "3304c4faa83b7d320add469092b922ba"
+    },
+    {
+      "version": "20260814161100",
+      "name": "issue97_possum_reviewed_subsegment_bridge_proof",
+      "statement_count": 1,
+      "statement_chars": 10661,
+      "statement_trimmed_md5": "a5df309b15d0902c232d1e426adc4bd2"
+    },
+    {
+      "version": "20260814161200",
+      "name": "issue97_possum_reviewed_subsegment_bridge_apply",
+      "statement_count": 1,
+      "statement_chars": 13010,
+      "statement_trimmed_md5": "68121c2e3acc3f6af848bfc7df177621"
+    },
+    {
+      "version": "20260814161300",
+      "name": "issue97_possum_reviewed_subsegment_bridge_runtime",
+      "statement_count": 1,
+      "statement_chars": 6804,
+      "statement_trimmed_md5": "dd928f0dbf9c6b8858a6345def291f9e"
+    },
+    {
+      "version": "20260814161400",
+      "name": "issue97_ogrip_endpoint_geography_indexes",
+      "statement_count": 1,
+      "statement_chars": 3474,
+      "statement_trimmed_md5": "a7578645fca816bee97d92e8bb43fbd2"
+    },
+    {
+      "version": "20260814161500",
+      "name": "issue97_ogrip_corroborated_source_vertex",
+      "statement_count": 1,
+      "statement_chars": 11507,
+      "statement_trimmed_md5": "7a2891eb4c279dfdc8960e26b1eb41ea"
+    },
+    {
+      "version": "20260814162000",
+      "name": "issue97_transition_google_schema_acl_hardening",
+      "statement_count": 1,
+      "statement_chars": 10976,
+      "statement_trimmed_md5": "7b814294e8beb6c9b0790d15a3131120"
+    },
+    {
+      "version": "20260814163000",
+      "name": "issue97_graph_release_generation_registry",
+      "statement_count": 1,
+      "statement_chars": 9914,
+      "statement_trimmed_md5": "1b19589be8aaf2861f905c7be0a9b8ea"
+    },
+    {
+      "version": "20260814163050",
+      "name": "issue97_odot_authoritative_overlap_shared_pavement",
+      "statement_count": 1,
+      "statement_chars": 15293,
+      "statement_trimmed_md5": "059ebd3d838f0ba24b5d770fdb4e5f84"
+    },
+    {
+      "version": "20260814163100",
+      "name": "issue97_graph_release_current_predicate",
+      "statement_count": 1,
+      "statement_chars": 8548,
+      "statement_trimmed_md5": "89bd8762d950ce5201fd7a6aeb5bc4a2"
+    },
+    {
+      "version": "20260814163200",
+      "name": "issue97_ohi_release_qualification",
+      "statement_count": 1,
+      "statement_chars": 4042,
+      "statement_trimmed_md5": "9a62186481f825961f06b4c82eead05e"
+    },
+    {
+      "version": "20260814163250",
+      "name": "issue97_shared_route_right_continuation_context",
+      "statement_count": 1,
+      "statement_chars": 11527,
+      "statement_trimmed_md5": "65fced8fd707bb815c840731b3a2a117"
+    },
+    {
+      "version": "20260814163300",
+      "name": "issue97_release_current_consumers",
+      "statement_count": 1,
+      "statement_chars": 7704,
+      "statement_trimmed_md5": "a67afff5e2576fb1204ae78131d8c483"
+    },
+    {
+      "version": "20260814163400",
+      "name": "issue97_graph_release_input_digests",
+      "statement_count": 1,
+      "statement_chars": 15606,
+      "statement_trimmed_md5": "911469783a03cf3b6432f4d6ec7a4ff6"
+    },
+    {
+      "version": "20260814164000",
+      "name": "issue97_release_manifests_and_verification_reports",
+      "statement_count": 1,
+      "statement_chars": 34519,
+      "statement_trimmed_md5": "7f487f134831f566b19a2f86d30dabdd"
+    },
+    {
+      "version": "20260814164100",
+      "name": "issue97_manifest_bound_activation_cutover",
+      "statement_count": 1,
+      "statement_chars": 10892,
+      "statement_trimmed_md5": "0ea37a880988d96c453c970660201dd0"
+    },
+    {
+      "version": "20260814164200",
+      "name": "issue97_post_cutover_report_integrity",
+      "statement_count": 1,
+      "statement_chars": 5779,
+      "statement_trimmed_md5": "5f69411aa71506143f3f443f9ed9ded1"
+    },
+    {
+      "version": "20260814164250",
+      "name": "issue97_database_bound_fixture_receipts",
+      "statement_count": 1,
+      "statement_chars": 46108,
+      "statement_trimmed_md5": "627a8b45d7da4641a02bbe1a0688a843"
+    },
+    {
+      "version": "20260814164300",
+      "name": "issue97_state_scoped_activation_manifests",
+      "statement_count": 1,
+      "statement_chars": 20673,
+      "statement_trimmed_md5": "beffc4b05ffd7bccff7c6cbede717ddd"
+    },
+    {
+      "version": "20260815090000",
+      "name": "issue97_odot_overlap_canonical_provenance",
+      "statement_count": 1,
+      "statement_chars": 38458,
+      "statement_trimmed_md5": "f0c5c0ef60eac94394ace5420e076523"
+    },
+    {
+      "version": "20260816090000",
+      "name": "issue97_vin_endpoint_index_performance",
+      "statement_count": 1,
+      "statement_chars": 13659,
+      "statement_trimmed_md5": "50b6d135164545782fd387028df81a71"
+    },
+    {
+      "version": "20260816160000",
+      "name": "issue97_manifest_bound_release_current_cache",
+      "statement_count": 1,
+      "statement_chars": 35460,
+      "statement_trimmed_md5": "2b15783fcde9c8984e9dd63ffd7b9da8"
+    },
+    {
+      "version": "20260817010000",
+      "name": "issue97_dark_google_readiness_stage_semantics",
+      "statement_count": 1,
+      "statement_chars": 66494,
+      "statement_trimmed_md5": "7ffbfc1b65a2ade73ceb4aca6d85f6cf"
+    },
+    {
+      "version": "20260817020000",
+      "name": "issue97_terminal_private_access_path_isolation",
+      "statement_count": 1,
+      "statement_chars": 21655,
+      "statement_trimmed_md5": "4339d74f1c535e614f6534faf0885f57"
+    },
+    {
+      "version": "20260817030000",
+      "name": "issue97_exact_directional_highway_designation_candidates",
+      "statement_count": 1,
+      "statement_chars": 5618,
+      "statement_trimmed_md5": "c79e585def8b61be9c61ec4034e2891b"
+    },
+    {
+      "version": "20260817144432",
+      "name": "issue97_harrison_har_has_wrong_geometry_repair",
+      "statement_count": 1,
+      "statement_chars": 26331,
+      "statement_trimmed_md5": "b86f408dc22e3d8e2d34de5eaccd61a6"
+    },
+    {
+      "version": "20260817193212",
+      "name": "issue97_frozen_exact_mapping_wave",
+      "statement_count": 1,
+      "statement_chars": 124401,
+      "statement_trimmed_md5": "6f6ef82bb2b588eae0ea871f900ce692"
+    },
+    {
+      "version": "20260823032513",
+      "name": "issue97_geometry_digest_and_final_route_receipt",
+      "statement_count": 1,
+      "statement_chars": 13850,
+      "statement_trimmed_md5": "17bdd1988a36822994a316f6c0a474ad"
+    }
+  ]
+}
