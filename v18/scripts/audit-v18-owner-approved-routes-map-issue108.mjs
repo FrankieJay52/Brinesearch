@@ -20,6 +20,7 @@ const viewportFix = read("supabase/migrations/20260816170100_owner_approved_rout
 const performanceMigration = read("supabase/migrations/20260816170200_owner_approved_routes_map_viewport_performance.sql");
 const primaryFocusMigration = read("supabase/migrations/20260823203500_v18_owner_map_primary_route_focus.sql");
 const detailTimeoutMigration = read("supabase/migrations/20260823231000_v18_owner_road_detail_timeout.sql");
+const endpointDisplayMigration = read("supabase/migrations/20260824052152_v18_owner_pad_road_endpoint_display.sql");
 const session = read("v18/src/data/ownerSession.ts");
 const supabaseClient = read("v18/src/data/supabaseClient.ts");
 const access = read("v18/src/data/OwnerAccessContext.tsx");
@@ -50,6 +51,9 @@ for (const [name, source] of [["initial migration", initialMigration], ["perform
   requireText(source, "set search_path = ''", `${name} fixed empty search_path`);
   requireText(source, "public.is_brinesearch_owner(auth.uid())", `${name} inner owner gate`);
 }
+requireText(endpointDisplayMigration, "security definer", "endpoint viewport wrapper SECURITY DEFINER");
+requireText(endpointDisplayMigration, "set search_path = ''", "endpoint viewport wrapper fixed empty search_path");
+requireText(endpointDisplayMigration, "public.is_brinesearch_owner(auth.uid())", "endpoint viewport wrapper owner gate");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_viewport", "viewport PUBLIC/anon revoke");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_road_detail", "detail PUBLIC/anon revoke");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_pad_options", "pad options PUBLIC/anon revoke");
@@ -71,6 +75,21 @@ requireText(primaryFocusMigration, "and rp.variant_index=1", "selected-location 
 requireText(primaryFocusMigration, "pg_catalog.strpos(", "valid schema-qualified primary-route assertion");
 forbid(primaryFocusMigration, /pg_catalog\.position\s*\(/i, "primary-route migration schema-qualifies PostgreSQL POSITION special syntax");
 forbid(primaryFocusMigration, /(?:route_group\s*=\s*'alternate'|variant_index\s*=\s*2)/i, "selected-location focus includes an alternate route variant");
+requireText(endpointDisplayMigration, "private_verification.brinesearch_owner_pad_road_display_receipts_issue108", "generic private per-pad display receipt contract");
+requireText(endpointDisplayMigration, "receipt_status in ('candidate','held','restricted','reference_only')", "display receipts cannot encode approval");
+requireText(endpointDisplayMigration, "boundary_kind='pad_endpoint_projection'", "exact pad-projection boundary gate");
+requireText(endpointDisplayMigration, "owner_reviewed_exact_identity_entry_to_pad_projection", "reviewed exact endpoint geometry method");
+requireText(endpointDisplayMigration, "'OH:ODOT:NLF:CBELCR00010**C'", "exact Bannock CR-10 identity receipt");
+requireText(endpointDisplayMigration, "'Lafferty-Bannock Rd / CR-10'", "Bannock display occurrence label");
+requireText(endpointDisplayMigration, "v_nearby_pads<>1", "Bannock no-other-nearby-pad assertion");
+requireText(endpointDisplayMigration, "route.route_group='primary'", "endpoint receipt primary route currentness gate");
+requireText(endpointDisplayMigration, "route.source_sequence_hash=receipt.route_sequence_hash", "endpoint receipt route revision currentness gate");
+requireText(endpointDisplayMigration, "identity.source_digest=receipt.identity_source_digest", "endpoint receipt identity revision currentness gate");
+requireText(endpointDisplayMigration, "'display_boundary',receipt.boundary_kind", "endpoint boundary response property");
+requireText(endpointDisplayMigration, "'endpoint_offset_m',pg_catalog.round(receipt.endpoint_offset_m,3)", "endpoint GPS offset response property");
+requireText(endpointDisplayMigration, "from public,anon,authenticated", "private endpoint receipt/base revocation");
+forbid(endpointDisplayMigration, /\b(?:insert\s+into|update|delete\s+from|truncate\s+table)\s+public\./i, "endpoint migration mutates public road/route/graph/pad data");
+forbid(endpointDisplayMigration, /(?:activate|reconcile|publish).*\(/i, "endpoint migration invokes an authority-changing function");
 
 const finalSql = compact(primaryFocusMigration);
 const precedence = [
@@ -113,6 +132,8 @@ requireText(adapter, "validateOwnerRoadViewport", "safe viewport response valida
 requireText(adapter, "validateOwnerRoadDetail", "safe detail response validator");
 requireText(adapter, "p_route_systems", "route-system request mapping");
 requireText(adapter, 'row.state === undefined ? ""', "minimal selected-pad viewport marker contract");
+requireText(adapter, '"pad_endpoint_projection"', "safe endpoint boundary response validator");
+requireText(adapter, "endpointOffsetMeters", "bounded endpoint offset adapter");
 
 requireText(map, "selectedHaloLayerId", "selected-road halo layer");
 requireText(map, "selectedPadLayerId", "selected-location graph-road highlight layer");
@@ -132,6 +153,9 @@ requireText(map, "queryRenderedFeatures", "interactive road hit testing");
 requireText(map, "Location and road selection change display focus only", "selection authority legend");
 requireText(map, "missing gaps remain unplotted", "pad route unresolved-gap disclosure");
 requireText(map, "does not approve it, create route steps or geometry, change the graph", "route/graph authority disclosure");
+requireText(map, "stops at that pad&apos;s exact-road projection", "generic selected-pad endpoint explanation");
+requireText(map, "Ends at selected pad road projection", "per-road endpoint boundary label");
+forbid(map, /(?:bannock|333598ca|cr-10|lafferty)/i, "V18 UI hardcodes a Bannock-only endpoint branch");
 
 requireText(access, "checkOwnerAccess", "shared UI owner access provider");
 requireText(app, '<Route path="/settings/approved-routes" element={<OwnerApprovedRoutesPage/>}/>', "Owner Settings route");

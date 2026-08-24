@@ -26,9 +26,10 @@ assert.match(appJavascript, /\/settings\/approved-routes/, "Built V18 app is mis
 assert.match(appJavascript, /brinesearch\.v18AuthSession\.v1/, "Built V18 app is missing its V18-only owner session");
 assert.match(appJavascript, /\/sign-in/, "Built V18 app is missing native owner sign-in");
 assert.match(appJavascript, /field_feed_list\?select=/, "Built V18 app is missing native public Field Updates");
-assert.match(appJavascript, /Selected location exact graph roads/, "Built V18 app is missing the selected-location graph-road highlight legend");
+assert.match(appJavascript, /Selected location exact road evidence/, "Built V18 app is missing the selected-location exact-road highlight legend");
+assert.match(appJavascript, /Ends at selected pad road projection/, "Built V18 app is missing the per-pad endpoint boundary label");
 assert.match(appJavascript, /Gold inspection road/, "Built V18 app is missing the selected-road inspection legend");
 assert.match(appJavascript, /Reviewed field directions/, "Built V18 app is missing reviewed directions in the owner map");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: native sign-in, public Field Updates, reviewed directions, and the owner-only exact graph-road highlights are present without old-app bridges, private fields, or privileged material.");
+console.log("Verified V18 built runtime: native sign-in, public Field Updates, reviewed directions, and owner-only exact-road highlights with per-pad endpoint boundaries are present without old-app bridges, private fields, or privileged material.");
