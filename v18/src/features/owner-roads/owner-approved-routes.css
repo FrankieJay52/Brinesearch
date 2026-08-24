@@ -176,6 +176,158 @@
   font-size: .74rem;
 }
 
+.owner-road-pad-picker {
+  min-width: 0;
+  display: grid;
+  gap: 7px;
+  position: relative;
+}
+
+.owner-road-pad-picker-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-strong);
+  font-size: .66rem;
+  font-weight: 800;
+}
+
+.owner-road-pad-picker-label svg {
+  width: 15px;
+  height: 15px;
+}
+
+.owner-road-pad-picker-fields {
+  display: grid;
+  grid-template-columns: minmax(100px, .7fr) minmax(140px, 1.3fr);
+  gap: 6px;
+}
+
+.owner-road-pad-picker-fields label {
+  gap: 4px;
+}
+
+.owner-road-pad-picker-fields label > span {
+  font-size: .57rem;
+}
+
+.owner-road-pad-search-results {
+  max-height: 310px;
+  display: grid;
+  gap: 3px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 5px;
+  border: 1px solid color-mix(in srgb, var(--teal) 36%, var(--line));
+  border-radius: 12px;
+  background: var(--bg-deep);
+  box-shadow: 0 16px 34px rgba(0,0,0,.28);
+}
+
+.owner-road-pad-search-results > button {
+  min-height: 47px;
+  display: grid;
+  gap: 3px;
+  padding: 7px 9px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  color: var(--text);
+  background: var(--surface-raised);
+  text-align: left;
+  cursor: pointer;
+}
+
+.owner-road-pad-search-results > button:hover,
+.owner-road-pad-search-results > button[aria-selected="true"] {
+  border-color: color-mix(in srgb, var(--teal) 52%, var(--line));
+  background: color-mix(in srgb, var(--teal) 11%, var(--surface-raised));
+}
+
+.owner-road-pad-search-results strong {
+  font-size: .7rem;
+}
+
+.owner-road-pad-search-results span,
+.owner-road-pad-search-results > small,
+.owner-road-pad-search-results > p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .6rem;
+  line-height: 1.35;
+}
+
+.owner-road-pad-search-results > small,
+.owner-road-pad-search-results > p {
+  padding: 7px;
+}
+
+.owner-road-pad-picker-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.owner-road-pad-picker-actions > button,
+.owner-road-pad-picker-actions > span {
+  min-height: 31px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted-strong);
+  background: var(--surface-raised);
+  font-size: .59rem;
+}
+
+.owner-road-pad-picker-actions > button {
+  cursor: pointer;
+}
+
+.owner-road-pad-picker-actions > button.is-active {
+  color: var(--teal-bright);
+  border-color: color-mix(in srgb, var(--teal) 44%, var(--line));
+}
+
+.owner-road-pad-picker-actions svg {
+  width: 14px;
+  height: 14px;
+}
+
+.owner-road-pad-picker-actions > span {
+  min-width: 0;
+}
+
+.owner-road-pad-picker-actions > span strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-road-pad-picker-actions > span small {
+  color: var(--muted);
+}
+
+.owner-road-pad-picker-actions > span button {
+  min-height: 25px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 6px;
+  color: var(--teal-bright);
+  background: color-mix(in srgb, var(--teal) 9%, var(--surface));
+  font-size: .56rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.owner-road-pad-picker-proof {
+  color: var(--muted);
+  font-size: .56rem;
+  line-height: 1.35;
+}
+
 .owner-road-refresh {
   min-height: 43px;
   white-space: nowrap;
@@ -336,6 +488,50 @@
   border-color: color-mix(in srgb, var(--amber) 42%, var(--line));
 }
 
+.owner-pad-coverage-check {
+  display: grid;
+  gap: 7px;
+  padding: 10px 11px;
+  border: 1px solid color-mix(in srgb, var(--teal) 24%, var(--line-soft));
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--teal) 5%, var(--surface-raised));
+}
+
+.owner-pad-coverage-check > span {
+  color: var(--muted);
+  font-size: .61rem;
+  font-weight: 900;
+  letter-spacing: .055em;
+  text-transform: uppercase;
+}
+
+.owner-pad-coverage-check > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.owner-pad-coverage-check b {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--muted-strong);
+  font-size: .62rem;
+}
+
+.owner-pad-coverage-check i {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.owner-pad-coverage-check p {
+  margin: 0;
+  color: var(--muted);
+  font-size: .65rem;
+  line-height: 1.45;
+}
+
 .owner-pad-sequence,
 .owner-pad-directions {
   padding: 10px 11px;
@@ -408,6 +604,181 @@
   inset: 0;
 }
 
+.owner-map-actions {
+  position: absolute;
+  z-index: 6;
+  top: 12px;
+  left: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  max-width: calc(100% - 88px);
+}
+
+.owner-map-actions button {
+  min-height: 39px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 11px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 11px;
+  color: #eef7fa;
+  background: rgba(7,19,31,.94);
+  box-shadow: 0 5px 18px rgba(0,0,0,.22);
+  font-size: .68rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.owner-map-actions button:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
+.owner-map-actions svg {
+  width: 16px;
+  height: 16px;
+}
+
+.owner-map-fullscreen-summary {
+  position: absolute;
+  z-index: 5;
+  top: calc(env(safe-area-inset-top) + 62px);
+  left: max(12px, env(safe-area-inset-left));
+  right: max(12px, env(safe-area-inset-right));
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 11px;
+  color: #dce8ef;
+  background: rgba(7,19,31,.94);
+  font-size: .67rem;
+}
+
+.owner-map-fullscreen-summary > span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.owner-map-fullscreen-summary strong,
+.owner-map-fullscreen-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.owner-map-fullscreen-summary small {
+  color: #afbec7;
+  font-size: .61rem;
+}
+
+.owner-map-fullscreen-summary > b {
+  flex: 0 0 auto;
+  color: #62ddc6;
+  font-size: .61rem;
+}
+
+.owner-map-fullscreen-summary > b.is-held {
+  color: #f1bd58;
+}
+
+.owner-map-road-inspector {
+  position: absolute;
+  z-index: 8;
+  right: max(12px, env(safe-area-inset-right));
+  bottom: 58px;
+  width: min(390px, calc(100% - 24px));
+  max-height: min(54dvh, 560px);
+  display: grid;
+  gap: 8px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,.2);
+  border-radius: 15px;
+  color: #e7f2f6;
+  background: rgba(7,19,31,.96);
+  box-shadow: 0 18px 46px rgba(0,0,0,.45);
+}
+
+.owner-map-road-inspector > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.owner-map-road-inspector > header > span {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.owner-map-road-inspector > header small {
+  color: #62ddc6;
+  font-size: .56rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+}
+
+.owner-map-road-inspector > header strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .87rem;
+}
+
+.owner-map-road-inspector > header button {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255,255,255,.16);
+  border-radius: 9px;
+  color: #eef7fa;
+  background: rgba(255,255,255,.06);
+  cursor: pointer;
+}
+
+.owner-map-road-inspector > header svg {
+  width: 16px;
+  height: 16px;
+}
+
+.owner-map-road-inspector > p {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: #afbec7;
+  font-size: .62rem;
+  line-height: 1.4;
+}
+
+.owner-map-road-inspector > p.is-error {
+  color: #ff9c8a;
+}
+
+.owner-map-connected-heading {
+  margin: 2px 0 0;
+}
+
+.owner-map-road-proof {
+  color: #afbec7;
+  font-size: .58rem;
+  line-height: 1.4;
+}
+
+.owner-map-shell.has-road-inspector .owner-map-status {
+  right: calc(min(390px, calc(100% - 24px)) + 22px);
+}
+
 .owner-map-status {
   position: absolute;
   z-index: 4;
@@ -423,7 +794,6 @@
   border-radius: 11px;
   color: #dce8ef;
   background: rgba(7,19,31,.9);
-  backdrop-filter: blur(12px);
   font-size: .68rem;
   line-height: 1.35;
 }
@@ -533,6 +903,8 @@
   background: transparent;
   text-align: left;
   cursor: pointer;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
 }
 
 .owner-road-result-list > button + button {
@@ -601,6 +973,62 @@
   color: var(--muted);
   font-size: .7rem;
   line-height: 1.45;
+}
+
+.owner-road-result-more {
+  width: calc(100% - 14px);
+  min-height: 42px;
+  margin: 7px;
+  border: 1px solid color-mix(in srgb, var(--teal) 34%, var(--line));
+  border-radius: 11px;
+  color: var(--teal-bright);
+  background: color-mix(in srgb, var(--teal) 7%, var(--surface-raised));
+  font-size: .68rem;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.owner-map-column.is-fullscreen {
+  position: fixed;
+  z-index: 100;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  background: var(--bg-deep);
+}
+
+.owner-map-column.is-fullscreen .owner-map-shell {
+  min-height: 0;
+  height: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.owner-map-column.is-fullscreen .owner-map-actions {
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: max(10px, env(safe-area-inset-left));
+}
+
+.owner-map-column.is-fullscreen .maplibregl-ctrl-top-right {
+  top: env(safe-area-inset-top);
+  right: env(safe-area-inset-right);
+}
+
+.owner-map-column.is-fullscreen .owner-map-status {
+  left: max(10px, env(safe-area-inset-left));
+  right: max(10px, env(safe-area-inset-right));
+}
+
+.owner-map-column.is-fullscreen .owner-map-legend {
+  max-height: 28dvh;
+  overflow: auto;
+  margin: 0;
+  padding: 10px max(12px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  border-width: 1px 0 0;
+  border-radius: 0;
 }
 
 .owner-road-result-limit {
@@ -781,6 +1209,118 @@
   line-height: 1.4;
 }
 
+.owner-road-pad-groups {
+  display: grid;
+  gap: 10px;
+}
+
+.owner-road-pad-groups > section {
+  min-width: 0;
+  padding: 9px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--teal) 3%, var(--surface-raised));
+}
+
+.owner-road-pad-groups > section > header,
+.owner-map-connected-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.owner-road-pad-groups > section > header strong,
+.owner-map-connected-heading strong {
+  color: var(--teal-bright);
+  font-size: .66rem;
+}
+
+.owner-road-pad-groups > section > header small,
+.owner-map-connected-heading small {
+  color: var(--muted);
+  font-size: .59rem;
+}
+
+.owner-road-pad-groups ul {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.owner-road-pad-groups li {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px;
+  border-radius: 9px;
+  background: var(--surface);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 52px;
+}
+
+.owner-road-pad-groups li > span:first-child {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.owner-road-pad-groups li > span:first-child strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .68rem;
+}
+
+.owner-road-pad-groups li > span:first-child small {
+  color: var(--muted);
+  font-size: .59rem;
+}
+
+.owner-road-pad-actions {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.owner-road-pad-actions button,
+.owner-road-pad-actions a {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  color: var(--teal-bright);
+  background: var(--surface-raised);
+  font-size: .58rem;
+  font-weight: 850;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.owner-road-pad-groups.is-compact {
+  max-height: min(31dvh, 310px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.owner-road-pad-groups.is-compact > section {
+  padding: 7px;
+  background: rgba(255,255,255,.035);
+}
+
+.owner-road-pad-groups.is-compact li {
+  background: rgba(7,19,31,.72);
+}
+
 .owner-road-related li:has(> button) {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
@@ -856,7 +1396,7 @@
   }
 
   .owner-road-search,
-  .owner-road-pad-filter {
+  .owner-road-pad-picker {
     grid-column: span 2;
   }
 }
@@ -930,8 +1470,12 @@
   }
 
   .owner-road-search,
-  .owner-road-pad-filter {
+  .owner-road-pad-picker {
     grid-column: auto;
+  }
+
+  .owner-road-pad-picker-fields {
+    grid-template-columns: 1fr;
   }
 
   .owner-road-toolbar input,
@@ -967,6 +1511,27 @@
     bottom: 9px;
     left: 9px;
     right: 9px;
+  }
+
+  .owner-map-road-inspector {
+    right: max(9px, env(safe-area-inset-right));
+    left: max(9px, env(safe-area-inset-left));
+    bottom: 9px;
+    width: auto;
+    max-height: min(47dvh, 460px);
+  }
+
+  .owner-map-shell.has-road-inspector .owner-map-status {
+    display: none;
+  }
+
+  .owner-road-pad-groups li {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-road-pad-actions > * {
+    flex: 1 1 0;
   }
 
   .owner-road-detail-card > header,
