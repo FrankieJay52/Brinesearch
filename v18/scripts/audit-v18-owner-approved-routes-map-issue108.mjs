@@ -19,6 +19,7 @@ const initialMigration = read("supabase/migrations/20260816170000_owner_approved
 const viewportFix = read("supabase/migrations/20260816170100_owner_approved_routes_map_viewport_fix.sql");
 const performanceMigration = read("supabase/migrations/20260816170200_owner_approved_routes_map_viewport_performance.sql");
 const primaryFocusMigration = read("supabase/migrations/20260823203500_v18_owner_map_primary_route_focus.sql");
+const detailTimeoutMigration = read("supabase/migrations/20260823231000_v18_owner_road_detail_timeout.sql");
 const session = read("v18/src/data/ownerSession.ts");
 const supabaseClient = read("v18/src/data/supabaseClient.ts");
 const access = read("v18/src/data/OwnerAccessContext.tsx");
@@ -84,6 +85,11 @@ if (precedence.some((index) => index < 0) || precedence.some((index, position) =
   errors.push("fail-closed road classification precedence changed");
 }
 requireText(initialMigration, "private_verification.brinesearch_issue97_graph_build_release_current", "release-current junction gate");
+requireText(detailTimeoutMigration, "statement_timeout = '15s'", "bounded owner road detail timeout");
+requireText(detailTimeoutMigration, "work_mem = '32MB'", "bounded owner road detail sort memory");
+requireText(detailTimeoutMigration, "private_verification.brinesearch_issue97_graph_build_release_current(gb.id)", "detail timeout migration preserves release-current graph gate");
+requireText(detailTimeoutMigration, "search_path=", "detail timeout migration verifies fixed search path");
+forbid(detailTimeoutMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "detail timeout migration mutates road/route/graph data");
 requireText(initialMigration, "j.junction_type<>'shared_segment'", "shared-segment geometry exclusion from physical junction coordinates");
 requireText(initialMigration, "extensions.st_geometrytype(j.geom)='ST_Point'", "exact point-only junction coordinate gate");
 requireText(initialMigration, "greatest(c.last_seen_at,c.dataset_fetched_at,c.dataset_source_timestamp)", "current production identity verification timestamp");
@@ -112,6 +118,7 @@ requireText(map, "selectedHaloLayerId", "selected-road halo layer");
 requireText(map, "selectedPadLayerId", "selected-location graph-road highlight layer");
 requireText(map, "syncSelectedRoad", "selected-road source/filter synchronization");
 requireText(map, "ownerRoadSelection", "deterministic visible-road selection");
+requireText(mapModel, "return null", "road detail waits for explicit owner selection");
 requireText(map, "ownerRoadPadOptions", "complete directory-to-owner selector connection");
 requireText(mapModel, "for (const row of directoryRows)", "all-directory-location selector merge");
 requireText(map, "loadPadStatus(selectedDirectoryPad", "reviewed public direction status connection");
