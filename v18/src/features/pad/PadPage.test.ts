@@ -28,9 +28,17 @@ describe("V18 pad legacy route fallback", () => {
 
   it("keeps saved written field directions visible below the fallback", () => {
     expect(padPage).toContain('{status.route.writtenDirections && <details className="detail-card" open>');
-    expect(padPage).toContain("{status.route.writtenDirections}</p></details>");
+    expect(padPage).toContain("{displayWrittenDirections(status.route.writtenDirections)}</p></details>");
     expect(appCss).toMatch(/\.written-directions\s*\{[^}]*white-space:\s*pre-wrap;/s);
     expect(appCss).toMatch(/\.written-directions\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
+  });
+
+  it("renders the pad immediately and labels live, last-known, and offline states", () => {
+    expect(padPage).toContain("buildPendingPadStatus(pad, snapshot?.sourceState)");
+    expect(padPage).toContain('connectionState === "offline" ? "Offline"');
+    expect(padPage).toContain('connectionState === "live" ? "Live"');
+    expect(padPage).toContain('connectionState === "last-known" ? "Last known"');
+    expect(padPage).toContain("Open this pad once while online to save reviewed directions on this device.");
   });
 
   it("uses synchronized reviewed well rows instead of matching sorted lists by position", () => {

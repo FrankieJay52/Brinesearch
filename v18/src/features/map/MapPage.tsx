@@ -8,11 +8,13 @@ import {
   type StyleSpecification,
 } from "maplibre-gl";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNetworkState } from "@/app/useNetworkState";
 import { Icon } from "@/components/Icon";
 import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
+import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
@@ -301,6 +303,7 @@ function drawPadOverlay(
 
 export function MapPage() {
   const { snapshot, loading, error } = useDirectory();
+  const online = useNetworkState();
   const companyRoads = useCompanyRoads();
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewerMode, setViewerMode] = useState<MapViewerMode>(() => mapViewerModeFromParam(searchParams.get("view")));
@@ -420,17 +423,25 @@ export function MapPage() {
     setRouteChoices([]);
     setSelectedRouteKey("");
     if (selected) {
+      if (online) {
+        readPadDirectionsOffline(selected).then((cached) => {
+          if (!cancelled && cached) setSelectedStatus((current) => current || cached);
+        });
+      }
       loadPadStatus(selected, snapshot?.sourceState).then((status) => {
-        if (!cancelled) setSelectedStatus(status);
-      });
-      loadDriverRouteChoices(selected).then((choices) => {
         if (cancelled) return;
-        setRouteChoices(choices);
-        setSelectedRouteKey(choices[0]?.routeKey || "");
+        setSelectedStatus(status);
+        if (online && status.dataState === "live" && status.route.state === "ready" && status.route.source === "exact_graph" && status.graph.state === "active_current") {
+          loadDriverRouteChoices(selected).then((choices) => {
+            if (cancelled) return;
+            setRouteChoices(choices);
+            setSelectedRouteKey(choices[0]?.routeKey || "");
+          });
+        }
       });
     }
     return () => { cancelled = true; };
-  }, [selected, snapshot?.sourceState]);
+  }, [online, selected, snapshot?.sourceState]);
 
   useEffect(() => {
     if (!selectedStatus || !selected || !pendingRouteFitRef.current || !mapRef.current) return;

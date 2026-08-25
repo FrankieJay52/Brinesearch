@@ -61,7 +61,7 @@ export default defineConfig(({ command, isPreview }) => {
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: `${base}index.html`,
-        globPatterns: ["**/*.{js,mjs,css,html,svg,png,webp,woff2}"],
+        globPatterns: ["**/*.{js,mjs,wasm,css,html,svg,png,webp,woff2}"],
       },
       devOptions: { enabled: false },
     }),

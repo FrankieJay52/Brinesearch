@@ -594,6 +594,13 @@ h2 { letter-spacing: -.035em; }
 .pad-location { display: flex; align-items: center; gap: 6px; margin-bottom: 0; color: var(--muted); font-size: .85rem; }
 .pad-location svg { width: 1rem; height: 1rem; color: var(--teal); }
 .share-button { min-height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 14px; border: 1px solid var(--line); border-radius: 13px; color: var(--muted-strong); background: var(--surface); cursor: pointer; }
+.pad-connection-badge { width: fit-content; min-height: 30px; display: inline-flex; align-items: center; gap: 7px; margin: -9px 0 12px; padding: 0 10px; border: 1px solid var(--line); border-radius: 999px; color: var(--muted-strong); background: var(--surface); }
+.pad-connection-badge > span { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px color-mix(in srgb, currentColor 13%, transparent); }
+.pad-connection-badge strong { font-size: .7rem; }
+.pad-connection-badge small { color: var(--muted); font-size: .63rem; }
+.pad-connection-badge.is-live { color: var(--green); }
+.pad-connection-badge.is-last-known, .pad-connection-badge.is-offline { color: var(--amber); }
+.pad-connection-badge.is-checking { color: var(--teal-bright); }
 .stale-banner { margin: 0 0 18px; padding: 14px; border-radius: 15px; }
 .stale-banner div { display: grid; gap: 3px; }
 .stale-banner span { color: var(--muted-strong); font-size: .75rem; }
