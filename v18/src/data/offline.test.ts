@@ -40,6 +40,35 @@ describe("cached V18 directory validation", () => {
     });
   });
 
+  it("keeps an exact official reference separate from driver navigation authority", () => {
+    const result = validateCachedPad(cachedPad({
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "official_wellhead_reference",
+        latitude: 40.2,
+        longitude: -80.8,
+      },
+    }));
+    expect(result).toMatchObject({
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "official_wellhead_reference",
+        latitude: 40.2,
+        longitude: -80.8,
+      },
+    });
+    expect(validateCachedPad(cachedPad({
+      mapReference: {
+        role: "reference",
+        kind: "official_pad_reference",
+        latitude: 40.2,
+        longitude: -80.8,
+      },
+    }))).toBeNull();
+  });
+
   it("rejects a tampered identity, revision, coordinate role, or zero-origin coordinate", () => {
     expect(validateCachedPad(cachedPad({ canonicalId: "different" }))).toBeNull();
     expect(validateCachedPad(cachedPad({ recordRevision: "unversioned" }))).toBeNull();

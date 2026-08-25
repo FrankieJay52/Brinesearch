@@ -42,9 +42,23 @@ const packagedReferenceCoordinates = (() => {
  * reference only and must never flow into driver status or Google navigation.
  */
 export function mapDisplayCoordinate(row: PadSummary): PadCoordinate | null {
-  if (isSafeMapCoordinate(row.coordinate)) return row.coordinate;
+  if (isSafeMapCoordinate(row.coordinate)
+    && (row.coordinate?.role === "driver_entrance" || row.coordinate?.role === "legacy_saved")) return row.coordinate;
+  if (isSafeMapCoordinate(row.mapReference)
+    && row.mapReference?.role === "reference"
+    && (row.mapReference.kind === "official_pad_reference"
+      || row.mapReference.kind === "official_wellhead_reference")) return row.mapReference;
   if (!row.legacyId) return null;
   return packagedReferenceCoordinates.get(row.legacyId) || null;
+}
+
+export function mapDisplayCoordinateLabel(row: PadSummary) {
+  const coordinate = mapDisplayCoordinate(row);
+  if (!coordinate) return "No mapped location";
+  if (coordinate.role === "driver_entrance") return "Verified driver entrance";
+  if (row.mapReference?.kind === "official_pad_reference") return "Official pad reference · not a driver entrance";
+  if (row.mapReference?.kind === "official_wellhead_reference") return "Official wellhead reference · not a driver entrance";
+  return "Saved GPS · field check only";
 }
 
 export function hasMapDisplayCoordinate(row: PadSummary) {

@@ -63,6 +63,30 @@ describe("padFeatureCollection", () => {
       properties: { verifiedEntrance: false },
     });
   });
+
+  it("uses an exact official reference for display without changing the driver coordinate", () => {
+    const reference = pad({
+      padId: "b1675391-95bf-4221-9bc7-fbe67ae209a7",
+      canonicalId: "b1675391-95bf-4221-9bc7-fbe67ae209a7",
+      legacyId: null,
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "official_pad_reference",
+        latitude: 40.25,
+        longitude: -80.75,
+      },
+    });
+    expect(reference.coordinate).toBeNull();
+    expect(mapDisplayCoordinate(reference)).toMatchObject({
+      role: "reference",
+      latitude: 40.25,
+      longitude: -80.75,
+    });
+    expect(padFeatureCollection([reference]).features[0]).toMatchObject({
+      properties: { verifiedEntrance: false },
+    });
+  });
 });
 
 describe("groupCoincidentProjectedPads", () => {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AttributionControl, LngLatBounds, Map as MapLibreMap, Marker } from "maplibre-gl";
-import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
+import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import type { DriverPadStatus, DriverRouteGeometry, PadSummary } from "@/data/types";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
@@ -58,6 +58,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
   if (!mapDisplayCoordinate(pad) && !routeGeometry) return <div className="pad-map-empty">No safe mapped location</div>;
   return <div className="pad-map-shell">
     <div className="pad-map-preview" ref={host} aria-label={`Map preview and approved route for ${pad.padName}`}/>
+    {mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. Display only; it cannot launch navigation.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}
   </div>;
 }
