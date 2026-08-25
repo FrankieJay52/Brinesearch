@@ -127,9 +127,9 @@ describe("V18 exact pad-reference contract", () => {
     expect(normalizePadReferencePayload(payload({ rows: [{ ...payload().rows[0], note: "private" }] }), snapshotId, "5")).toBeNull();
   });
 
-  it("pins the SQL to display-only exact official and saved sources", () => {
+  it("pins the SQL to display-only exact official, API, and saved sources", () => {
     const migration = readFileSync(new URL(
-      "../../../supabase/migrations/20260825091844_v18_public_saved_pad_reference_coordinates.sql",
+      "../../../supabase/migrations/20260825100521_v18_public_exact_base_api_pad_references.sql",
       import.meta.url,
     ), "utf8");
     expect(migration).toContain("'official_pad_layer'");
@@ -138,6 +138,11 @@ describe("V18 exact pad-reference contract", () => {
     expect(migration).toContain("'official_wellhead_reference'");
     expect(migration).toContain("'saved_pad_reference'");
     expect(migration).toContain("snapshot_row.coordinate_state='held'");
+    expect(migration).toContain("official_wells_unified_20260803");
+    expect(migration).toContain("owner_count=1");
+    expect(migration).toContain("official_match_count=1");
+    expect(migration).toContain("maximum_pairwise_metres<=250");
+    expect(migration).toContain("'^34[0-9]{8}([0-9]{2})?([0-9]{2})?$'");
     expect(migration).not.toMatch(/\b(update|delete|truncate)\s+public\./i);
     expect(migration).toContain("pg_catalog.strpos(v_definition,'written_directions')>0");
     expect(migration).toContain("pg_catalog.strpos(v_definition,'directions_clear')>0");
