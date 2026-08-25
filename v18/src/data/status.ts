@@ -254,30 +254,12 @@ function normalizePublicRouteSteps(values: unknown[]): DriverRouteStep[] | null 
   return steps;
 }
 
-async function loadPublicGoogleRouteAction(padId: string) {
-  const url = new URL(`${supabaseUrl}/rest/v1/brinesearch_driver_google_routes_public`);
-  url.searchParams.set("select", "pad_id,route_revision,source_revision,manifest");
-  url.searchParams.set("pad_id", `eq.${padId}`);
-  url.searchParams.set("limit", "1");
-  const response = await fetch(url, {
-    headers: { apikey: publishableKey, Accept: "application/json" },
-    cache: "no-store",
-    signal: AbortSignal.timeout(8_000),
-  });
-  if (!response.ok) throw new Error(`Public Google route request failed (${response.status})`);
-  const payload = await response.json() as unknown;
-  const row = Array.isArray(payload) ? payload[0] : null;
-  const plan = buildGoogleRoutePublicPlan(row);
-  if (plan.padId !== padId) throw new Error("Public Google route did not match the selected pad");
-  return plan.singleUrl;
-}
-
 const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
 
 async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus | null> {
   if (!pad.canonicalId) return null;
   try {
-    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status`;
+    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status_with_google_handoff`;
     const response = await fetch(url, {
       method: "POST",
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
@@ -287,7 +269,9 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     });
     if (!response.ok) return null;
     const payload = await response.json() as unknown;
-    const row = Array.isArray(payload) ? object(payload[0]) : object(payload);
+    const envelope = Array.isArray(payload) ? object(payload[0]) : object(payload);
+    const atomicStatus = object(envelope.status);
+    const row = Object.keys(atomicStatus).length ? atomicStatus : envelope;
     const returnedPadId = nullableText(row.padId ?? row.pad_id);
     if (returnedPadId !== pad.canonicalId) return null;
     const returnedRecordRevision = nullableText(row.recordRevision ?? row.record_revision);
@@ -296,8 +280,13 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     if (!status) return null;
     if (status.google.publicState !== "ready") return status;
     try {
-      const approvedRouteUrl = await loadPublicGoogleRouteAction(pad.canonicalId);
-      if (!approvedRouteUrl) {
+      const routeRow = envelope.publicGoogleRoute ?? envelope.public_google_route;
+      const handoffRow = envelope.publicGoogleHandoff ?? envelope.public_google_handoff;
+      const approvedRoutePlan = buildGoogleRoutePublicPlan(routeRow, handoffRow);
+      if (approvedRoutePlan.padId !== pad.canonicalId) {
+        throw new Error("Public Google handoff did not match the selected pad");
+      }
+      if (!approvedRoutePlan.singleUrl) {
         return {
           ...status,
           google: {
@@ -309,7 +298,13 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
       }
       return {
         ...status,
-        google: { ...status.google, routeUrl: approvedRouteUrl },
+        google: {
+          ...status.google,
+          routeUrl: approvedRoutePlan.singleUrl,
+          safeReason: approvedRoutePlan.handoffMode === "verified_compact"
+            ? "Reviewed mobile controls are bound to this unchanged exact BrineSearch route."
+            : status.google.safeReason,
+        },
       };
     } catch {
       return {

@@ -10,7 +10,9 @@ export interface GoogleRoutePlan {
   padId: string;
   routeRevision: number;
   manifestDigest: string;
+  dependencyDigest: string;
   pointCount: number;
+  handoffMode: "full_manifest" | "verified_compact" | "none";
   singleUrl: string | null;
 }
 
@@ -92,6 +94,7 @@ export function validateGoogleRouteManifest(value: unknown) {
   const padId = identifier(manifest.pad_id, "manifest pad ID");
   revision(manifest.route_revision, "manifest route revision");
   digest(manifest.manifest_digest, "manifest digest");
+  digest(manifest.dependency_digest, "dependency digest");
   const rawPoints = Array.isArray(manifest.points) ? manifest.points : [];
   if (rawPoints.length < 2) throw new Error("Google route manifest requires a source-proven route ingress and pad destination");
   const points = rawPoints.map((point, index) => validatePoint(point, index, rawPoints.length));
@@ -116,6 +119,77 @@ export function validateGoogleRouteManifest(value: unknown) {
   return { manifest, points, padId };
 }
 
+function onlyKeys(value: UnknownRecord, keys: string[]) {
+  const allowed = new Set(keys);
+  return Object.keys(value).every((key) => allowed.has(key)) && keys.every((key) => key in value);
+}
+
+function compactSequence(value: unknown, field: string) {
+  return revision(value, `handoff ${field}`);
+}
+
+function validateVerifiedCompactHandoff(value: unknown, manifest: UnknownRecord, points: UnknownRecord[], padId: string) {
+  const row = record(value, "Google handoff public row is invalid");
+  const handoff = record(row.handoff, "Google handoff package is invalid");
+  const routeRevision = revision(manifest.route_revision, "manifest route revision");
+  const manifestDigest = digest(manifest.manifest_digest, "manifest digest");
+  const dependencyDigest = digest(manifest.dependency_digest, "dependency digest");
+
+  if (identifier(row.pad_id, "handoff row pad ID") !== padId) throw new Error("Google handoff row pad does not match its manifest");
+  if (revision(row.route_revision, "handoff row route revision") !== routeRevision) throw new Error("Google handoff row revision does not match its manifest");
+  if (digest(row.source_manifest_digest, "handoff source manifest digest") !== manifestDigest) throw new Error("Google handoff row manifest digest does not match its route");
+  if (digest(row.source_dependency_digest, "handoff source dependency digest") !== dependencyDigest) throw new Error("Google handoff row dependency digest does not match its route");
+  if (String(row.handoff_version || "") !== "v18-google-mobile-v1") throw new Error("Google handoff version is unsupported");
+  digest(row.handoff_digest, "handoff digest");
+
+  if (!onlyKeys(handoff, [
+    "handoff_version", "pad_id", "route_revision", "source_manifest_digest",
+    "source_dependency_digest", "origin_mode", "mobile_waypoint_limit",
+    "waypoints", "destination",
+  ])) throw new Error("Google handoff package contains an unsupported field");
+  if (handoff.handoff_version !== row.handoff_version
+      || identifier(handoff.pad_id, "handoff pad ID") !== padId
+      || revision(handoff.route_revision, "handoff route revision") !== routeRevision
+      || digest(handoff.source_manifest_digest, "handoff manifest digest") !== manifestDigest
+      || digest(handoff.source_dependency_digest, "handoff dependency digest") !== dependencyDigest
+      || handoff.origin_mode !== "current_location_until_route_ingress"
+      || handoff.mobile_waypoint_limit !== maxWaypoints) {
+    throw new Error("Google handoff package is not bound to the exact public route");
+  }
+
+  const rawWaypoints = Array.isArray(handoff.waypoints) ? handoff.waypoints : [];
+  if (rawWaypoints.length < 1 || rawWaypoints.length > maxWaypoints) throw new Error("Google handoff must contain one to three reviewed waypoints");
+  let previousSequence = 0;
+  const waypoints = rawWaypoints.map((value, index) => {
+    const waypoint = record(value, `Google handoff waypoint ${index + 1} is invalid`);
+    if (!onlyKeys(waypoint, ["sequence", "latitude", "longitude"])) throw new Error("Google handoff waypoint exposes unsupported data");
+    const sequence = compactSequence(waypoint.sequence, "waypoint sequence");
+    if (sequence <= previousSequence || sequence >= points.length) throw new Error("Google handoff waypoint order is invalid");
+    const sourcePoint = points[sequence - 1];
+    if (!sourcePoint || Number(sourcePoint.sequence) !== sequence || coordinate(waypoint) !== coordinate(sourcePoint)) {
+      throw new Error("Google handoff waypoint is not copied from the exact manifest");
+    }
+    if (index === 0 && (sequence !== 1 || sourcePoint.kind !== "shape" || sourcePoint.shape_role !== "route_ingress")) {
+      throw new Error("Google handoff must begin at the exact route ingress");
+    }
+    previousSequence = sequence;
+    return coordinate(sourcePoint);
+  });
+
+  const rawDestination = record(handoff.destination, "Google handoff destination is invalid");
+  if (!onlyKeys(rawDestination, ["sequence", "latitude", "longitude", "pad_id"])) throw new Error("Google handoff destination exposes unsupported data");
+  const destinationSequence = compactSequence(rawDestination.sequence, "destination sequence");
+  const sourceDestination = points.at(-1)!;
+  if (destinationSequence !== points.length
+      || destinationSequence <= previousSequence
+      || sourceDestination.kind !== "pad_destination"
+      || identifier(rawDestination.pad_id, "handoff destination pad ID") !== padId
+      || coordinate(rawDestination) !== coordinate(sourceDestination)) {
+    throw new Error("Google handoff destination is not the exact saved pad destination");
+  }
+  return { waypoints, destination: coordinate(sourceDestination) };
+}
+
 export function validateGoogleRoutePublicRow(value: unknown) {
   const row = record(value, "Google route public row is invalid");
   const validated = validateGoogleRouteManifest(row.manifest);
@@ -136,17 +210,24 @@ function routeUrl(destination: string, waypoints: string[]) {
   return url;
 }
 
-export function buildGoogleRoutePublicPlan(value: unknown): GoogleRoutePlan {
+export function buildGoogleRoutePublicPlan(value: unknown, handoffValue: unknown = null): GoogleRoutePlan {
   const manifest = validateGoogleRoutePublicRow(value);
   const { points, padId } = validateGoogleRouteManifest(manifest);
   const mobileSafe = points.length <= maxWaypoints + 1;
-  const destination = coordinate(points.at(-1)!);
-  const waypoints = points.slice(0, -1).map(coordinate);
+  const manifestDigest = digest(manifest.manifest_digest, "manifest digest");
+  const dependencyDigest = digest(manifest.dependency_digest, "dependency digest");
+  const compact = !mobileSafe && handoffValue
+    ? validateVerifiedCompactHandoff(handoffValue, manifest, points, padId)
+    : null;
+  const destination = compact?.destination ?? coordinate(points.at(-1)!);
+  const waypoints = compact?.waypoints ?? points.slice(0, -1).map(coordinate);
   return {
     padId,
     routeRevision: revision(manifest.route_revision, "manifest route revision"),
-    manifestDigest: digest(manifest.manifest_digest, "manifest digest"),
+    manifestDigest,
+    dependencyDigest,
     pointCount: points.length,
-    singleUrl: mobileSafe ? routeUrl(destination, waypoints) : null,
+    handoffMode: mobileSafe ? "full_manifest" : compact ? "verified_compact" : "none",
+    singleUrl: mobileSafe || compact ? routeUrl(destination, waypoints) : null,
   };
 }
