@@ -1,0 +1,169 @@
+import { readFileSync } from "node:fs";
+import { describe, expect, it } from "vitest";
+
+const migration = (name: string) =>
+  readFileSync(new URL(`../../../supabase/migrations/${name}`, import.meta.url), "utf8");
+
+const gue = migration("20260824122000_issue97_gue_held_route_exact_identity_receipts.sql");
+const has = migration("20260824124500_issue97_has_scout_exact_identity_receipts.sql");
+
+const expectCommonFailClosedContract = (sql: string, statementTimeout = "15min") => {
+  expect(sql).toContain(`set local statement_timeout = '${statementTimeout}'`);
+  expect(sql).toContain("brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest");
+  expect(sql).toContain("brinesearch.issue97_expected_state_manifest_id");
+  expect(sql).toContain("brinesearch.issue97_expected_state_manifest_digest");
+  expect(sql).toContain("brinesearch.issue97_expected_member_count");
+  expect(sql).toContain("'cache_scope'<>'exact_state_manifest'");
+  expect(sql).toContain("'cache_miss_policy'<>'fail_closed'");
+  expect(sql).toContain("'release_current_count'<>'19'");
+  expect(sql).toContain("'impact_count')::integer,-1)<>0");
+  expect(sql).toContain("or nullif(build.source_revision_digest,'') is null");
+  expect(sql).toContain("or build.source_revision_digest=(select before.source_revision_digest");
+  expect(sql).toContain(
+    "member.member_value->>'source_revision_digest'=build.source_revision_digest",
+  );
+  expect(sql).toContain("member.member_value->>'graph_digest'=build.graph_digest");
+  expect(sql).toContain("'source_revision_changed',build.source_revision_digest is distinct from");
+  expect(sql).toContain("'cache_current',coalesce((select cache.current");
+  expect(sql).toContain("'global_cutover_authorized',false");
+  expect(sql).toContain("'public_google_authorized',false");
+  expect(sql).toContain("'route_authority_upgrade',false");
+  expect(sql).toContain("'fuzzy_matching_used',false");
+  expect(sql).toContain("'nearest_road_used',false");
+  expect(sql).toContain("from public.brinesearch_driver_google_routes_public)<>0");
+  expect(sql).toContain(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;",
+  );
+  expect(sql).toContain(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;",
+  );
+  expect(sql).toContain("select cutover_at from public.brinesearch_issue97_release_state where singleton");
+  expect(sql).not.toMatch(/insert\s+into\s+public\.brinesearch_driver_google_routes_public/i);
+  expect(sql).not.toMatch(/update\s+public\.brinesearch_issue97_release_state/i);
+  expect(sql).not.toMatch(/^\s*(?:begin|commit|rollback)\s*;/im);
+};
+
+const expectOrderedStatements = (sql: string, tags: string[]) => {
+  let offset = -1;
+  for (const tag of tags) {
+    const next = sql.indexOf(`do $${tag}$`);
+    expect(next, `${tag} must exist`).toBeGreaterThan(offset);
+    expect(sql.match(new RegExp(`\\$${tag}\\$`, "g"))).toHaveLength(2);
+    offset = next;
+  }
+};
+
+const expectDeferredGoogleDrain = (sql: string, scope: "gue" | "has") => {
+  const queue = sql.indexOf(`do $issue97_${scope}_verify_deferred_google_queue$`);
+  const immediate = sql.indexOf(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;",
+  );
+  const drain = sql.indexOf(`do $issue97_${scope}_verify_deferred_google_drain$`);
+  const deferred = sql.indexOf(
+    "set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred deferred;",
+  );
+  const directory = sql.indexOf(`create temporary table tmp_issue97_${scope}_directory_result`);
+
+  expect(immediate).toBeGreaterThan(queue);
+  expect(drain).toBeGreaterThan(immediate);
+  expect(deferred).toBeGreaterThan(drain);
+  expect(directory).toBeGreaterThan(deferred);
+};
+
+describe("Issue #97 held-route exact-identity migrations", () => {
+  it("splits GUE rebuild, manifest, activation, and cache work into separate timed statements", () => {
+    expectCommonFailClosedContract(gue);
+    expectOrderedStatements(gue, [
+      "issue97_gue_adopt_sr258_family",
+      "issue97_gue_verify_canonical_install",
+      "issue97_gue_rebuild",
+      "issue97_gue_manifest",
+      "issue97_gue_activate",
+      "issue97_gue_prepare_manifest_cache",
+      "issue97_gue_reconcile_targets",
+      "issue97_gue_verify_deferred_google_queue",
+      "issue97_gue_verify_deferred_google_drain",
+      "issue97_gue_postconditions",
+    ]);
+    expectDeferredGoogleDrain(gue, "gue");
+    expect(gue).toContain("where p.legacy_id in ('ascent--cooper','ascent--lorraine')");
+    expect(gue).toContain("where legacy_id in ('ascent--cooper','ascent--lorraine')");
+    expect(gue).toContain("'adoptedRoadFamily','OH-258'");
+    expect(gue).toContain("'adoptedRoadFamilyIdentityCount',5");
+    expect(gue).toContain("'family_geometry_digest',v_geom_digest");
+    expect(gue).toContain("v_geom_digest<>'dfac6e146b3bdde0cba48c3c0de85e3f'");
+    expect(gue).toContain("step.road_id='f230224c-b99a-4652-b672-3b80667ba81e'");
+    expect(gue).toContain("point->>'identity_id'='1d61e8f0-527b-582a-022a-673001d546df'");
+    expect(gue).toContain("'cooperPrivateAccess','held'");
+    expect(gue).toContain("'cooperTitusSligoGraphCrossing','held'");
+    expect(gue).toContain(
+      "'ascent--blayney','ascent--jennings','ascent--shutway'",
+    );
+    expect(gue).toContain("'dependentPrivateGoogleReceiptsRefreshed',3");
+    expect(gue.match(/brinesearch_issue97_state_candidate_manifest_current\(/g)).toHaveLength(1);
+    expect(gue.match(/brinesearch_issue97_candidate_manifest_authorizes_build\(/g)).toHaveLength(1);
+  });
+
+  it("rebuilds the exact HAS/BEL dependency while keeping Scout's boundary held", () => {
+    expectCommonFailClosedContract(has, "90min");
+    expectOrderedStatements(has, [
+      "issue97_has_rebuild_has",
+      "issue97_has_reset_builder_temp",
+      "issue97_has_rebuild_bel",
+      "issue97_has_verify_dependency_order",
+      "issue97_has_manifest",
+      "issue97_has_activate",
+      "issue97_has_prepare_manifest_cache",
+      "issue97_has_reconcile_targets",
+      "issue97_has_verify_deferred_google_queue",
+      "issue97_has_verify_deferred_google_drain",
+      "issue97_has_postconditions",
+    ]);
+    expectDeferredGoogleDrain(has, "has");
+    expect(has).toContain("'internal_source_boundary_continuation',true");
+    expect(has).toContain("'display_as_new_maneuver',false");
+    expect(has).toContain("adjacent_same_road_split_requires_explicit_source_boundary");
+    expect(has).toContain("'scoutUs250SourceBoundary','held_explicit_boundary_required'");
+    expect(has).toContain("'newDriverManeuverCreated',false");
+    expect(has).toContain(
+      "'ascent--bakos','ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie'",
+    );
+    expect(has).toContain(
+      "'ascent--jennings','ascent--pickens','ascent--scout','ascent--shutway'",
+    );
+    expect(has).toContain("brinesearch_issue97_rebuild_county_graph('OH','BEL')");
+    expect(has).toContain("brinesearch_issue97_rebuild_county_graph('OH','HAS')");
+    expect(
+      has.indexOf("brinesearch_issue97_rebuild_county_graph('OH','HAS')"),
+    ).toBeLessThan(
+      has.indexOf("brinesearch_issue97_rebuild_county_graph('OH','BEL')"),
+    );
+    expect(has).toContain(
+      "v_dependency_counties is distinct from array['BEL','HAS']::text[]",
+    );
+    expect(has).toContain("$issue97_has_verify_dependency_order$");
+    expect(has).toContain("execute 'drop table pg_temp.tmp_issue97_point_corroboration'");
+    expect(has.match(/drop table pg_temp\.tmp_issue97_point_corroboration/g)).toHaveLength(1);
+    expect(has).toContain("county_code in ('BEL','HAS')");
+    expect(has).toContain("'private_receipt_mapping'::text");
+    expect(has).toContain("array['private_receipt_mapping']::text[]");
+    expect(has).toContain("1c1320b3-4257-4239-9c55-b18a801aa97e");
+    expect(has).toContain(
+      "junction:point:OH:-80.9424736:40.1616560:identities:1fc24e4ea3bf40001d871678f87a6706",
+    );
+    expect(has).toContain("member.member_key='OH:'||target.county_code");
+    expect(has).toContain("'affectedGraphs'");
+    expect(has).toContain(
+      "v_ready is distinct from array['ascent--bakos','ascent--cologie']::text[]",
+    );
+    expect(has).toContain(
+      "where pad.legacy_id in ('ascent--bakos','ascent--cologie')",
+    );
+    expect(has).toContain("brinesearch_issue97_transition_google_dark_current");
+    expect(has).toContain("'dependentPrivateGoogleReceiptsRefreshed',9");
+    // One invocation checks the installed GUE predecessor. The other match is
+    // the pinned function signature; no redundant HAS pre/post invocation remains.
+    expect(has.match(/brinesearch_issue97_state_candidate_manifest_current\(/g)).toHaveLength(2);
+    expect(has.match(/brinesearch_issue97_candidate_manifest_authorizes_build\(/g)).toHaveLength(1);
+  });
+});
