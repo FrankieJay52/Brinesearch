@@ -371,3 +371,70 @@ Exact underlying blockers remain:
   only HAS before the failing candidate count, the transient HAS successor is
   the inferred missing release-current member. That inference is not authority
   for a second fix or retry.
+
+## HAS/BEL dependency correction and permanent installation
+
+The earlier fail-stop above was preserved as historical evidence. A subsequent
+read-only dependency audit proved that the exact cross-county union contains
+nine pads, not the earlier seven-pad approximation. `ascent--bakos` is an exact
+BEL dependency through its private receipt mapping and, together with
+`ascent--cologie`, is required to remain private-dark ready. The other seven
+dependency pads remain non-ready. No fuzzy, name-only, nearest-road, or inferred
+route identity was used.
+
+After explicit authorization, migration
+`20260824124500_issue97_has_scout_exact_identity_receipts.sql` was corrected to
+derive that nine-pad union from published road identity, private receipt
+mapping, private receipt graph, and published step graph. Its exact SHA-256 is
+`d17b175ada0c9a103b9ef17da6f567b2cf2c1076e1f9927b614e475eda77c5cc`.
+
+The one corrected rollback-only rehearsal passed and explicitly rolled back:
+
+- transaction-local BEL graph digest
+  `723e33e621bc6b1bc93e0c6fe73a85b2` and source digest
+  `47539575759695c086eed36d3d14c4b1`;
+- transaction-local HAS graph digest
+  `71cb3479ac57b6f5dc26d0985a056d06` and source digest
+  `ccbfb928a7c7ae96e72aebfc18037165`;
+- exact ready receipt set `ascent--bakos`, `ascent--cologie`;
+- Scout remained held at the adjacent same-road source boundary with reason
+  `adjacent_same_road_split_requires_explicit_source_boundary`;
+- public Google remained 0 and cutover remained OFF;
+- the post-rollback readback proved zero persistent delta, including restoration
+  of the original HAS/BEL builds and private receipt corpus digest
+  `82931e4356fa2ea02a5d073531dba5b0`.
+
+The one authorized permanent apply then completed without retry. Exact persisted
+production evidence is:
+
+- BEL active/release-current build
+  `9543e07c-f6eb-4682-a2dd-4d1f961377d5`, graph digest
+  `723e33e621bc6b1bc93e0c6fe73a85b2`, source digest
+  `47539575759695c086eed36d3d14c4b1`;
+- HAS active/release-current build
+  `f4e4d43f-e86c-499c-893f-73f2eef3dc29`, graph digest
+  `71cb3479ac57b6f5dc26d0985a056d06`, source digest
+  `ccbfb928a7c7ae96e72aebfc18037165`;
+- GUE remained unchanged at build
+  `f982e6dd-ff37-4fe0-b2e8-756112793bd5`;
+- 19 Ohio and 1 West Virginia active/release-current graphs, 0 staging;
+- Scout has five exact resolved occurrences and five occurrence receipts, while
+  the cross-source same-road boundary remains held and no junction, maneuver,
+  or geometry was invented;
+- directory snapshot `586344d2-7118-4f61-b6bc-98a97a690fd1`, revision 5,
+  1,214/1,214 rows, SHA-256
+  `4de973d403e4d4413d83eb90dd6a3816538bfa58d02c14e55b60609505839e2b`;
+- migration ledger count 1 with statement MD5
+  `361a55ff6e026e4322ad1af15869ad2d`;
+- private receipts 36 total / 2 ready / 10 held / 24 stale, digest
+  `9394f8da9a4c4f632ce0a69cff38fd31`, with exactly Bakos and Cologie ready;
+- pad-authority digest remained
+  `3bfe76004119278b472596b5570373ca` and reviewed-public-directions digest
+  remained `b123f19d3a8f1e31f9f8c41ea2fa677a`;
+- public Google 0, deferred queue 0, cutover OFF, saved reconciliation runs 0,
+  and owner overlay rows/snapshots 0.
+
+The verifier compared the exact pre-commit transaction state with the exact
+persisted post-commit state and returned `exactVerifiedCommit=true`. The database
+operation is complete and must not be retried. Repository merge, deployment,
+and live UI verification remain the release gates.

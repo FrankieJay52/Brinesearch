@@ -3,11 +3,17 @@
 -- The saved route names one continuous US-250 occurrence across the Jefferson /
 -- Harrison source boundary. This migration records both exact ODOT source
 -- identities without adding a driver maneuver. It adopts the two exact Harrison
--- CR-36 identities, rebuilds only Harrison, and reruns only Scout. The explicit
--- same-canonical-road source boundary remains held by the existing transition
--- contract. No route approval, Google publication, or cutover is authorized.
+-- CR-36 identities and rebuilds Harrison plus the one exact dependent Belmont
+-- graph that contains the verified CR-64 / CR-36 county-boundary continuation.
+-- The explicit same-canonical-road source boundary remains held by the existing
+-- transition contract. No route approval, Google publication, or cutover is
+-- authorized.
 
-set local statement_timeout = '15min';
+-- The reviewed county graph builder is the same controlled release path that
+-- uses a 90-minute statement budget elsewhere in the Issue #97 rollout. BEL's
+-- point-corroboration stage exceeded the former 15-minute migration-local
+-- budget during the rollback rehearsal; this changes only that local guard.
+set local statement_timeout = '90min';
 set local lock_timeout = '5s';
 
 select pg_catalog.pg_advisory_xact_lock(
@@ -15,6 +21,9 @@ select pg_catalog.pg_advisory_xact_lock(
 );
 select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtextextended('brinesearch:v18:company-road-overlay',18)
+);
+select pg_catalog.pg_advisory_xact_lock(
+  pg_catalog.hashtext('brinesearch:issue97:graph:OH:BEL')
 );
 select pg_catalog.pg_advisory_xact_lock(
   pg_catalog.hashtext('brinesearch:issue97:graph:OH:HAS')
@@ -48,16 +57,68 @@ select b.state_code,b.county_code,b.id,b.status,b.source_revision_digest,
 from public.brinesearch_road_graph_builds b
 where b.status='active';
 
--- Pin every published pad that depends on a current HAS source identity before
--- the county refresh fires the normal deferred private-Google invalidation.
+-- Pin the exact union of pads that the existing mapping and graph triggers can
+-- invalidate while HAS and BEL are refreshed. This includes published road
+-- dependencies, private receipt points that retain a target mapping, and
+-- private/published graph references to either replaced active build.
 create temporary table tmp_issue97_has_deferred_google_pads on commit drop as
-select distinct pad.id as pad_id,pad.legacy_id
-from public.brinesearch_authoritative_road_identities identity
-join public.brinesearch_road_identity_mappings mapping
-  on mapping.identity_id=identity.id and mapping.mapping_status='verified'
-join public.brinesearch_pad_roads step on step.road_id=mapping.road_id
-join public.pads pad on pad.id=step.pad_id
-where identity.active and identity.state_code='OH' and identity.county_code='HAS';
+with target_identities as materialized (
+  select identity.id
+  from public.brinesearch_authoritative_road_identities identity
+  where identity.active and identity.state_code='OH'
+    and identity.county_code in ('BEL','HAS')
+), target_refresh_mappings as materialized (
+  select mapping.identity_id,mapping.road_id
+  from public.brinesearch_road_identity_mappings mapping
+  join target_identities identity on identity.id=mapping.identity_id
+  where mapping.mapping_method in ('exact_source_record_id','exact_route_designation')
+    and mapping.mapping_status in ('verified','candidate')
+), dependency_sources as materialized (
+  select pad.id as pad_id,pad.legacy_id,'published_road_identity'::text as source
+  from target_identities identity
+  join public.brinesearch_road_identity_mappings mapping
+    on mapping.identity_id=identity.id
+  join public.brinesearch_pad_roads step on step.road_id=mapping.road_id
+  join public.pads pad on pad.id=step.pad_id
+
+  union
+
+  select receipt.pad_id,pad.legacy_id,'private_receipt_mapping'::text
+  from private_verification.brinesearch_google_route_receipts_issue97 receipt
+  join public.pads pad on pad.id=receipt.pad_id
+  cross join lateral pg_catalog.jsonb_array_elements(
+    coalesce(receipt.manifest->'points','[]'::jsonb)
+  ) point
+  join target_refresh_mappings mapping
+    on mapping.identity_id=nullif(point->>'identity_id','')::uuid
+    or mapping.road_id=nullif(point->>'road_id','')::uuid
+
+  union
+
+  select receipt.pad_id,pad.legacy_id,'private_receipt_graph'::text
+  from private_verification.brinesearch_google_route_receipts_issue97 receipt
+  join public.pads pad on pad.id=receipt.pad_id
+  cross join lateral pg_catalog.jsonb_array_elements(
+    coalesce(receipt.manifest->'points','[]'::jsonb)
+  ) point
+  join tmp_issue97_has_graph_before build
+    on build.id=nullif(point->>'graph_build_id','')::uuid
+   and build.state_code='OH' and build.county_code in ('BEL','HAS')
+
+  union
+
+  select step.pad_id,pad.legacy_id,'published_step_graph'::text
+  from public.brinesearch_pad_roads step
+  join public.pads pad on pad.id=step.pad_id
+  join tmp_issue97_has_graph_before build
+    on build.id=step.junction_build_id
+   and build.state_code='OH' and build.county_code in ('BEL','HAS')
+)
+select dependency.pad_id,dependency.legacy_id,
+  pg_catalog.array_agg(distinct dependency.source order by dependency.source)
+    as dependency_sources
+from dependency_sources dependency
+group by dependency.pad_id,dependency.legacy_id;
 
 create temporary table tmp_issue97_has_non_target_google_before on commit drop as
 select pg_catalog.md5(coalesce(pg_catalog.string_agg(
@@ -66,7 +127,9 @@ select pg_catalog.md5(coalesce(pg_catalog.string_agg(
   ',' order by p.id
 ),'')) as digest
 from public.pads p
-where p.legacy_id<>'ascent--scout';
+where not exists(
+  select 1 from tmp_issue97_has_deferred_google_pads target where target.pad_id=p.id
+);
 
 create temporary table tmp_issue97_has_pad_authority_before on commit drop as
 select pg_catalog.md5(coalesce(pg_catalog.string_agg(
@@ -108,7 +171,7 @@ insert into tmp_issue97_has_expected_identities values
     'High Street Rd','high-street-rd','36',array['CR-36','High Street Rd']::text[]);
 
 do $issue97_has_preconditions$
-declare v_count integer; v_digest text;
+declare v_count integer; v_digest text; v_dependency_counties text[];
 begin
   if pg_catalog.md5(pg_catalog.pg_get_functiondef(
        'public.brinesearch_issue97_rebuild_county_graph(text,text)'::pg_catalog.regprocedure
@@ -162,12 +225,47 @@ begin
     raise exception 'Issue #97 HAS active graph checkpoint diverged';
   end if;
 
+  if not exists(
+    select 1 from public.brinesearch_road_graph_builds
+    where id='1c1320b3-4257-4239-9c55-b18a801aa97e'
+      and state_code='OH' and county_code='BEL' and status='active'
+      and graph_digest='269e903e991f1790bf5d1428e4c2bb43'
+      and source_revision_digest='b20843ddf3d2a648b8d53a0b3eb1a1c2'
+  ) then
+    raise exception 'Issue #97 HAS dependent BEL graph checkpoint diverged';
+  end if;
+
+  if (select count(*)
+      from public.brinesearch_road_junctions junction
+      join public.brinesearch_road_junction_memberships has_member
+        on has_member.junction_id=junction.id
+       and has_member.identity_id='e69eb3cb-bbc7-9ea8-223c-7798d66d38c8'
+       and has_member.road_id is null
+      join public.brinesearch_road_junction_memberships bel_member
+        on bel_member.junction_id=junction.id
+       and bel_member.identity_id='a1151dc7-6a4b-7d65-17e4-02ea0a1e1d1a'
+       and bel_member.road_id='614c27a7-17a3-4828-b4eb-9c6837cc021b'
+      where junction.build_id='1c1320b3-4257-4239-9c55-b18a801aa97e'
+        and junction.stable_junction_key=
+          'junction:point:OH:-80.9424736:40.1616560:identities:1fc24e4ea3bf40001d871678f87a6706'
+        and junction.junction_type='continuation'
+        and junction.verification_status='verified')<>1 then
+    raise exception 'Issue #97 HAS dependent BEL CR-64 / CR-36 continuation diverged';
+  end if;
+
   if (select pg_catalog.array_agg(legacy_id order by legacy_id)
       from tmp_issue97_has_deferred_google_pads) is distinct from array[
-        'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
-        'ascent--pickens','ascent--scout','ascent--shutway'
+        'ascent--bakos','ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
+        'ascent--jennings','ascent--pickens','ascent--scout','ascent--shutway'
       ]::text[] then
-    raise exception 'Issue #97 HAS deferred Google dependency set diverged';
+    raise exception 'Issue #97 HAS/BEL deferred Google dependency set diverged';
+  end if;
+
+  if (select dependency_sources
+      from tmp_issue97_has_deferred_google_pads
+      where legacy_id='ascent--bakos') is distinct from
+        array['private_receipt_mapping']::text[] then
+    raise exception 'Issue #97 HAS/BEL Bakos dependency proof diverged';
   end if;
 
   if (select count(*)
@@ -208,6 +306,20 @@ begin
     is not null;
   if v_count<>2 then
     raise exception 'Issue #97 HAS expected two exact current CR-36 identities, found %',v_count;
+  end if;
+
+  select pg_catalog.array_agg(distinct build.county_code order by build.county_code)
+  into v_dependency_counties
+  from public.brinesearch_road_graph_builds build
+  join public.brinesearch_road_junctions junction on junction.build_id=build.id
+  join public.brinesearch_road_junction_memberships membership
+    on membership.junction_id=junction.id
+  join tmp_issue97_has_expected_identities expected
+    on expected.identity_id=membership.identity_id
+  where build.state_code='OH' and build.status='active';
+  if v_dependency_counties is distinct from array['BEL','HAS']::text[] then
+    raise exception 'Issue #97 HAS exact graph dependency scope diverged: %',
+      v_dependency_counties;
   end if;
 
   if exists(
@@ -444,8 +556,9 @@ end
 $issue97_has_verify_step_receipts$;
 
 create temporary table tmp_issue97_has_new_graph(
+  county_code text primary key check(county_code in ('BEL','HAS')),
   old_build_id uuid not null,
-  new_build_id uuid not null,
+  new_build_id uuid not null unique,
   candidate_manifest_id uuid,
   candidate_manifest_digest text,
   candidate_manifest_generation text,
@@ -454,7 +567,11 @@ create temporary table tmp_issue97_has_new_graph(
   cache_result jsonb
 ) on commit drop;
 
-do $issue97_has_rebuild$
+-- Rebuild the changed identity's owning county first. Its county-scoped exact
+-- refresher normalizes the newly inserted machine mapping evidence. Every
+-- cross-county graph that consumes that identity must capture the normalized
+-- state afterward; the precondition above proves BEL is the only such graph.
+do $issue97_has_rebuild_has$
 declare
   v_old uuid;
   v_new uuid;
@@ -468,22 +585,74 @@ begin
     raise exception 'Issue #97 HAS graph rebuild did not validate: %',v_rebuild;
   end if;
   v_new:=(v_rebuild->>'build_id')::uuid;
-
   insert into tmp_issue97_has_new_graph(
-    old_build_id,new_build_id,rebuild_result
-  ) values(v_old,v_new,v_rebuild);
+    county_code,old_build_id,new_build_id,rebuild_result
+  ) values('HAS',v_old,v_new,v_rebuild);
 end
-$issue97_has_rebuild$;
+$issue97_has_rebuild_has$;
+
+-- The reviewed builder explicitly resets every one of its transaction-local
+-- work tables except this OGRIP corroboration cache. A second county call in
+-- the same atomic migration therefore needs this one exact lifecycle reset.
+-- The cache is builder-internal and has no authority after the validated HAS
+-- build has been persisted into the permanent graph tables above.
+do $issue97_has_reset_builder_temp$
+begin
+  if pg_catalog.to_regclass('pg_temp.tmp_issue97_point_corroboration') is null then
+    raise exception 'Issue #97 HAS builder corroboration cache was not materialized';
+  end if;
+  execute 'drop table pg_temp.tmp_issue97_point_corroboration';
+  if pg_catalog.to_regclass('pg_temp.tmp_issue97_point_corroboration') is not null then
+    raise exception 'Issue #97 HAS builder corroboration cache reset failed';
+  end if;
+end
+$issue97_has_reset_builder_temp$;
+
+do $issue97_has_rebuild_bel$
+declare
+  v_old uuid;
+  v_new uuid;
+  v_rebuild jsonb;
+begin
+  select id into strict v_old from public.brinesearch_road_graph_builds
+  where state_code='OH' and county_code='BEL' and status='active';
+  v_rebuild:=public.brinesearch_issue97_rebuild_county_graph('OH','BEL');
+  if v_rebuild->>'status'<>'validated' or (v_rebuild->>'active')::boolean
+     or nullif(v_rebuild->>'build_id','') is null then
+    raise exception 'Issue #97 BEL dependent graph rebuild did not validate: %',v_rebuild;
+  end if;
+  v_new:=(v_rebuild->>'build_id')::uuid;
+  insert into tmp_issue97_has_new_graph(
+    county_code,old_build_id,new_build_id,rebuild_result
+  ) values('BEL',v_old,v_new,v_rebuild);
+end
+$issue97_has_rebuild_bel$;
+
+do $issue97_has_verify_dependency_order$
+declare v_stale text[];
+begin
+  select pg_catalog.array_agg(target.county_code order by target.county_code)
+  into v_stale
+  from tmp_issue97_has_new_graph target
+  where not private_verification.brinesearch_issue97_graph_build_sources_current(
+    target.new_build_id
+  );
+  if v_stale is not null then
+    raise exception 'Issue #97 HAS dependency-ordered builds are not source-current: %',v_stale;
+  end if;
+end
+$issue97_has_verify_dependency_order$;
 
 do $issue97_has_manifest$
 declare
-  v_new uuid;
   v_manifest jsonb;
   v_manifest_id uuid;
   v_manifest_digest text;
   v_generation text;
 begin
-  select new_build_id into strict v_new from tmp_issue97_has_new_graph;
+  if (select count(*) from tmp_issue97_has_new_graph)<>2 then
+    raise exception 'Issue #97 HAS/BEL rebuild set is incomplete';
+  end if;
   v_manifest:=private_verification.brinesearch_issue97_persist_state_candidate_manifest(
     'OH',
     'issue97-ohio-r5-has-scout-exact-identity-candidate',
@@ -491,8 +660,8 @@ begin
     pg_catalog.jsonb_build_object(
       'reviewed_by','PC under explicit Issue #97 exact-identity repair authorization',
       'reviewed_at',pg_catalog.clock_timestamp(),
-      'evidence','Issue #97 Scout exact current ODOT source receipts; one HAS rebuild; zero activation impact required',
-      'scope','HAS Scout exact identity repair only',
+      'evidence','Issue #97 Scout exact current ODOT source receipts; exact dependent HAS and BEL rebuilds; zero activation impact required',
+      'scope','HAS Scout exact identity repair plus one proven BEL boundary dependency',
       'candidate_count',19,'activation_impact_count',0,
       'global_cutover_authorized',false,'public_google_authorized',false,
       'route_authority_upgrade',false,'source_boundary_is_driver_maneuver',false,
@@ -512,13 +681,17 @@ begin
      or not private_verification.brinesearch_issue97_state_candidate_manifest_integrity(
        v_manifest_id
      )
-     or not exists(
-       select 1
-       from private_verification.brinesearch_issue97_state_candidate_manifest_members member
-       where member.manifest_id=v_manifest_id and member.member_key='OH:HAS'
-         and member.member_value->>'build_id'=v_new::text
+     or exists(
+       select 1 from tmp_issue97_has_new_graph target
+       where not exists(
+         select 1
+         from private_verification.brinesearch_issue97_state_candidate_manifest_members member
+         where member.manifest_id=v_manifest_id
+           and member.member_key='OH:'||target.county_code
+           and member.member_value->>'build_id'=target.new_build_id::text
+       )
      ) then
-    raise exception 'Issue #97 HAS candidate manifest did not bind the exact validated build: %',
+    raise exception 'Issue #97 HAS candidate manifest did not bind both exact validated builds: %',
       v_manifest;
   end if;
 
@@ -534,55 +707,67 @@ declare
   v_target tmp_issue97_has_new_graph%rowtype;
   v_activation jsonb;
 begin
-  select * into strict v_target from tmp_issue97_has_new_graph;
-  v_activation:=public.brinesearch_issue97_activate_graph_build(
-    v_target.new_build_id,null,
-    pg_catalog.jsonb_build_object(
-      'candidate_manifest_digest',v_target.candidate_manifest_digest,
-      'candidate_manifest_git_sha','b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48',
-      'operator_git_sha','b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48',
-      'reviewed_by','PC under explicit Issue #97 exact-identity repair authorization',
-      'reviewed_at',pg_catalog.clock_timestamp(),
-      'evidence','Immutable Ohio candidate manifest '||v_target.candidate_manifest_id::text||
-        '; exact HAS source receipts; activation impact count must remain zero',
-      'global_cutover_authorized',false,'public_google_authorized',false
-    )
-  );
-  if not coalesce((v_activation->>'activated')::boolean,false)
-     or coalesce((v_activation->>'impact_count')::integer,-1)<>0 then
-    raise exception 'Issue #97 HAS graph activation failed or requires review: %',v_activation;
-  end if;
-  update tmp_issue97_has_new_graph set activation_result=v_activation;
+  for v_target in select * from tmp_issue97_has_new_graph order by county_code
+  loop
+    v_activation:=public.brinesearch_issue97_activate_graph_build(
+      v_target.new_build_id,null,
+      pg_catalog.jsonb_build_object(
+        'candidate_manifest_digest',v_target.candidate_manifest_digest,
+        'candidate_manifest_git_sha','b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48',
+        'operator_git_sha','b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48',
+        'reviewed_by','PC under explicit Issue #97 exact-identity repair authorization',
+        'reviewed_at',pg_catalog.clock_timestamp(),
+        'evidence','Immutable Ohio candidate manifest '||v_target.candidate_manifest_id::text||
+          '; exact '||v_target.county_code||' dependency; activation impact count must remain zero',
+        'global_cutover_authorized',false,'public_google_authorized',false
+      )
+    );
+    if not coalesce((v_activation->>'activated')::boolean,false)
+       or coalesce((v_activation->>'impact_count')::integer,-1)<>0 then
+      raise exception 'Issue #97 % graph activation failed or requires review: %',
+        v_target.county_code,v_activation;
+    end if;
+    update tmp_issue97_has_new_graph set activation_result=v_activation
+    where county_code=v_target.county_code;
+  end loop;
 end
 $issue97_has_activate$;
 
 do $issue97_has_prepare_manifest_cache$
 declare
-  v_target tmp_issue97_has_new_graph%rowtype;
+  v_manifest_id uuid;
+  v_manifest_digest text;
+  v_generation text;
   v_cache jsonb;
 begin
-  select * into strict v_target from tmp_issue97_has_new_graph;
+  if (select count(distinct candidate_manifest_id) from tmp_issue97_has_new_graph)<>1
+     or (select count(distinct candidate_manifest_digest) from tmp_issue97_has_new_graph)<>1
+     or (select count(distinct candidate_manifest_generation) from tmp_issue97_has_new_graph)<>1 then
+    raise exception 'Issue #97 HAS/BEL candidate manifest binding diverged';
+  end if;
+  select candidate_manifest_id,candidate_manifest_digest,candidate_manifest_generation
+  into strict v_manifest_id,v_manifest_digest,v_generation
+  from tmp_issue97_has_new_graph order by county_code limit 1;
   perform pg_catalog.set_config(
     'brinesearch.issue97_expected_state_manifest_id',
-    v_target.candidate_manifest_id::text,true
+    v_manifest_id::text,true
   );
   perform pg_catalog.set_config(
     'brinesearch.issue97_expected_state_manifest_digest',
-    v_target.candidate_manifest_digest,true
+    v_manifest_digest,true
   );
   perform pg_catalog.set_config('brinesearch.issue97_expected_state_code','OH',true);
   perform pg_catalog.set_config(
     'brinesearch.issue97_expected_generation_key',
-    v_target.candidate_manifest_generation,true
+    v_generation,true
   );
   perform pg_catalog.set_config('brinesearch.issue97_expected_member_count','19',true);
 
   v_cache:=private_verification.brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest(
-    v_target.candidate_manifest_id,v_target.candidate_manifest_digest,'OH',
-    v_target.candidate_manifest_generation,19
+    v_manifest_id,v_manifest_digest,'OH',v_generation,19
   );
-  if v_cache->>'manifest_id'<>v_target.candidate_manifest_id::text
-     or v_cache->>'manifest_digest'<>v_target.candidate_manifest_digest
+  if v_cache->>'manifest_id'<>v_manifest_id::text
+     or v_cache->>'manifest_digest'<>v_manifest_digest
      or v_cache->>'state_code'<>'OH'
      or v_cache->>'generation_key'<>'issue97-release-20260815-r2'
      or v_cache->>'member_count'<>'19'
@@ -625,10 +810,10 @@ begin
   from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
   join public.pads pad on pad.id=queue.pad_id;
   if v_queued is distinct from array[
-       'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
-       'ascent--pickens','ascent--scout','ascent--shutway'
+       'ascent--bakos','ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie',
+       'ascent--jennings','ascent--pickens','ascent--scout','ascent--shutway'
      ]::text[] then
-    raise exception 'Issue #97 HAS deferred Google queue diverged before drain: %',v_queued;
+    raise exception 'Issue #97 HAS/BEL deferred Google queue diverged before drain: %',v_queued;
   end if;
 end
 $issue97_has_verify_deferred_google_queue$;
@@ -640,26 +825,42 @@ $issue97_has_verify_deferred_google_queue$;
 set constraints private_verification.brinesearch_issue97_google_route_refresh_deferred immediate;
 
 do $issue97_has_verify_deferred_google_drain$
+declare v_queue text[]; v_ready text[]; v_public_count integer;
 begin
-  if exists(select 1
-      from private_verification.brinesearch_google_route_refresh_queue_issue97)
-     or not exists(
-       select 1
-       from private_verification.brinesearch_google_route_receipts_issue97 receipt
-       join public.pads pad on pad.id=receipt.pad_id
-       where pad.legacy_id='ascent--cologie' and receipt.status='ready'
-     )
-     or exists(
-       select 1
-       from private_verification.brinesearch_google_route_receipts_issue97 receipt
-       join public.pads pad on pad.id=receipt.pad_id
-       where pad.legacy_id in (
-         'ascent--banjo','ascent--besece','ascent--blayney',
-         'ascent--pickens','ascent--scout','ascent--shutway'
-       ) and receipt.status='ready'
-     )
-     or (select count(*) from public.brinesearch_driver_google_routes_public)<>0 then
-    raise exception 'Issue #97 HAS deferred Google drain failed closed';
+  select pg_catalog.array_agg(pad.legacy_id order by pad.legacy_id)
+  into v_queue
+  from private_verification.brinesearch_google_route_refresh_queue_issue97 queue
+  join public.pads pad on pad.id=queue.pad_id;
+  if v_queue is not null then
+    raise exception 'Issue #97 HAS deferred Google queue did not drain: %',v_queue;
+  end if;
+
+  select pg_catalog.array_agg(pad.legacy_id order by pad.legacy_id)
+  into v_ready
+  from private_verification.brinesearch_google_route_receipts_issue97 receipt
+  join public.pads pad on pad.id=receipt.pad_id
+  join tmp_issue97_has_deferred_google_pads dependency on dependency.pad_id=pad.id
+  where receipt.status='ready';
+  if v_ready is distinct from array['ascent--bakos','ascent--cologie']::text[] then
+    raise exception 'Issue #97 HAS exact private-ready dependency set diverged: %',v_ready;
+  end if;
+
+  if exists(
+    select 1
+    from private_verification.brinesearch_google_route_receipts_issue97 receipt
+    join public.pads pad on pad.id=receipt.pad_id
+    where pad.legacy_id in ('ascent--bakos','ascent--cologie')
+      and not private_verification.brinesearch_issue97_transition_google_dark_current(
+        pad.id
+      )
+  ) then
+    raise exception 'Issue #97 HAS Bakos/Cologie private-ready evidence is not current';
+  end if;
+
+  select count(*) into v_public_count
+  from public.brinesearch_driver_google_routes_public;
+  if v_public_count<>0 then
+    raise exception 'Issue #97 HAS public Google projection changed: %',v_public_count;
   end if;
 end
 $issue97_has_verify_deferred_google_drain$;
@@ -727,14 +928,16 @@ begin
      or (select count(*) from public.brinesearch_road_graph_builds
       where state_code='WV' and status='active')<>1
      or exists(select 1 from public.brinesearch_road_graph_builds where status='staging')
-     or (select count(*) from tmp_issue97_has_new_graph)<>1 then
-    raise exception 'Issue #97 HAS graph activation count failed';
+     or (select count(*) from tmp_issue97_has_new_graph)<>2 then
+    raise exception 'Issue #97 HAS/BEL graph activation count failed';
   end if;
 
   if exists(
     select 1 from tmp_issue97_has_new_graph target
     join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
-    where build.status<>'active'
+    join public.brinesearch_road_graph_builds old_build on old_build.id=target.old_build_id
+    where old_build.status<>'retired'
+      or build.status<>'active'
       or nullif(build.source_revision_digest,'') is null
       or build.source_revision_digest=(select before.source_revision_digest
         from tmp_issue97_has_graph_before before where before.id=target.old_build_id)
@@ -742,9 +945,11 @@ begin
         from pg_temp.tmp_issue97_graph_release_current_cache cache
         where cache.build_id=build.id),false)
   ) then
-    raise exception 'Issue #97 HAS graph currentness/source generation failed: %',(
-      select pg_catalog.jsonb_build_object(
+    raise exception 'Issue #97 HAS/BEL graph currentness/source generation failed: %',(
+      select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+        'county_code',target.county_code,
         'old_build_id',target.old_build_id,
+        'old_build_status',old_build.status,
         'new_build_id',target.new_build_id,
         'build_status',build.status,
         'old_source_revision_digest',(select before.source_revision_digest
@@ -756,40 +961,61 @@ begin
         'cache_current',coalesce((select cache.current
           from pg_temp.tmp_issue97_graph_release_current_cache cache
           where cache.build_id=build.id),false)
-      )
+      ) order by target.county_code)
       from tmp_issue97_has_new_graph target
       join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
+      join public.brinesearch_road_graph_builds old_build on old_build.id=target.old_build_id
     );
   end if;
 
-  if not exists(
-    select 1
-    from tmp_issue97_has_new_graph target
-    join private_verification.brinesearch_issue97_state_candidate_manifests manifest
-      on manifest.id=target.candidate_manifest_id
-     and manifest.manifest_digest=target.candidate_manifest_digest
-    join private_verification.brinesearch_issue97_state_candidate_manifest_members member
-      on member.manifest_id=manifest.id and member.member_key='OH:HAS'
-     and member.member_value->>'build_id'=target.new_build_id::text
-    join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
-    where manifest.manifest_key='issue97-ohio-r5-has-scout-exact-identity-candidate'
-      and manifest.state_code='OH' and manifest.member_count=19
-      and manifest.generation_key=target.candidate_manifest_generation
-      and manifest.git_sha='b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48'
-      and manifest.review_details->>'global_cutover_authorized'='false'
-      and manifest.review_details->>'public_google_authorized'='false'
-      and private_verification.brinesearch_issue97_state_candidate_manifest_integrity(manifest.id)
-      and target.activation_result->>'activated'='true'
-      and target.activation_result->>'impact_count'='0'
-      and target.cache_result->>'manifest_id'=manifest.id::text
-      and target.cache_result->>'manifest_digest'=manifest.manifest_digest
-      and target.cache_result->>'release_current_count'='19'
-      and member.member_value->>'source_revision_digest'=build.source_revision_digest
-      and member.member_value->>'graph_digest'=build.graph_digest
-      and exists(select 1 from pg_temp.tmp_issue97_graph_release_current_cache cache
-        where cache.build_id=target.new_build_id and cache.current)
-  ) then
-    raise exception 'Issue #97 HAS immutable candidate manifest/cache is absent or invalid after activation';
+  if (select count(*)
+      from tmp_issue97_has_new_graph target
+      join public.brinesearch_road_junctions junction
+        on junction.build_id=target.new_build_id
+      join public.brinesearch_road_junction_memberships has_member
+        on has_member.junction_id=junction.id
+       and has_member.identity_id='e69eb3cb-bbc7-9ea8-223c-7798d66d38c8'
+       and has_member.road_id='219e5560-8875-4baf-1a24-b600c862ecfb'
+      join public.brinesearch_road_junction_memberships bel_member
+        on bel_member.junction_id=junction.id
+       and bel_member.identity_id='a1151dc7-6a4b-7d65-17e4-02ea0a1e1d1a'
+       and bel_member.road_id='614c27a7-17a3-4828-b4eb-9c6837cc021b'
+      where target.county_code='BEL'
+        and junction.stable_junction_key=
+          'junction:point:OH:-80.9424736:40.1616560:identities:1fc24e4ea3bf40001d871678f87a6706'
+        and junction.junction_type='continuation'
+        and junction.verification_status='verified')<>1 then
+    raise exception 'Issue #97 HAS/BEL exact CR-64 / CR-36 continuation was not retained';
+  end if;
+
+  if (select count(*) from (
+      select target.county_code
+      from tmp_issue97_has_new_graph target
+      join private_verification.brinesearch_issue97_state_candidate_manifests manifest
+        on manifest.id=target.candidate_manifest_id
+       and manifest.manifest_digest=target.candidate_manifest_digest
+      join private_verification.brinesearch_issue97_state_candidate_manifest_members member
+        on member.manifest_id=manifest.id and member.member_key='OH:'||target.county_code
+       and member.member_value->>'build_id'=target.new_build_id::text
+      join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
+      where manifest.manifest_key='issue97-ohio-r5-has-scout-exact-identity-candidate'
+        and manifest.state_code='OH' and manifest.member_count=19
+        and manifest.generation_key=target.candidate_manifest_generation
+        and manifest.git_sha='b75be46ee7d0e2f8e46bbb050e7a48e5f1077e48'
+        and manifest.review_details->>'global_cutover_authorized'='false'
+        and manifest.review_details->>'public_google_authorized'='false'
+        and private_verification.brinesearch_issue97_state_candidate_manifest_integrity(manifest.id)
+        and target.activation_result->>'activated'='true'
+        and target.activation_result->>'impact_count'='0'
+        and target.cache_result->>'manifest_id'=manifest.id::text
+        and target.cache_result->>'manifest_digest'=manifest.manifest_digest
+        and target.cache_result->>'release_current_count'='19'
+        and member.member_value->>'source_revision_digest'=build.source_revision_digest
+        and member.member_value->>'graph_digest'=build.graph_digest
+        and exists(select 1 from pg_temp.tmp_issue97_graph_release_current_cache cache
+          where cache.build_id=target.new_build_id and cache.current)
+    ) exact_members)<>2 then
+    raise exception 'Issue #97 HAS/BEL immutable candidate manifest/cache is absent or invalid after activation';
   end if;
 
   if exists(
@@ -797,13 +1023,13 @@ begin
     join public.brinesearch_road_graph_builds current
       on current.state_code=before.state_code and current.county_code=before.county_code
      and current.status='active'
-    where not (before.state_code='OH' and before.county_code='HAS')
+    where not (before.state_code='OH' and before.county_code in ('BEL','HAS'))
       and (current.id<>before.id or current.graph_digest<>before.graph_digest)
   ) or (select count(*) from tmp_issue97_has_graph_before
-        where not (state_code='OH' and county_code='HAS'))<>
+        where not (state_code='OH' and county_code in ('BEL','HAS')))<>
        (select count(*) from public.brinesearch_road_graph_builds
-        where status='active' and not (state_code='OH' and county_code='HAS')) then
-    raise exception 'Issue #97 HAS migration changed an unrelated active graph';
+        where status='active' and not (state_code='OH' and county_code in ('BEL','HAS'))) then
+    raise exception 'Issue #97 HAS/BEL migration changed an unrelated active graph';
   end if;
 
   select pg_catalog.md5(coalesce(pg_catalog.string_agg(
@@ -811,7 +1037,10 @@ begin
       coalesce(p.brinesearch_google_route_revision_issue97::text,''),
     ',' order by p.id
   ),'')) into v_digest
-  from public.pads p where p.legacy_id<>'ascent--scout';
+  from public.pads p
+  where not exists(
+    select 1 from tmp_issue97_has_deferred_google_pads target where target.pad_id=p.id
+  );
   if v_digest is distinct from (select digest from tmp_issue97_has_non_target_google_before) then
     raise exception 'Issue #97 HAS migration changed non-target private Google state';
   end if;
@@ -865,17 +1094,17 @@ select pg_catalog.jsonb_build_object(
   'issue',97,'scope','Scout exact source occurrence repair',
   'canonicalRoadsCreated',2,'identityMappingsCreated',2,
   'resolvedPublicOccurrences',5,
-  'dependentPrivateGoogleReceiptsRefreshed',7,
-  'affectedGraph',(
-    select pg_catalog.jsonb_build_object(
-      'countyCode','HAS','oldBuildId',target.old_build_id,
+  'dependentPrivateGoogleReceiptsRefreshed',9,
+  'affectedGraphs',(
+    select pg_catalog.jsonb_agg(pg_catalog.jsonb_build_object(
+      'countyCode',target.county_code,'oldBuildId',target.old_build_id,
       'newBuildId',target.new_build_id,'graphDigest',build.graph_digest,
       'candidateManifestId',target.candidate_manifest_id,
       'candidateManifestDigest',target.candidate_manifest_digest,
       'releaseCurrent',coalesce((select cache.current
         from pg_temp.tmp_issue97_graph_release_current_cache cache
         where cache.build_id=build.id),false)
-    ) from tmp_issue97_has_new_graph target
+    ) order by target.county_code) from tmp_issue97_has_new_graph target
     join public.brinesearch_road_graph_builds build on build.id=target.new_build_id
   ),
   'scoutGoogleStatus',(

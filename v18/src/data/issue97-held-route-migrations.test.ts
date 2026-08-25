@@ -7,8 +7,8 @@ const migration = (name: string) =>
 const gue = migration("20260824122000_issue97_gue_held_route_exact_identity_receipts.sql");
 const has = migration("20260824124500_issue97_has_scout_exact_identity_receipts.sql");
 
-const expectCommonFailClosedContract = (sql: string) => {
-  expect(sql).toContain("set local statement_timeout = '15min'");
+const expectCommonFailClosedContract = (sql: string, statementTimeout = "15min") => {
+  expect(sql).toContain(`set local statement_timeout = '${statementTimeout}'`);
   expect(sql).toContain("brinesearch_issue97_prepare_graph_release_current_cache_for_state_manifest");
   expect(sql).toContain("brinesearch.issue97_expected_state_manifest_id");
   expect(sql).toContain("brinesearch.issue97_expected_state_manifest_digest");
@@ -104,10 +104,13 @@ describe("Issue #97 held-route exact-identity migrations", () => {
     expect(gue.match(/brinesearch_issue97_candidate_manifest_authorizes_build\(/g)).toHaveLength(1);
   });
 
-  it("keeps Scout's same-US-250 boundary explicit and held", () => {
-    expectCommonFailClosedContract(has);
+  it("rebuilds the exact HAS/BEL dependency while keeping Scout's boundary held", () => {
+    expectCommonFailClosedContract(has, "90min");
     expectOrderedStatements(has, [
-      "issue97_has_rebuild",
+      "issue97_has_rebuild_has",
+      "issue97_has_reset_builder_temp",
+      "issue97_has_rebuild_bel",
+      "issue97_has_verify_dependency_order",
       "issue97_has_manifest",
       "issue97_has_activate",
       "issue97_has_prepare_manifest_cache",
@@ -123,10 +126,41 @@ describe("Issue #97 held-route exact-identity migrations", () => {
     expect(has).toContain("'scoutUs250SourceBoundary','held_explicit_boundary_required'");
     expect(has).toContain("'newDriverManeuverCreated',false");
     expect(has).toContain(
-      "'ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie'",
+      "'ascent--bakos','ascent--banjo','ascent--besece','ascent--blayney','ascent--cologie'",
     );
-    expect(has).toContain("where pad.legacy_id='ascent--cologie' and receipt.status='ready'");
-    expect(has).toContain("'dependentPrivateGoogleReceiptsRefreshed',7");
+    expect(has).toContain(
+      "'ascent--jennings','ascent--pickens','ascent--scout','ascent--shutway'",
+    );
+    expect(has).toContain("brinesearch_issue97_rebuild_county_graph('OH','BEL')");
+    expect(has).toContain("brinesearch_issue97_rebuild_county_graph('OH','HAS')");
+    expect(
+      has.indexOf("brinesearch_issue97_rebuild_county_graph('OH','HAS')"),
+    ).toBeLessThan(
+      has.indexOf("brinesearch_issue97_rebuild_county_graph('OH','BEL')"),
+    );
+    expect(has).toContain(
+      "v_dependency_counties is distinct from array['BEL','HAS']::text[]",
+    );
+    expect(has).toContain("$issue97_has_verify_dependency_order$");
+    expect(has).toContain("execute 'drop table pg_temp.tmp_issue97_point_corroboration'");
+    expect(has.match(/drop table pg_temp\.tmp_issue97_point_corroboration/g)).toHaveLength(1);
+    expect(has).toContain("county_code in ('BEL','HAS')");
+    expect(has).toContain("'private_receipt_mapping'::text");
+    expect(has).toContain("array['private_receipt_mapping']::text[]");
+    expect(has).toContain("1c1320b3-4257-4239-9c55-b18a801aa97e");
+    expect(has).toContain(
+      "junction:point:OH:-80.9424736:40.1616560:identities:1fc24e4ea3bf40001d871678f87a6706",
+    );
+    expect(has).toContain("member.member_key='OH:'||target.county_code");
+    expect(has).toContain("'affectedGraphs'");
+    expect(has).toContain(
+      "v_ready is distinct from array['ascent--bakos','ascent--cologie']::text[]",
+    );
+    expect(has).toContain(
+      "where pad.legacy_id in ('ascent--bakos','ascent--cologie')",
+    );
+    expect(has).toContain("brinesearch_issue97_transition_google_dark_current");
+    expect(has).toContain("'dependentPrivateGoogleReceiptsRefreshed',9");
     // One invocation checks the installed GUE predecessor. The other match is
     // the pinned function signature; no redundant HAS pre/post invocation remains.
     expect(has.match(/brinesearch_issue97_state_candidate_manifest_current\(/g)).toHaveLength(2);
