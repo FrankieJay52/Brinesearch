@@ -19,7 +19,7 @@ export interface PadCoordinate {
   role: CoordinateRole;
 }
 
-export type PadMapReferenceKind = "official_pad_reference" | "official_wellhead_reference";
+export type PadMapReferenceKind = "official_pad_reference" | "official_wellhead_reference" | "saved_pad_reference";
 
 export interface PadMapReference extends PadCoordinate {
   role: "reference";

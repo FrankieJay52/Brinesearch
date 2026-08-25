@@ -55,7 +55,9 @@ export function validateCachedPad(value: unknown): PadSummary | null {
   if (row.mapReference !== undefined && row.mapReference !== null) {
     if (coordinate || typeof row.mapReference !== "object"
       || row.mapReference.role !== "reference"
-      || (row.mapReference.kind !== "official_pad_reference" && row.mapReference.kind !== "official_wellhead_reference")) return null;
+      || (row.mapReference.kind !== "official_pad_reference"
+        && row.mapReference.kind !== "official_wellhead_reference"
+        && row.mapReference.kind !== "saved_pad_reference")) return null;
     const parsed = parseCoordinatePair(row.mapReference.latitude, row.mapReference.longitude, "reference");
     if (!parsed.ok) return null;
     mapReference = { ...parsed.value, role: "reference", kind: row.mapReference.kind };

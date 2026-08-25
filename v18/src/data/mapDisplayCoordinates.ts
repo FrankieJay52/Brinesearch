@@ -47,7 +47,8 @@ export function mapDisplayCoordinate(row: PadSummary): PadCoordinate | null {
   if (isSafeMapCoordinate(row.mapReference)
     && row.mapReference?.role === "reference"
     && (row.mapReference.kind === "official_pad_reference"
-      || row.mapReference.kind === "official_wellhead_reference")) return row.mapReference;
+      || row.mapReference.kind === "official_wellhead_reference"
+      || row.mapReference.kind === "saved_pad_reference")) return row.mapReference;
   if (!row.legacyId) return null;
   return packagedReferenceCoordinates.get(row.legacyId) || null;
 }
@@ -58,6 +59,7 @@ export function mapDisplayCoordinateLabel(row: PadSummary) {
   if (coordinate.role === "driver_entrance") return "Verified driver entrance";
   if (row.mapReference?.kind === "official_pad_reference") return "Official pad reference · not a driver entrance";
   if (row.mapReference?.kind === "official_wellhead_reference") return "Official wellhead reference · not a driver entrance";
+  if (row.mapReference?.kind === "saved_pad_reference") return "Saved pad GPS · field check only";
   return "Saved GPS · field check only";
 }
 

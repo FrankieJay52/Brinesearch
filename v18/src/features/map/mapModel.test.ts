@@ -87,6 +87,29 @@ describe("padFeatureCollection", () => {
       properties: { verifiedEntrance: false },
     });
   });
+
+  it("uses a saved pad GPS reference only as an unverified display point", () => {
+    const reference = pad({
+      padId: "f100e8c5-a9f8-4655-8a28-4504b6a77882",
+      canonicalId: "f100e8c5-a9f8-4655-8a28-4504b6a77882",
+      legacyId: null,
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "saved_pad_reference",
+        latitude: 40.26,
+        longitude: -80.76,
+      },
+    });
+    expect(reference.coordinate).toBeNull();
+    expect(mapDisplayCoordinate(reference)).toMatchObject({
+      role: "reference",
+      kind: "saved_pad_reference",
+    });
+    expect(padFeatureCollection([reference]).features[0]).toMatchObject({
+      properties: { verifiedEntrance: false },
+    });
+  });
 });
 
 describe("groupCoincidentProjectedPads", () => {
