@@ -1,6 +1,6 @@
 import { ownerRoadStatuses, type OwnerPadOption, type OwnerRoadBounds, type OwnerRoadFeature, type OwnerRoadStatus, type OwnerRoadViewportRequest } from "@/data/ownerRoads";
 import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
-import type { PadSummary } from "@/data/types";
+import type { DriverPadStatus, PadSummary } from "@/data/types";
 
 export const ownerRoadStatusLabels: Record<OwnerRoadStatus, string> = {
   approved_by_policy: "Approved by policy",
@@ -19,6 +19,144 @@ export const ownerRoadStatusColors: Record<OwnerRoadStatus, string> = {
   restricted: "#f06b52",
   reference_only: "#8f9aa5",
 };
+
+export type OwnerPadOverlayStatus = "ready" | "candidate" | "held" | "restricted";
+
+export type OwnerPadOverlayMarker = {
+  padId: string;
+  padName: string;
+  company: string;
+  state: string;
+  county: string;
+  latitude: number;
+  longitude: number;
+  status: OwnerPadOverlayStatus;
+  blockReason: string;
+  statusChecked: boolean;
+};
+
+export const ownerPadOverlayStatusLabels: Record<OwnerPadOverlayStatus, string> = {
+  ready: "Ready",
+  candidate: "Candidate",
+  held: "Held",
+  restricted: "Restricted",
+};
+
+export const ownerPadOverlayStatusColors: Record<OwnerPadOverlayStatus, string> = {
+  ready: ownerRoadStatusColors.approved_by_policy,
+  candidate: ownerRoadStatusColors.candidate,
+  held: ownerRoadStatusColors.held,
+  restricted: ownerRoadStatusColors.restricted,
+};
+
+function padStatusReasonText(status: DriverPadStatus | null) {
+  return [status?.route.safeReason, status?.google.safeReason].filter(Boolean).join(" ").toLocaleLowerCase().replace(/[_-]+/g, " ");
+}
+
+export function ownerPadOverlayStatus(status: DriverPadStatus | null): OwnerPadOverlayStatus {
+  const reason = padStatusReasonText(status);
+  if (/\brestrict(?:ed|ion)?\b|\broad[_ -]?closed\b|\bclosed[_ -]?to[_ -]?truck/.test(reason)) return "restricted";
+  if (status?.dataState !== "live") return "held";
+  if (status?.route.state === "ready" && status.route.source === "exact_graph" && status.graph.state === "active_current") return "ready";
+  if (status?.route.state === "written_only") return "candidate";
+  return "held";
+}
+
+export function ownerPadOverlayBlockReason(status: DriverPadStatus | null, hasActiveRoutePrep: boolean | null) {
+  const overlayStatus = ownerPadOverlayStatus(status);
+  const reason = padStatusReasonText(status);
+  if (overlayStatus === "ready") return "Approved route ready";
+  if (overlayStatus === "candidate") return "Reviewed directions only";
+  if (overlayStatus === "restricted") return "Road restriction";
+  if (hasActiveRoutePrep === false) return "No exact route match";
+  if (!status) return "Checking route status";
+  if (status.dataState !== "live") return "Status not current";
+  if (/\bname[_ -]?only\b/.test(reason)) return "Name-only match";
+  if (/\bfield[_ -]?check\b/.test(reason)) return "Field check";
+  if (/\bno[_ -]?gps\b|\bmissing[_ -]?(?:gps|coordinate)\b/.test(reason)) return "No GPS";
+  if (/\bno[_ -]?match\b|\bexact[_ -]?route[_ -]?not[_ -]?ready\b/.test(reason)) return "No exact route match";
+  if (status.route.state === "stale" || status.graph.state === "stale") return "Route evidence stale";
+  if (status.graph.state !== "active_current") return "Graph not current";
+  return "Route held";
+}
+
+export function ownerPadOverlayMarker(
+  pad: OwnerPadOption,
+  directoryPad: PadSummary | null,
+  status: DriverPadStatus | null,
+  hasActiveRoutePrep: boolean | null,
+): OwnerPadOverlayMarker | null {
+  if (pad.latitude === null || pad.longitude === null) return null;
+  return {
+    padId: pad.padId,
+    padName: pad.padName,
+    company: pad.company,
+    state: ownerRoadStateCode(pad.state || directoryPad?.state || "") || pad.state || directoryPad?.state || "",
+    county: directoryPad?.county || "",
+    latitude: pad.latitude,
+    longitude: pad.longitude,
+    status: ownerPadOverlayStatus(status),
+    blockReason: ownerPadOverlayBlockReason(status, hasActiveRoutePrep),
+    statusChecked: Boolean(status) || hasActiveRoutePrep === false,
+  };
+}
+
+export function filterOwnerPadOverlayMarkers(
+  markers: readonly OwnerPadOverlayMarker[],
+  filters: {
+    state: "OH" | "WV" | "PA" | "";
+    county: string;
+    selectedCompany: string;
+    companyScope: "selected" | "all";
+    includeHeld: boolean;
+  },
+) {
+  const county = filters.county.trim().toLocaleLowerCase();
+  return markers.filter((marker) => (!filters.state || ownerRoadStateCode(marker.state) === filters.state)
+    && (!county || marker.county.trim().toLocaleLowerCase() === county)
+    && (filters.companyScope === "all" || !filters.selectedCompany || marker.company === filters.selectedCompany)
+    && (filters.includeHeld || marker.status !== "held"));
+}
+
+export function ownerPadOverlayCollection(markers: readonly OwnerPadOverlayMarker[], selectedPadId: string | null, inspectedPadId: string | null) {
+  return {
+    type: "FeatureCollection" as const,
+    features: markers.map((marker) => ({
+      type: "Feature" as const,
+      geometry: { type: "Point" as const, coordinates: [marker.longitude, marker.latitude] },
+      properties: {
+        padId: marker.padId,
+        padName: marker.padName,
+        company: marker.company,
+        overlayStatus: marker.status,
+        blockReason: marker.blockReason,
+        selected: marker.padId === selectedPadId,
+        inspected: marker.padId === inspectedPadId,
+      },
+    })),
+  };
+}
+
+export function ownerPadOverlayBounds(markers: readonly OwnerPadOverlayMarker[]): OwnerRoadBounds | null {
+  if (!markers.length) return null;
+  return markers.reduce<OwnerRoadBounds>((bounds, marker) => ({
+    west: Math.min(bounds.west, marker.longitude),
+    south: Math.min(bounds.south, marker.latitude),
+    east: Math.max(bounds.east, marker.longitude),
+    north: Math.max(bounds.north, marker.latitude),
+  }), { west: markers[0].longitude, south: markers[0].latitude, east: markers[0].longitude, north: markers[0].latitude });
+}
+
+export function ownerBoundsUnion(...values: Array<OwnerRoadBounds | null>) {
+  const bounds = values.filter((value): value is OwnerRoadBounds => value !== null);
+  if (!bounds.length) return null;
+  return bounds.reduce<OwnerRoadBounds>((combined, value) => ({
+    west: Math.min(combined.west, value.west),
+    south: Math.min(combined.south, value.south),
+    east: Math.max(combined.east, value.east),
+    north: Math.max(combined.north, value.north),
+  }), bounds[0]);
+}
 
 export function ownerRoadCoverage(features: readonly OwnerRoadFeature[]) {
   const statusCounts = Object.fromEntries(ownerRoadStatuses.map((status) => [status, 0])) as Record<OwnerRoadStatus, number>;

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { OwnerPadOption, OwnerRoadFeature, OwnerRoadViewportRequest } from "@/data/ownerRoads";
-import type { PadSummary } from "@/data/types";
+import type { DriverPadStatus, PadSummary } from "@/data/types";
 import {
+  filterOwnerPadOverlayMarkers,
+  ownerBoundsUnion,
+  ownerPadOverlayBounds,
+  ownerPadOverlayCollection,
+  ownerPadOverlayMarker,
+  ownerPadOverlayStatus,
   ownerRoadCollection,
   ownerRoadCompanyOptions,
   ownerRoadCoverage,
@@ -183,5 +189,64 @@ describe("owner road map model", () => {
     }));
     expect(ownerRoadPadSearchResults(pads, "Ascent", "", 12)).toHaveLength(12);
     expect(ownerRoadPadSearchResults(pads, "Ascent", "", 500)).toHaveLength(50);
+  });
+
+  it("keeps Cologie ready while Lasso remains visible and held without inventing a route", () => {
+    const directoryPad = (padId: string, padName: string): PadSummary => ({
+      padId, canonicalId: padId, legacyId: `ascent--${padName.toLowerCase()}`, aliases: [], recordNumber: null,
+      recordRevision: "1", recordType: "pad", company: "Ascent", padName, state: "Ohio", county: "Harrison",
+      township: "", address: "", coordinate: null, mapReference: null, wellNames: [], apiNumbers: [], propertyNumbers: [],
+      safeRoadTerms: [], structuredRoadSequence: "", writtenDirections: "", verificationStatus: "", operatingStatus: "", updatedAt: null,
+    });
+    const status = (state: DriverPadStatus["route"]["state"], source: DriverPadStatus["route"]["source"], graph: DriverPadStatus["graph"]["state"], safeReason: string | null = null): DriverPadStatus => ({
+      padId: "11111111-1111-4111-8111-111111111111", recordRevision: "1", dataState: "live",
+      route: { state, source, geometry: null, safeReason, lastVerifiedAt: null, writtenDirections: null },
+      graph: { state: graph, county: "Harrison", publicSource: null, lastVerifiedAt: null },
+      google: { publicState: "not_published", routeUrl: null, safeReason: "exact_route_not_ready" },
+      destination: { available: false, latitude: null, longitude: null }, googleRouteChunks: [], routeSteps: [],
+    });
+    const cologie = ownerPadOverlayMarker(
+      { padId: "11111111-1111-4111-8111-111111111111", padName: "COLOGIE", company: "Ascent", state: "OH", latitude: 40.25403, longitude: -80.913577 },
+      directoryPad("11111111-1111-4111-8111-111111111111", "COLOGIE"),
+      status("ready", "exact_graph", "active_current"),
+      true,
+    );
+    const lasso = ownerPadOverlayMarker(
+      { padId: "22222222-2222-4222-8222-222222222222", padName: "LASSO", company: "Ascent", state: "OH", latitude: 40.240883, longitude: -80.913963 },
+      directoryPad("22222222-2222-4222-8222-222222222222", "LASSO"),
+      null,
+      false,
+    );
+    expect(cologie).toMatchObject({ status: "ready", blockReason: "Approved route ready", statusChecked: true });
+    expect(lasso).toMatchObject({ status: "held", blockReason: "No exact route match", statusChecked: true });
+    const markers = filterOwnerPadOverlayMarkers([cologie!, lasso!], {
+      state: "OH", county: "Harrison", selectedCompany: "Ascent", companyScope: "selected", includeHeld: true,
+    });
+    expect(markers.map((marker) => marker.padName)).toEqual(["COLOGIE", "LASSO"]);
+    expect(filterOwnerPadOverlayMarkers(markers, {
+      state: "OH", county: "Harrison", selectedCompany: "Ascent", companyScope: "selected", includeHeld: false,
+    }).map((marker) => marker.padName)).toEqual(["COLOGIE"]);
+    expect(ownerPadOverlayCollection(markers, cologie!.padId, lasso!.padId).features.map((item) => item.properties)).toEqual([
+      expect.objectContaining({ padName: "COLOGIE", overlayStatus: "ready", selected: true, inspected: false }),
+      expect.objectContaining({ padName: "LASSO", overlayStatus: "held", selected: false, inspected: true }),
+    ]);
+  });
+
+  it("uses only safe status fields for candidate, restricted, and fit bounds", () => {
+    const base = {
+      padId: "11111111-1111-4111-8111-111111111111", recordRevision: "1", dataState: "live" as const,
+      route: { state: "written_only" as const, source: "legacy_written" as const, geometry: null, safeReason: null, lastVerifiedAt: null, writtenDirections: "Reviewed" },
+      graph: { state: "held" as const, county: "Harrison", publicSource: null, lastVerifiedAt: null },
+      google: { publicState: "held" as const, routeUrl: null, safeReason: "exact_route_not_ready" },
+      destination: { available: false, latitude: null, longitude: null }, googleRouteChunks: [], routeSteps: [],
+    } satisfies DriverPadStatus;
+    expect(ownerPadOverlayStatus(base)).toBe("candidate");
+    expect(ownerPadOverlayStatus({ ...base, route: { ...base.route, state: "held", safeReason: "road_restricted" } })).toBe("restricted");
+    const padBounds = ownerPadOverlayBounds([
+      { padId: "1", padName: "A", company: "Ascent", state: "OH", county: "Harrison", latitude: 40.1, longitude: -81, status: "held", blockReason: "Route held", statusChecked: true },
+      { padId: "2", padName: "B", company: "Ascent", state: "OH", county: "Harrison", latitude: 40.3, longitude: -80.8, status: "ready", blockReason: "Approved route ready", statusChecked: true },
+    ]);
+    expect(padBounds).toEqual({ west: -81, south: 40.1, east: -80.8, north: 40.3 });
+    expect(ownerBoundsUnion(padBounds, { west: -81.2, south: 40, east: -80.9, north: 40.2 })).toEqual({ west: -81.2, south: 40, east: -80.8, north: 40.3 });
   });
 });
