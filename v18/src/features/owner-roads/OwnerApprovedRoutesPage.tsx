@@ -65,7 +65,7 @@ const padLayerId = "brinesearch-owner-selected-pad-marker";
 const fullscreenFadeSourceId = "brinesearch-owner-fullscreen-fade";
 const fullscreenFadeLayerId = "brinesearch-owner-fullscreen-fade-layer";
 const defaultCenter: [number, number] = [-80.72, 40.05];
-const defaultStatuses = new Set<OwnerRoadStatus>(ownerRoadStatuses.filter((status) => status !== "reference_only"));
+const defaultStatuses = new Set<OwnerRoadStatus>(ownerRoadStatuses);
 const viewportMoveDelay = 240;
 const viewportRequestTimeout = 15_000;
 const roadResultPageSize = 60;
@@ -878,7 +878,7 @@ export function OwnerApprovedRoutesPage() {
           <button type="button" className={!padId ? "is-active" : ""} aria-pressed={!padId} onClick={showAllRoads}><Icon name="map"/>All roads in view</button>
           {selectedPad && <span><strong>{selectedPad.padName}</strong><small>{selectedPad.company || "Company unavailable"}</small><button type="button" onClick={() => choosePad("")} aria-label={`Clear ${selectedPad.padName}`}>Clear</button></span>}
         </div>
-        <small className="owner-road-pad-picker-proof">Company separates the pad finder. Selecting a pad loads only its exact saved primary-route road evidence; no company route is inferred.</small>
+        <small className="owner-road-pad-picker-proof">Company separates the pad finder. All exact road statuses are included by default. Selecting a pad loads only its exact saved primary-route road evidence; no company route is inferred.</small>
       </div>
       <button type="button" className="button-secondary owner-road-refresh" onClick={() => { void loadViewport(true); }}><Icon name="update"/>Refresh view</button>
     </section>

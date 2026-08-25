@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import type { PadSummary } from "@/data/types";
 import {
-  clusterNeedsChooser,
+  coincidentLocationsNeedChooser,
   emptyMapCoordinateNotice,
   filterMapRows,
   mapPadSearchResults,
@@ -37,26 +37,25 @@ function pad(padId: string, latitude: number, longitude: number): PadSummary {
   };
 }
 
-describe("clusterNeedsChooser", () => {
-  it("opens the chooser for exact-coordinate locations before maximum zoom", () => {
-    expect(clusterNeedsChooser([
+describe("coincidentLocationsNeedChooser", () => {
+  it("opens the chooser for exact-coordinate locations", () => {
+    expect(coincidentLocationsNeedChooser([
       pad("alpha", 39.8, -81.2),
       pad("beta", 39.8, -81.2),
-    ], 8)).toBe(true);
+    ])).toBe(true);
   });
 
-  it("allows distinct nearby locations to zoom before opening the chooser", () => {
+  it("never combines distinct nearby locations into a moving cluster", () => {
     const rows = [
       pad("alpha", 39.8, -81.2),
       pad("beta", 39.8001, -81.2001),
     ];
 
-    expect(clusterNeedsChooser(rows, 8)).toBe(false);
-    expect(clusterNeedsChooser(rows, 14)).toBe(true);
+    expect(coincidentLocationsNeedChooser(rows)).toBe(false);
   });
 
   it("does not open a chooser for a single location", () => {
-    expect(clusterNeedsChooser([pad("alpha", 39.8, -81.2)], 14)).toBe(false);
+    expect(coincidentLocationsNeedChooser([pad("alpha", 39.8, -81.2)])).toBe(false);
   });
 });
 
@@ -98,6 +97,11 @@ describe("map viewer controls", () => {
     expect(mapPadSearchResults([disposal, unmapped, bannock], "Bannock").map((row) => row.padId)).toEqual(["bannock"]);
     expect(mapPadSearchResults([bannock], " ")).toEqual([]);
   });
+
+  it("searches an exact-identity saved GPS as a field-check point", () => {
+    const scout = { ...pad("scout", 40.1, -80.9), legacyId: "ascent--scout", padName: "SCOUT", coordinate: null };
+    expect(mapPadSearchResults([scout], "Scout")).toEqual([scout]);
+  });
 });
 
 describe("map viewer authority boundary", () => {
@@ -111,7 +115,9 @@ describe("map viewer authority boundary", () => {
   });
 
   it("draws a selected inbound route only from the fail-closed driver status geometry", () => {
-    expect(pageSource).toContain("selectedRouteRef.current = selectedStatus?.route.geometry || null");
+    expect(pageSource).toContain("selectedRouteRef.current = selectedRouteGeometry");
+    expect(pageSource).toContain("selectedRouteChoice?.geometry || selectedStatus?.route.geometry || null");
+    expect(pageSource).toContain("loadDriverRouteChoices(selected)");
     expect(pageSource).toContain("No route line was inferred.");
     expect(pageSource).not.toContain("nearest_road");
     expect(pageSource).not.toContain("fuzzy_name");
@@ -122,5 +128,11 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
+  });
+
+  it("uses stable individual markers instead of moving numbered clusters", () => {
+    expect(pageSource).toContain("groupCoincidentProjectedPads");
+    expect(pageSource).toContain("stable double marker");
+    expect(pageSource).not.toContain("fillText(group.rows.length");
   });
 });

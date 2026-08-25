@@ -1,4 +1,5 @@
 import { ownerRoadStatuses, type OwnerPadOption, type OwnerRoadBounds, type OwnerRoadFeature, type OwnerRoadStatus, type OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 import type { PadSummary } from "@/data/types";
 
 export const ownerRoadStatusLabels: Record<OwnerRoadStatus, string> = {
@@ -100,13 +101,18 @@ export function ownerRoadPadOptions(directoryRows: readonly PadSummary[], protec
   for (const row of directoryRows) {
     if (!row.canonicalId) continue;
     const protectedPad = protectedById.get(row.canonicalId);
+    const protectedCoordinate = protectedPad?.latitude !== null && protectedPad?.latitude !== undefined
+      && protectedPad.longitude !== null && protectedPad.longitude !== undefined
+      ? { latitude: protectedPad.latitude, longitude: protectedPad.longitude }
+      : null;
+    const displayCoordinate = mapDisplayCoordinate(row);
     merged.set(row.canonicalId, {
       padId: row.canonicalId,
       padName: row.padName,
       company: row.company,
       state: protectedPad?.state || ownerRoadStateCode(row.state) || row.state,
-      latitude: protectedPad?.latitude ?? row.coordinate?.latitude ?? null,
-      longitude: protectedPad?.longitude ?? row.coordinate?.longitude ?? null,
+      latitude: protectedCoordinate?.latitude ?? displayCoordinate?.latitude ?? null,
+      longitude: protectedCoordinate?.longitude ?? displayCoordinate?.longitude ?? null,
     });
   }
   for (const pad of protectedOptions) if (!merged.has(pad.padId)) merged.set(pad.padId, pad);

@@ -1,5 +1,8 @@
-import type { PadSummary } from "@/data/types";
+import { hasMapDisplayCoordinate, mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
+import type { PadCoordinate, PadSummary } from "@/data/types";
 import { searchDirectory } from "@/data/search";
+
+export { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 
 export type MapViewerMode = "standard" | "fullscreen" | "roads";
 
@@ -17,22 +20,16 @@ export function mapPadSearchResults(rows: PadSummary[], query: string, limit = 8
 }
 
 export function hasSafeCoordinate(row: PadSummary) {
-  const coordinate = row.coordinate;
-  if (!coordinate) return false;
-  return Number.isFinite(coordinate.latitude)
-    && Number.isFinite(coordinate.longitude)
-    && coordinate.latitude >= -90
-    && coordinate.latitude <= 90
-    && coordinate.longitude >= -180
-    && coordinate.longitude <= 180
-    && !(coordinate.latitude === 0 && coordinate.longitude === 0);
+  return hasMapDisplayCoordinate(row);
 }
 
-export function clusterNeedsChooser(rows: PadSummary[], zoom: number, maximumExpansionZoom = 14) {
+export function coincidentLocationsNeedChooser(rows: PadSummary[]) {
   if (rows.length < 2) return false;
-  if (zoom >= maximumExpansionZoom) return true;
-  const first = rows[0].coordinate;
-  return Boolean(first && rows.every((row) => row.coordinate?.latitude === first.latitude && row.coordinate?.longitude === first.longitude));
+  const first = mapDisplayCoordinate(rows[0]);
+  return Boolean(first && rows.every((row) => {
+    const coordinate = mapDisplayCoordinate(row);
+    return coordinate?.latitude === first.latitude && coordinate.longitude === first.longitude;
+  }));
 }
 
 export function filterMapRows(rows: PadSummary[], typeFilter: "all" | "pad" | "disposal", selectedCompany: string | null) {
@@ -47,49 +44,59 @@ export function emptyMapCoordinateNotice(visibleLocationCount: number) {
 
 export interface ProjectedPad {
   row: PadSummary;
+  coordinate: PadCoordinate;
   x: number;
   y: number;
 }
 
 export interface ProjectedPadGroup {
   rows: PadSummary[];
+  points: ProjectedPad[];
   x: number;
   y: number;
 }
 
-export function groupProjectedPads(points: ProjectedPad[], cellSize: number): ProjectedPadGroup[] {
-  const safeCellSize = Number.isFinite(cellSize) && cellSize > 0 ? cellSize : 48;
-  const cells = new Map<string, ProjectedPad[]>();
+export function groupCoincidentProjectedPads(points: ProjectedPad[]): ProjectedPadGroup[] {
+  const locations = new Map<string, ProjectedPad[]>();
   for (const point of points) {
     if (!Number.isFinite(point.x) || !Number.isFinite(point.y)) continue;
-    const key = `${Math.floor(point.x / safeCellSize)}:${Math.floor(point.y / safeCellSize)}`;
-    const cell = cells.get(key);
-    if (cell) cell.push(point);
-    else cells.set(key, [point]);
+    const coordinate = point.coordinate;
+    // Group only records that genuinely share the exact stored coordinate.
+    // Screen-space cells caused numbered clusters to regroup and jump while
+    // the user panned. Distinct locations now always keep their own marker.
+    const key = `${coordinate.longitude}:${coordinate.latitude}`;
+    const location = locations.get(key);
+    if (location) location.push(point);
+    else locations.set(key, [point]);
   }
-  return [...cells.values()].map((cell) => ({
-    rows: cell.map((point) => point.row),
-    x: cell.reduce((sum, point) => sum + point.x, 0) / cell.length,
-    y: cell.reduce((sum, point) => sum + point.y, 0) / cell.length,
+  return [...locations.values()].map((location) => ({
+    rows: location.map((point) => point.row),
+    points: location,
+    x: location.reduce((sum, point) => sum + point.x, 0) / location.length,
+    y: location.reduce((sum, point) => sum + point.y, 0) / location.length,
   }));
 }
 
 export function padFeatureCollection(rows: PadSummary[]) {
   return {
     type: "FeatureCollection" as const,
-    features: rows.filter(hasSafeCoordinate).map((row) => ({
+    features: rows.flatMap((row) => {
+      const coordinate = mapDisplayCoordinate(row);
+      if (!coordinate) return [];
+      return [{
       type: "Feature" as const,
       geometry: {
         type: "Point" as const,
-        coordinates: [row.coordinate!.longitude, row.coordinate!.latitude],
+        coordinates: [coordinate.longitude, coordinate.latitude],
       },
       properties: {
         id: row.padId,
         name: row.padName,
         company: row.company,
         type: row.recordType,
-        verifiedEntrance: row.coordinate?.role === "driver_entrance",
+        verifiedEntrance: coordinate.role === "driver_entrance",
       },
-    })),
+      }];
+    }),
   };
 }

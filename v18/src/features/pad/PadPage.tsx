@@ -5,8 +5,9 @@ import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { saveRecent } from "@/data/offline";
+import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { loadPadStatus } from "@/data/status";
-import type { DriverPadStatus, PadWellIdentifierRow } from "@/data/types";
+import type { DriverPadStatus, DriverRouteChoice, PadWellIdentifierRow } from "@/data/types";
 import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
 import { PadMapPreview } from "./PadMapPreview";
@@ -34,15 +35,24 @@ export function PadPage() {
   const { findPad, favorites, toggleFavorite, loading, snapshot } = useDirectory();
   const pad = findPad(decodeURIComponent(padId));
   const [status, setStatus] = useState<DriverPadStatus | null>(null);
+  const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
+  const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [wellRows, setWellRows] = useState<PadWellIdentifierRow[] | null | undefined>(undefined);
 
   useEffect(() => {
     if (!pad) return;
     let cancelled = false;
     setStatus(null);
+    setRouteChoices([]);
+    setSelectedRouteKey("");
     setWellRows(undefined);
     saveRecent(pad).catch(() => undefined);
     loadPadStatus(pad, snapshot?.sourceState).then((next) => !cancelled && setStatus(next));
+    loadDriverRouteChoices(pad).then((choices) => {
+      if (cancelled) return;
+      setRouteChoices(choices);
+      setSelectedRouteKey(choices[0]?.routeKey || "");
+    });
     loadPadWellRows(pad, snapshot?.sourceState).then((next) => !cancelled && setWellRows(next));
     return () => { cancelled = true; };
   }, [pad, snapshot?.sourceState]);
@@ -53,7 +63,11 @@ export function PadPage() {
 
   const favorite = favorites.has(pad.padId);
   const identifierGroups = buildPadIdentifierGroups(pad);
-  const hasSavedRouteFallback = status.routeSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
+  const selectedRouteChoice = routeChoices.find((choice) => choice.routeKey === selectedRouteKey) || routeChoices[0] || null;
+  const displayedRouteSteps = selectedRouteChoice?.steps || status.routeSteps;
+  const displayedRouteGeometry = selectedRouteChoice?.geometry || status.route.geometry;
+  const selectedRouteIsPrimary = !selectedRouteChoice || selectedRouteChoice.routeGroup === "primary";
+  const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
   const destinationUrl = status.destination.available && status.destination.latitude !== null && status.destination.longitude !== null
     ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${status.destination.latitude},${status.destination.longitude}`)}`
     : null;
@@ -67,14 +81,20 @@ export function PadPage() {
 
     {status.dataState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{status.dataState === "fallback" ? "Packaged fallback record" : "Saved record"}</strong><span>Route and graph status may be unavailable. Last record update: {dateLabel(pad.updatedAt)}</span></div></div>}
 
+    {routeChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
+      <div><span className="eyebrow">APPROVED ROUTE CHOICE</span><h2 id="driver-route-choice-title">Choose the route you want to view</h2><p>Every option shown here independently passed the exact route, current graph, verified destination, and public projection gates.</p></div>
+      <div className="driver-route-choice-buttons">{routeChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => setSelectedRouteKey(choice.routeKey)}><strong>{choice.label}</strong><span>{choice.steps.length} exact {choice.steps.length === 1 ? "road step" : "road steps"}</span></button>)}</div>
+      <small>Choosing a route changes the highlighted BrineSearch route. Google publication remains a separate safety gate.</small>
+    </section>}
+
     <section className="pad-route-layout">
-      <PadMapPreview pad={pad} status={status}/>
+      <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
       <div className="route-action-panel">
         <span className="eyebrow">DRIVER ACTION</span>
-        {status.google.publicState === "ready" && status.google.routeUrl ? <a className="navigate-action" href={status.google.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>{status.googleRouteChunks.length > 1 ? `Open route 1 of ${status.googleRouteChunks.length}` : "Open approved route"}</strong><small>Current public Google route</small></span><b>↗</b></a>
+        {selectedRouteIsPrimary && status.google.publicState === "ready" && status.google.routeUrl ? <a className="navigate-action" href={status.google.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>{status.googleRouteChunks.length > 1 ? `Open route 1 of ${status.googleRouteChunks.length}` : "Open approved route"}</strong><small>Current public Google route</small></span><b>↗</b></a>
           : destinationUrl ? <a className="navigate-action destination-only" href={destinationUrl} target="_blank" rel="noreferrer"><Icon name="location"/><span><strong>Open destination pin</strong><small>Destination only—not an approved route</small></span><b>↗</b></a>
           : <div className="navigate-unavailable"><Icon name="location"/><span><strong>No verified navigation target</strong><small>{status.route.writtenDirections ? "Use only the current reviewed directions shown below." : "Wait for a current public route or verified destination."}</small></span></div>}
-        {status.googleRouteChunks.length > 1 && <div className="route-chunk-list" aria-label="Approved route sections">{status.googleRouteChunks.slice(1).map((chunk) => <a key={chunk.chunk} href={chunk.url} target="_blank" rel="noreferrer">Open route {chunk.chunk} of {status.googleRouteChunks.length}<span>↗</span></a>)}</div>}
+        {selectedRouteIsPrimary && status.googleRouteChunks.length > 1 && <div className="route-chunk-list" aria-label="Approved route sections">{status.googleRouteChunks.slice(1).map((chunk) => <a key={chunk.chunk} href={chunk.url} target="_blank" rel="noreferrer">Open route {chunk.chunk} of {status.googleRouteChunks.length}<span>↗</span></a>)}</div>}
         {status.google.publicState !== "ready" && <p className="route-safety-note"><strong>Google route:</strong> {status.google.safeReason || "No current public approved route is available."}</p>}
       </div>
     </section>
@@ -89,8 +109,8 @@ export function PadPage() {
     </section>
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{status.routeSteps.length ? `${status.routeSteps.length} route steps` : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
-      {status.routeSteps.length ? <ol className="route-step-list">{status.routeSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? `${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps` : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and Google route launch stays disabled until approval is complete.</p></div>
         : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
     </section>

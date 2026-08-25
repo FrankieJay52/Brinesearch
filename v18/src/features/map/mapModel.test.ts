@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "@/data/types";
-import { groupProjectedPads, padFeatureCollection } from "./mapModel";
+import { groupCoincidentProjectedPads, mapDisplayCoordinate, padFeatureCollection } from "./mapModel";
 
 function pad(overrides: Partial<PadSummary> = {}): PadSummary {
   return {
@@ -46,18 +46,39 @@ describe("padFeatureCollection", () => {
       properties: { company: "Acme", verifiedEntrance: true },
     });
   });
+
+  it("uses an exact-identity packaged GPS only as a legacy-saved display point", () => {
+    const scout = pad({
+      padId: "6ef0746f-341a-4d29-9399-a81cfbec11e8",
+      canonicalId: "6ef0746f-341a-4d29-9399-a81cfbec11e8",
+      legacyId: "ascent--scout",
+      company: "Ascent",
+      padName: "SCOUT",
+      coordinate: null,
+    });
+    expect(mapDisplayCoordinate(scout)).toEqual({ latitude: 40.165091, longitude: -80.903485, role: "legacy_saved" });
+    expect(scout.coordinate).toBeNull();
+    expect(padFeatureCollection([scout]).features[0]).toMatchObject({
+      geometry: { coordinates: [-80.903485, 40.165091] },
+      properties: { verifiedEntrance: false },
+    });
+  });
 });
 
-describe("groupProjectedPads", () => {
-  it("groups nearby projected points without changing their identities", () => {
+describe("groupCoincidentProjectedPads", () => {
+  it("groups only exact-coordinate records and leaves nearby points separate", () => {
     const alpha = pad();
     const beta = pad({ padId: "b1675391-95bf-4221-9bc7-fbe67ae209a7", padName: "Beta" });
-    const gamma = pad({ padId: "0f8f8eb6-7c85-4fce-b8d6-c19d8fc095cf", padName: "Gamma" });
-    const groups = groupProjectedPads([
-      { row: alpha, x: 10, y: 12 },
-      { row: beta, x: 18, y: 20 },
-      { row: gamma, x: 120, y: 120 },
-    ], 48);
+    const gamma = pad({
+      padId: "0f8f8eb6-7c85-4fce-b8d6-c19d8fc095cf",
+      padName: "Gamma",
+      coordinate: { latitude: 39.80001, longitude: -81.20001, role: "driver_entrance" },
+    });
+    const groups = groupCoincidentProjectedPads([
+      { row: alpha, coordinate: alpha.coordinate!, x: 10, y: 12 },
+      { row: beta, coordinate: beta.coordinate!, x: 18, y: 20 },
+      { row: gamma, coordinate: gamma.coordinate!, x: 19, y: 21 },
+    ]);
 
     expect(groups).toHaveLength(2);
     expect(groups[0].rows.map((row) => row.padName)).toEqual(["Alpha", "Beta"]);
