@@ -16,7 +16,7 @@ describe("V18 map search dropdown", () => {
     expect(app).toContain('<><MapPage/><SearchOverlay/></>');
     expect(app).not.toContain('path="/search" element={<SearchPage/>}');
     expect(mapPage).toContain('mapPadSearchResults(snapshot?.rows || [], mapSearch)');
-    expect(mapPage).toContain('placeholder="Search pad name on this map"');
+    expect(mapPage).toContain('placeholder="Search pads"');
     expect(mapPage).toContain('focusPad(searchResults[0])');
   });
 
