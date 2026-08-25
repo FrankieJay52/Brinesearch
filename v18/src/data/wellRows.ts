@@ -1,4 +1,5 @@
 import { isSafePublicList } from "./publicFields";
+import { deviceIsOnline } from "./offlineRoutes";
 import type { DirectorySourceState, PadSummary, PadWellIdentifierRow } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
@@ -40,7 +41,7 @@ export async function loadPadWellRows(
   pad: Pick<PadSummary, "padId" | "canonicalId" | "recordRevision">,
   sourceState?: DirectorySourceState,
 ): Promise<PadWellIdentifierRow[] | null> {
-  if (!pad.canonicalId || !uuidPattern.test(pad.padId) || sourceState === "packaged_fallback" || sourceState === "unavailable") return null;
+  if (!pad.canonicalId || !uuidPattern.test(pad.padId) || !deviceIsOnline() || sourceState === "packaged_fallback" || sourceState === "unavailable") return null;
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_well_rows`, {
       method: "POST",

@@ -3,10 +3,12 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
+import { useNetworkState } from "@/app/useNetworkState";
 import { useDirectory } from "@/data/DirectoryContext";
 import { saveRecent } from "@/data/offline";
+import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
-import { loadPadStatus } from "@/data/status";
+import { buildPendingPadStatus, loadPadStatus } from "@/data/status";
 import type { DriverPadStatus, DriverRouteChoice, PadWellIdentifierRow } from "@/data/types";
 import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
@@ -29,12 +31,17 @@ function semanticLabel(kind: DriverPadStatus["routeSteps"][number]["kind"]) {
   return null;
 }
 
+function displayWrittenDirections(value: string) {
+  return value.replace(/\\r\\n|\\n|\\r/g, "\n");
+}
+
 export function PadPage() {
   const { padId = "" } = useParams();
   const navigate = useNavigate();
+  const online = useNetworkState();
   const { findPad, favorites, toggleFavorite, loading, snapshot } = useDirectory();
   const pad = findPad(decodeURIComponent(padId));
-  const [status, setStatus] = useState<DriverPadStatus | null>(null);
+  const [resolvedStatus, setStatus] = useState<DriverPadStatus | null>(null);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [wellRows, setWellRows] = useState<PadWellIdentifierRow[] | null | undefined>(undefined);
@@ -47,19 +54,32 @@ export function PadPage() {
     setSelectedRouteKey("");
     setWellRows(undefined);
     saveRecent(pad).catch(() => undefined);
-    loadPadStatus(pad, snapshot?.sourceState).then((next) => !cancelled && setStatus(next));
-    loadDriverRouteChoices(pad).then((choices) => {
+    if (online) {
+      readPadDirectionsOffline(pad).then((cached) => {
+        if (!cancelled && cached) setStatus((current) => current || cached);
+      });
+    }
+    loadPadStatus(pad, snapshot?.sourceState).then((next) => {
       if (cancelled) return;
-      setRouteChoices(choices);
-      setSelectedRouteKey(choices[0]?.routeKey || "");
+      setStatus(next);
+      if (online && next.dataState === "live" && next.route.state === "ready" && next.route.source === "exact_graph" && next.graph.state === "active_current") {
+        loadDriverRouteChoices(pad).then((choices) => {
+          if (cancelled) return;
+          setRouteChoices(choices);
+          setSelectedRouteKey(choices[0]?.routeKey || "");
+        });
+      }
     });
     loadPadWellRows(pad, snapshot?.sourceState).then((next) => !cancelled && setWellRows(next));
     return () => { cancelled = true; };
-  }, [pad, snapshot?.sourceState]);
+  }, [online, pad, snapshot?.sourceState]);
 
   if (loading) return <LoadingState message="Loading pad details…"/>;
   if (!pad) return <section className="page-state"><h1>Pad not found</h1><p>This link may refer to a removed or superseded record.</p><Link to="/search" className="button-primary">Return to Search</Link></section>;
-  if (!status) return <LoadingState message={`Checking ${pad.padName} route status…`}/>;
+  const status = resolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
+  const connectionState = !online ? "offline" : resolvedStatus?.dataState === "live" ? "live" : resolvedStatus ? "last-known" : "checking";
+  const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "last-known" ? "Last known" : "Checking live";
+  const offlineCacheMiss = !online && status.route.safeReason === "Directions for this pad are not cached on this device.";
 
   const favorite = favorites.has(pad.padId);
   const identifierGroups = buildPadIdentifierGroups(pad);
@@ -79,7 +99,8 @@ export function PadPage() {
       <button className="share-button" onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button>
     </section>
 
-    {status.dataState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{status.dataState === "fallback" ? "Packaged fallback record" : "Saved record"}</strong><span>Route and graph status may be unavailable. Last record update: {dateLabel(pad.updatedAt)}</span></div></div>}
+    <div className={`pad-connection-badge is-${connectionState}`} role="status" aria-live="polite"><span/><strong>{connectionLabel}</strong><small>{connectionState === "live" ? "Current public route response" : connectionState === "checking" ? "Showing the pad while route status loads" : "Device-stored route information"}</small></div>
+    {connectionState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{offlineCacheMiss ? "Offline · not cached" : connectionState === "checking" ? "Checking current route status" : connectionState === "offline" ? "Offline directions" : "Last known directions"}</strong><span>{offlineCacheMiss ? "Open this pad once while online to save reviewed directions on this device." : `Current graph checks are not assumed. Last record update: ${dateLabel(pad.updatedAt)}`}</span></div></div>}
 
     {routeChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
       <div><span className="eyebrow">APPROVED ROUTE CHOICE</span><h2 id="driver-route-choice-title">Choose the route you want to view</h2><p>Every option shown here independently passed the exact route, current graph, verified destination, and public projection gates.</p></div>
@@ -115,7 +136,7 @@ export function PadPage() {
         : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
     </section>
 
-    {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{status.route.writtenDirections}</p></details>}
+    {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{displayWrittenDirections(status.route.writtenDirections)}</p></details>}
     <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
       <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div></div>
       <section className="pad-identifier-board" aria-labelledby="pad-identifiers-title">

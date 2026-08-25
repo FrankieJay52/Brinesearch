@@ -1,6 +1,7 @@
 import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
 import { buildGoogleRoutePublicPlan } from "./googleRoute";
 import { parseCoordinatePair } from "./coordinates";
+import { deviceIsOnline, readPadDirectionsOffline, savePadDirectionsOffline } from "./offlineRoutes";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
 const publishableKey =
@@ -61,6 +62,35 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
     },
     googleRouteChunks: [],
     routeSteps: [],
+  };
+}
+
+export function buildPendingPadStatus(pad: PadSummary, sourceState?: DirectorySourceState): DriverPadStatus {
+  const status = fallbackStatus(pad, sourceState);
+  return {
+    ...status,
+    dataState: "fallback",
+    route: {
+      ...status.route,
+      safeReason: "Checking current public route status. No route authority has been assumed.",
+    },
+  };
+}
+
+function offlineCacheMissStatus(pad: PadSummary, sourceState?: DirectorySourceState): DriverPadStatus {
+  const status = fallbackStatus(pad, sourceState);
+  return {
+    ...status,
+    dataState: "fallback",
+    route: {
+      ...status.route,
+      safeReason: "Directions for this pad are not cached on this device.",
+    },
+    google: {
+      publicState: "not_published",
+      routeUrl: null,
+      safeReason: "Offline device storage never launches or republishes a Google route.",
+    },
   };
 }
 
@@ -244,8 +274,10 @@ async function loadPublicGoogleRouteChunks(padId: string) {
   return plan.chunks.map(({ chunk, url }) => ({ chunk, url }));
 }
 
-export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus> {
-  if (!pad.canonicalId) return fallbackStatus(pad, sourceState);
+const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
+
+async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus | null> {
+  if (!pad.canonicalId) return null;
   try {
     const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status`;
     const response = await fetch(url, {
@@ -255,14 +287,15 @@ export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySour
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
-    if (!response.ok) return fallbackStatus(pad, sourceState);
+    if (!response.ok) return null;
     const payload = await response.json() as unknown;
     const row = Array.isArray(payload) ? object(payload[0]) : object(payload);
     const returnedPadId = nullableText(row.padId ?? row.pad_id);
-    if (returnedPadId !== pad.canonicalId) return fallbackStatus(pad, sourceState);
+    if (returnedPadId !== pad.canonicalId) return null;
     const returnedRecordRevision = nullableText(row.recordRevision ?? row.record_revision);
-    if (returnedRecordRevision !== pad.recordRevision) return fallbackStatus(pad, sourceState);
-    const status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : fallbackStatus(pad, sourceState);
+    if (returnedRecordRevision !== pad.recordRevision) return null;
+    const status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : null;
+    if (!status) return null;
     if (status.google.publicState !== "ready") return status;
     try {
       const googleRouteChunks = await loadPublicGoogleRouteChunks(pad.canonicalId);
@@ -283,6 +316,29 @@ export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySour
       };
     }
   } catch {
-    return fallbackStatus(pad, sourceState);
+    return null;
   }
+}
+
+function loadLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState) {
+  const key = `${pad.padId}:${pad.recordRevision}:${sourceState || "live_current"}`;
+  const existing = liveStatusRequests.get(key);
+  if (existing) return existing;
+  const request = fetchLivePadStatus(pad, sourceState).finally(() => liveStatusRequests.delete(key));
+  liveStatusRequests.set(key, request);
+  return request;
+}
+
+export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus> {
+  if (!pad.canonicalId) return fallbackStatus(pad, sourceState);
+  if (!deviceIsOnline()) {
+    return await readPadDirectionsOffline(pad) || offlineCacheMissStatus(pad, sourceState);
+  }
+
+  const live = await loadLivePadStatus(pad, sourceState);
+  if (live) {
+    void savePadDirectionsOffline(pad, live);
+    return live;
+  }
+  return await readPadDirectionsOffline(pad) || fallbackStatus(pad, sourceState);
 }

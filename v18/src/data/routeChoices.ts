@@ -1,5 +1,6 @@
 import type { DriverRouteChoice, PadSummary } from "./types";
 import { normalizeDriverRouteProjection } from "./status";
+import { deviceIsOnline } from "./offlineRoutes";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
 const publishableKey =
@@ -48,7 +49,7 @@ export function normalizeDriverRouteChoices(value: unknown, expectedPadId: strin
 }
 
 export async function loadDriverRouteChoices(pad: PadSummary): Promise<DriverRouteChoice[]> {
-  if (!pad.canonicalId) return [];
+  if (!pad.canonicalId || !deviceIsOnline()) return [];
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_route_choices`, {
       method: "POST",
