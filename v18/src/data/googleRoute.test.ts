@@ -34,15 +34,22 @@ describe("public Google route manifest", () => {
   it("builds only from a matching public exact manifest", () => {
     const plan = buildGoogleRoutePublicPlan(row([
       shape(1, 40.2, -80.9, "route_ingress"),
-      { sequence: 2, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+      shape(2, 40.21, -80.91),
+      shape(3, 40.22, -80.92),
+      { sequence: 4, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
     ]));
     expect(plan.padId).toBe(padId);
-    expect(plan.chunks).toHaveLength(1);
-    expect(plan.firstUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
-    expect(plan.firstUrl).toContain("dir_action=navigate");
+    expect(plan.pointCount).toBe(4);
+    expect(plan.singleUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
+    expect(plan.singleUrl).toContain("dir_action=navigate");
+    expect(plan.singleUrl!.length).toBeLessThanOrEqual(2048);
+    const url = new URL(plan.singleUrl!);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe("40.2,-80.9|40.21,-80.91|40.22,-80.92");
+    expect(url.searchParams.get("destination")).toBe("40.25403,-80.913577");
   });
 
-  it("keeps multi-chunk routes continuous and bounded to three waypoints", () => {
+  it("fails closed instead of splitting an exact route across multiple links", () => {
     const plan = buildGoogleRoutePublicPlan(row([
       shape(1, 40.2, -80.9, "route_ingress"),
       shape(2, 40.21, -80.91),
@@ -50,10 +57,17 @@ describe("public Google route manifest", () => {
       shape(4, 40.23, -80.93),
       { sequence: 5, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
     ]));
-    expect(plan.chunks).toHaveLength(2);
-    expect(plan.chunks[0]?.waypoints).toHaveLength(3);
-    expect(plan.chunks[1]?.origin).toBe(plan.chunks[0]?.destination);
-    expect(plan.chunks.every((chunk) => chunk.url.length <= 2048)).toBe(true);
+    expect(plan.pointCount).toBe(5);
+    expect(plan.singleUrl).toBeNull();
+  });
+
+  it("keeps a sixteen-point exact package in BrineSearch without thinning it into a Google action", () => {
+    const plan = buildGoogleRoutePublicPlan(row([
+      ...Array.from({ length: 15 }, (_, index) => shape(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+    ]));
+    expect(plan.pointCount).toBe(16);
+    expect(plan.singleUrl).toBeNull();
   });
 
   it("fails closed when row, manifest, revision, or destination identity differs", () => {

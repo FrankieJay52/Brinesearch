@@ -168,7 +168,6 @@ export interface DriverPadStatus {
     latitude: number | null;
     longitude: number | null;
   };
-  googleRouteChunks: { chunk: number; url: string }[];
   routeSteps: DriverRouteStep[];
 }
 

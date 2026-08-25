@@ -161,7 +161,6 @@ describe("V18 reviewed saved-directions contract", () => {
       routeUrl: null,
       safeReason: "public_route_or_graph_authority_held",
     });
-    expect(status.googleRouteChunks).toEqual([]);
   });
 
   it("pins the forward-only SQL contract to the reviewed public projection", () => {

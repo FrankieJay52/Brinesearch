@@ -64,11 +64,103 @@ function exactSteps(): DriverRouteStep[] {
   ];
 }
 
+function jsonResponse(payload: unknown) {
+  return new Response(JSON.stringify(payload), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+function publicGooglePoint(sequence: number, latitude: number, longitude: number, shapeRole?: string) {
+  return {
+    sequence,
+    kind: "shape",
+    shape_role: shapeRole,
+    latitude,
+    longitude,
+    source_kind: "authoritative_clipped_geometry",
+    occurrence_id: `occurrence-${sequence}`,
+    source_segment_keys: [`segment-${sequence}`],
+    source_digest: "a".repeat(32),
+  };
+}
+
+function publicGoogleRow(points: Record<string, unknown>[]) {
+  const canonicalId = "11111111-1111-4111-8111-111111111111";
+  return {
+    pad_id: canonicalId,
+    route_revision: 7,
+    source_revision: "fixture-r1",
+    manifest: {
+      manifest_version: "issue97-google-v1",
+      manifest_digest: "b".repeat(32),
+      status: "ready",
+      route_ready: true,
+      pad_id: canonicalId,
+      route_revision: 7,
+      points,
+    },
+  };
+}
+
+function exactReadyStatusRow() {
+  return {
+    padId: "11111111-1111-4111-8111-111111111111",
+    recordRevision: "fixture-r1",
+    route: { state: "ready", source: "exact_graph", steps: exactSteps(), geometry: exactGeometry() },
+    graph: { state: "active_current", county: "Belmont" },
+    google: { publicState: "ready", safeReason: "Exact package released." },
+    destination: { available: true, role: "driver_entrance", latitude: 40.1, longitude: -80.9 },
+  };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("public driver status boundary", () => {
+  it("launches one approved route only when the entire exact manifest has one mobile-safe URL", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(exactReadyStatusRow()))
+      .mockResolvedValueOnce(jsonResponse([publicGoogleRow([
+        publicGooglePoint(1, 40.2, -80.9, "route_ingress"),
+        { sequence: 2, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
+      ])]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.google.publicState).toBe("ready");
+    expect(status.google.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a valid multi-section manifest in-app instead of exposing its first section as a route", async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(exactReadyStatusRow()))
+      .mockResolvedValueOnce(jsonResponse([publicGoogleRow([
+        publicGooglePoint(1, 40.2, -80.9, "route_ingress"),
+        publicGooglePoint(2, 40.21, -80.91),
+        publicGooglePoint(3, 40.22, -80.92),
+        publicGooglePoint(4, 40.23, -80.93),
+        { sequence: 5, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
+      ])]));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({ state: "ready", source: "exact_graph" });
+    expect(status.routeSteps).toEqual(exactSteps());
+    expect(status.route.geometry?.features).toHaveLength(2);
+    expect(JSON.stringify(status.route.geometry)).not.toContain("privateRoadId");
+    expect(status.google).toEqual({
+      publicState: "unavailable",
+      routeUrl: null,
+      safeReason: "No single exact Google handoff is available. Use the BrineSearch map and approved steps.",
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("does not reveal private Google readiness in a split state", async () => {
     publicResponse({
       pad_id: "11111111-1111-4111-8111-111111111111",

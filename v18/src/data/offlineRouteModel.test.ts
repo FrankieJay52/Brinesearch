@@ -60,7 +60,6 @@ function exactStatus(): DriverPadStatus {
     },
     google: { publicState: "not_published", routeUrl: null, safeReason: "Not published." },
     destination: { available: true, latitude: 40.1, longitude: -80.9 },
-    googleRouteChunks: [],
     routeSteps: [{
       order: 1,
       kind: "continue",
