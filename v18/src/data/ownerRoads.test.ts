@@ -28,7 +28,13 @@ const roadProperties = {
   source_version: "2026-08",
   display_boundary: "pad_endpoint_projection",
   endpoint_offset_m: 8.583,
+  route_focus: false,
+  terminates_at_pad: true,
 };
+
+const selectedPadId = "333598ca-37b3-4b44-9411-a490cc3da672";
+const endpointFocus = { focus_mode: "display_evidence_only", focus_pad_id: selectedPadId, focus_terminates_at_pad: false };
+const heldFocus = { focus_mode: "held", focus_pad_id: selectedPadId, focus_terminates_at_pad: false };
 
 describe("owner road viewport contract", () => {
   it("preserves exact identity geometry/status and drops injected private fields", () => {
@@ -43,6 +49,7 @@ describe("owner road viewport contract", () => {
       truncated: false,
       limit: 340,
       zoom: 13,
+      ...endpointFocus,
       private_review_notes: "must not escape",
     });
     expect(parsed?.features[0].properties).toMatchObject({
@@ -61,6 +68,7 @@ describe("owner road viewport contract", () => {
       type: "FeatureCollection",
       features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[0, 0], [1, 1]] }, properties: roadProperties }],
       pads: [], truncated: false, limit: 340, zoom: 13,
+      ...endpointFocus,
     })).toBeNull();
   });
 
@@ -73,6 +81,7 @@ describe("owner road viewport contract", () => {
         properties: { ...roadProperties, canonical_road_id: "not-a-uuid" },
       }],
       pads: [], truncated: false, limit: 340, zoom: 13,
+      ...endpointFocus,
     })).toBeNull();
     expect(validateOwnerRoadViewport({
       type: "FeatureCollection",
@@ -82,6 +91,7 @@ describe("owner road viewport contract", () => {
         properties: { ...roadProperties, endpoint_offset_m: null },
       }],
       pads: [], truncated: false, limit: 340, zoom: 13,
+      ...endpointFocus,
     })).toBeNull();
     expect(validateOwnerRoadViewport({
       type: "FeatureCollection",
@@ -91,6 +101,7 @@ describe("owner road viewport contract", () => {
         properties: { ...roadProperties, municipality: { private_review_notes: "hidden" } },
       }],
       pads: [], truncated: false, limit: 340, zoom: 13,
+      ...endpointFocus,
     })).toBeNull();
     expect(validateOwnerRoadViewport({
       type: "FeatureCollection",
@@ -104,8 +115,9 @@ describe("owner road viewport contract", () => {
   });
 
   it("keeps an empty selected-pad result fail-closed", () => {
-    expect(validateOwnerRoadViewport({ type: "FeatureCollection", features: [], pads: [], truncated: false, limit: 340, zoom: 13 })).toEqual({
+    expect(validateOwnerRoadViewport({ type: "FeatureCollection", features: [], pads: [], truncated: false, limit: 340, zoom: 13, ...heldFocus })).toEqual({
       type: "FeatureCollection", features: [], pads: [], truncated: false, limit: 340, zoom: 13, zoomRequired: null,
+      focusMode: "held", focusPadId: selectedPadId, focusTerminatesAtPad: false,
     });
   });
 
@@ -123,6 +135,7 @@ describe("owner road viewport contract", () => {
       truncated: false,
       limit: 160,
       zoom: 9,
+      ...heldFocus,
     });
     expect(parsed?.pads[0]).toEqual({
       padId: "333598ca-37b3-4b44-9411-a490cc3da672",
@@ -132,6 +145,43 @@ describe("owner road viewport contract", () => {
       latitude: 40.1,
       longitude: -81.2,
     });
+  });
+
+  it("binds teal route focus to one exact-ready pad and exact occurrence geometry", () => {
+    const exactRoad = {
+      ...roadProperties,
+      display_boundary: "exact_route_occurrence",
+      endpoint_offset_m: 0,
+      route_focus: true,
+      terminates_at_pad: true,
+    };
+    const valid = validateOwnerRoadViewport({
+      type: "FeatureCollection",
+      features: [{
+        type: "Feature",
+        geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] },
+        properties: exactRoad,
+      }],
+      pads: [], truncated: false, limit: 160, zoom: 13,
+      focus_mode: "exact_route_ready", focus_pad_id: selectedPadId, focus_terminates_at_pad: true,
+    });
+    expect(valid?.features[0].properties).toMatchObject({
+      displayBoundary: "exact_route_occurrence", routeFocus: true, terminatesAtPad: true, endpointOffsetMeters: 0,
+    });
+    expect(validateOwnerRoadViewport({
+      type: "FeatureCollection",
+      features: [{ type: "Feature", geometry: { type: "LineString", coordinates: [[-81.2, 39.8], [-81.19, 39.81]] }, properties: exactRoad }],
+      pads: [], truncated: false, limit: 160, zoom: 13, ...heldFocus,
+    })).toBeNull();
+  });
+
+  it("rejects missing, unknown, or pad-unbound viewport focus proof", () => {
+    const base = { type: "FeatureCollection", features: [], pads: [], truncated: false, limit: 160, zoom: 13 };
+    expect(validateOwnerRoadViewport(base)).toBeNull();
+    expect(validateOwnerRoadViewport({ ...base, focus_mode: "exact_route_ready", focus_pad_id: null, focus_terminates_at_pad: true })).toBeNull();
+    expect(validateOwnerRoadViewport({ ...base, focus_mode: "all_roads", focus_pad_id: selectedPadId, focus_terminates_at_pad: false })).toBeNull();
+    expect(validateOwnerRoadViewport({ ...base, focus_mode: "invented", focus_pad_id: selectedPadId, focus_terminates_at_pad: false })).toBeNull();
+    expect(validateOwnerRoadViewport({ ...base, focus_mode: "all_roads", focus_pad_id: null, focus_terminates_at_pad: false })).toMatchObject({ focusMode: "all_roads", focusPadId: null });
   });
 });
 

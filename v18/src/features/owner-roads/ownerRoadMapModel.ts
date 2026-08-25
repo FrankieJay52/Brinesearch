@@ -1,4 +1,4 @@
-import { ownerRoadStatuses, type OwnerPadOption, type OwnerRoadBounds, type OwnerRoadFeature, type OwnerRoadStatus, type OwnerRoadViewportRequest } from "@/data/ownerRoads";
+import { ownerRoadStatuses, type OwnerPadOption, type OwnerRoadBounds, type OwnerRoadFeature, type OwnerRoadFocusMode, type OwnerRoadStatus, type OwnerRoadViewportRequest } from "@/data/ownerRoads";
 import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 import type { DriverPadStatus, PadSummary } from "@/data/types";
 
@@ -163,15 +163,21 @@ export function ownerRoadCoverage(features: readonly OwnerRoadFeature[]) {
   const statusCounts = Object.fromEntries(ownerRoadStatuses.map((status) => [status, 0])) as Record<OwnerRoadStatus, number>;
   let occurrenceCount = 0;
   let endpointCount = 0;
+  let routeFocusCount = 0;
+  let terminalCount = 0;
   for (const feature of features) {
     occurrenceCount += feature.properties.occurrenceCount;
     statusCounts[feature.properties.approvalStatus] += 1;
     if (feature.properties.displayBoundary === "pad_endpoint_projection") endpointCount += 1;
+    if (feature.properties.routeFocus) routeFocusCount += 1;
+    if (feature.properties.terminatesAtPad) terminalCount += 1;
   }
   return {
     identityCount: features.length,
     occurrenceCount,
     endpointCount,
+    routeFocusCount,
+    terminalCount,
     statusCounts,
   };
 }
@@ -291,7 +297,14 @@ export function ownerRoadSelection(features: OwnerRoadFeature[], currentIdentity
   return null;
 }
 
-export function ownerRoadCollection(features: OwnerRoadFeature[], padFocused = false) {
+export function ownerRoadCollection(
+  features: OwnerRoadFeature[],
+  focus: { mode: OwnerRoadFocusMode; padId: string | null },
+  selectedPadId: string | null,
+) {
+  const exactSelectedPad = focus.mode === "exact_route_ready"
+    && focus.padId !== null
+    && focus.padId === selectedPadId;
   return {
     type: "FeatureCollection" as const,
     features: features.map((feature) => ({
@@ -301,7 +314,9 @@ export function ownerRoadCollection(features: OwnerRoadFeature[], padFocused = f
         identityId: feature.properties.identityId,
         displayName: feature.properties.displayName,
         approvalStatus: feature.properties.approvalStatus,
-        padFocused,
+        // Teal is a per-feature authority claim from the bounded owner RPC.
+        // Selecting a held pad never upgrades endpoint/context evidence.
+        padFocused: exactSelectedPad && feature.properties.routeFocus,
       },
     })),
   };

@@ -21,6 +21,7 @@ const performanceMigration = read("supabase/migrations/20260816170200_owner_appr
 const primaryFocusMigration = read("supabase/migrations/20260823203500_v18_owner_map_primary_route_focus.sql");
 const detailTimeoutMigration = read("supabase/migrations/20260823231000_v18_owner_road_detail_timeout.sql");
 const endpointDisplayMigration = read("supabase/migrations/20260824052152_v18_owner_pad_road_endpoint_display.sql");
+const exactRouteClipMigration = read("supabase/migrations/20260825193322_v18_owner_exact_route_entrance_clip.sql");
 const session = read("v18/src/data/ownerSession.ts");
 const supabaseClient = read("v18/src/data/supabaseClient.ts");
 const access = read("v18/src/data/OwnerAccessContext.tsx");
@@ -55,6 +56,9 @@ for (const [name, source] of [["initial migration", initialMigration], ["perform
 requireText(endpointDisplayMigration, "security definer", "endpoint viewport wrapper SECURITY DEFINER");
 requireText(endpointDisplayMigration, "set search_path = ''", "endpoint viewport wrapper fixed empty search_path");
 requireText(endpointDisplayMigration, "public.is_brinesearch_owner(auth.uid())", "endpoint viewport wrapper owner gate");
+requireText(exactRouteClipMigration, "security definer", "exact-route clip viewport SECURITY DEFINER");
+requireText(exactRouteClipMigration, "set search_path = ''", "exact-route clip fixed empty search_path");
+requireText(exactRouteClipMigration, "public.is_brinesearch_owner(auth.uid())", "exact-route clip owner gate");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_viewport", "viewport PUBLIC/anon revoke");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_road_detail", "detail PUBLIC/anon revoke");
 requireText(initialMigration, "revoke all on function public.owner_approved_routes_map_pad_options", "pad options PUBLIC/anon revoke");
@@ -91,6 +95,18 @@ requireText(endpointDisplayMigration, "'endpoint_offset_m',pg_catalog.round(rece
 requireText(endpointDisplayMigration, "from public,anon,authenticated", "private endpoint receipt/base revocation");
 forbid(endpointDisplayMigration, /\b(?:insert\s+into|update|delete\s+from|truncate\s+table)\s+public\./i, "endpoint migration mutates public road/route/graph/pad data");
 forbid(endpointDisplayMigration, /(?:activate|reconcile|publish).*\(/i, "endpoint migration invokes an authority-changing function");
+requireText(exactRouteClipMigration, "private_verification.brinesearch_v18_exact_route_projection", "complete exact-route currentness gate");
+requireText(exactRouteClipMigration, "geometry.step_geometry", "per-occurrence route geometry source");
+requireText(exactRouteClipMigration, "'display_boundary','exact_route_occurrence'", "exact occurrence display boundary");
+requireText(exactRouteClipMigration, "'route_focus',true", "exact-only route focus property");
+requireText(exactRouteClipMigration, "'route_focus',false", "endpoint evidence remains non-focused");
+requireText(exactRouteClipMigration, "'focus_pad_id',p_pad_id", "selected-pad focus binding");
+requireText(exactRouteClipMigration, "occurrence.pad_id=p_pad_id", "pad-specific occurrence filter");
+requireText(exactRouteClipMigration, "occurrence.route_prep_id=v_route_prep_id", "pad-specific primary route filter");
+requireText(exactRouteClipMigration, "occurrence.occurrence_index=v_expected_occurrences", "pad-specific terminal occurrence gate");
+forbid(exactRouteClipMigration, /\bv\.gps_verified_at\b/i, "exact-route clip references nonexistent gps_verified_at");
+forbid(exactRouteClipMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "exact-route clip mutates road/route/graph/pad data");
+forbid(exactRouteClipMigration, /(?:activate|reconcile|publish).*\(/i, "exact-route clip invokes an authority-changing function");
 
 const finalSql = compact(primaryFocusMigration);
 const precedence = [
@@ -134,7 +150,9 @@ requireText(adapter, "validateOwnerRoadDetail", "safe detail response validator"
 requireText(adapter, "p_route_systems", "route-system request mapping");
 requireText(adapter, 'row.state === undefined ? ""', "minimal selected-pad viewport marker contract");
 requireText(adapter, '"pad_endpoint_projection"', "safe endpoint boundary response validator");
+requireText(adapter, '"exact_route_occurrence"', "safe exact-route boundary response validator");
 requireText(adapter, "endpointOffsetMeters", "bounded endpoint offset adapter");
+requireText(adapter, "parsed.focusPadId !== request.padId", "viewport focus proof bound to requested pad");
 
 requireText(map, "selectedHaloLayerId", "selected-road halo layer");
 requireText(map, "selectedPadLayerId", "selected-location graph-road highlight layer");
@@ -153,6 +171,10 @@ requireText(map, "ensurePadStatus(selectedDirectoryPad", "reviewed public direct
 requireText(map, "loadPadStatus(pad", "public-safe pad status loader remains the overlay authority source");
 requireText(map, "Reviewed field directions", "reviewed direction display");
 requireText(map, "setStatuses(new Set(ownerRoadStatuses))", "all exact selected-location status classes included");
+requireText(mapModel, 'focus.mode === "exact_route_ready"', "teal requires exact-ready viewport proof");
+requireText(mapModel, "focus.padId === selectedPadId", "teal proof bound to selected pad");
+requireText(mapModel, "feature.properties.routeFocus", "teal requires per-feature exact route role");
+forbid(map, /syncRoadFeatures\([^\n]*Boolean\s*\(/i, "selected-pad Boolean still enables teal focus");
 requireText(map, "mapReadyRef.current", "style-ready viewport request gate");
 requireText(map, "viewportInFlightKeyRef.current === requestKey", "duplicate in-flight viewport request guard");
 requireText(map, "viewportRequestTimeout", "bounded viewport request lifetime");
@@ -186,12 +208,12 @@ requireText(mapModel, 'return "No GPS"', "normalized held-pad missing-GPS reason
 requireText(map, "Pads connected by saved exact route use", "selected-road exact connected-pad list");
 requireText(map, "Connections come only from the exact saved route occurrence", "road-to-pad no-inference disclosure");
 requireText(map, "Current map window fully returned", "map-window coverage scope disclosure");
-requireText(map, "missing evidence stays blank", "coverage check remains fail closed");
+requireText(map, "Unplotted gaps stay blank", "coverage check remains fail closed");
 requireText(mapModel, "ownerRoadCoverage", "exact returned-evidence coverage summary");
-requireText(map, "Location and road selection change display focus only", "selection authority legend");
-requireText(map, "missing gaps remain unplotted", "pad route unresolved-gap disclosure");
+requireText(map, "Selected pad held · no teal route", "selection authority legend");
+requireText(map, "Unplotted gaps stay blank", "pad route unresolved-gap disclosure");
 requireText(map, "does not approve it, create route steps or geometry, change the graph", "route/graph authority disclosure");
-requireText(map, "stops at that pad&apos;s exact-road projection", "generic selected-pad endpoint explanation");
+requireText(map, "Each pad&apos;s route is independently clipped at its verified entrance", "generic selected-pad endpoint explanation");
 requireText(map, "Ends at selected pad road projection", "per-road endpoint boundary label");
 forbid(map, /(?:bannock|333598ca|cr-10|lafferty)/i, "V18 UI hardcodes a Bannock-only endpoint branch");
 
@@ -208,8 +230,8 @@ requireText(fieldUpdates, "/rest/v1/rpc/field_feed_list?select=", "public-field-
 forbid(fieldUpdates, /author_id|real_name|image_urls/i, "nonessential Field Feed identity or image field appears in the V18 adapter");
 forbid(controlCenter, /\{access\.state\s*===\s*["']owner["']\s*&&\s*<Link\s+to=["']\/settings\/approved-routes["']/, "V18 map launch is hidden behind the client-side owner check");
 
-forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
-forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");
+forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration + exactRouteClipMigration, /\b(?:insert\s+into|update\s+public\.|delete\s+from|truncate\s+table)\b/i, "Issue #108 migrations mutate road/route/graph data");
+forbid(initialMigration + viewportFix + performanceMigration + primaryFocusMigration + exactRouteClipMigration, /(?:activate|reconcile|publish).*\(/i, "Issue #108 migration invokes an authority-changing function");
 
 if (errors.length) throw new Error(`V18 owner approved-routes map audit failed:\n- ${errors.join("\n- ")}`);
 console.log("V18 owner approved-routes map audit passed: owner-only RPCs, all-location reviewed directions, bounded exact graph geometry, fail-closed classifications, and selected-location highlights are intact.");
