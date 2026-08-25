@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --config vite.config.ts",
     "verify:fallback": "node scripts/sanitize-pad-fallback-data.mjs --check && node --test scripts/sanitize-pad-fallback-data.test.mjs",
-    "verify:data-status": "node scripts/audit-v18-driver-directory-status-contract.mjs",
+    "verify:data-status": "node scripts/audit-v18-driver-directory-status-contract.mjs && node scripts/audit-v18-cologie-public-google-release.mjs",
     "verify:company-roads": "node scripts/audit-v18-public-company-road-overlay-contract.mjs",
     "verify:owner-roads": "node scripts/audit-v18-owner-approved-routes-map-issue108.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
