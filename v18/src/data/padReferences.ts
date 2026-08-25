@@ -1,4 +1,5 @@
 import { parseCoordinatePair } from "./coordinates";
+import { mapDisplayCoordinate } from "./mapDisplayCoordinates";
 import type { DirectorySnapshot, PadMapReference, PadMapReferenceKind } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
@@ -8,7 +9,12 @@ const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}
 const digestPattern = /^[0-9a-f]{64}$/;
 const responseKeys = new Set(["schemaVersion", "snapshotId", "sourceRevision", "rowCount", "kindCounts", "contentSha256", "rows"]);
 const rowKeys = new Set(["padId", "referenceKind", "latitude", "longitude"]);
-const referenceKinds = new Set<PadMapReferenceKind>(["official_pad_reference", "official_wellhead_reference"]);
+const referenceKinds = new Set<PadMapReferenceKind>([
+  "official_pad_reference",
+  "official_wellhead_reference",
+  "saved_pad_reference",
+]);
+const kindCountKeys = new Set(["officialPadReference", "officialWellheadReference", "savedPadReference"]);
 
 type RawRecord = Record<string, unknown>;
 
@@ -32,16 +38,21 @@ export function normalizePadReferencePayload(value: unknown, expectedSnapshotId:
     || payload.rows.length !== Number(payload.rowCount)) return null;
 
   const kindCounts = object(payload.kindCounts);
-  if (Object.keys(kindCounts).some((key) => !new Set(["officialPadReference", "officialWellheadReference"]).has(key))
+  if (Object.keys(kindCounts).some((key) => !kindCountKeys.has(key))
     || !Number.isInteger(kindCounts.officialPadReference)
     || !Number.isInteger(kindCounts.officialWellheadReference)
     || Number(kindCounts.officialPadReference) < 0
     || Number(kindCounts.officialWellheadReference) < 0
-    || Number(kindCounts.officialPadReference) + Number(kindCounts.officialWellheadReference) !== Number(payload.rowCount)) return null;
+    || (kindCounts.savedPadReference !== undefined
+      && (!Number.isInteger(kindCounts.savedPadReference)
+        || Number(kindCounts.savedPadReference) < 0))
+    || Number(kindCounts.officialPadReference) + Number(kindCounts.officialWellheadReference)
+      + Number(kindCounts.savedPadReference ?? 0) !== Number(payload.rowCount)) return null;
 
   const references = new Map<string, PadMapReference>();
   let padCount = 0;
   let wellheadCount = 0;
+  let savedCount = 0;
   for (const raw of payload.rows) {
     const row = object(raw);
     if (Object.keys(row).some((key) => !rowKeys.has(key))
@@ -54,11 +65,13 @@ export function normalizePadReferencePayload(value: unknown, expectedSnapshotId:
     if (!coordinate.ok) return null;
     const kind = row.referenceKind as PadMapReferenceKind;
     if (kind === "official_pad_reference") padCount += 1;
-    else wellheadCount += 1;
+    else if (kind === "official_wellhead_reference") wellheadCount += 1;
+    else savedCount += 1;
     references.set(row.padId, { ...coordinate.value, role: "reference", kind });
   }
   if (padCount !== Number(kindCounts.officialPadReference)
-    || wellheadCount !== Number(kindCounts.officialWellheadReference)) return null;
+    || wellheadCount !== Number(kindCounts.officialWellheadReference)
+    || savedCount !== Number(kindCounts.savedPadReference ?? 0)) return null;
   return references;
 }
 
@@ -74,6 +87,8 @@ export function attachPadReferences(snapshot: DirectorySnapshot, references: Map
     rows: snapshot.rows.map((row) => {
       const reference = references.get(row.padId) || null;
       if (!reference || row.coordinate) return { ...row, mapReference: null };
+      if (reference.kind === "saved_pad_reference"
+        && mapDisplayCoordinate({ ...row, mapReference: null })) return { ...row, mapReference: null };
       return { ...row, mapReference: reference };
     }),
   };

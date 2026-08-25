@@ -69,6 +69,21 @@ describe("cached V18 directory validation", () => {
     }))).toBeNull();
   });
 
+  it("keeps saved pad GPS separate from driver navigation authority", () => {
+    expect(validateCachedPad(cachedPad({
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "saved_pad_reference",
+        latitude: 40.22,
+        longitude: -80.82,
+      },
+    }))).toMatchObject({
+      coordinate: null,
+      mapReference: { role: "reference", kind: "saved_pad_reference" },
+    });
+  });
+
   it("rejects a tampered identity, revision, coordinate role, or zero-origin coordinate", () => {
     expect(validateCachedPad(cachedPad({ canonicalId: "different" }))).toBeNull();
     expect(validateCachedPad(cachedPad({ recordRevision: "unversioned" }))).toBeNull();
