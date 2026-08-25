@@ -148,7 +148,8 @@ requireText(mapModel, "pad.padName.toLocaleLowerCase().includes(normalizedQuery)
 requireText(map, 'role="listbox"', "accessible bounded pad search results");
 requireText(map, "Showing the first 12 matches", "pad picker result bound disclosure");
 forbid(map, /<select[^>]+value=\{padId\}/i, "all-pad dropdown remains in the Road Manager");
-requireText(map, "loadPadStatus(selectedDirectoryPad", "reviewed public direction status connection");
+requireText(map, "ensurePadStatus(selectedDirectoryPad", "reviewed public direction status connection");
+requireText(map, "loadPadStatus(pad", "public-safe pad status loader remains the overlay authority source");
 requireText(map, "Reviewed field directions", "reviewed direction display");
 requireText(map, "setStatuses(new Set(ownerRoadStatuses))", "all exact selected-location status classes included");
 requireText(map, "mapReadyRef.current", "style-ready viewport request gate");
@@ -164,6 +165,17 @@ requireText(map, "map.cooperativeGestures.disable()", "one-finger full-screen ma
 requireText(map, "setMapFullscreen", "Road Manager full-screen control");
 requireText(map, "All roads in view", "explicit all-road map-window mode");
 requireText(map, "FullscreenRoadInspector", "full-screen selected-road inspector");
+requireText(map, "PadOverlayInspector", "short pad-status map inspector");
+requireText(map, "filterOwnerPadOverlayMarkers", "company and held-pad overlay filter");
+requireText(map, "includeHeldPads", "explicit held-pad visibility control");
+requireText(map, "padCompanyScope", "selected-company or all-company pad scope");
+requireText(map, "fitWholeMap", "combined pads-and-roads fit control");
+requireText(map, "fitCurrentSelection", "current pad-and-road selection fit control");
+requireText(map, "controlsCollapsed", "minimizable map control deck");
+requireText(mapModel, 'return "No exact route match"', "normalized held-pad no-match reason");
+requireText(mapModel, 'return "Name-only match"', "normalized held-pad name-only reason");
+requireText(mapModel, 'return "Field check"', "normalized held-pad field-check reason");
+requireText(mapModel, 'return "No GPS"', "normalized held-pad missing-GPS reason");
 requireText(map, "Pads connected by saved exact route use", "selected-road exact connected-pad list");
 requireText(map, "Connections come only from the exact saved route occurrence", "road-to-pad no-inference disclosure");
 requireText(map, "Current map window fully returned", "map-window coverage scope disclosure");
