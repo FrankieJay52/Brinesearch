@@ -3,7 +3,8 @@ import { ownerRpc } from "./ownerSession";
 type JsonObject = Record<string, unknown>;
 export type OwnerRoadStatus = "approved_by_policy" | "explicitly_approved" | "candidate" | "held" | "restricted" | "reference_only";
 export type OwnerRoadClass = "interstate" | "us_route" | "state_route" | "county" | "township" | "municipal" | "local" | "ramp" | "other";
-export type OwnerRoadDisplayBoundary = "identity_viewport" | "pad_endpoint_projection";
+export type OwnerRoadDisplayBoundary = "identity_viewport" | "pad_endpoint_projection" | "exact_route_occurrence";
+export type OwnerRoadFocusMode = "all_roads" | "exact_route_ready" | "display_evidence_only" | "held";
 export type OwnerRoadGeometry =
   | { type: "LineString"; coordinates: [number, number][] }
   | { type: "MultiLineString"; coordinates: [number, number][][] };
@@ -36,6 +37,8 @@ export type OwnerRoadFeature = {
     sourceVersion: string;
     displayBoundary: OwnerRoadDisplayBoundary;
     endpointOffsetMeters: number | null;
+    routeFocus: boolean;
+    terminatesAtPad: boolean;
   };
 };
 
@@ -56,6 +59,9 @@ export type OwnerRoadViewport = {
   limit: number;
   zoom: number;
   zoomRequired: number | null;
+  focusMode: OwnerRoadFocusMode;
+  focusPadId: string | null;
+  focusTerminatesAtPad: boolean;
 };
 
 export type OwnerRoadBounds = { west: number; south: number; east: number; north: number };
@@ -207,24 +213,31 @@ function roadProperties(value: unknown): OwnerRoadFeature["properties"] | null {
   const sourceVersion = requiredText(row.source_version, 200);
   const displayBoundary = row.display_boundary === undefined
     ? "identity_viewport"
-    : new Set<OwnerRoadDisplayBoundary>(["identity_viewport", "pad_endpoint_projection"]).has(row.display_boundary as OwnerRoadDisplayBoundary)
+    : new Set<OwnerRoadDisplayBoundary>(["identity_viewport", "pad_endpoint_projection", "exact_route_occurrence"]).has(row.display_boundary as OwnerRoadDisplayBoundary)
       ? row.display_boundary as OwnerRoadDisplayBoundary
       : null;
   const endpointOffsetMeters = row.endpoint_offset_m === undefined || row.endpoint_offset_m === null
     ? null
     : finiteNumber(row.endpoint_offset_m, 0, 25);
+  const routeFocus = row.route_focus === undefined ? false : row.route_focus;
+  const terminatesAtPad = row.terminates_at_pad === undefined
+    ? displayBoundary === "pad_endpoint_projection"
+    : row.terminates_at_pad;
   if (!identityId || canonicalRoadId === undefined || !displayName || canonicalName === undefined || routeSystem === undefined
     || routeNumber === undefined || routeDesignation === undefined || !roadClass || !stateCode || countyCode === undefined
     || countyName === undefined || township === undefined || municipality === undefined || !approvalStatus
     || typeof row.source_current !== "boolean" || typeof row.mapping_conflict !== "boolean"
     || occurrenceCount === null || padCount === null || !sourceIdentityKey || !sourceAgency || !sourceDataset || !sourceVersion
-    || !displayBoundary || displayBoundary === "pad_endpoint_projection" && endpointOffsetMeters === null
-    || displayBoundary === "identity_viewport" && endpointOffsetMeters !== null) return null;
+    || !displayBoundary || typeof routeFocus !== "boolean" || typeof terminatesAtPad !== "boolean"
+    || displayBoundary === "pad_endpoint_projection" && (endpointOffsetMeters === null || routeFocus || !terminatesAtPad)
+    || displayBoundary === "identity_viewport" && (endpointOffsetMeters !== null || routeFocus || terminatesAtPad)
+    || displayBoundary === "exact_route_occurrence" && (!routeFocus || terminatesAtPad && (endpointOffsetMeters === null || endpointOffsetMeters > 1)
+      || !terminatesAtPad && endpointOffsetMeters !== null)) return null;
   return {
     identityId, canonicalRoadId, displayName, canonicalName, routeSystem, routeNumber, routeDesignation, roadClass,
     stateCode, countyCode, countyName, township, municipality, approvalStatus,
     sourceCurrent: row.source_current, mappingConflict: row.mapping_conflict, occurrenceCount, padCount,
-    sourceIdentityKey, sourceAgency, sourceDataset, sourceVersion, displayBoundary, endpointOffsetMeters,
+    sourceIdentityKey, sourceAgency, sourceDataset, sourceVersion, displayBoundary, endpointOffsetMeters, routeFocus, terminatesAtPad,
   };
 }
 
@@ -262,8 +275,23 @@ export function validateOwnerRoadViewport(value: unknown): OwnerRoadViewport | n
   const limit = integer(row.limit, 25, 800);
   const zoom = integer(row.zoom, 0, 19);
   const zoomRequired = row.zoom_required === undefined || row.zoom_required === null ? null : integer(row.zoom_required, 8, 19);
-  if (pads.some((entry) => entry === null) || typeof row.truncated !== "boolean" || limit === null || zoom === null || zoomRequired === null && row.zoom_required !== undefined && row.zoom_required !== null) return null;
-  return { type: "FeatureCollection", features, pads: pads as OwnerPadOption[], truncated: row.truncated, limit, zoom, zoomRequired };
+  const focusMode = new Set<OwnerRoadFocusMode>(["all_roads", "exact_route_ready", "display_evidence_only", "held"]).has(row.focus_mode as OwnerRoadFocusMode)
+    ? row.focus_mode as OwnerRoadFocusMode
+    : null;
+  const focusPadId = row.focus_pad_id === null ? null : uuid(row.focus_pad_id);
+  if (pads.some((entry) => entry === null) || typeof row.truncated !== "boolean" || limit === null || zoom === null
+    || zoomRequired === null && row.zoom_required !== undefined && row.zoom_required !== null
+    || !focusMode || focusPadId === null && row.focus_pad_id !== null
+    || typeof row.focus_terminates_at_pad !== "boolean"
+    || focusMode === "all_roads" && focusPadId !== null
+    || focusMode !== "all_roads" && focusPadId === null
+    || (focusMode === "exact_route_ready") !== row.focus_terminates_at_pad
+    || focusMode !== "exact_route_ready" && features.some((feature) => feature.properties.routeFocus)
+    || features.some((feature) => feature.properties.routeFocus && feature.properties.displayBoundary !== "exact_route_occurrence")) return null;
+  return {
+    type: "FeatureCollection", features, pads: pads as OwnerPadOption[], truncated: row.truncated, limit, zoom, zoomRequired,
+    focusMode, focusPadId, focusTerminatesAtPad: row.focus_terminates_at_pad,
+  };
 }
 
 function stringList(value: unknown, maxItems = 100, maxLength = 500) {
@@ -355,7 +383,7 @@ export async function loadOwnerRoadViewport(request: OwnerRoadViewportRequest, s
     p_statuses: request.statuses, p_search: request.search, p_pad_id: request.padId, p_limit: request.limit,
   }, signal);
   const parsed = validateOwnerRoadViewport(payload);
-  if (!parsed) throw new Error("Owner road viewport failed the safe response contract.");
+  if (!parsed || parsed.focusPadId !== request.padId) throw new Error("Owner road viewport failed the safe response contract.");
   return parsed;
 }
 

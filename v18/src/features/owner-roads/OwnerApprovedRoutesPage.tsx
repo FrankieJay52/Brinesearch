@@ -25,6 +25,7 @@ import {
   type OwnerRoadClass,
   type OwnerRoadDetail,
   type OwnerRoadFeature,
+  type OwnerRoadFocusMode,
   type OwnerRoadStatus,
 } from "@/data/ownerRoads";
 import {
@@ -216,9 +217,14 @@ function syncFullscreenPresentation(map: MapLibreMap, fullscreen: boolean, basem
   }
 }
 
-function syncRoadFeatures(map: MapLibreMap, features: OwnerRoadFeature[], padFocused = false) {
+function syncRoadFeatures(
+  map: MapLibreMap,
+  features: OwnerRoadFeature[],
+  focus: { mode: OwnerRoadFocusMode; padId: string | null },
+  selectedPadId: string | null,
+) {
   if (!map.getSource(sourceId)) return;
-  (map.getSource(sourceId) as GeoJSONSource).setData(ownerRoadCollection(features, padFocused));
+  (map.getSource(sourceId) as GeoJSONSource).setData(ownerRoadCollection(features, focus, selectedPadId));
 }
 
 function syncSelectedRoad(map: MapLibreMap, identityId: string | null) {
@@ -346,6 +352,9 @@ function OwnerRoadDetails({ detail, displayFeature, loading, error, onFocus, onC
     {displayFeature?.properties.displayBoundary === "pad_endpoint_projection" && <p className="owner-road-detail-boundary">
       <strong>Selected-pad display boundary:</strong> {displayFeature.properties.displayName} stops at this pad&apos;s exact-road projection, {Math.round(displayFeature.properties.endpointOffsetMeters || 0)} m from its GPS marker. This Candidate line does not extend approval, route, graph, or Google authority.
     </p>}
+    {displayFeature?.properties.displayBoundary === "exact_route_occurrence" && <p className="owner-road-detail-boundary">
+      <strong>Pad-specific exact route:</strong> this is only the occurrence geometry proven for the selected pad.{displayFeature.properties.terminatesAtPad ? ` It ends ${Math.round(displayFeature.properties.endpointOffsetMeters || 0)} m from that pad's verified entrance.` : " Shared trunk geometry does not transfer the later pad-specific route."}
+    </p>}
     {copyNotice && <p className="owner-copy-notice" role="status">{copyNotice}</p>}
     <dl className="owner-road-detail-grid">
       <dt>Canonical name</dt><dd>{detail.canonicalName || "No verified canonical mapping"}</dd>
@@ -428,6 +437,8 @@ export function OwnerApprovedRoutesPage() {
   const [mapFullscreen, setMapFullscreen] = useState(false);
   const [basemapMode, setBasemapMode] = useState<OwnerRoadBasemapMode>("road");
   const [viewportTruncated, setViewportTruncated] = useState(false);
+  const [focusMode, setFocusMode] = useState<OwnerRoadFocusMode>("all_roads");
+  const [focusTerminatesAtPad, setFocusTerminatesAtPad] = useState(false);
   const [visibleRoadLimit, setVisibleRoadLimit] = useState(roadResultPageSize);
   const [viewerReleaseBusy, setViewerReleaseBusy] = useState(false);
   const [viewerReleaseNotice, setViewerReleaseNotice] = useState("");
@@ -449,6 +460,7 @@ export function OwnerApprovedRoutesPage() {
   const viewportMoveTimerRef = useRef<number | null>(null);
   const mapReadyRef = useRef(false);
   const selectedPadIdRef = useRef("");
+  const focusProofRef = useRef<{ mode: OwnerRoadFocusMode; padId: string | null }>({ mode: "all_roads", padId: null });
   const fittedPadRef = useRef<string | null>(null);
   const fullscreenRef = useRef(false);
   const basemapModeRef = useRef<OwnerRoadBasemapMode>("road");
@@ -511,8 +523,11 @@ export function OwnerApprovedRoutesPage() {
     viewportLoadedKeyRef.current = null;
     setFeatures([]);
     setViewportTruncated(false);
+    setFocusMode(selectedPadIdRef.current ? "held" : "all_roads");
+    setFocusTerminatesAtPad(false);
+    focusProofRef.current = { mode: selectedPadIdRef.current ? "held" : "all_roads", padId: selectedPadIdRef.current || null };
     setSelectedIdentityId(null);
-    if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, [], Boolean(selectedPadIdRef.current));
+    if (mapRef.current?.getSource(sourceId)) syncRoadFeatures(mapRef.current, [], focusProofRef.current, selectedPadIdRef.current || null);
     if (mapRef.current) syncSelectedRoad(mapRef.current, null);
     setMapState("warning");
     setMapMessage(message);
@@ -569,6 +584,12 @@ export function OwnerApprovedRoutesPage() {
     const controller = new AbortController();
     viewportController.current = controller;
     viewportInFlightKeyRef.current = requestKey;
+    // Rechecking currentness immediately removes the prior teal authority
+    // proof while retaining the returned geometry in its real status colors.
+    focusProofRef.current = { mode: padId ? "held" : "all_roads", padId: padId || null };
+    setFocusMode(focusProofRef.current.mode);
+    setFocusTerminatesAtPad(false);
+    syncRoadFeatures(map, featuresRef.current, focusProofRef.current, padId || null);
     let timedOut = false;
     const requestTimeout = window.setTimeout(() => {
       if (sequence === requestRef.current && viewportController.current === controller) {
@@ -586,7 +607,10 @@ export function OwnerApprovedRoutesPage() {
       viewportLoadedKeyRef.current = requestKey;
       setFeatures(viewport.features);
       setViewportTruncated(viewport.truncated);
-      syncRoadFeatures(map, viewport.features, Boolean(padId));
+      setFocusMode(viewport.focusMode);
+      setFocusTerminatesAtPad(viewport.focusTerminatesAtPad);
+      focusProofRef.current = { mode: viewport.focusMode, padId: viewport.focusPadId };
+      syncRoadFeatures(map, viewport.features, focusProofRef.current, padId || null);
       const nextSelection = ownerRoadSelection(viewport.features, selectedIdentityRef.current);
       if (nextSelection !== selectedIdentityRef.current) setSelectedIdentityId(nextSelection);
       syncSelectedRoad(map, nextSelection);
@@ -609,7 +633,9 @@ export function OwnerApprovedRoutesPage() {
       } else {
         const graphLabel = stateFilter === "OH" ? "Ohio graph road" : "exact graph road";
         setMapState("ready"); setMapMessage(padId
-          ? `${viewport.features.length.toLocaleString()} ${graphLabel} ${viewport.features.length === 1 ? "identity" : "identities"} highlighted for the selected location in this view.${selectedName ? ` ${selectedName} has the gold inspection focus.` : ""}`
+          ? viewport.focusMode === "exact_route_ready"
+            ? `${viewport.features.length.toLocaleString()} exact ${graphLabel} ${viewport.features.length === 1 ? "identity" : "identities"} form this pad's approved route in this view; the route terminates at its verified entrance.${selectedName ? ` ${selectedName} has the gold inspection focus.` : ""}`
+            : `${viewport.features.length.toLocaleString()} non-approved display ${viewport.features.length === 1 ? "feature is" : "features are"} shown for this held pad. No approved route highlight was created.${selectedName ? ` ${selectedName} has the gold inspection focus.` : ""}`
           : `${viewport.features.length.toLocaleString()} exact road ${viewport.features.length === 1 ? "identity" : "identities"} loaded in this view.${selectedName ? ` ${selectedName} is selected and highlighted.` : ""}`);
       }
     } catch (error) {
@@ -629,7 +655,10 @@ export function OwnerApprovedRoutesPage() {
       viewportLoadedKeyRef.current = null;
       setFeatures([]);
       setViewportTruncated(false);
-      if (map.getSource(sourceId)) syncRoadFeatures(map, [], Boolean(padId));
+      setFocusMode(padId ? "held" : "all_roads");
+      setFocusTerminatesAtPad(false);
+      focusProofRef.current = { mode: padId ? "held" : "all_roads", padId: padId || null };
+      if (map.getSource(sourceId)) syncRoadFeatures(map, [], focusProofRef.current, padId || null);
       setMapState("error");
       setMapMessage(error instanceof Error ? error.message : "Owner road data could not be loaded.");
     } finally {
@@ -830,7 +859,7 @@ export function OwnerApprovedRoutesPage() {
       try {
         ensureOwnerRoadLayers(map);
         mapReadyRef.current = true;
-        syncRoadFeatures(map, featuresRef.current, Boolean(selectedPadIdRef.current));
+        syncRoadFeatures(map, featuresRef.current, focusProofRef.current, selectedPadIdRef.current || null);
         syncSelectedRoad(map, selectedIdentityRef.current);
         syncPadOverlay(map, visiblePadMarkersRef.current, selectedPadIdRef.current || null, inspectedPadIdRef.current || null);
         syncFullscreenPresentation(map, fullscreenRef.current, basemapModeRef.current);
@@ -1179,9 +1208,12 @@ export function OwnerApprovedRoutesPage() {
           {selectedDirectoryPad && <Link to={`/pad/${selectedDirectoryPad.padId}`}>Open driver card</Link>}
         </header>
         <div className="owner-pad-route-badges">
-          <b className={coverage.identityCount ? "is-ready" : "is-held"}>{coverage.identityCount ? `${coverage.occurrenceCount} mapped route ${coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · ${coverage.identityCount} exact ${coverage.identityCount === 1 ? "identity" : "identities"}` : "No exact road evidence in view"}</b>
+          <b className={focusMode === "exact_route_ready" ? "is-ready" : "is-held"}>{focusMode === "exact_route_ready"
+            ? `${coverage.occurrenceCount} approved route ${coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · ${coverage.identityCount} exact ${coverage.identityCount === 1 ? "identity" : "identities"}`
+            : coverage.identityCount ? `${coverage.identityCount} non-approved display ${coverage.identityCount === 1 ? "feature" : "features"}` : "No exact approved route in view"}</b>
           <b className={viewportTruncated ? "is-held" : "is-ready"}>{viewportTruncated ? "Map-window limit reached · zoom closer" : "Current map window fully returned"}</b>
-          {coverage.endpointCount>0 && <b className="is-ready">{coverage.endpointCount} pad endpoint {coverage.endpointCount === 1 ? "boundary" : "boundaries"} in view</b>}
+          {focusTerminatesAtPad && <b className="is-ready">Exact route terminates at verified entrance</b>}
+          {coverage.endpointCount>0 && <b className="is-held">{coverage.endpointCount} display-only pad endpoint {coverage.endpointCount === 1 ? "boundary" : "boundaries"} in view</b>}
           <b>{selectedPadStatusLoading ? "Checking reviewed directions…" : selectedPadStatus?.route.writtenDirections ? "Reviewed directions available" : "No reviewed directions published"}</b>
           {selectedPadStatus && <b>Route {selectedPadStatus.route.state.replaceAll("_", " ")} · graph {selectedPadStatus.graph.state.replaceAll("_", " ")}</b>}
           {selectedPadBlockReason && selectedPadMarker?.status !== "ready" && <b className="is-held">Pad block · {selectedPadBlockReason}</b>}
@@ -1189,13 +1221,13 @@ export function OwnerApprovedRoutesPage() {
         {coverage.identityCount>0 && <div className="owner-pad-coverage-check" aria-label="Selected location exact-road coverage check">
           <span>Map-window authority check</span>
           <div>{ownerRoadStatuses.filter((status) => coverage.statusCounts[status]>0).map((status) => <b key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{coverage.statusCounts[status]} {ownerRoadStatusLabels[status]}</b>)}</div>
-          <p>{viewportTruncated ? "This map window hit its safe response limit. Zoom closer before checking every returned identity." : "Every exact selected-pad identity returned for this map window is listed below."} This does not prove an unplotted route gap is mapped or approved; missing evidence stays blank.</p>
+          <p>{viewportTruncated ? "This map window hit its safe response limit. Zoom closer before checking every returned identity." : focusMode === "exact_route_ready" ? "Every teal feature is exact occurrence geometry from this pad's independently ready route." : "Held-pad evidence remains in its underlying authority color and is not an approved route."} Unplotted gaps stay blank.</p>
         </div>}
         {selectedDirectoryPad?.structuredRoadSequence && <div className="owner-pad-sequence"><span>Saved road sequence</span><p>{selectedDirectoryPad.structuredRoadSequence}</p></div>}
         {selectedPadStatus?.route.writtenDirections
           ? <details className="owner-pad-directions" open><summary>Reviewed field directions</summary><p>{selectedPadStatus.route.writtenDirections}</p></details>
           : !selectedPadStatusLoading && <p className="owner-pad-direction-hold">No reviewed public written directions are available for this location. Nothing was generated from private notes or inferred from road names.</p>}
-        <p className="owner-pad-graph-note">Teal map lines are exact road evidence for this selected location. When a reviewed per-pad endpoint receipt exists, a non-approved local-road line stops at that pad&apos;s exact-road projection instead of continuing beyond it. Gold marks the road being inspected. Held, restricted, unresolved, and reference-only roads keep their real status; missing gaps remain unplotted.</p>
+        <p className="owner-pad-graph-note">Teal map lines appear only for current exact approved-route occurrence geometry for this pad, and that route terminates at its verified entrance. Shared trunk geometry may appear in another pad&apos;s separately proven route, but this pad never approves a road beyond its own endpoint. Display-only endpoints, held, restricted, unresolved, and reference-only evidence keep their real colors; red still requires a real restriction record.</p>
       </div>
     </section>}
 
@@ -1212,14 +1244,14 @@ export function OwnerApprovedRoutesPage() {
             <button type="button" onClick={fitCurrentSelection} disabled={!padId && !inspectedPadId}><Icon name="route"/>Fit selection</button>
           </div>
           {mapFullscreen && <div className="owner-map-fullscreen-summary" role="status">
-            <span><strong>{selectedPad ? `${selectedPad.company ? `${selectedPad.company} — ` : ""}${selectedPad.padName}` : "Current map view"}</strong><small>{ownerRoadBasemapLabels[basemapMode]} · {coverage.occurrenceCount} mapped route {coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · {coverage.identityCount} exact {coverage.identityCount === 1 ? "identity" : "identities"} · {visiblePadMarkers.length} pads</small></span>
+            <span><strong>{selectedPad ? `${selectedPad.company ? `${selectedPad.company} — ` : ""}${selectedPad.padName}` : "Current map view"}</strong><small>{ownerRoadBasemapLabels[basemapMode]} · {focusMode === "exact_route_ready" ? `${coverage.occurrenceCount} approved route ${coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"}` : padId ? "held · no approved route highlight" : `${coverage.identityCount} road identities`} · {visiblePadMarkers.length} pads</small></span>
             <b className={viewportTruncated ? "is-held" : "is-ready"}>{viewportTruncated ? "Zoom closer to check all in this window" : "Map window checked"}</b>
           </div>}
           {mapFullscreen && selectedIdentityId && <FullscreenRoadInspector detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onClose={clearRoadSelection} onChoosePad={choosePad}/>}
           {inspectedPadMarker && <PadOverlayInspector marker={inspectedPadMarker} loading={padStatusLoadingIds.has(inspectedPadMarker.padId)} selected={inspectedPadMarker.padId === padId} onClose={() => setInspectedPadId("")} onShowRoads={() => choosePad(inspectedPadMarker.padId)}/>}
           <div className={`owner-map-status is-${mapState}`} role={mapState === "error" ? "alert" : "status"}><span/>{mapMessage}</div>
         </div>
-        <div className="owner-map-legend" aria-label="Road and pad status legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{padId && <strong className="owner-pad-focus-key">Selected location exact road evidence</strong>}<strong>Gold inspection road</strong><span className="owner-pad-overlay-legend-label">Pad dots</span>{Object.entries(ownerPadOverlayStatusLabels).map(([status, label]) => <span key={status}><i style={{ background: ownerPadOverlayStatusColors[status as keyof typeof ownerPadOverlayStatusColors] }}/>{label}</span>)}<small>Held stays held. Reference-only and endpoint-display roads are not approved. Location and road selection change display focus only; the pad overlay is display-only.</small></div>
+        <div className="owner-map-legend" aria-label="Road and pad status legend">{ownerRoadStatuses.map((status) => <span key={status}><i style={{ background: ownerRoadStatusColors[status] }}/>{ownerRoadStatusLabels[status]}</span>)}{focusMode === "exact_route_ready" ? <strong className="owner-pad-focus-key">Selected pad exact approved route</strong> : padId && <strong>Selected pad held · no teal route</strong>}<strong>Gold inspection road</strong><span className="owner-pad-overlay-legend-label">Pad dots</span>{Object.entries(ownerPadOverlayStatusLabels).map(([status, label]) => <span key={status}><i style={{ background: ownerPadOverlayStatusColors[status as keyof typeof ownerPadOverlayStatusColors] }}/>{label}</span>)}<small>Held stays held. Reference-only and endpoint-display roads are not approved. Each pad&apos;s route is independently clipped at its verified entrance; absence beyond that point is not a restriction.</small></div>
       </section>
       <aside className="owner-road-results" aria-label="Road results">
         <header><div><span className="eyebrow">CURRENT MAP VIEW</span><h2>Road identities</h2></div><b>{features.length.toLocaleString()}</b></header>
@@ -1229,6 +1261,7 @@ export function OwnerApprovedRoutesPage() {
             <span className="owner-road-result-heading"><i style={{ background: ownerRoadStatusColors[road.approvalStatus] }}/><strong>{road.displayName}</strong></span>
             <small>{ownerRoadJurisdiction(road)}</small><small>{ownerRoadRouteLabel(road)}</small><code>{road.sourceIdentityKey}</code>
             {road.displayBoundary === "pad_endpoint_projection" && <small>Ends at selected pad road projection · {Math.round(road.endpointOffsetMeters || 0)} m from GPS</small>}
+            {road.displayBoundary === "exact_route_occurrence" && <small>{road.terminatesAtPad ? `Exact route ends at verified entrance · ${Math.round(road.endpointOffsetMeters || 0)} m` : "Exact pad-specific route occurrence"}</small>}
             <span className={`owner-road-status status-${road.approvalStatus}`}>{ownerRoadStatusLabels[road.approvalStatus]}</span>
           </button>;
         }) : <p className="owner-road-empty">No exact identities are loaded in this view.</p>}</div>

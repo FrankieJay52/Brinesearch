@@ -51,6 +51,8 @@ const feature: OwnerRoadFeature = {
     sourceVersion: "1",
     displayBoundary: "identity_viewport",
     endpointOffsetMeters: null,
+    routeFocus: false,
+    terminatesAtPad: false,
   },
 };
 
@@ -87,13 +89,46 @@ describe("owner road map model", () => {
   });
 
   it("keeps exact identity and status on the selectable map feature", () => {
-    expect(ownerRoadCollection([feature]).features[0].properties).toEqual({
+    expect(ownerRoadCollection([feature], { mode: "all_roads", padId: null }, null).features[0].properties).toEqual({
       identityId: feature.properties.identityId,
       displayName: "Example Road",
       approvalStatus: "candidate",
       padFocused: false,
     });
-    expect(ownerRoadCollection([feature], true).features[0].properties.padFocused).toBe(true);
+    const exact = { ...feature, properties: { ...feature.properties, routeFocus: true, displayBoundary: "exact_route_occurrence" as const } };
+    expect(ownerRoadCollection([exact], { mode: "exact_route_ready", padId: "pad-a" }, "pad-a").features[0].properties.padFocused).toBe(true);
+    expect(ownerRoadCollection([exact], { mode: "held", padId: "pad-a" }, "pad-a").features[0].properties.padFocused).toBe(false);
+    expect(ownerRoadCollection([exact], { mode: "exact_route_ready", padId: "pad-b" }, "pad-a").features[0].properties.padFocused).toBe(false);
+  });
+
+  it("reuses a proven trunk while keeping each pad-specific last mile separate", () => {
+    const exactPart = (identityId: string, coordinates: [number, number][], terminatesAtPad: boolean): OwnerRoadFeature => ({
+      ...feature,
+      geometry: { type: "LineString", coordinates },
+      properties: {
+        ...feature.properties,
+        identityId,
+        displayBoundary: "exact_route_occurrence",
+        endpointOffsetMeters: terminatesAtPad ? 0 : null,
+        routeFocus: true,
+        terminatesAtPad,
+      },
+    });
+    const sharedTrunk = [[-80.95, 40.15], [-80.93, 40.16]] as [number, number][];
+    const earlierPadResponse = [
+      exactPart("11111111-1111-4111-8111-111111111111", sharedTrunk, false),
+      exactPart("22222222-2222-4222-8222-222222222222", [[-80.93, 40.16], [-80.903485, 40.165091]], true),
+    ];
+    const fartherPadResponse = [
+      exactPart("11111111-1111-4111-8111-111111111111", sharedTrunk, false),
+      exactPart("33333333-3333-4333-8333-333333333333", [[-80.93, 40.16], [-80.931288, 40.168593]], true),
+    ];
+    expect(earlierPadResponse[0].geometry).toEqual(fartherPadResponse[0].geometry);
+    expect(earlierPadResponse[1].geometry).not.toEqual(fartherPadResponse[1].geometry);
+    expect(ownerRoadCollection(earlierPadResponse, { mode: "exact_route_ready", padId: "pad-a" }, "pad-a").features.every((item) => item.properties.padFocused)).toBe(true);
+    expect(ownerRoadCollection(fartherPadResponse, { mode: "exact_route_ready", padId: "pad-b" }, "pad-b").features.every((item) => item.properties.padFocused)).toBe(true);
+    expect(ownerRoadCollection(earlierPadResponse, { mode: "held", padId: "scout" }, "scout").features.every((item) => !item.properties.padFocused)).toBe(true);
+    expect(ownerRoadCollection(fartherPadResponse, { mode: "held", padId: "cravat" }, "cravat").features.every((item) => !item.properties.padFocused)).toBe(true);
   });
 
   it("summarizes only returned exact evidence without inventing route coverage", () => {
@@ -106,12 +141,16 @@ describe("owner road map model", () => {
         occurrenceCount: 2,
         displayBoundary: "pad_endpoint_projection",
         endpointOffsetMeters: 3.2,
+        routeFocus: false,
+        terminatesAtPad: true,
       },
     };
     expect(ownerRoadCoverage([feature, endpoint])).toEqual({
       identityCount: 2,
       occurrenceCount: 3,
       endpointCount: 1,
+      routeFocusCount: 0,
+      terminalCount: 1,
       statusCounts: {
         approved_by_policy: 0,
         explicitly_approved: 0,

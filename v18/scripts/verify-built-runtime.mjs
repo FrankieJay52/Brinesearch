@@ -26,7 +26,9 @@ assert.match(appJavascript, /\/settings\/approved-routes/, "Built V18 app is mis
 assert.match(appJavascript, /brinesearch\.v18AuthSession\.v1/, "Built V18 app is missing its V18-only owner session");
 assert.match(appJavascript, /\/sign-in/, "Built V18 app is missing native owner sign-in");
 assert.match(appJavascript, /field_feed_list\?select=/, "Built V18 app is missing native public Field Updates");
-assert.match(appJavascript, /Selected location exact road evidence/, "Built V18 app is missing the selected-location exact-road highlight legend");
+assert.match(appJavascript, /Selected pad exact approved route/, "Built V18 app is missing the selected-pad exact-route highlight legend");
+assert.match(appJavascript, /Exact route terminates at verified entrance/, "Built V18 app is missing the verified-entrance termination proof");
+assert.match(appJavascript, /Selected pad held · no teal route/, "Built V18 app is missing the held-pad fail-closed legend");
 assert.match(appJavascript, /Ends at selected pad road projection/, "Built V18 app is missing the per-pad endpoint boundary label");
 assert.match(appJavascript, /Gold inspection road/, "Built V18 app is missing the selected-road inspection legend");
 assert.match(appJavascript, /Reviewed field directions/, "Built V18 app is missing reviewed directions in the owner map");
