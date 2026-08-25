@@ -6,6 +6,7 @@ import {
   ownerBoundsUnion,
   ownerPadOverlayBounds,
   ownerPadOverlayCollection,
+  ownerPadOverlayBlockReason,
   ownerPadOverlayMarker,
   ownerPadOverlayStatus,
   ownerRoadCollection,
@@ -242,6 +243,11 @@ describe("owner road map model", () => {
     } satisfies DriverPadStatus;
     expect(ownerPadOverlayStatus(base)).toBe("candidate");
     expect(ownerPadOverlayStatus({ ...base, route: { ...base.route, state: "held", safeReason: "road_restricted" } })).toBe("restricted");
+    expect(ownerPadOverlayBlockReason({
+      ...base,
+      route: { ...base.route, state: "held", safeReason: null },
+      google: { ...base.google, safeReason: "public_route_or_graph_authority_held" },
+    }, true)).toBe("Route not reconciled");
     const padBounds = ownerPadOverlayBounds([
       { padId: "1", padName: "A", company: "Ascent", state: "OH", county: "Harrison", latitude: 40.1, longitude: -81, status: "held", blockReason: "Route held", statusChecked: true },
       { padId: "2", padName: "B", company: "Ascent", state: "OH", county: "Harrison", latitude: 40.3, longitude: -80.8, status: "ready", blockReason: "Approved route ready", statusChecked: true },

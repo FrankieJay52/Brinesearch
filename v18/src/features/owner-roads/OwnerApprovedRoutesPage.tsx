@@ -5,7 +5,6 @@ import {
   Map as MapLibreMap,
   NavigationControl,
   type MapMouseEvent,
-  type StyleSpecification,
 } from "maplibre-gl";
 import { Link } from "react-router-dom";
 import { Icon } from "@/components/Icon";
@@ -53,14 +52,14 @@ import {
   ownerPadOverlayStatusLabels,
   type OwnerPadOverlayMarker,
 } from "./ownerRoadMapModel";
+import {
+  ownerRoadBasemapLabels,
+  ownerRoadBasemapStyle,
+  ownerRoadFallbackStyle,
+  type OwnerRoadBasemapMode,
+} from "./ownerRoadBasemap";
 import "./owner-approved-routes.css";
 
-const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
-const fallbackMapStyle: StyleSpecification = {
-  version: 8,
-  sources: {},
-  layers: [{ id: "owner-map-offline-background", type: "background", paint: { "background-color": "#102938" } }],
-};
 const sourceId = "brinesearch-owner-roads";
 const roadCasingLayerId = "brinesearch-owner-roads-casing";
 const roadLayerId = "brinesearch-owner-roads-line";
@@ -187,7 +186,7 @@ function ensureOwnerRoadLayers(map: MapLibreMap) {
   }, before);
 }
 
-function syncFullscreenPresentation(map: MapLibreMap, fullscreen: boolean) {
+function syncFullscreenPresentation(map: MapLibreMap, fullscreen: boolean, basemapMode: OwnerRoadBasemapMode) {
   if (fullscreen) {
     if (!map.getSource(fullscreenFadeSourceId)) map.addSource(fullscreenFadeSourceId, {
       type: "geojson",
@@ -201,8 +200,9 @@ function syncFullscreenPresentation(map: MapLibreMap, fullscreen: boolean) {
       id: fullscreenFadeLayerId,
       type: "fill",
       source: fullscreenFadeSourceId,
-      paint: { "fill-color": getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#07131f", "fill-opacity": .5 },
+      paint: { "fill-color": getComputedStyle(document.documentElement).getPropertyValue("--bg").trim() || "#07131f", "fill-opacity": basemapMode === "satellite" ? .14 : .5 },
     });
+    else map.setPaintProperty(fullscreenFadeLayerId, "fill-opacity", basemapMode === "satellite" ? .14 : .5);
     for (const layerId of [roadCasingLayerId, roadLayerId, selectedPadHaloLayerId, selectedPadLayerId, selectedHaloLayerId, selectedLayerId, padLayerId]) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
@@ -426,6 +426,7 @@ export function OwnerApprovedRoutesPage() {
   const [mapState, setMapState] = useState<MapState>("starting");
   const [mapMessage, setMapMessage] = useState("Starting the owner road map…");
   const [mapFullscreen, setMapFullscreen] = useState(false);
+  const [basemapMode, setBasemapMode] = useState<OwnerRoadBasemapMode>("road");
   const [viewportTruncated, setViewportTruncated] = useState(false);
   const [visibleRoadLimit, setVisibleRoadLimit] = useState(roadResultPageSize);
   const [viewerReleaseBusy, setViewerReleaseBusy] = useState(false);
@@ -450,6 +451,11 @@ export function OwnerApprovedRoutesPage() {
   const selectedPadIdRef = useRef("");
   const fittedPadRef = useRef<string | null>(null);
   const fullscreenRef = useRef(false);
+  const basemapModeRef = useRef<OwnerRoadBasemapMode>("road");
+  const appliedBasemapModeRef = useRef<OwnerRoadBasemapMode>("road");
+  const styleReadyRef = useRef(false);
+  const fallbackAppliedRef = useRef(false);
+  const styleTimeoutRef = useRef<number | null>(null);
   const loadViewportRef = useRef<((force?: boolean) => void) | null>(null);
   const selectRoadRef = useRef<((identityId: string, focus: boolean) => void) | null>(null);
   const inspectPadRef = useRef<((padId: string) => void) | null>(null);
@@ -458,6 +464,7 @@ export function OwnerApprovedRoutesPage() {
   selectedIdentityRef.current = selectedIdentityId;
   selectedPadIdRef.current = padId;
   fullscreenRef.current = mapFullscreen;
+  basemapModeRef.current = basemapMode;
   inspectedPadIdRef.current = inspectedPadId;
   padStatusesRef.current = padStatuses;
 
@@ -704,7 +711,7 @@ export function OwnerApprovedRoutesPage() {
     if (map) {
       if (mapFullscreen) map.cooperativeGestures.disable();
       else map.cooperativeGestures.enable();
-      if (mapReadyRef.current) syncFullscreenPresentation(map, mapFullscreen);
+      if (mapReadyRef.current) syncFullscreenPresentation(map, mapFullscreen, basemapMode);
     }
     const resizeFrame = window.requestAnimationFrame(() => mapRef.current?.resize());
     if (!mapFullscreen) return () => window.cancelAnimationFrame(resizeFrame);
@@ -722,7 +729,7 @@ export function OwnerApprovedRoutesPage() {
       document.body.style.overflow = previousBodyOverflow;
       document.documentElement.style.overflow = previousRootOverflow;
     };
-  }, [mapFullscreen]);
+  }, [basemapMode, mapFullscreen]);
 
   useEffect(() => {
     if (!selectedIdentityId || access.state !== "owner") {
@@ -796,7 +803,7 @@ export function OwnerApprovedRoutesPage() {
     try {
       map = new MapLibreMap({
         container: mapHost.current,
-        style: mapStyle,
+        style: ownerRoadBasemapStyle("road"),
         center: defaultCenter,
         zoom: 10,
         attributionControl: { compact: true },
@@ -813,18 +820,25 @@ export function OwnerApprovedRoutesPage() {
     } catch {
       setMapState("error"); setMapMessage("The map renderer could not start. Road results remain fail-closed."); return;
     }
-    let styleReady = false;
-    let fallbackApplied = false;
+    styleReadyRef.current = false;
+    fallbackAppliedRef.current = false;
+    appliedBasemapModeRef.current = "road";
     const onStyleLoad = () => {
-      styleReady = true;
+      if (styleTimeoutRef.current !== null) window.clearTimeout(styleTimeoutRef.current);
+      styleTimeoutRef.current = null;
+      styleReadyRef.current = true;
       try {
         ensureOwnerRoadLayers(map);
         mapReadyRef.current = true;
         syncRoadFeatures(map, featuresRef.current, Boolean(selectedPadIdRef.current));
         syncSelectedRoad(map, selectedIdentityRef.current);
         syncPadOverlay(map, visiblePadMarkersRef.current, selectedPadIdRef.current || null, inspectedPadIdRef.current || null);
-        syncFullscreenPresentation(map, fullscreenRef.current);
-        setMapMessage(fallbackApplied ? "Basemap unavailable. Exact road overlays remain available on a reference background." : "Map ready. Loading exact current road identities…");
+        syncFullscreenPresentation(map, fullscreenRef.current, basemapModeRef.current);
+        setMapMessage(fallbackAppliedRef.current
+          ? "Basemap unavailable. Exact road overlays remain available on a reference background."
+          : basemapModeRef.current === "satellite"
+            ? "Satellite imagery ready. Loading exact current road identities…"
+            : "Map ready. Loading exact current road identities…");
         setMapViewRevision((revision) => revision + 1);
         scheduleViewportLoad(0);
       } catch {
@@ -832,11 +846,22 @@ export function OwnerApprovedRoutesPage() {
       }
     };
     const onMapError = () => {
-      if (!styleReady && !fallbackApplied) {
-        fallbackApplied = true;
-        setMapState("warning"); setMapMessage("Basemap unavailable. Starting a reference background for exact road overlays…");
-        try { map.setStyle(fallbackMapStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+      if (styleReadyRef.current || fallbackAppliedRef.current) return;
+      if (basemapModeRef.current === "satellite") {
+        appliedBasemapModeRef.current = "road";
+        basemapModeRef.current = "road";
+        setBasemapMode("road");
+        setMapState("warning");
+        setMapMessage("Satellite imagery could not start. Returning to the road map; exact road authority is unchanged.");
+        try { map.setStyle(ownerRoadBasemapStyle("road")); } catch {
+          fallbackAppliedRef.current = true;
+          try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+        }
+        return;
       }
+      fallbackAppliedRef.current = true;
+      setMapState("warning"); setMapMessage("Basemap unavailable. Starting a reference background for exact road overlays…");
+      try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
     };
     const onClick = (event: MapMouseEvent) => {
       if (!map.getLayer(roadLayerId)) return;
@@ -892,17 +917,20 @@ export function OwnerApprovedRoutesPage() {
       });
     });
     resizeObserver.observe(mapHost.current);
-    const styleTimeout = window.setTimeout(onMapError, 8_000);
+    styleTimeoutRef.current = window.setTimeout(onMapError, 8_000);
     mapRef.current = map;
     setMapState("loading");
     return () => {
-      window.clearTimeout(styleTimeout);
+      if (styleTimeoutRef.current !== null) window.clearTimeout(styleTimeoutRef.current);
+      styleTimeoutRef.current = null;
       if (hoverFrame !== null) window.cancelAnimationFrame(hoverFrame);
       if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
       if (viewportMoveTimerRef.current !== null) window.clearTimeout(viewportMoveTimerRef.current);
       viewportMoveTimerRef.current = null;
       resizeObserver.disconnect();
       mapReadyRef.current = false;
+      styleReadyRef.current = false;
+      fallbackAppliedRef.current = false;
       requestRef.current += 1;
       viewportController.current?.abort();
       viewportController.current = null;
@@ -912,6 +940,64 @@ export function OwnerApprovedRoutesPage() {
       mapRef.current = null;
     };
   }, [access.state, scheduleViewportLoad]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (access.state !== "owner" || !map || appliedBasemapModeRef.current === basemapMode) return;
+    appliedBasemapModeRef.current = basemapMode;
+    basemapModeRef.current = basemapMode;
+    styleReadyRef.current = false;
+    fallbackAppliedRef.current = false;
+    mapReadyRef.current = false;
+    setMapState("loading");
+    setMapMessage(basemapMode === "satellite" ? "Loading USGS satellite imagery…" : "Loading road map…");
+    if (styleTimeoutRef.current !== null) window.clearTimeout(styleTimeoutRef.current);
+    styleTimeoutRef.current = null;
+    try {
+      map.setStyle(ownerRoadBasemapStyle(basemapMode));
+    } catch {
+      if (basemapMode === "satellite") {
+        appliedBasemapModeRef.current = "road";
+        basemapModeRef.current = "road";
+        setBasemapMode("road");
+        setMapState("warning");
+        setMapMessage("Satellite imagery could not start. Road map restored; exact road authority is unchanged.");
+        try { map.setStyle(ownerRoadBasemapStyle("road")); } catch {
+          fallbackAppliedRef.current = true;
+          try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+        }
+      } else {
+        fallbackAppliedRef.current = true;
+        setMapState("warning");
+        setMapMessage("Road basemap unavailable. Exact overlays remain fail-closed on a reference background.");
+        try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+      }
+    }
+    const timeout = window.setTimeout(() => {
+      if (styleReadyRef.current || appliedBasemapModeRef.current !== basemapMode) return;
+      if (basemapMode === "satellite") {
+        appliedBasemapModeRef.current = "road";
+        basemapModeRef.current = "road";
+        setBasemapMode("road");
+        setMapState("warning");
+        setMapMessage("Satellite imagery timed out. Road map restored; exact road authority is unchanged.");
+        try { map.setStyle(ownerRoadBasemapStyle("road")); } catch {
+          fallbackAppliedRef.current = true;
+          try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+        }
+        return;
+      }
+      fallbackAppliedRef.current = true;
+      setMapState("warning");
+      setMapMessage("Road basemap timed out. Exact overlays remain fail-closed on a reference background.");
+      try { map.setStyle(ownerRoadFallbackStyle); } catch { setMapState("error"); setMapMessage("The map background could not start. No road geometry was substituted."); }
+    }, 8_000);
+    styleTimeoutRef.current = timeout;
+    return () => {
+      window.clearTimeout(timeout);
+      if (styleTimeoutRef.current === timeout) styleTimeoutRef.current = null;
+    };
+  }, [access.state, basemapMode]);
 
   useEffect(() => {
     if (access.state !== "owner" || !mapRef.current || !mapReadyRef.current) return;
@@ -1115,17 +1201,18 @@ export function OwnerApprovedRoutesPage() {
 
     <div className="owner-routes-workspace">
       <section className={`owner-map-column${mapFullscreen ? " is-fullscreen" : ""}`} aria-label={mapFullscreen ? "Full-screen Road Manager map" : undefined}>
-        <div className={`owner-map-shell${mapFullscreen && selectedIdentityId || inspectedPadMarker ? " has-road-inspector" : ""}`} data-fullscreen={mapFullscreen ? "true" : "false"}>
+        <div className={`owner-map-shell${mapFullscreen && selectedIdentityId || inspectedPadMarker ? " has-road-inspector" : ""}`} data-fullscreen={mapFullscreen ? "true" : "false"} data-basemap={basemapMode}>
           <div ref={mapHost} className="owner-map-canvas" aria-label="Interactive owner approved routes map"/>
           <div className="owner-map-actions" aria-label="Road Manager map controls">
             <button type="button" onClick={() => setMapFullscreen((current) => !current)} aria-expanded={mapFullscreen}><Icon name={mapFullscreen ? "close" : "expand"}/>{mapFullscreen ? "Exit" : "Full screen"}</button>
+            <button type="button" className="owner-map-basemap-toggle" onClick={() => setBasemapMode((current) => current === "road" ? "satellite" : "road")} aria-pressed={basemapMode === "satellite"} aria-label={basemapMode === "satellite" ? "Switch to road map" : "Switch to satellite imagery"}><Icon name="map"/>{basemapMode === "satellite" ? "Road map" : "Satellite"}</button>
             <button type="button" onClick={() => setPadOverlayVisible((visible) => !visible)} aria-pressed={padOverlayVisible}><Icon name="location"/>{padOverlayVisible ? "Pads on" : "Pads off"}</button>
             <button type="button" onClick={showAllRoads} aria-pressed={!padId}><Icon name="map"/>All roads</button>
             <button type="button" onClick={fitWholeMap} disabled={!coverage.identityCount && !visiblePadMarkers.length}><Icon name="expand"/>Fit whole</button>
             <button type="button" onClick={fitCurrentSelection} disabled={!padId && !inspectedPadId}><Icon name="route"/>Fit selection</button>
           </div>
           {mapFullscreen && <div className="owner-map-fullscreen-summary" role="status">
-            <span><strong>{selectedPad ? `${selectedPad.company ? `${selectedPad.company} — ` : ""}${selectedPad.padName}` : "Current map view"}</strong><small>{coverage.occurrenceCount} mapped route {coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · {coverage.identityCount} exact {coverage.identityCount === 1 ? "identity" : "identities"} · {visiblePadMarkers.length} pads</small></span>
+            <span><strong>{selectedPad ? `${selectedPad.company ? `${selectedPad.company} — ` : ""}${selectedPad.padName}` : "Current map view"}</strong><small>{ownerRoadBasemapLabels[basemapMode]} · {coverage.occurrenceCount} mapped route {coverage.occurrenceCount === 1 ? "occurrence" : "occurrences"} · {coverage.identityCount} exact {coverage.identityCount === 1 ? "identity" : "identities"} · {visiblePadMarkers.length} pads</small></span>
             <b className={viewportTruncated ? "is-held" : "is-ready"}>{viewportTruncated ? "Zoom closer to check all in this window" : "Map window checked"}</b>
           </div>}
           {mapFullscreen && selectedIdentityId && <FullscreenRoadInspector detail={detail} displayFeature={selectedFeature} loading={detailLoading} error={detailError} onClose={clearRoadSelection} onChoosePad={choosePad}/>}
