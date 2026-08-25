@@ -14,13 +14,15 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
 import { loadPadStatus } from "@/data/status";
-import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteGeometry, PadSummary } from "@/data/types";
+import { loadDriverRouteChoices } from "@/data/routeChoices";
+import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
 import {
-  clusterNeedsChooser,
+  coincidentLocationsNeedChooser,
   emptyMapCoordinateNotice,
   filterMapRows,
-  groupProjectedPads,
+  groupCoincidentProjectedPads,
   hasSafeCoordinate,
+  mapDisplayCoordinate,
   mapPadSearchResults,
   mapViewerModeFromParam,
   type MapViewerMode,
@@ -33,7 +35,6 @@ const fallbackMapStyle: StyleSpecification = {
   layers: [{ id: "offline-background", type: "background", paint: { "background-color": "#102938" } }],
 };
 const mapStyleTimeoutMs = 8_000;
-const clusterExpansionMaxZoom = 14;
 const companyRoadSourceId = "brinesearch-company-roads";
 const companyRoadCasingLayerId = "brinesearch-company-roads-casing";
 const companyRoadLineLayerId = "brinesearch-company-roads-line";
@@ -184,10 +185,51 @@ function routeLines(geometry: DriverRouteGeometry | null) {
     : feature.geometry.coordinates);
 }
 
-function pointColor(row: PadSummary) {
-  if (row.coordinate?.role === "driver_entrance") return "#52e4bd";
+function pointColor(row: PadSummary, coordinate = mapDisplayCoordinate(row)) {
+  if (coordinate?.role === "driver_entrance") return "#52e4bd";
   if (row.recordType === "disposal") return "#70a8ff";
   return "#f0b45d";
+}
+
+function drawStableLocationMarker(
+  context: CanvasRenderingContext2D,
+  group: ReturnType<typeof groupCoincidentProjectedPads>[number],
+  selectedId: string | null,
+) {
+  const selectedPoint = selectedId ? group.points.find((point) => point.row.padId === selectedId) : null;
+  const point = selectedPoint || group.points[0];
+  const row = point.row;
+  const selected = Boolean(selectedPoint);
+  const stacked = group.rows.length > 1;
+  const radius = selected ? 8 : 5.5;
+
+  if (selected) {
+    context.beginPath();
+    context.arc(group.x, group.y, 12, 0, Math.PI * 2);
+    context.fillStyle = "rgba(255, 255, 255, .26)";
+    context.fill();
+  }
+
+  const drawDot = (x: number, y: number, fill: string) => {
+    context.beginPath();
+    context.arc(x, y, radius, 0, Math.PI * 2);
+    context.fillStyle = fill;
+    context.fill();
+    context.strokeStyle = selected ? "#ffffff" : "#07131f";
+    context.lineWidth = selected ? 3 : 2;
+    context.stroke();
+  };
+
+  if (stacked) {
+    // Exact-coordinate duplicates use a stable double marker. It never
+    // absorbs nearby locations or changes membership while the map moves.
+    drawDot(group.x - 3, group.y + 3, "#d9fbf5");
+    drawDot(group.x + 3, group.y - 3, pointColor(row, point.coordinate));
+  } else {
+    drawDot(group.x, group.y, pointColor(row, point.coordinate));
+  }
+
+  return { selected, radius: selected ? 17 : stacked ? 15 : 12 };
 }
 
 function drawRoute(
@@ -238,44 +280,20 @@ function drawPadOverlay(
   context.clearRect(0, 0, width, height);
   drawRoute(context, map, geometry);
 
-  const safeRows = rows.filter(hasSafeCoordinate);
-  const projected = safeRows.map((row) => {
-    const point = map.project([row.coordinate!.longitude, row.coordinate!.latitude]);
-    return { row, x: point.x, y: point.y };
+  const safeRows = rows.flatMap((row) => {
+    const coordinate = mapDisplayCoordinate(row);
+    return coordinate ? [{ row, coordinate }] : [];
+  });
+  const projected = safeRows.map(({ row, coordinate }) => {
+    const point = map.project([coordinate.longitude, coordinate.latitude]);
+    return { row, coordinate, x: point.x, y: point.y };
   }).filter((point) => point.x >= -40 && point.x <= width + 40 && point.y >= -40 && point.y <= height + 40);
-  const cellSize = map.getZoom() >= 13 ? 26 : map.getZoom() >= 10 ? 38 : 52;
-  const groups = groupProjectedPads(projected, cellSize);
+  const groups = groupCoincidentProjectedPads(projected);
   const targets: PadHitTarget[] = [];
 
   for (const group of groups) {
-    const selected = selectedId ? group.rows.some((row) => row.padId === selectedId) : false;
-    if (group.rows.length > 1) {
-      const radius = group.rows.length >= 200 ? 28 : group.rows.length >= 50 ? 23 : 18;
-      context.beginPath();
-      context.arc(group.x, group.y, radius, 0, Math.PI * 2);
-      context.fillStyle = "#58d6c8";
-      context.fill();
-      context.strokeStyle = selected ? "#ffffff" : "#07131f";
-      context.lineWidth = selected ? 4 : 3;
-      context.stroke();
-      context.fillStyle = "#07131f";
-      context.font = "800 12px system-ui, sans-serif";
-      context.textAlign = "center";
-      context.textBaseline = "middle";
-      context.fillText(group.rows.length > 999 ? "999+" : String(group.rows.length), group.x, group.y);
-      targets.push({ ...group, radius: radius + 5 });
-      continue;
-    }
-    const row = group.rows[0];
-    const radius = selected ? 10 : 7;
-    context.beginPath();
-    context.arc(group.x, group.y, radius, 0, Math.PI * 2);
-    context.fillStyle = pointColor(row);
-    context.fill();
-    context.strokeStyle = selected ? "#ffffff" : "#07131f";
-    context.lineWidth = selected ? 4 : 2.5;
-    context.stroke();
-    targets.push({ ...group, radius: radius + 6 });
+    const marker = drawStableLocationMarker(context, group, selectedId);
+    targets.push({ ...group, radius: marker.radius });
   }
 
   return { inputCount: safeRows.length, renderedCount: groups.length, targets };
@@ -289,8 +307,10 @@ export function MapPage() {
   const [mapSearch, setMapSearch] = useState("");
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [clusterChoices, setClusterChoices] = useState<PadSummary[] | null>(null);
+  const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
+  const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
+  const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "pad" | "disposal">("all");
   const [mapRenderState, setMapRenderState] = useState<MapRenderState>("loading");
   const [mapNotice, setMapNotice] = useState("Loading basemap and mapped locations…");
@@ -323,22 +343,26 @@ export function MapPage() {
   const visibleMappedCount = useMemo(() => visibleRows.filter(hasSafeCoordinate).length, [visibleRows]);
   const searchResults = useMemo(() => mapPadSearchResults(snapshot?.rows || [], mapSearch), [mapSearch, snapshot]);
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
+  const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
+  const selectedRouteChoice = routeChoices.find((choice) => choice.routeKey === selectedRouteKey) || routeChoices[0] || null;
+  const selectedRouteGeometry = selectedRouteChoice?.geometry || selectedStatus?.route.geometry || null;
   visibleRowsRef.current = visibleRows;
-  selectedRouteRef.current = selectedStatus?.route.geometry || null;
+  selectedRouteRef.current = selectedRouteGeometry;
   companyRoadRowsRef.current = companyRoads.overlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
   isolateSelectedRouteRef.current = roadMode && Boolean(selectedId);
 
   const focusPad = useCallback((row: PadSummary) => {
-    setClusterChoices(null);
+    setLocationChoices(null);
     setSelectedId(row.padId);
     setMapSearch(row.padName);
     setMapSearchOpen(false);
     pendingRouteFitRef.current = true;
-    if (row.coordinate && mapRef.current) {
+    const coordinate = mapDisplayCoordinate(row);
+    if (coordinate && mapRef.current) {
       mapRef.current.easeTo({
-        center: [row.coordinate.longitude, row.coordinate.latitude],
+        center: [coordinate.longitude, coordinate.latitude],
         zoom: Math.max(mapRef.current.getZoom(), 13),
         duration: 420,
       });
@@ -393,21 +417,31 @@ export function MapPage() {
   useEffect(() => {
     let cancelled = false;
     setSelectedStatus(null);
-    if (selected) loadPadStatus(selected, snapshot?.sourceState).then((status) => {
-      if (!cancelled) setSelectedStatus(status);
-    });
+    setRouteChoices([]);
+    setSelectedRouteKey("");
+    if (selected) {
+      loadPadStatus(selected, snapshot?.sourceState).then((status) => {
+        if (!cancelled) setSelectedStatus(status);
+      });
+      loadDriverRouteChoices(selected).then((choices) => {
+        if (cancelled) return;
+        setRouteChoices(choices);
+        setSelectedRouteKey(choices[0]?.routeKey || "");
+      });
+    }
     return () => { cancelled = true; };
   }, [selected, snapshot?.sourceState]);
 
   useEffect(() => {
     if (!selectedStatus || !selected || !pendingRouteFitRef.current || !mapRef.current) return;
     pendingRouteFitRef.current = false;
-    const lines = routeLines(selectedStatus.route.geometry);
-    if (!lines.length || !selected.coordinate) return;
-    const bounds = new LngLatBounds([selected.coordinate.longitude, selected.coordinate.latitude], [selected.coordinate.longitude, selected.coordinate.latitude]);
+    const lines = routeLines(selectedRouteGeometry);
+    const coordinate = mapDisplayCoordinate(selected);
+    if (!lines.length || !coordinate) return;
+    const bounds = new LngLatBounds([coordinate.longitude, coordinate.latitude], [coordinate.longitude, coordinate.latitude]);
     for (const line of lines) for (const coordinate of line) bounds.extend(coordinate);
     mapRef.current.fitBounds(bounds, { padding: fullscreen ? 64 : 84, maxZoom: 15, duration: 520 });
-  }, [fullscreen, selected, selectedStatus]);
+  }, [fullscreen, selected, selectedRouteGeometry, selectedStatus]);
 
   useEffect(() => {
     if (!mapHost.current || !padOverlay.current || mapRef.current) return;
@@ -542,22 +576,19 @@ export function MapPage() {
     map.on("click", (event: MapMouseEvent) => {
       const target = [...hitTargetsRef.current].reverse().find((candidate) => Math.hypot(event.point.x - candidate.x, event.point.y - candidate.y) <= candidate.radius);
       if (!target) {
-        setClusterChoices(null);
+        setLocationChoices(null);
         return;
       }
       if (target.rows.length === 1) {
         focusPad(target.rows[0]);
         return;
       }
-      if (clusterNeedsChooser(target.rows, map.getZoom(), clusterExpansionMaxZoom)) {
+      if (coincidentLocationsNeedChooser(target.rows)) {
         setSelectedId(null);
-        setClusterChoices(target.rows.slice().sort((left, right) => left.padName.localeCompare(right.padName) || left.company.localeCompare(right.company) || left.padId.localeCompare(right.padId)));
+        setLocationChoices(target.rows.slice().sort((left, right) => left.padName.localeCompare(right.padName) || left.company.localeCompare(right.company) || left.padId.localeCompare(right.padId)));
         return;
       }
-      setClusterChoices(null);
-      const bounds = new LngLatBounds();
-      for (const row of target.rows) bounds.extend([row.coordinate!.longitude, row.coordinate!.latitude]);
-      map.fitBounds(bounds, { padding: 72, maxZoom: Math.min(clusterExpansionMaxZoom, map.getZoom() + 3), duration: 420 });
+      setLocationChoices(null);
     });
     map.on("mousemove", (event: MapMouseEvent) => {
       const overTarget = hitTargetsRef.current.some((target) => Math.hypot(event.point.x - target.x, event.point.y - target.y) <= target.radius);
@@ -588,7 +619,7 @@ export function MapPage() {
   }, [focusPad, loading]);
 
   useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [companyRoads.overlay, selectedId, viewerMode]);
-  useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedStatus, selectedId]);
+  useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedId]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       mapRef.current?.resize();
@@ -623,15 +654,15 @@ export function MapPage() {
         {mapSearchOpen && mapSearch.trim() && <div className="map-inline-results" role="listbox" aria-label="Mapped pad matches">
           {searchResults.length ? searchResults.map((row) => <button key={row.padId} type="button" role="option" aria-selected={row.padId === selectedId} onClick={() => focusPad(row)}>
             <span><strong>{row.padName}</strong><small>{[row.company, row.county, row.state].filter(Boolean).join(" · ")}</small></span><Icon name="location"/>
-          </button>) : <p>No mapped pad matches that name.</p>}
+          </button>) : <p>No safe map point matches that pad name.</p>}
           <button type="button" className="map-search-all" onClick={() => navigate("/search/all")}>Search the complete directory <span>→</span></button>
         </div>}
         <div className="filter-row" aria-label="Map filters">
-          {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setClusterChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
+          {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
         </div>
         {companyRoads.availability.state === "ready" && <>{roadMode ? <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div> : <label className="company-road-filter">
           <span><Icon name="company"/>Approved route roads by company</span>
-          <select value={companyRoads.selection || ""} onChange={(event) => { setSelectedId(null); setClusterChoices(null); companyRoads.selectRoads(event.target.value ? event.target.value : null); }} aria-label="Show approved route roads by company">
+          <select value={companyRoads.selection || ""} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value ? event.target.value : null); }} aria-label="Show approved route roads by company">
             <option value="">Roads off</option>
             <option value="all">All approved route roads</option>
             {companyRoads.availability.companies.map((company) => <option key={company} value={company}>{company}</option>)}
@@ -641,15 +672,15 @@ export function MapPage() {
         </>}
         {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>Approved-road layer unavailable</strong><small>{companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
       </div>
-      <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> mapped · {visibleRows.length.toLocaleString()} {selectedRoadCompany ? `for ${selectedRoadCompany}` : "shown"}</div>
+      <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> safe map points · {(visibleRows.length - visibleMappedCount).toLocaleString()} still missing {selectedRoadCompany ? `for ${selectedRoadCompany}` : ""}</div>
       <div className={`map-render-notice map-render-${mapRenderState}`} role={mapRenderState === "error" ? "alert" : "status"} data-map-render-state={mapRenderState}>
         <span/>{mapNotice}
       </div>
     </div>
-    {clusterChoices ? <aside className="map-cluster-chooser" role="dialog" aria-modal="false" aria-labelledby="map-cluster-title">
-      <header><div><span className="selection-kicker">MULTIPLE LOCATIONS</span><h2 id="map-cluster-title">Choose one of {clusterChoices.length}</h2></div><button className="selection-close" onClick={() => setClusterChoices(null)} aria-label="Close location chooser"><Icon name="close"/></button></header>
-      <p>These locations share this map area. Select the exact pad or disposal you want to review.</p>
-      <div className="map-cluster-list">{clusterChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => focusPad(row)}>
+    {locationChoices ? <aside className="map-cluster-chooser" role="dialog" aria-modal="false" aria-labelledby="map-cluster-title">
+      <header><div><span className="selection-kicker">SAME EXACT POINT</span><h2 id="map-cluster-title">Choose one of {locationChoices.length}</h2></div><button className="selection-close" onClick={() => setLocationChoices(null)} aria-label="Close location chooser"><Icon name="close"/></button></header>
+      <p>These records share the same stored coordinate. Select the exact pad or disposal you want to review.</p>
+      <div className="map-cluster-list">{locationChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => focusPad(row)}>
         <span><small>{row.recordType === "disposal" ? "DISPOSAL" : row.company || "FIELD PAD"}</small><strong>{row.padName}</strong><span>{[row.county, row.state].filter(Boolean).join(", ") || "Location not listed"}</span></span><b>Select</b>
       </button>)}</div>
     </aside> : selected ? <article className="map-selection-card">
@@ -658,8 +689,14 @@ export function MapPage() {
       <h2>{selected.padName}</h2>
       <p>{selected.company} · {[selected.county, selected.state].filter(Boolean).join(", ")}</p>
       <div className="selection-statuses">{selectedStatus ? <><StatusBadge status={selectedStatus.route.state} label={selectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedStatus.google.publicState} label={`Google ${selectedStatus.google.publicState.replaceAll("_", " ")}`}/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
-      {selectedStatus && <p className={`selection-route-note${selectedStatus.route.geometry ? " is-ready" : " is-held"}`}>{selectedStatus.route.geometry ? "Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected." : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
-      {selected.coordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>Saved point shown for reference; driver entrance still requires public verification.</div>}
+      {routeChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{routeChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
+      {selectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
+      {selectedCoordinate && <div className="map-coordinate-reference">
+        <span><strong>{selectedCoordinate.role === "driver_entrance" ? "Verified driver entrance" : "Saved GPS · field check only"}</strong><small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small></span>
+        <button type="button" onClick={() => navigator.clipboard.writeText(`${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`).catch(() => undefined)}>Copy GPS</button>
+      </div>}
+      {selected.structuredRoadSequence && <div className="map-saved-road-sequence"><strong>Saved road sequence</strong><span>{selected.structuredRoadSequence}</span></div>}
+      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Saved point · review</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;

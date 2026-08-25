@@ -95,6 +95,17 @@ export interface DriverRouteGeometry {
   }>;
 }
 
+export interface DriverRouteChoice {
+  routeKey: string;
+  routeGroup: "primary" | "alternate";
+  variantIndex: number;
+  label: string;
+  steps: DriverRouteStep[];
+  geometry: DriverRouteGeometry;
+  lastVerifiedAt: string;
+  statusRevision: string;
+}
+
 export type CompanyRoadGeometry =
   | { type: "LineString"; coordinates: [number, number][] }
   | { type: "MultiLineString"; coordinates: [number, number][][] };

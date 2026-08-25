@@ -6,10 +6,18 @@ const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "u
 
 describe("V18 pad legacy route fallback", () => {
   it("shows saved BrineSearch route data when structured route steps are absent", () => {
-    expect(padPage).toContain('const hasSavedRouteFallback = status.routeSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
+    expect(padPage).toContain('const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
     expect(padPage).toContain('hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"');
     expect(padPage).toContain("Legacy saved directions");
     expect(padPage).toContain("{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}");
+  });
+
+  it("lets the driver choose only independently approved exact route variants", () => {
+    expect(padPage).toContain("loadDriverRouteChoices(pad)");
+    expect(padPage).toContain("Choose the route you want to view");
+    expect(padPage).toContain("Every option shown here independently passed the exact route, current graph, verified destination, and public projection gates.");
+    expect(padPage).toContain("setSelectedRouteKey(choice.routeKey)");
+    expect(padPage).toContain("Google publication remains a separate safety gate.");
   });
 
   it("keeps the fallback explicitly unverified and held behind route approval", () => {

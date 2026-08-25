@@ -137,8 +137,8 @@ describe("owner road map model", () => {
   });
 
   it("merges every live directory location into the protected route selector", () => {
-    const row = (id: string, padName: string, state: string, coordinate: PadSummary["coordinate"]): PadSummary => ({
-      padId: id, canonicalId: id, legacyId: null, aliases: [], recordNumber: null, recordRevision: "1", recordType: "pad",
+    const row = (id: string, padName: string, state: string, coordinate: PadSummary["coordinate"], legacyId: string | null = null): PadSummary => ({
+      padId: id, canonicalId: id, legacyId, aliases: [], recordNumber: null, recordRevision: "1", recordType: "pad",
       company: "Ascent", padName, state, county: "Belmont", township: "", address: "", coordinate,
       wellNames: [], apiNumbers: [], propertyNumbers: [], safeRoadTerms: [], structuredRoadSequence: "", writtenDirections: "",
       verificationStatus: "", operatingStatus: "", updatedAt: null,
@@ -150,10 +150,12 @@ describe("owner road map model", () => {
     const merged = ownerRoadPadOptions([
       row("11111111-1111-4111-8111-111111111111", "Bannock", "Ohio", null),
       row("22222222-2222-4222-8222-222222222222", "Directions only", "West Virginia", { latitude: 39.7, longitude: -80.5, role: "driver_entrance" }),
+      row("6ef0746f-341a-4d29-9399-a81cfbec11e8", "SCOUT", "Ohio", null, "ascent--scout"),
     ], protectedOptions);
-    expect(merged).toHaveLength(2);
+    expect(merged).toHaveLength(3);
     expect(merged.find((pad) => pad.padName === "Bannock")).toMatchObject({ state: "OH", latitude: 40.2, longitude: -81.3 });
     expect(merged.find((pad) => pad.padName === "Directions only")).toMatchObject({ state: "WV", latitude: 39.7, longitude: -80.5 });
+    expect(merged.find((pad) => pad.padName === "SCOUT")).toMatchObject({ state: "OH", latitude: 40.165091, longitude: -80.903485 });
     expect(ownerRoadStateCode("Pennsylvania")).toBe("PA");
   });
 

@@ -120,6 +120,12 @@ function geometryMatchesSteps(steps: DriverRouteStep[], geometry: DriverRouteGeo
     && steps.every((step, index) => geometry.features[index]?.properties.stepOrder === step.order);
 }
 
+export function normalizeDriverRouteProjection(stepsValue: unknown, geometryValue: unknown) {
+  const steps = Array.isArray(stepsValue) ? normalizePublicRouteSteps(stepsValue) : null;
+  const geometry = normalizeRouteGeometry(geometryValue);
+  return steps && geometry && geometryMatchesSteps(steps, geometry) ? { steps, geometry } : null;
+}
+
 function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceState?: DirectorySourceState): DriverPadStatus {
   const base = fallbackStatus(pad, sourceState);
   const route = object(row.route);
@@ -127,7 +133,6 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const google = object(row.google);
   const destination = object(row.destination);
   const rawSteps = row.routeSteps ?? row.route_steps ?? route.publicSteps ?? route.steps;
-  const exactSteps = Array.isArray(rawSteps) ? normalizePublicRouteSteps(rawSteps) : null;
   const routeUrl = nullableText(google.routeUrl ?? row.public_google_route_url);
   const routeState = route.state ?? row.route_state;
   const routeSource = route.source ?? row.route_source;
@@ -141,20 +146,18 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const claimedRouteState = safeEnum(routeState, routeStates, base.route.state);
   const safeRouteSource = safeEnum(routeSource, routeSources, base.route.source);
   const safeGraphState = safeEnum(graphState, graphStates, base.graph.state);
-  const geometry = claimedRouteState === "ready" && safeRouteSource === "exact_graph" && safeGraphState === "active_current"
-    ? normalizeRouteGeometry(route.geometry ?? row.route_geometry)
+  const exactProjection = claimedRouteState === "ready" && safeRouteSource === "exact_graph" && safeGraphState === "active_current"
+    ? normalizeDriverRouteProjection(rawSteps, route.geometry ?? row.route_geometry)
     : null;
   const exactResponseReady = claimedRouteState === "ready"
     && safeRouteSource === "exact_graph"
     && safeGraphState === "active_current"
-    && exactSteps !== null
-    && geometry !== null
-    && geometryMatchesSteps(exactSteps, geometry);
+    && exactProjection !== null;
   const safeRouteState = claimedRouteState === "ready" && !exactResponseReady ? "held" : claimedRouteState;
   const routeSafeReason = claimedRouteState === "ready" && !exactResponseReady
     ? "The approved route response failed exact public validation and cannot be used."
     : nullableText(route.safeReason ?? row.route_safe_reason);
-  const steps = exactResponseReady ? exactSteps : [];
+  const steps = exactResponseReady ? exactProjection!.steps : [];
   const claimedGoogleState = safeEnum(googleState, googleStates, base.google.publicState);
   const safeGoogleState = claimedGoogleState === "ready" && !exactResponseReady ? "stale" : claimedGoogleState;
   return {
@@ -163,7 +166,7 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
     route: {
       state: safeRouteState,
       source: safeRouteSource,
-      geometry: exactResponseReady ? geometry : null,
+      geometry: exactResponseReady ? exactProjection!.geometry : null,
       safeReason: routeSafeReason,
       lastVerifiedAt: nullableText(route.lastVerifiedAt ?? row.route_last_verified_at),
       writtenDirections: nullableText(route.writtenDirections ?? row.written_directions) ?? base.route.writtenDirections,
@@ -250,7 +253,7 @@ export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySour
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({ p_pad_id: pad.canonicalId }),
       cache: "no-store",
-      signal: AbortSignal.timeout(8_000),
+      signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) return fallbackStatus(pad, sourceState);
     const payload = await response.json() as unknown;
