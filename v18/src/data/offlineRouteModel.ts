@@ -370,14 +370,13 @@ export function restoreOfflinePadStatus(pad: PadSummary, value: unknown): Driver
     google: {
       publicState: "not_published",
       routeUrl: null,
-      safeReason: "Offline device storage never launches or republishes a Google route.",
+      safeReason: "Offline device storage does not create a Google handoff.",
     },
     destination: {
       available: false,
       latitude: pad.coordinate?.latitude ?? null,
       longitude: pad.coordinate?.longitude ?? null,
     },
-    googleRouteChunks: [],
     routeSteps: routeSteps || [],
   };
 }

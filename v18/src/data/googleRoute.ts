@@ -6,21 +6,12 @@ const pointKinds = new Set(["junction", "shared_entry", "shared_exit", "shape", 
 
 type UnknownRecord = Record<string, unknown>;
 
-export interface GoogleRouteChunk {
-  chunk: number;
-  origin: string | null;
-  destination: string;
-  waypoints: string[];
-  pointSequences: number[];
-  url: string;
-}
-
 export interface GoogleRoutePlan {
   padId: string;
   routeRevision: number;
   manifestDigest: string;
-  chunks: GoogleRouteChunk[];
-  firstUrl: string;
+  pointCount: number;
+  singleUrl: string | null;
 }
 
 function record(value: unknown, message: string): UnknownRecord {
@@ -136,44 +127,26 @@ export function validateGoogleRoutePublicRow(value: unknown) {
   return validated.manifest;
 }
 
-function chunkUrl(origin: string | null, destination: string, waypoints: string[]) {
+function routeUrl(destination: string, waypoints: string[]) {
   const parameters = new URLSearchParams({ api: "1", travelmode: "driving", dir_action: "navigate" });
-  if (origin) parameters.set("origin", origin);
   parameters.set("destination", destination);
   if (waypoints.length) parameters.set("waypoints", waypoints.join("|"));
   const url = `https://www.google.com/maps/dir/?${parameters.toString()}`;
-  if (url.length > maxUrlLength) throw new Error("Google route chunk exceeds the 2,048-character Maps URL limit");
+  if (url.length > maxUrlLength) throw new Error("Google route exceeds the 2,048-character Maps URL limit");
   return url;
 }
 
 export function buildGoogleRoutePublicPlan(value: unknown): GoogleRoutePlan {
   const manifest = validateGoogleRoutePublicRow(value);
   const { points, padId } = validateGoogleRouteManifest(manifest);
-  const chunks: GoogleRouteChunk[] = [];
-  let consumed = 0;
-  let previousDestination: UnknownRecord | null = null;
-  while (consumed < points.length) {
-    const selected = points.slice(consumed, consumed + maxWaypoints + 1);
-    const destinationPoint = selected.at(-1)!;
-    const origin = previousDestination ? coordinate(previousDestination) : null;
-    const destination = coordinate(destinationPoint);
-    const waypoints = selected.slice(0, -1).map(coordinate);
-    chunks.push({
-      chunk: chunks.length + 1,
-      origin,
-      destination,
-      waypoints,
-      pointSequences: selected.map((point) => Number(point.sequence)),
-      url: chunkUrl(origin, destination, waypoints),
-    });
-    previousDestination = destinationPoint;
-    consumed += selected.length;
-  }
+  const mobileSafe = points.length <= maxWaypoints + 1;
+  const destination = coordinate(points.at(-1)!);
+  const waypoints = points.slice(0, -1).map(coordinate);
   return {
     padId,
     routeRevision: revision(manifest.route_revision, "manifest route revision"),
     manifestDigest: digest(manifest.manifest_digest, "manifest digest"),
-    chunks,
-    firstUrl: chunks[0]?.url || "",
+    pointCount: points.length,
+    singleUrl: mobileSafe ? routeUrl(destination, waypoints) : null,
   };
 }

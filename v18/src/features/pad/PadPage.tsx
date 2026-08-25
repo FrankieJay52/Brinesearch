@@ -88,10 +88,22 @@ export function PadPage() {
   const displayedRouteSteps = selectedRouteChoice?.steps || status.routeSteps;
   const displayedRouteGeometry = selectedRouteChoice?.geometry || status.route.geometry;
   const selectedRouteIsPrimary = !selectedRouteChoice || selectedRouteChoice.routeGroup === "primary";
+  const exactRouteDisplayed = status.route.state === "ready"
+    && status.route.source === "exact_graph"
+    && status.graph.state === "active_current"
+    && displayedRouteSteps.length > 0
+    && displayedRouteGeometry !== null;
+  const googleHandoffAvailable = selectedRouteIsPrimary
+    && exactRouteDisplayed
+    && status.google.publicState === "ready"
+    && Boolean(status.google.routeUrl);
+  const googleHandoffState = status.google.publicState === "ready" && !googleHandoffAvailable ? "unavailable" : status.google.publicState;
+  const googleHandoffReason = !selectedRouteIsPrimary
+    ? "The selected approved route is available in BrineSearch only."
+    : exactRouteDisplayed
+      ? "Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available."
+      : "No exact approved route is available for a Google handoff.";
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
-  const destinationUrl = status.destination.available && status.destination.latitude !== null && status.destination.longitude !== null
-    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${status.destination.latitude},${status.destination.longitude}`)}`
-    : null;
 
   return <article className="pad-page">
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><button className={`icon-button ${favorite ? "is-favorite" : ""}`} onClick={() => toggleFavorite(pad.padId)} aria-label={favorite ? "Remove favorite" : "Save favorite"}><Icon name="saved"/></button></header>
@@ -113,11 +125,10 @@ export function PadPage() {
       <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
       <div className="route-action-panel">
         <span className="eyebrow">DRIVER ACTION</span>
-        {selectedRouteIsPrimary && status.google.publicState === "ready" && status.google.routeUrl ? <a className="navigate-action" href={status.google.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>{status.googleRouteChunks.length > 1 ? `Open route 1 of ${status.googleRouteChunks.length}` : "Open approved route"}</strong><small>Current public Google route</small></span><b>↗</b></a>
-          : destinationUrl ? <a className="navigate-action destination-only" href={destinationUrl} target="_blank" rel="noreferrer"><Icon name="location"/><span><strong>Open destination pin</strong><small>Destination only—not an approved route</small></span><b>↗</b></a>
-          : <div className="navigate-unavailable"><Icon name="location"/><span><strong>No verified navigation target</strong><small>{status.route.writtenDirections ? "Use only the current reviewed directions shown below." : "Wait for a current public route or verified destination."}</small></span></div>}
-        {selectedRouteIsPrimary && status.googleRouteChunks.length > 1 && <div className="route-chunk-list" aria-label="Approved route sections">{status.googleRouteChunks.slice(1).map((chunk) => <a key={chunk.chunk} href={chunk.url} target="_blank" rel="noreferrer">Open route {chunk.chunk} of {status.googleRouteChunks.length}<span>↗</span></a>)}</div>}
-        {status.google.publicState !== "ready" && <p className="route-safety-note"><strong>Google route:</strong> {status.google.safeReason || "No current public approved route is available."}</p>}
+        {googleHandoffAvailable && status.google.routeUrl ? <a className="navigate-action" href={status.google.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>Approved route</strong><small>Open in Google Maps · BrineSearch exact-approved path</small></span><b>↗</b></a>
+          : exactRouteDisplayed ? <div className="navigate-unavailable"><Icon name="route"/><span><strong>Approved route shown in BrineSearch</strong><small>Use the exact map and steps below. No single verified Google handoff is available.</small></span></div>
+          : <div className="navigate-unavailable"><Icon name="location"/><span><strong>No approved route action</strong><small>{status.route.writtenDirections ? "Use only the reviewed directions and map shown in BrineSearch." : "No exact approved route is available yet."}</small></span></div>}
+        {!googleHandoffAvailable && <p className="route-safety-note"><strong>Approved route handoff:</strong> {googleHandoffReason}</p>}
       </div>
     </section>
 
@@ -126,14 +137,14 @@ export function PadPage() {
       <div className="readiness-grid">
         <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
         <StatusColumn icon="graph" label="ROAD GRAPH" detail={`${status.graph.county || pad.county || "County not listed"} · ${dateLabel(status.graph.lastVerifiedAt)}`}><StatusBadge status={status.graph.state}/><strong>{status.graph.publicSource || "Public graph status"}</strong></StatusColumn>
-        <StatusColumn icon="google" label="PUBLIC GOOGLE" detail={status.google.safeReason || "Public availability only; private evidence is owner-only."}><StatusBadge status={status.google.publicState}/><strong>{status.google.publicState === "ready" ? "Approved route available" : "No launchable public route"}</strong></StatusColumn>
+        <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoffAvailable ? "A single exact BrineSearch route package is available." : googleHandoffReason}><StatusBadge status={googleHandoffState}/><strong>{googleHandoffAvailable ? "Approved route action available" : "No exact Google handoff"}</strong></StatusColumn>
       </div>
     </section>
 
     <section className="route-steps-card">
       <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? `${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps` : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
-        : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and Google route launch stays disabled until approval is complete.</p></div>
+         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and the Google Maps handoff stays disabled until approval is complete.</p></div>
         : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
     </section>
 
@@ -153,7 +164,7 @@ export function PadPage() {
         {wellRows !== undefined && <p className="pad-identifier-note">{wellRows?.length ? "Each row preserves the reviewed production well, API, and property relationship." : "The synchronized row contract is unavailable, so identifiers remain grouped by type and are not paired."}</p>}
       </section>
     </details>
-    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Public Google state</small><strong>{status.google.publicState.replaceAll("_", " ")}</strong></div></div></details>
+    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoffState.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
   </article>;
 }

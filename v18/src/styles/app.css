@@ -636,8 +636,6 @@ h2 { letter-spacing: -.035em; }
 .navigate-unavailable strong { color: var(--text); }
 .navigate-unavailable small { font-size: .7rem; }
 .route-safety-note { margin: 13px 2px 0; color: var(--muted); font-size: .72rem; line-height: 1.45; }
-.route-chunk-list { display: grid; gap: 7px; margin-top: 8px; }
-.route-chunk-list a { min-height: 39px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; border: 1px solid var(--line); border-radius: 11px; color: var(--teal-bright); background: var(--surface-raised); font-size: .72rem; font-weight: 780; }
 
 .readiness-card, .route-steps-card, .detail-card {
   margin-top: 14px;

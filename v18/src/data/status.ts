@@ -54,13 +54,12 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
       writtenDirections: null,
     },
     graph: { state: "unavailable", county: pad.county || null, publicSource: null, lastVerifiedAt: null },
-    google: { publicState: "not_published", routeUrl: null, safeReason: "No current public Google route is published." },
+    google: { publicState: "not_published", routeUrl: null, safeReason: "No exact Google handoff is available." },
     destination: {
       available: false,
       latitude: pad.coordinate?.latitude ?? null,
       longitude: pad.coordinate?.longitude ?? null,
     },
-    googleRouteChunks: [],
     routeSteps: [],
   };
 }
@@ -89,7 +88,7 @@ function offlineCacheMissStatus(pad: PadSummary, sourceState?: DirectorySourceSt
     google: {
       publicState: "not_published",
       routeUrl: null,
-      safeReason: "Offline device storage never launches or republishes a Google route.",
+      safeReason: "Offline device storage does not create a Google handoff.",
     },
   };
 }
@@ -219,7 +218,6 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
       latitude: parsedDestination?.ok === true ? parsedDestination.value.latitude : null,
       longitude: parsedDestination?.ok === true ? parsedDestination.value.longitude : null,
     },
-    googleRouteChunks: [],
     routeSteps: steps,
   };
 }
@@ -256,7 +254,7 @@ function normalizePublicRouteSteps(values: unknown[]): DriverRouteStep[] | null 
   return steps;
 }
 
-async function loadPublicGoogleRouteChunks(padId: string) {
+async function loadPublicGoogleRouteAction(padId: string) {
   const url = new URL(`${supabaseUrl}/rest/v1/brinesearch_driver_google_routes_public`);
   url.searchParams.set("select", "pad_id,route_revision,source_revision,manifest");
   url.searchParams.set("pad_id", `eq.${padId}`);
@@ -270,8 +268,8 @@ async function loadPublicGoogleRouteChunks(padId: string) {
   const payload = await response.json() as unknown;
   const row = Array.isArray(payload) ? payload[0] : null;
   const plan = buildGoogleRoutePublicPlan(row);
-  if (plan.padId !== padId || !plan.chunks.length) throw new Error("Public Google route did not match the selected pad");
-  return plan.chunks.map(({ chunk, url }) => ({ chunk, url }));
+  if (plan.padId !== padId) throw new Error("Public Google route did not match the selected pad");
+  return plan.singleUrl;
 }
 
 const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
@@ -298,11 +296,20 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     if (!status) return null;
     if (status.google.publicState !== "ready") return status;
     try {
-      const googleRouteChunks = await loadPublicGoogleRouteChunks(pad.canonicalId);
+      const approvedRouteUrl = await loadPublicGoogleRouteAction(pad.canonicalId);
+      if (!approvedRouteUrl) {
+        return {
+          ...status,
+          google: {
+            publicState: "unavailable",
+            routeUrl: null,
+            safeReason: "No single exact Google handoff is available. Use the BrineSearch map and approved steps.",
+          },
+        };
+      }
       return {
         ...status,
-        google: { ...status.google, routeUrl: googleRouteChunks[0]?.url || null },
-        googleRouteChunks,
+        google: { ...status.google, routeUrl: approvedRouteUrl },
       };
     } catch {
       return {
@@ -312,7 +319,6 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
           routeUrl: null,
           safeReason: "The public route failed its exact manifest validation and cannot be launched.",
         },
-        googleRouteChunks: [],
       };
     }
   } catch {

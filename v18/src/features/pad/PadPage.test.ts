@@ -21,9 +21,23 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("keeps the fallback explicitly unverified and held behind route approval", () => {
-    expect(padPage).toContain("This is not a verified structured route, and Google route launch stays disabled until approval is complete.");
+    expect(padPage).toContain("This is not a verified structured route, and the Google Maps handoff stays disabled until approval is complete.");
     expect(padPage).toContain("<StatusBadge status={status.route.state}/>");
-    expect(padPage).toContain('status.google.publicState === "ready" && status.google.routeUrl');
+    expect(padPage).toContain('status.google.publicState === "ready"');
+    expect(padPage).toContain("Boolean(status.google.routeUrl)");
+  });
+
+  it("offers one exact approved-route action and never exposes route chunks as choices", () => {
+    expect(padPage).toContain("Approved route");
+    expect(padPage).toContain("Open in Google Maps · BrineSearch exact-approved path");
+    expect(padPage).toContain("Approved route shown in BrineSearch");
+    expect(padPage).toContain("Use the exact map and steps below. No single verified Google handoff is available.");
+    expect(padPage).not.toContain("Current public Google route");
+    expect(padPage).not.toContain("status.google.safeReason ||");
+    expect(padPage).not.toMatch(/Open route .* of/);
+    expect(padPage).not.toContain("route-chunk-list");
+    expect(padPage).not.toContain("Open destination pin");
+    expect(padPage).not.toContain("google.com/maps/search");
   });
 
   it("keeps saved written field directions visible below the fallback", () => {
