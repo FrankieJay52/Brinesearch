@@ -6,6 +6,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
 import { searchDirectory } from "@/data/search";
+import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import type { PadSummary, SearchFilters } from "@/data/types";
 import "./search.css";
 
@@ -25,7 +26,7 @@ function sourceLabel(source: string | undefined) {
 function ResultCard({ pad }: { pad: PadSummary }) {
   return <Link className="result-card" to={`/pad/${encodeURIComponent(pad.padId)}`}>
     <div className={`result-symbol result-${pad.recordType}`}><Icon name={pad.recordType === "disposal" ? "location" : "route"}/></div>
-    <div className="result-copy"><div className="result-kicker">{pad.recordType === "disposal" ? "DISPOSAL" : pad.company.toUpperCase()}</div><h2>{pad.padName}</h2><p>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</p><div className="result-badges">{pad.coordinate ? <span className="mini-badge">{pad.coordinate.role === "driver_entrance" ? "Verified entrance" : "Saved point"}</span> : <span className="mini-badge muted">No mapped location</span>}<span className="mini-badge muted">Open for route status</span></div></div>
+    <div className="result-copy"><div className="result-kicker">{pad.recordType === "disposal" ? "DISPOSAL" : pad.company.toUpperCase()}</div><h2>{pad.padName}</h2><p>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</p><div className="result-badges">{mapDisplayCoordinate(pad) ? <span className="mini-badge">{mapDisplayCoordinateLabel(pad)}</span> : <span className="mini-badge muted">No mapped location</span>}<span className="mini-badge muted">Open for route status</span></div></div>
     <span className="result-arrow">›</span>
   </Link>;
 }

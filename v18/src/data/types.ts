@@ -19,6 +19,13 @@ export interface PadCoordinate {
   role: CoordinateRole;
 }
 
+export type PadMapReferenceKind = "official_pad_reference" | "official_wellhead_reference";
+
+export interface PadMapReference extends PadCoordinate {
+  role: "reference";
+  kind: PadMapReferenceKind;
+}
+
 export interface PadSummary {
   padId: string;
   canonicalId: string | null;
@@ -34,6 +41,7 @@ export interface PadSummary {
   township: string;
   address: string;
   coordinate: PadCoordinate | null;
+  mapReference?: PadMapReference | null;
   wellNames: string[];
   apiNumbers: string[];
   propertyNumbers: string[];

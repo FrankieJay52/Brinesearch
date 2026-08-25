@@ -15,6 +15,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
+import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import { loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
@@ -703,12 +704,12 @@ export function MapPage() {
       {routeChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{routeChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
       {selectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
-        <span><strong>{selectedCoordinate.role === "driver_entrance" ? "Verified driver entrance" : "Saved GPS · field check only"}</strong><small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small></span>
+        <span><strong>{mapDisplayCoordinateLabel(selected)}</strong><small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small></span>
         <button type="button" onClick={() => navigator.clipboard.writeText(`${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`).catch(() => undefined)}>Copy GPS</button>
       </div>}
       {selected.structuredRoadSequence && <div className="map-saved-road-sequence"><strong>Saved road sequence</strong><span>{selected.structuredRoadSequence}</span></div>}
-      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
-    </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Saved point · review</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
+    </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;
 }

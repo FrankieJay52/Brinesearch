@@ -7,6 +7,7 @@ import { useNetworkState } from "@/app/useNetworkState";
 import { useDirectory } from "@/data/DirectoryContext";
 import { saveRecent } from "@/data/offline";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
+import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { buildPendingPadStatus, loadPadStatus } from "@/data/status";
 import type { DriverPadStatus, DriverRouteChoice, PadWellIdentifierRow } from "@/data/types";
@@ -152,7 +153,7 @@ export function PadPage() {
         {wellRows !== undefined && <p className="pad-identifier-note">{wellRows?.length ? "Each row preserves the reviewed production well, API, and property relationship." : "The synchronized row contract is unavailable, so identifiers remain grouped by type and are not paired."}</p>}
       </section>
     </details>
-    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Coordinate role</small><strong>{pad.coordinate?.role.replaceAll("_", " ") || "No coordinate"}</strong></div><div><small>Public Google state</small><strong>{status.google.publicState.replaceAll("_", " ")}</strong></div></div></details>
+    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Public Google state</small><strong>{status.google.publicState.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
   </article>;
 }

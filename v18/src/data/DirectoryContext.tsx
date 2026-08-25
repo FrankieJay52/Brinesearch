@@ -1,6 +1,7 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { loadDirectorySnapshot, resolveDirectoryFavoriteIds, resolveDirectoryPad } from "./directory";
 import { migrateFavoriteIdentity, readFavoriteIds, saveCompleteSnapshot, setFavorite } from "./offline";
+import { loadPadReferences } from "./padReferences";
 import type { DirectorySnapshot, PadSummary } from "./types";
 
 type DirectoryContextValue = {
@@ -62,6 +63,15 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
       if (nextSnapshot.sourceState === "live_current" || nextSnapshot.sourceState === "live_stale") saveCompleteSnapshot(nextSnapshot).catch(() => undefined);
     };
 
+    const enrichMapReferences = (baseSnapshot: DirectorySnapshot) => {
+      if (baseSnapshot.sourceState !== "live_current" || !navigator.onLine) return;
+      loadPadReferences(baseSnapshot).then((enriched) => {
+        if (cancelled || enriched === baseSnapshot) return;
+        if (snapshotRef.current?.snapshotId !== baseSnapshot.snapshotId) return;
+        applySnapshot(enriched);
+      }).catch(() => undefined);
+    };
+
     const markLiveDataStale = () => {
       setSnapshot((current) => {
         if (!current || (current.sourceState !== "live_current" && current.sourceState !== "live_stale")) return current;
@@ -75,7 +85,9 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
       refreshInFlight = true;
       markLiveDataStale();
       try {
-        applySnapshot(await loadDirectorySnapshot());
+        const nextSnapshot = await loadDirectorySnapshot();
+        applySnapshot(nextSnapshot);
+        enrichMapReferences(nextSnapshot);
       } catch (reason) {
         if (!cancelled) setError(reason instanceof Error ? reason.message : "Directory unavailable");
       } finally {
@@ -85,7 +97,10 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
 
     refreshInFlight = true;
     loadDirectorySnapshot()
-      .then((nextSnapshot) => applySnapshot(nextSnapshot))
+      .then((nextSnapshot) => {
+        applySnapshot(nextSnapshot);
+        enrichMapReferences(nextSnapshot);
+      })
       .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : "Directory unavailable"))
       .finally(() => {
         refreshInFlight = false;

@@ -1,4 +1,4 @@
-import type { DirectorySnapshot, PadSummary } from "./types";
+import type { DirectorySnapshot, PadMapReference, PadSummary } from "./types";
 import { parseCoordinatePair } from "./coordinates";
 import { isSafePublicList, isSafePublicText } from "./publicFields";
 
@@ -51,6 +51,15 @@ export function validateCachedPad(value: unknown): PadSummary | null {
     if (!parsed.ok) return null;
     coordinate = parsed.value;
   }
+  let mapReference: PadMapReference | null = null;
+  if (row.mapReference !== undefined && row.mapReference !== null) {
+    if (coordinate || typeof row.mapReference !== "object"
+      || row.mapReference.role !== "reference"
+      || (row.mapReference.kind !== "official_pad_reference" && row.mapReference.kind !== "official_wellhead_reference")) return null;
+    const parsed = parseCoordinatePair(row.mapReference.latitude, row.mapReference.longitude, "reference");
+    if (!parsed.ok) return null;
+    mapReference = { ...parsed.value, role: "reference", kind: row.mapReference.kind };
+  }
   if (row.updatedAt !== null && typeof row.updatedAt !== "string") return null;
   if (row.legacyId !== null && typeof row.legacyId !== "string") return null;
   return {
@@ -68,6 +77,7 @@ export function validateCachedPad(value: unknown): PadSummary | null {
     township: row.township as string,
     address: row.address as string,
     coordinate,
+    mapReference,
     wellNames,
     apiNumbers,
     propertyNumbers,

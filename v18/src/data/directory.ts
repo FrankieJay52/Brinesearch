@@ -146,6 +146,7 @@ function mapRecord(row: RawRecord, source: DirectorySourceState): PadSummary {
     township: text(row.township),
     address: text(row.address),
     coordinate: coordinateResult.ok ? coordinateResult.value : null,
+    mapReference: null,
     wellNames: list(row.wellNames ?? row.well_name ?? row.wellName),
     apiNumbers: list(row.apis ?? row.api),
     propertyNumbers: list(row.propertyNumbers ?? row.property_number ?? row.property),
