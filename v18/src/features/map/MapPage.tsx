@@ -310,6 +310,7 @@ export function MapPage() {
   const [viewerMode, setViewerMode] = useState<MapViewerMode>(() => mapViewerModeFromParam(searchParams.get("view")));
   const [mapSearch, setMapSearch] = useState("");
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
+  const [mapFiltersOpen, setMapFiltersOpen] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
@@ -657,11 +658,20 @@ export function MapPage() {
           {fullscreen && <button type="button" className="map-view-exit" onClick={() => changeViewerMode("standard")}><Icon name="close"/>Exit</button>}
         </div>
       </div>
-      <div className="map-search-card">
+      <div className={`map-search-card${mapFiltersOpen ? " is-expanded" : ""}`}>
         <form className="map-inline-search" onSubmit={(event) => { event.preventDefault(); if (searchResults[0]) focusPad(searchResults[0]); }}>
           <Icon name="search"/>
-          <input type="search" value={mapSearch} onChange={(event) => { setMapSearch(event.target.value.slice(0, 120)); setMapSearchOpen(true); }} onFocus={() => setMapSearchOpen(true)} placeholder="Search pad name on this map" aria-label="Search pad name on map" autoComplete="off"/>
+          <input type="search" value={mapSearch} onChange={(event) => { setMapSearch(event.target.value.slice(0, 120)); setMapSearchOpen(true); }} onFocus={() => setMapSearchOpen(true)} placeholder="Search pads" aria-label="Search pad name on map" autoComplete="off"/>
           {mapSearch && <button type="button" onClick={() => { setMapSearch(""); setMapSearchOpen(false); }} aria-label="Clear map search"><Icon name="close"/></button>}
+          <button
+            type="button"
+            className="map-filter-toggle"
+            aria-expanded={mapFiltersOpen}
+            aria-controls="map-filter-panel"
+            aria-label={`${mapFiltersOpen ? "Hide" : "Show"} map filters`}
+            data-active={typeFilter !== "all" || Boolean(companyRoads.selection)}
+            onClick={() => setMapFiltersOpen((open) => !open)}
+          ><Icon name="control"/><span>Filters</span></button>
         </form>
         {mapSearchOpen && mapSearch.trim() && <div className="map-inline-results" role="listbox" aria-label="Mapped pad matches">
           {searchResults.length ? searchResults.map((row) => <button key={row.padId} type="button" role="option" aria-selected={row.padId === selectedId} onClick={() => focusPad(row)}>
@@ -669,20 +679,22 @@ export function MapPage() {
           </button>) : <p>No safe map point matches that pad name.</p>}
           <button type="button" className="map-search-all" onClick={() => navigate("/search/all")}>Search the complete directory <span>→</span></button>
         </div>}
-        <div className="filter-row" aria-label="Map filters">
-          {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
+        <div id="map-filter-panel" className="map-filter-panel" hidden={!mapFiltersOpen}>
+          <div className="filter-row" aria-label="Map filters">
+            {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
+          </div>
+          {companyRoads.availability.state === "ready" && <>{roadMode ? <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div> : <label className="company-road-filter">
+            <span><Icon name="company"/>Approved route roads by company</span>
+            <select value={companyRoads.selection || ""} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value ? event.target.value : null); }} aria-label="Show approved route roads by company">
+              <option value="">Roads off</option>
+              <option value="all">All approved route roads</option>
+              {companyRoads.availability.companies.map((company) => <option key={company} value={company}>{company}</option>)}
+            </select>
+          </label>}
+          <p className="company-road-authority" role="status" aria-live="polite">{companyRoadRenderFailed ? "Approved route roads could not be drawn and are hidden. No route-road geometry was inferred." : companyRoads.loading ? "Loading exact approved roads… Choose Roads off to cancel." : companyRoads.error || (companyRoads.overlay ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved route-road sections shown for ${companyRoads.selection === "all" ? "all available companies" : companyRoads.selection}. This is the released route-ready subset, not a complete company road inventory.` : companyRoads.availability.reason || "Choose one company or All. Only exact server-approved route roads are shown; held, stale, legacy-only, guessed, and unpublished roads remain hidden.")}</p>
+          </>}
+          {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>Approved-road layer unavailable</strong><small>{companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
         </div>
-        {companyRoads.availability.state === "ready" && <>{roadMode ? <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div> : <label className="company-road-filter">
-          <span><Icon name="company"/>Approved route roads by company</span>
-          <select value={companyRoads.selection || ""} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value ? event.target.value : null); }} aria-label="Show approved route roads by company">
-            <option value="">Roads off</option>
-            <option value="all">All approved route roads</option>
-            {companyRoads.availability.companies.map((company) => <option key={company} value={company}>{company}</option>)}
-          </select>
-        </label>}
-        <p className="company-road-authority" role="status" aria-live="polite">{companyRoadRenderFailed ? "Approved route roads could not be drawn and are hidden. No route-road geometry was inferred." : companyRoads.loading ? "Loading exact approved roads… Choose Roads off to cancel." : companyRoads.error || (companyRoads.overlay ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved route-road sections shown for ${companyRoads.selection === "all" ? "all available companies" : companyRoads.selection}. This is the released route-ready subset, not a complete company road inventory.` : companyRoads.availability.reason || "Choose one company or All. Only exact server-approved route roads are shown; held, stale, legacy-only, guessed, and unpublished roads remain hidden.")}</p>
-        </>}
-        {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>Approved-road layer unavailable</strong><small>{companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
       </div>
       <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> safe map points · {(visibleRows.length - visibleMappedCount).toLocaleString()} still missing {selectedRoadCompany ? `for ${selectedRoadCompany}` : ""}</div>
       <div className={`map-render-notice map-render-${mapRenderState}`} role={mapRenderState === "error" ? "alert" : "status"} data-map-render-state={mapRenderState}>

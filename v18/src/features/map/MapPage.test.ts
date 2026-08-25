@@ -130,6 +130,14 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("focusPad(target.rows[0])");
   });
 
+  it("keeps phone map search compact while preserving expandable filters", () => {
+    expect(pageSource).toContain("const [mapFiltersOpen, setMapFiltersOpen] = useState(false)");
+    expect(pageSource).toContain('placeholder="Search pads"');
+    expect(pageSource).toContain('aria-controls="map-filter-panel"');
+    expect(pageSource).toContain('hidden={!mapFiltersOpen}');
+    expect(pageSource).toContain('aria-label="Show approved route roads by company"');
+  });
+
   it("uses stable individual markers instead of moving numbered clusters", () => {
     expect(pageSource).toContain("groupCoincidentProjectedPads");
     expect(pageSource).toContain("stable double marker");
