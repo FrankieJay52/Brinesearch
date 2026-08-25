@@ -76,6 +76,7 @@ export function ownerPadOverlayBlockReason(status: DriverPadStatus | null, hasAc
   if (/\bno[_ -]?gps\b|\bmissing[_ -]?(?:gps|coordinate)\b/.test(reason)) return "No GPS";
   if (/\bno[_ -]?match\b|\bexact[_ -]?route[_ -]?not[_ -]?ready\b/.test(reason)) return "No exact route match";
   if (status.route.state === "stale" || status.graph.state === "stale") return "Route evidence stale";
+  if (status.route.state === "held" && (status.graph.state === "held" || status.graph.state === "unavailable")) return "Route not reconciled";
   if (status.graph.state !== "active_current") return "Graph not current";
   return "Route held";
 }
