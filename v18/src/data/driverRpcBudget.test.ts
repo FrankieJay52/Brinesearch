@@ -7,12 +7,17 @@ const migration = readFileSync(
   new URL("../../../supabase/migrations/20260825015415_v18_driver_rpc_execution_budget.sql", import.meta.url),
   "utf8",
 );
+const handoffPerformanceMigration = readFileSync(
+  new URL("../../../supabase/migrations/20260825234943_v18_cologie_atomic_google_handoff_performance.sql", import.meta.url),
+  "utf8",
+);
 
 describe("V18 driver RPC execution budget", () => {
-  it("keeps both public clients bounded beyond the database budget", () => {
-    expect(statusSource).toContain("AbortSignal.timeout(15_000)");
+  it("keeps each public client bounded beyond its database budget", () => {
+    expect(statusSource).toContain("AbortSignal.timeout(25_000)");
     expect(choicesSource).toContain("AbortSignal.timeout(15_000)");
     expect(migration.match(/set statement_timeout='12s'/g)).toHaveLength(2);
+    expect(handoffPerformanceMigration).toContain("set statement_timeout='20s'");
   });
 
   it("changes configuration without weakening route, graph, or Google authority", () => {

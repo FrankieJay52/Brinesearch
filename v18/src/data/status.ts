@@ -265,7 +265,11 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({ p_pad_id: pad.canonicalId }),
       cache: "no-store",
-      signal: AbortSignal.timeout(15_000),
+      // The atomic status + reviewed handoff RPC has a verified 20-second
+      // database ceiling. Keep the browser deadline beyond that ceiling so
+      // the client does not discard a valid response while Postgres is still
+      // inside its bounded execution window.
+      signal: AbortSignal.timeout(25_000),
     });
     if (!response.ok) return null;
     const payload = await response.json() as unknown;
