@@ -5,6 +5,9 @@ import { useTheme, type ThemePreference } from "@/app/ThemeProvider";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useOwnerAccess } from "@/data/OwnerAccessContext";
+import { clearReleasedGoogleHandoffCache } from "@/data/releasedGoogleHandoff";
+import { clearDriverRouteChoiceCache } from "@/data/routeChoices";
+import { clearCompletedPadStatusCache } from "@/data/status";
 import "./settings.css";
 
 function Toggle({ checked, label, detail, onChange }: { checked: boolean; label: string; detail: string; onChange: (checked: boolean) => void }) {
@@ -39,6 +42,12 @@ function sourceLabel(value: string | undefined) {
 
 export function v18ServiceWorkerScope(origin: string, baseUrl: string) {
   return new URL(baseUrl, origin).href;
+}
+
+export function clearCompletedRouteSessionChecks() {
+  clearCompletedPadStatusCache();
+  clearReleasedGoogleHandoffCache();
+  clearDriverRouteChoiceCache();
 }
 
 type LocationPermission = "allowed" | "ask" | "blocked" | "browser";
@@ -83,6 +92,7 @@ export function SettingsPage() {
   const { access } = useOwnerAccess();
   const locationPermission = useLocationPermission();
   const [updateCheck, setUpdateCheck] = useState("Ready to check");
+  const [routeCheckStatus, setRouteCheckStatus] = useState("");
   const [online, setOnline] = useState(() => navigator.onLine);
 
   async function checkForUpdate() {
@@ -164,6 +174,11 @@ export function SettingsPage() {
           <span className={`settings-state-icon permission-${locationPermission}`}><Icon name="location"/></span>
           <span><strong>{permission.label}</strong><small>{permission.detail}</small></span>
           <Link to="/" className="settings-row-action">Open Map</Link>
+        </div>
+        <div className="settings-info-row settings-route-check-row">
+          <span className="settings-state-icon"><Icon name="route"/></span>
+          <span><strong>Route checks</strong><small id="route-check-description">Ready exact routes are checked once per app session and reused only for the same pad revision. Held or incomplete routes are checked again.</small><em id="route-check-safety">Rechecking clears only this session’s completed route checks. It does not delete saved directions, change approval, or alter the currently open pad.</em><span className="settings-route-check-status" role="status" aria-live="polite" aria-atomic="true">{routeCheckStatus}</span></span>
+          <button type="button" className="settings-row-action settings-row-button" aria-describedby="route-check-description route-check-safety" onClick={() => { clearCompletedRouteSessionChecks(); setRouteCheckStatus("Route checks cleared. The next pad you open online will check again."); }}>Recheck routes</button>
         </div>
         <div className="settings-info-row">
           <span className="settings-state-icon"><Icon name="route"/></span>

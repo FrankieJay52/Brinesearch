@@ -45,6 +45,7 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
     padId: pad.padId,
     recordRevision: pad.recordRevision,
     dataState: statusDataState(sourceState, Boolean(pad.canonicalId)),
+    loadProvenance: "fallback",
     route: {
       state: "unavailable",
       source: pad.coordinate ? "destination_only" : "none",
@@ -191,6 +192,8 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const safeGoogleState = claimedGoogleState === "ready" && !exactResponseReady ? "stale" : claimedGoogleState;
   return {
     ...base,
+    dataState: "live",
+    loadProvenance: "live_response",
     recordRevision: String(row.recordRevision ?? row.record_revision ?? base.recordRevision),
     route: {
       state: safeRouteState,
@@ -255,6 +258,27 @@ function normalizePublicRouteSteps(values: unknown[]): DriverRouteStep[] | null 
 }
 
 const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
+const completedLiveStatusCache = new Map<string, DriverPadStatus>();
+let completedLiveStatusCacheGeneration = 0;
+
+function liveStatusKey(pad: Pick<PadSummary, "padId" | "recordRevision">, sourceState?: DirectorySourceState) {
+  return `${pad.padId}:${pad.recordRevision}:${sourceState || "unknown"}`;
+}
+
+export function completedPadStatusIsReusable(status: DriverPadStatus) {
+  return status.loadProvenance === "live_response"
+    && status.route.state === "ready"
+    && status.route.source === "exact_graph"
+    && status.graph.state === "active_current"
+    && status.routeSteps.length > 0
+    && status.route.geometry !== null;
+}
+
+export function clearCompletedPadStatusCache() {
+  completedLiveStatusCacheGeneration += 1;
+  completedLiveStatusCache.clear();
+  liveStatusRequests.clear();
+}
 
 async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus | null> {
   if (!pad.canonicalId) return null;
@@ -326,10 +350,12 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
 }
 
 function loadLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState) {
-  const key = `${pad.padId}:${pad.recordRevision}:${sourceState || "live_current"}`;
+  const key = liveStatusKey(pad, sourceState);
   const existing = liveStatusRequests.get(key);
   if (existing) return existing;
-  const request = fetchLivePadStatus(pad, sourceState).finally(() => liveStatusRequests.delete(key));
+  const request = fetchLivePadStatus(pad, sourceState).finally(() => {
+    if (liveStatusRequests.get(key) === request) liveStatusRequests.delete(key);
+  });
   liveStatusRequests.set(key, request);
   return request;
 }
@@ -340,10 +366,21 @@ export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySour
     return await readPadDirectionsOffline(pad) || offlineCacheMissStatus(pad, sourceState);
   }
 
+  const key = liveStatusKey(pad, sourceState);
+  const completed = completedLiveStatusCache.get(key);
+  if (completed) return { ...completed, loadProvenance: "session_cache" };
+  const cacheGeneration = completedLiveStatusCacheGeneration;
   const live = await loadLivePadStatus(pad, sourceState);
   if (live) {
+    if (cacheGeneration === completedLiveStatusCacheGeneration && completedPadStatusIsReusable(live)) {
+      completedLiveStatusCache.set(key, live);
+    }
     void savePadDirectionsOffline(pad, live);
     return live;
   }
-  return await readPadDirectionsOffline(pad) || fallbackStatus(pad, sourceState);
+  return await readPadDirectionsOffline(pad) || {
+    ...fallbackStatus(pad, sourceState),
+    dataState: "fallback",
+    loadProvenance: "fallback",
+  };
 }

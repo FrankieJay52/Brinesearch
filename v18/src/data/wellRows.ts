@@ -8,6 +8,19 @@ const publishableKey =
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const responseKeys = new Set(["padId", "recordRevision", "rows"]);
 const rowKeys = new Set(["wellName", "apiNumber", "propertyNumber"]);
+const wellRowRequests = new Map<string, Promise<PadWellIdentifierRow[] | null>>();
+const wellRowCache = new Map<string, PadWellIdentifierRow[]>();
+let wellRowCacheGeneration = 0;
+
+function wellRowKey(pad: Pick<PadSummary, "padId" | "recordRevision">) {
+  return `${pad.padId}:${pad.recordRevision}`;
+}
+
+export function clearPadWellRowCache() {
+  wellRowCacheGeneration += 1;
+  wellRowCache.clear();
+  wellRowRequests.clear();
+}
 
 type IdentifierField = "wellNames" | "apis" | "propertyNumbers";
 
@@ -37,11 +50,9 @@ function normalizeRows(value: unknown): PadWellIdentifierRow[] | null {
   return rows;
 }
 
-export async function loadPadWellRows(
+async function fetchPadWellRows(
   pad: Pick<PadSummary, "padId" | "canonicalId" | "recordRevision">,
-  sourceState?: DirectorySourceState,
 ): Promise<PadWellIdentifierRow[] | null> {
-  if (!pad.canonicalId || !uuidPattern.test(pad.padId) || !deviceIsOnline() || sourceState === "packaged_fallback" || sourceState === "unavailable") return null;
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_well_rows`, {
       method: "POST",
@@ -59,4 +70,27 @@ export async function loadPadWellRows(
   } catch {
     return null;
   }
+}
+
+export function loadPadWellRows(
+  pad: Pick<PadSummary, "padId" | "canonicalId" | "recordRevision">,
+  sourceState?: DirectorySourceState,
+): Promise<PadWellIdentifierRow[] | null> {
+  if (!pad.canonicalId || !uuidPattern.test(pad.padId) || !deviceIsOnline() || sourceState === "packaged_fallback" || sourceState === "unavailable") return Promise.resolve(null);
+  const key = wellRowKey(pad);
+  const cached = wellRowCache.get(key);
+  if (cached) return Promise.resolve(cached);
+  const existing = wellRowRequests.get(key);
+  if (existing) return existing;
+  const cacheGeneration = wellRowCacheGeneration;
+  const request = fetchPadWellRows(pad)
+    .then((rows) => {
+      if (rows && cacheGeneration === wellRowCacheGeneration) wellRowCache.set(key, rows);
+      return rows;
+    })
+    .finally(() => {
+      if (wellRowRequests.get(key) === request) wellRowRequests.delete(key);
+    });
+  wellRowRequests.set(key, request);
+  return request;
 }

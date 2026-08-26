@@ -1,7 +1,41 @@
-import { describe, expect, it } from "vitest";
-import { normalizeDriverRouteChoices } from "./routeChoices";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearDriverRouteChoiceCache, loadDriverRouteChoices, normalizeDriverRouteChoices } from "./routeChoices";
+import type { PadSummary } from "./types";
 
 const padId = "11111111-1111-4111-8111-111111111111";
+
+afterEach(() => {
+  clearDriverRouteChoiceCache();
+  vi.unstubAllGlobals();
+});
+
+function routePad(): PadSummary {
+  return {
+    padId,
+    canonicalId: padId,
+    legacyId: null,
+    aliases: [],
+    recordNumber: null,
+    recordRevision: "42",
+    recordType: "pad",
+    company: "Ascent",
+    padName: "TEST PAD",
+    state: "Ohio",
+    county: "Belmont",
+    township: "",
+    address: "",
+    coordinate: { latitude: 40.1, longitude: -80.9, role: "driver_entrance" },
+    wellNames: [],
+    apiNumbers: [],
+    propertyNumbers: [],
+    safeRoadTerms: [],
+    structuredRoadSequence: "",
+    writtenDirections: "",
+    verificationStatus: "verified",
+    operatingStatus: "active",
+    updatedAt: null,
+  };
+}
 
 function projection(order: number, longitude = -80.9) {
   return {
@@ -36,6 +70,23 @@ function choice(routeGroup: "primary" | "alternate", variantIndex: number) {
 }
 
 describe("driver exact-route choices", () => {
+  it("loads a completed choice set once per app session until Settings clears it", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      padId,
+      choices: [choice("primary", 1), choice("alternate", 2)],
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = await loadDriverRouteChoices(routePad());
+    const second = await loadDriverRouteChoices(routePad());
+    expect(second).toBe(first);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    clearDriverRouteChoiceCache();
+    await loadDriverRouteChoices(routePad());
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("lets a driver choose independently validated primary and alternate projections", () => {
     const choices = normalizeDriverRouteChoices({
       padId,

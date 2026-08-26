@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions } from "./PadPage";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -306,12 +306,39 @@ describe("V18 pad legacy route fallback", () => {
     expect(appCss).toMatch(/\.written-directions\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
   });
 
-  it("renders the pad immediately and labels live, last-known, and offline states", () => {
+  it("renders immediately and labels route provenance without deriving Live from directory state", () => {
     expect(padPage).toContain("buildPendingPadStatus(pad, snapshot?.sourceState)");
     expect(padPage).toContain('connectionState === "offline" ? "Offline"');
     expect(padPage).toContain('connectionState === "live" ? "Live"');
-    expect(padPage).toContain('connectionState === "last-known" ? "Last known"');
+    expect(padPage).toContain('connectionState === "saved-reviewed" ? "Saved reviewed"');
+    expect(padPage).toContain('<strong>Route status</strong>');
+    expect(padPage).not.toContain("What is safe to use");
     expect(padPage).toContain("Open this pad once while online to save reviewed directions on this device.");
+
+    const base = statusWithGoogle(null);
+    expect(padRouteConnectionState({ ...base, loadProvenance: "live_response" }, true)).toBe("live");
+    expect(padRouteConnectionState({ ...base, loadProvenance: "session_cache" }, true)).toBe("session-checked");
+    expect(padRouteConnectionState({ ...base, loadProvenance: "device_cache" }, true)).toBe("saved-reviewed");
+    expect(padRouteConnectionState({ ...base, loadProvenance: "fallback", dataState: "live" }, true)).toBe("unavailable");
+    expect(padRouteConnectionState({ ...base, loadProvenance: "live_response" }, false)).toBe("offline");
+    expect(padRouteConnectionState(null, true)).toBe("checking");
+    expect(padPage).toContain('connectionState === "session-checked" ? "Ready"');
+    expect(padPage).toContain("Completed route check reused for this pad revision");
+  });
+
+  it("moves route connection state into the collapsed Route status panel", () => {
+    const headerStart = padPage.indexOf('className="pad-header-block"');
+    const wellStart = padPage.indexOf('className="detail-card pad-well-card" open');
+    const readinessStart = padPage.indexOf('className="detail-card pad-readiness-details"');
+    const freshnessStart = padPage.indexOf("Data source and freshness");
+
+    expect([headerStart, wellStart, readinessStart, freshnessStart].every((index) => index >= 0)).toBe(true);
+    expect(padPage.slice(headerStart, wellStart)).not.toContain("pad-connection-badge");
+    expect(padPage.slice(headerStart, wellStart)).not.toContain("stale-banner");
+    expect(padPage.slice(readinessStart, freshnessStart)).toContain("pad-connection-badge");
+    expect(padPage.slice(readinessStart, freshnessStart)).toContain("stale-banner");
+    expect(padPage.slice(readinessStart, freshnessStart)).toContain('aria-hidden="true">⌄');
+    expect(padPage.slice(readinessStart, freshnessStart)).toContain('aria-live="polite" aria-atomic="true"');
   });
 
   it("uses synchronized reviewed well rows instead of matching sorted lists by position", () => {

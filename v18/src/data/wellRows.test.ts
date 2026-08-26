@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadPadWellRows } from "./wellRows";
+import { clearPadWellRowCache, loadPadWellRows } from "./wellRows";
 
 const pad = {
   padId: "12da2a9f-c9ae-467f-abf5-723c31daecfe",
@@ -9,11 +9,30 @@ const pad = {
 };
 
 afterEach(() => {
+  clearPadWellRowCache();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
 describe("V18 reviewed well-row contract", () => {
+  it("reuses revision-locked reviewed well rows until the app-session cache is cleared", async () => {
+    const request = vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      padId: pad.padId,
+      recordRevision: pad.recordRevision,
+      rows: [{ wellName: "ALBERT W KKW BL 2H", apiNumber: "34-013-2-1385-00-00", propertyNumber: "1553862" }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } })));
+    vi.stubGlobal("fetch", request);
+
+    const first = await loadPadWellRows(pad, "live_current");
+    const second = await loadPadWellRows(pad, "live_current");
+    expect(second).toBe(first);
+    expect(request).toHaveBeenCalledTimes(1);
+
+    clearPadWellRowCache();
+    await loadPadWellRows(pad, "live_current");
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
   it("preserves the reviewed Albert row order and pairings", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
       padId: pad.padId,

@@ -181,6 +181,23 @@
   line-height: 1.45;
 }
 
+.settings-info-row em,
+.settings-route-check-status {
+  color: var(--muted);
+  font-size: .7rem;
+  font-style: normal;
+  line-height: 1.4;
+}
+
+.settings-info-row em {
+  margin-top: 3px;
+}
+
+.settings-route-check-status {
+  color: var(--teal-bright);
+  font-weight: 750;
+}
+
 .settings-row-action,
 .settings-locked-row > b {
   min-height: 44px;
@@ -193,6 +210,12 @@
   font-size: .7rem;
   font-weight: 850;
   white-space: nowrap;
+}
+
+.settings-row-button {
+  border: 0;
+  font-family: inherit;
+  cursor: pointer;
 }
 
 .settings-locked-row > b {

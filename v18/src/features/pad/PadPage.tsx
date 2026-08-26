@@ -165,6 +165,17 @@ export function currentStatusForPad(
     : null;
 }
 
+export type PadRouteConnectionState = "checking" | "live" | "session-checked" | "saved-reviewed" | "offline" | "unavailable";
+
+export function padRouteConnectionState(status: DriverPadStatus | null, online: boolean): PadRouteConnectionState {
+  if (!online) return "offline";
+  if (!status) return "checking";
+  if (status.loadProvenance === "live_response") return "live";
+  if (status.loadProvenance === "session_cache") return "session-checked";
+  if (status.loadProvenance === "device_cache") return "saved-reviewed";
+  return "unavailable";
+}
+
 export function displayedRouteForChoice(status: DriverPadStatus, choice: DriverRouteChoice | null) {
   const selectedRouteIsPrimary = !choice || choice.routeGroup === "primary";
   return {
@@ -228,9 +239,10 @@ export function PadPage() {
   const wellRows = loadedWellRows?.recordKey === padRecordKey ? loadedWellRows.rows : undefined;
   const status = currentResolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
   const currentRouteChoices = currentResolvedStatus ? routeChoices : [];
-  const connectionState = !online ? "offline" : currentResolvedStatus?.dataState === "live" ? "live" : currentResolvedStatus ? "last-known" : "checking";
-  const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "last-known" ? "Last known" : "Checking live";
-  const offlineCacheMiss = !online && status.route.safeReason === "Directions for this pad are not cached on this device.";
+  const connectionState = padRouteConnectionState(currentResolvedStatus, online);
+  const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "session-checked" ? "Ready" : connectionState === "saved-reviewed" ? "Saved reviewed" : connectionState === "unavailable" ? "Unavailable" : "Checking";
+  const hasSavedReviewedStatus = status.loadProvenance === "device_cache";
+  const offlineCacheMiss = !online && !hasSavedReviewedStatus;
 
   const favorite = favorites.has(pad.padId);
   const identifierGroups = buildPadIdentifierGroups(pad);
@@ -266,8 +278,6 @@ export function PadPage() {
         </div>
       </div>
       <PadGpsActions pad={pad}/>
-      <div className={`pad-connection-badge is-${connectionState}`} role="status" aria-live="polite"><span/><strong>{connectionLabel}</strong><small>{connectionState === "live" ? "Current public route response" : connectionState === "checking" ? "Showing the pad while route status loads" : "Device-stored route information"}</small></div>
-      {connectionState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{offlineCacheMiss ? "Offline · not cached" : connectionState === "checking" ? "Checking current route status" : connectionState === "offline" ? "Offline directions" : "Last known directions"}</strong><span>{offlineCacheMiss ? "Open this pad once while online to save reviewed directions on this device." : `Current graph checks are not assumed. Last record update: ${dateLabel(pad.updatedAt)}`}</span></div></div>}
     </section>
 
     <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
@@ -301,8 +311,10 @@ export function PadPage() {
 
     {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{displayWrittenDirections(status.route.writtenDirections)}</p></details>}
 
-    <details className="detail-card pad-readiness-details"><summary><span><strong>What is safe to use</strong><small>Route, graph, and approved handoff status</small></span><span>⌄</span></summary>
+    <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>
       <div className="pad-readiness-content">
+        <div className={`pad-connection-badge is-${connectionState}`}><span aria-hidden="true"/><strong>{connectionLabel}</strong><small>{connectionState === "live" ? "Completed route check for this pad revision" : connectionState === "session-checked" ? "Completed route check reused for this pad revision" : connectionState === "checking" ? "Checking this route once for the current app session" : hasSavedReviewedStatus ? "Device-stored reviewed route information" : connectionState === "offline" ? "No reviewed route is saved on this device" : "No reviewed route response is available"}</small></div>
+        {connectionState !== "live" && connectionState !== "session-checked" && <div className="stale-banner"><Icon name="offline"/><div><strong>{offlineCacheMiss ? "Offline · not cached" : connectionState === "checking" ? "Checking reviewed route status" : connectionState === "unavailable" ? "Route check unavailable" : "Saved reviewed directions"}</strong><span>{offlineCacheMiss ? "Open this pad once while online to save reviewed directions on this device." : connectionState === "unavailable" ? "No live or device-stored route response was found. No route authority was inferred." : `No new route authority was inferred. Saved record update: ${dateLabel(pad.updatedAt)}`}</span></div></div>}
         <div className="section-heading"><div><span className="eyebrow">ROUTE READINESS</span><h2>Current authority</h2></div><span className="readiness-updated">Checked {dateLabel(status.route.lastVerifiedAt)}</span></div>
         <div className="readiness-grid">
           <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
