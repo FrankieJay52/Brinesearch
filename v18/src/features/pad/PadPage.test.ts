@@ -236,6 +236,22 @@ describe("V18 pad legacy route fallback", () => {
     expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-empty\s*\{[^}]*min-height:\s*0;[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
   });
 
+  it("groups Save and Share below the company so the top-right map can use their former space", () => {
+    const topbarStart = padPage.indexOf('className="pad-topbar"');
+    const headerStart = padPage.indexOf('className="pad-header-primary"');
+    const actionsStart = padPage.indexOf('className="pad-header-actions"', headerStart);
+    const mapStart = padPage.indexOf('className="pad-header-map-slot"', headerStart);
+
+    expect(padPage.slice(topbarStart, headerStart)).toContain('className="pad-topbar-spacer"');
+    expect(padPage.slice(topbarStart, headerStart)).not.toContain('aria-label={favorite ? "Remove favorite" : "Save favorite"}');
+    expect(actionsStart).toBeGreaterThan(headerStart);
+    expect(actionsStart).toBeLessThan(mapStart);
+    expect(padPage.slice(actionsStart, mapStart)).toContain('aria-pressed={favorite}');
+    expect(padPage.slice(actionsStart, mapStart)).toContain('{favorite ? "Saved" : "Save"}');
+    expect(padPage.slice(actionsStart, mapStart)).toContain('<Icon name="share"/>Share');
+    expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:[^;]*12\.5rem/s);
+  });
+
   it("uses a compact header map that can expand and shrink without rebuilding route authority", () => {
     expect(padMapPreview).toContain("const [expanded, setExpanded] = useState(false)");
     expect(padMapPreview).toContain('expanded ? "is-expanded" : "is-compact"');

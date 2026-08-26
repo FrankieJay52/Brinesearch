@@ -226,12 +226,11 @@ export function PadPage() {
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
   return <article className={`pad-page ${googleHandoff.available ? "has-fixed-navigation" : ""}`}>
-    <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><button className={`icon-button ${favorite ? "is-favorite" : ""}`} onClick={() => toggleFavorite(pad.padId)} aria-label={favorite ? "Remove favorite" : "Save favorite"}><Icon name="saved"/></button></header>
+    <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><span className="pad-topbar-spacer" aria-hidden="true"/></header>
     <section className="pad-header-block" aria-labelledby="pad-detail-title">
       <div className="pad-header-primary">
         <section className="pad-hero">
-          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p></div>
-          <button className="share-button" onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button>
+          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><div className="pad-header-actions" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div></div>
         </section>
         <div className="pad-header-map-slot">
           <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
