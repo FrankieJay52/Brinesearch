@@ -7,6 +7,18 @@ const publishableKey =
 const requestTimeoutMs = 3_000;
 
 const releasedHandoffRequests = new Map<string, Promise<ReleasedGoogleHandoffPlan | null>>();
+const releasedHandoffCache = new Map<string, ReleasedGoogleHandoffPlan>();
+let releasedHandoffCacheGeneration = 0;
+
+function releasedHandoffKey(pad: Pick<PadSummary, "canonicalId" | "recordRevision">) {
+  return `${pad.canonicalId}:${pad.recordRevision}`;
+}
+
+export function clearReleasedGoogleHandoffCache() {
+  releasedHandoffCacheGeneration += 1;
+  releasedHandoffCache.clear();
+  releasedHandoffRequests.clear();
+}
 
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -35,10 +47,21 @@ async function fetchReleasedGoogleHandoff(pad: PadSummary): Promise<ReleasedGoog
 
 export function loadReleasedGoogleHandoff(pad: PadSummary) {
   if (!pad.canonicalId || typeof navigator !== "undefined" && navigator.onLine === false) return Promise.resolve(null);
-  const existing = releasedHandoffRequests.get(pad.canonicalId);
+  const key = releasedHandoffKey(pad);
+  const cached = releasedHandoffCache.get(key);
+  if (cached) return Promise.resolve(cached);
+  const existing = releasedHandoffRequests.get(key);
   if (existing) return existing;
-  const request = fetchReleasedGoogleHandoff(pad).finally(() => releasedHandoffRequests.delete(pad.canonicalId!));
-  releasedHandoffRequests.set(pad.canonicalId, request);
+  const cacheGeneration = releasedHandoffCacheGeneration;
+  const request = fetchReleasedGoogleHandoff(pad)
+    .then((plan) => {
+      if (plan && cacheGeneration === releasedHandoffCacheGeneration) releasedHandoffCache.set(key, plan);
+      return plan;
+    })
+    .finally(() => {
+      if (releasedHandoffRequests.get(key) === request) releasedHandoffRequests.delete(key);
+    });
+  releasedHandoffRequests.set(key, request);
   return request;
 }
 

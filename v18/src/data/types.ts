@@ -144,6 +144,7 @@ export interface DriverPadStatus {
   padId: string;
   recordRevision: string;
   dataState: "live" | "cached" | "stale" | "fallback";
+  loadProvenance?: "live_response" | "session_cache" | "device_cache" | "fallback";
   route: {
     state: RouteState;
     source: RouteSource;

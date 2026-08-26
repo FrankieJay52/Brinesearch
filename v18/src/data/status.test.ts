@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { loadPadStatus } from "./status";
+import { clearCompletedPadStatusCache, completedPadStatusIsReusable, loadPadStatus } from "./status";
 import type { DriverRouteStep, PadSummary } from "./types";
 
 function pad(overrides: Partial<PadSummary> = {}): PadSummary {
@@ -158,10 +158,78 @@ function atomicStatusEnvelope(
 }
 
 afterEach(() => {
+  clearCompletedPadStatusCache();
   vi.unstubAllGlobals();
 });
 
 describe("public driver status boundary", () => {
+  it("reuses a completed revision-locked route for repeat opens until Settings clears the session check", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
+      ...exactReadyStatusRow(),
+      google: { publicState: "not_published", safeReason: "Not published." },
+    }))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = await loadPadStatus(pad());
+    const second = await loadPadStatus(pad());
+    expect(completedPadStatusIsReusable(first)).toBe(true);
+    expect(first.loadProvenance).toBe("live_response");
+    expect(second.loadProvenance).toBe("session_cache");
+    expect(second.route).toEqual(first.route);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    clearCompletedPadStatusCache();
+    const refreshed = await loadPadStatus(pad());
+    expect(completedPadStatusIsReusable(refreshed)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("never carries a completed check across a directory source-state transition", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
+      ...exactReadyStatusRow(),
+      google: { publicState: "not_published", safeReason: "Not published." },
+    }))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const current = await loadPadStatus(pad(), "live_current");
+    const currentAgain = await loadPadStatus(pad(), "live_current");
+    const cachedDirectory = await loadPadStatus(pad(), "cached_live");
+    const staleDirectory = await loadPadStatus(pad(), "live_stale");
+
+    expect(current.loadProvenance).toBe("live_response");
+    expect(currentAgain.loadProvenance).toBe("session_cache");
+    expect(cachedDirectory.loadProvenance).toBe("live_response");
+    expect(staleDirectory.loadProvenance).toBe("live_response");
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("never reuses a held or incomplete route as a completed session check", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
+      ...exactReadyStatusRow(),
+      route: { state: "held", source: "exact_graph", safeReason: "Route receipt held." },
+      graph: { state: "active_current", county: "Belmont" },
+      google: { publicState: "held", safeReason: "Route held." },
+    }))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = await loadPadStatus(pad());
+    const second = await loadPadStatus(pad());
+    expect(first.route.state).toBe("held");
+    expect(second.route.state).toBe("held");
+    expect(completedPadStatusIsReusable(first)).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("marks a failed online route request unavailable instead of Live", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockRejectedValue(new Error("network unavailable")));
+
+    const status = await loadPadStatus(pad(), "live_current");
+
+    expect(status.loadProvenance).toBe("fallback");
+    expect(status.dataState).toBe("fallback");
+    expect(completedPadStatusIsReusable(status)).toBe(false);
+  });
+
   it("launches one approved route only when the entire exact manifest has one mobile-safe URL", async () => {
     const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
       exactReadyStatusRow(),

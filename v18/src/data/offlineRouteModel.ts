@@ -351,13 +351,14 @@ export function restoreOfflinePadStatus(pad: PadSummary, value: unknown): Driver
     padId: pad.padId,
     recordRevision: pad.recordRevision,
     dataState: "cached",
+    loadProvenance: "device_cache",
     route: {
       state: exact ? "stale" : record.contract.routeState,
       source: record.contract.routeSource,
       geometry: null,
       safeReason: exact
-        ? `Last known approved directions saved ${new Date(record.contract.savedAt).toLocaleString()}. Current graph status is not checked offline.`
-        : record.contract.routeSafeReason || "Last known reviewed written directions saved on this device.",
+        ? `Saved reviewed route directions from ${new Date(record.contract.savedAt).toLocaleString()}. Current graph status is not checked offline.`
+        : record.contract.routeSafeReason || "Saved reviewed written directions are available on this device.",
       lastVerifiedAt: record.contract.routeLastVerifiedAt,
       writtenDirections: record.contract.writtenDirections,
     },

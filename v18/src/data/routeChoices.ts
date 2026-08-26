@@ -6,6 +6,19 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgov
 const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd";
 const revisionPattern = /^[0-9a-f]{32,64}$/;
+const routeChoiceRequests = new Map<string, Promise<DriverRouteChoice[]>>();
+const routeChoiceCache = new Map<string, DriverRouteChoice[]>();
+let routeChoiceCacheGeneration = 0;
+
+function routeChoiceKey(pad: Pick<PadSummary, "canonicalId" | "recordRevision">) {
+  return `${pad.canonicalId}:${pad.recordRevision}`;
+}
+
+export function clearDriverRouteChoiceCache() {
+  routeChoiceCacheGeneration += 1;
+  routeChoiceCache.clear();
+  routeChoiceRequests.clear();
+}
 
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -48,19 +61,42 @@ export function normalizeDriverRouteChoices(value: unknown, expectedPadId: strin
   return choices;
 }
 
-export async function loadDriverRouteChoices(pad: PadSummary): Promise<DriverRouteChoice[]> {
-  if (!pad.canonicalId || !deviceIsOnline()) return [];
+async function fetchDriverRouteChoices(pad: PadSummary): Promise<DriverRouteChoice[]> {
+  const canonicalId = pad.canonicalId;
+  if (!canonicalId) return [];
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_route_choices`, {
       method: "POST",
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
-      body: JSON.stringify({ p_pad_id: pad.canonicalId }),
+      body: JSON.stringify({ p_pad_id: canonicalId }),
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
     });
     if (!response.ok) return [];
-    return normalizeDriverRouteChoices(await response.json() as unknown, pad.canonicalId);
+    return normalizeDriverRouteChoices(await response.json() as unknown, canonicalId);
   } catch {
     return [];
   }
+}
+
+export function loadDriverRouteChoices(pad: PadSummary): Promise<DriverRouteChoice[]> {
+  if (!pad.canonicalId || !deviceIsOnline()) return Promise.resolve([]);
+  const key = routeChoiceKey(pad);
+  const cached = routeChoiceCache.get(key);
+  if (cached) return Promise.resolve(cached);
+  const existing = routeChoiceRequests.get(key);
+  if (existing) return existing;
+  const cacheGeneration = routeChoiceCacheGeneration;
+  const request = fetchDriverRouteChoices(pad)
+    .then((choices) => {
+      if (cacheGeneration === routeChoiceCacheGeneration && choices.some((choice) => choice.routeGroup === "primary")) {
+        routeChoiceCache.set(key, choices);
+      }
+      return choices;
+    })
+    .finally(() => {
+      if (routeChoiceRequests.get(key) === request) routeChoiceRequests.delete(key);
+    });
+  routeChoiceRequests.set(key, request);
+  return request;
 }

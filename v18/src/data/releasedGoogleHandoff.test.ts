@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PadSummary } from "./types";
 import {
+  clearReleasedGoogleHandoffCache,
   currentReleasedGoogleHandoff,
   loadReleasedGoogleHandoff,
   releasedGoogleNavigationUrl,
@@ -61,10 +62,13 @@ function release(id: string) {
   };
 }
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  clearReleasedGoogleHandoffCache();
+  vi.unstubAllGlobals();
+});
 
 describe("released Google handoff loader", () => {
-  it("deduplicates only the same in-flight reviewed release request", async () => {
+  it("reuses the same reviewed release for repeat opens in one app session", async () => {
     const id = "e2b32e85-9e93-4388-8215-9d8167cbbeb8";
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(release(id)), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -78,9 +82,12 @@ describe("released Google handoff loader", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_google_handoff_release");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ cache: "no-store", method: "POST" });
+
+    expect((await loadReleasedGoogleHandoff(pad(id)))?.singleUrl).toBe(first?.singleUrl);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
-  it("rechecks an explicit revocation and never restores a Google link offline", async () => {
+  it("rechecks an explicit revocation after the Settings refresh and never restores a Google link offline", async () => {
     const id = "44444444-4444-4444-8444-444444444444";
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(release(id)), { status: 200 }))
@@ -88,6 +95,7 @@ describe("released Google handoff loader", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     expect((await loadReleasedGoogleHandoff(pad(id)))?.singleUrl).toBeTruthy();
+    clearReleasedGoogleHandoffCache();
     expect(await loadReleasedGoogleHandoff(pad(id))).toBeNull();
     expect(fetchMock).toHaveBeenCalledTimes(2);
 

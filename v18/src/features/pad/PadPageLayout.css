@@ -87,14 +87,6 @@
   line-height: 1.35;
 }
 
-.pad-header-block .pad-connection-badge {
-  margin: 0;
-}
-
-.pad-header-block .stale-banner {
-  margin: 0;
-}
-
 .pad-gps-actions {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -264,6 +256,14 @@
 
 .pad-readiness-content {
   padding: 0 clamp(16px, 3vw, 24px) clamp(18px, 3vw, 24px);
+}
+
+.pad-readiness-content > .pad-connection-badge {
+  margin: 0 0 12px;
+}
+
+.pad-readiness-content > .stale-banner {
+  margin: 0 0 16px;
 }
 
 .pad-readiness-content .section-heading {
