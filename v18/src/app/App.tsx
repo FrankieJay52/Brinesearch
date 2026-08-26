@@ -42,7 +42,9 @@ function AppHeader() {
 
 function BottomNavigation() {
   const location = useLocation();
-  const hidden = location.pathname.startsWith("/pad/") || location.pathname === "/sign-in";
+  const hidden = location.pathname.startsWith("/pad/")
+    || location.pathname === "/sign-in"
+    || location.pathname === "/search";
   if (hidden) return null;
   return <nav className="bottom-navigation" aria-label="Main navigation">{navigation.map((item) => {
     const active = item.to === "/"

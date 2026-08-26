@@ -138,11 +138,15 @@ describe("map viewer authority boundary", () => {
     expect(mapGoogleHandoffState("held", false, true)).toBe("held");
   });
 
-  it("replaces Copy GPS with the single reviewed Google release on the selected pad card", () => {
+  it("prioritizes the reviewed route and otherwise exposes only the verified entrance pin", () => {
     expect(pageSource).toContain("loadReleasedGoogleHandoff(selected)");
     expect(pageSource).toContain("currentReleasedGoogleHandoff(releasedHandoff, selected)");
     expect(pageSource).toContain("releasedGoogleNavigationUrl(");
     expect(pageSource).toContain("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
+    expect(pageSource).toContain("verifiedDriverEntrancePinUrl(selected)");
+    expect(pageSource).toContain("<MapDestinationPinLink pinUrl={selectedPinUrl}");
+    expect(pageSource).toContain('className="map-coordinate-pin"');
+    expect(pageSource).toContain("destination pin only, not an approved route");
     expect(pageSource).not.toContain("Copy GPS");
     expect(pageSource).not.toContain("navigator.clipboard.writeText");
     expect(pageSource).not.toContain("google.com/maps/search");
@@ -159,6 +163,13 @@ describe("map viewer authority boundary", () => {
   it("keeps phone map search compact while preserving expandable filters", () => {
     expect(pageSource).toContain("const [mapFiltersOpen, setMapFiltersOpen] = useState(false)");
     expect(pageSource).toContain('placeholder="Search pads"');
+    expect(pageSource).toContain("usePadSearchLocation()");
+    expect(pageSource).toContain("closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7)");
+    expect(pageSource).toContain("nearbyPadResultsHeading(mapSearch, mapSearchOrigin)");
+    expect(pageSource).toContain("Using this phone's current GPS to find nearby pads");
+    expect(pageSource).toContain('role="region" aria-label="Pad search results"');
+    expect(pageSource).not.toContain('role="combobox"');
+    expect(pageSource).not.toContain('role="listbox"');
     expect(pageSource).toContain('aria-controls="map-filter-panel"');
     expect(pageSource).toContain('hidden={!mapFiltersOpen}');
     expect(pageSource).toContain('aria-label="Show approved route roads by company"');

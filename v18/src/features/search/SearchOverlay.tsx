@@ -1,53 +1,25 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { useDirectory } from "@/data/DirectoryContext";
-import { closestPadSearchResults, type SearchOrigin } from "@/data/search";
+import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
+import { padSearchResultsReady, usePadSearchLocation } from "./usePadSearchLocation";
 import "./search-overlay.css";
-
-type LocationState = "idle" | "locating" | "ready" | "denied" | "unavailable";
 
 export function SearchOverlay() {
   const { snapshot } = useDirectory();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const mountedRef = useRef(false);
-  const locationRequestedRef = useRef(false);
   const [query, setQuery] = useState("");
-  const [origin, setOrigin] = useState<SearchOrigin | null>(null);
-  const [locationState, setLocationState] = useState<LocationState>("idle");
+  const [visibleViewport, setVisibleViewport] = useState({ height: 0, offsetTop: 0 });
+  const { origin, state: locationState, requestLocation, retryLocation } = usePadSearchLocation();
   const normalizedQuery = query.trim();
+  const resultsReady = padSearchResultsReady(locationState, origin);
+  const resultsHeading = nearbyPadResultsHeading(query, origin);
   const results = useMemo(
-    () => closestPadSearchResults(snapshot?.rows || [], query, origin, 7),
-    [origin, query, snapshot],
+    () => resultsReady ? closestPadSearchResults(snapshot?.rows || [], query, origin, 7) : [],
+    [origin, query, resultsReady, snapshot],
   );
-
-  const requestLocation = useCallback(() => {
-    if (locationRequestedRef.current) return;
-    locationRequestedRef.current = true;
-    if (!navigator.geolocation) {
-      setLocationState("unavailable");
-      return;
-    }
-    setLocationState("locating");
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        if (!mountedRef.current) return;
-        setOrigin({ latitude: position.coords.latitude, longitude: position.coords.longitude });
-        setLocationState("ready");
-      },
-      (error) => {
-        if (!mountedRef.current) return;
-        setLocationState(error.code === error.PERMISSION_DENIED ? "denied" : "unavailable");
-      },
-      { enableHighAccuracy: false, timeout: 5000, maximumAge: 300_000 },
-    );
-  }, []);
-
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => { mountedRef.current = false; };
-  }, []);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -59,15 +31,35 @@ export function SearchOverlay() {
     return () => document.removeEventListener("keydown", closeOnEscape);
   }, [navigate, requestLocation]);
 
+  useEffect(() => {
+    const viewport = window.visualViewport;
+    const syncVisibleViewport = () => setVisibleViewport({
+      height: Math.max(240, Math.round(viewport?.height ?? window.innerHeight)),
+      offsetTop: Math.max(0, Math.round(viewport?.offsetTop ?? 0)),
+    });
+    syncVisibleViewport();
+    viewport?.addEventListener("resize", syncVisibleViewport);
+    viewport?.addEventListener("scroll", syncVisibleViewport);
+    window.addEventListener("resize", syncVisibleViewport);
+    return () => {
+      viewport?.removeEventListener("resize", syncVisibleViewport);
+      viewport?.removeEventListener("scroll", syncVisibleViewport);
+      window.removeEventListener("resize", syncVisibleViewport);
+    };
+  }, []);
+
   const close = () => navigate("/", { replace: true });
   const openFullSearch = () => navigate(`/search/all${normalizedQuery ? `?q=${encodeURIComponent(normalizedQuery)}` : ""}`);
+  const viewportStyle = visibleViewport.height ? {
+    "--search-visible-height": `${visibleViewport.height}px`,
+    "--search-visible-top": `${visibleViewport.offsetTop}px`,
+  } as CSSProperties : undefined;
 
   return <>
     <button type="button" className="search-overlay-backdrop" aria-label="Close search" onClick={close}/>
-    <aside className="search-overlay-panel" role="dialog" aria-modal="true" aria-labelledby="quick-search-title">
+    <aside className={`search-overlay-panel${visibleViewport.height > 0 && visibleViewport.height <= 620 ? " is-compact" : ""}`} style={viewportStyle} role="dialog" aria-modal="true" aria-labelledby="quick-search-title">
       <header className="search-overlay-header">
         <div><span className="eyebrow">QUICK SEARCH</span><h1 id="quick-search-title">Find a location</h1></div>
-        <button type="button" className="icon-button" aria-label="Close search" onClick={close}><Icon name="close"/></button>
       </header>
 
       <div className="search-overlay-command">
@@ -76,40 +68,41 @@ export function SearchOverlay() {
           ref={inputRef}
           value={query}
           onChange={(event) => setQuery(event.target.value.slice(0, 120))}
-          onFocus={requestLocation}
+          onFocus={() => requestLocation()}
           placeholder="Search pad name…"
           aria-label="Search pads"
-          role="combobox"
-          aria-autocomplete="list"
-          aria-expanded={results.length > 0}
           aria-controls="quick-search-results"
           autoComplete="off"
         />
         {query && <button type="button" aria-label="Clear search" onClick={() => { setQuery(""); inputRef.current?.focus(); }}><Icon name="close"/></button>}
+        <button type="button" className="search-overlay-inline-close" aria-label="Close search" onClick={close}><Icon name="close"/></button>
       </div>
 
-      <div className="search-overlay-nearby-heading" role="status" aria-live="polite">
-        <strong>{normalizedQuery ? "Closest matching pads" : "7 closest pads"}</strong>
-        {locationState === "ready" && <span>Nearest first</span>}
+      <div className="search-overlay-nearby-heading">
+        <strong>{resultsHeading}</strong>
+        <button type="button" onClick={retryLocation} disabled={locationState === "locating"}>
+          {locationState === "ready" ? "Refresh phone GPS" : locationState === "locating" ? "Finding phone…" : "Use phone GPS"}
+        </button>
       </div>
 
-      <div id="quick-search-results" className="search-overlay-results" role="listbox" aria-live="polite">
-        {results.length ? results.map((pad) => <button
+      <div id="quick-search-results" className="search-overlay-results" role="region" aria-label="Pad search results" aria-live="polite">
+        {results.length ? results.map((pad) => {
+          const distance = nearbyDistanceLabel(distanceMilesFromPad(pad, origin));
+          return <button
             type="button"
-            role="option"
-            aria-selected="false"
             className="search-overlay-result"
             key={pad.padId}
             onClick={() => navigate(`/pad/${encodeURIComponent(pad.padId)}`)}
           >
             <span className={`search-overlay-symbol search-overlay-${pad.recordType}`}><Icon name={pad.recordType === "disposal" ? "location" : "route"}/></span>
-            <span className="search-overlay-copy"><small>{pad.recordType === "disposal" ? "DISPOSAL" : pad.company.toUpperCase()}</small><strong>{pad.padName}</strong><span>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</span></span>
+            <span className="search-overlay-copy"><small>{pad.recordType === "disposal" ? "DISPOSAL" : pad.company.toUpperCase()}</small><strong>{pad.padName}</strong><span>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}{distance ? ` · ${distance}` : ""}</span></span>
             <span className="result-arrow" aria-hidden="true">›</span>
-          </button>)
-          : <div className="search-overlay-prompt"><Icon name="search"/><strong>{normalizedQuery ? "No exact pad-name match" : locationState === "locating" || locationState === "idle" ? "Finding nearby pads…" : "Start typing a pad name"}</strong><p>{normalizedQuery ? "Try another pad spelling. BrineSearch will not guess." : locationState === "denied" || locationState === "unavailable" ? "Enable location to see the 7 closest pads. Name search still works." : "Using this device location to order nearby pads."}</p></div>}
+          </button>;
+        })
+          : <div className="search-overlay-prompt"><Icon name="search"/><strong>{!resultsReady ? "Finding pads near this phone…" : normalizedQuery ? "No exact pad-name match" : "Phone location is needed"}</strong><p>{!resultsReady ? "Using the phone's current GPS position to order the seven nearest pads." : normalizedQuery ? "Try another pad spelling. BrineSearch will not guess." : "Enable location, then tap Use phone GPS. Name search still works without it."}</p></div>}
       </div>
 
-      {(locationState === "denied" || locationState === "unavailable") && normalizedQuery && <p className="search-overlay-location-note" role="note">Enable location to rank matches by distance. Name search still works.</p>}
+      {(locationState === "denied" || locationState === "unavailable") && <p className="search-overlay-location-note" role="note">Enable Location for BrineSearch to rank pads from this phone. Exact name search remains available.</p>}
 
       <footer className="search-overlay-footer">
         <button type="button" className="button-secondary" onClick={openFullSearch}><Icon name="search"/> Open full search</button>

@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions } from "./PadPage";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -76,8 +76,9 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
-    expect(padPage).toContain("<FixedNavigateAction view={googleHandoff}/>");
-    expect(padPage).toContain("<strong>Navigate</strong><small>Reviewed approved route</small>");
+    expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
+    expect(padPage).toContain('<span><strong>Navigate</strong><small>{action.detail}</small></span>');
+    expect(padPage).toContain('detail: "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
     expect(padPage).not.toContain("status.google.safeReason ||");
@@ -86,22 +87,40 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toContain("DriverActionPanel");
   });
 
-  it("renders exactly one fixed Navigate action only for a validated primary exact-route handoff", () => {
+  it("prioritizes the exact approved route and otherwise keeps Navigate on the verified GPS pin", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&destination=40.25403%2C-80.913577";
+    const pad = mappedPad();
     const availableView = buildGoogleHandoffView(statusWithGoogle(routeUrl), true, true);
-    const availableHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: availableView }));
+    const availableHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: availableView, pad }));
 
     expect(availableHtml.match(/<a\b/g)).toHaveLength(1);
     expect(availableHtml).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(availableHtml).toContain(">Navigate<");
     expect(availableHtml).toContain("Reviewed approved route");
+    expect(availableHtml).toContain('data-navigation-kind="approved_route"');
     expect(availableHtml).toContain('class="pad-fixed-navigation"');
     expect(availableHtml).not.toMatch(/route [1-9] of/i);
 
     const missingView = buildGoogleHandoffView(statusWithGoogle(null), true, true);
-    const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView }));
+    const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
-    expect(missingHtml).toBe("");
+    expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
+    expect(missingHtml).toContain("GPS destination only · not an approved route");
+    expect(missingHtml).toContain("google.com/maps/search");
+    expect(missingHtml).not.toContain("/maps/dir/");
+  });
+
+  it("always renders a disabled Navigate control when there is no verified driver entrance", () => {
+    const referencePad = { ...mappedPad(), coordinate: null, mapReference: { latitude: 40.25, longitude: -80.91, role: "reference" as const, kind: "official_pad_reference" as const } };
+    const view = buildGoogleHandoffView(statusWithGoogle(null), false, true);
+    const action = buildFixedNavigationAction(view, referencePad);
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
+
+    expect(action).toMatchObject({ kind: "unavailable", href: null });
+    expect(html).toContain("<button");
+    expect(html).toContain("disabled");
+    expect(html).toContain("No verified driver entrance");
+    expect(html).not.toContain("href=");
   });
 
   it("shows the immutable reviewed release without waiting for the full status proof", () => {
@@ -119,9 +138,12 @@ describe("V18 pad legacy route fallback", () => {
   it("removes both the fast release and atomic-status route links immediately when offline", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&destination=40.25403%2C-80.913577";
     const atomicStatus = statusWithGoogle(routeUrl);
-    expect(buildGoogleHandoffView(atomicStatus, true, true, null, false)).toMatchObject({ available: false, state: "unavailable", routeUrl: null });
+    const offlineView = buildGoogleHandoffView(atomicStatus, true, true, null, false);
+    expect(offlineView).toMatchObject({ available: false, state: "unavailable", routeUrl: null });
     expect(buildGoogleHandoffView(atomicStatus, true, true, routeUrl, false)).toMatchObject({ available: false, state: "unavailable", routeUrl: null });
-    expect(padPage).toContain("currentReleasedHandoffPlan?.singleUrl || null,\n    online,");
+    expect(buildFixedNavigationAction(offlineView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/search/") });
+    expect(padPage).toContain("currentReleasedHandoffPlan?.singleUrl || null,");
+    expect(padPage).toContain("    online,");
   });
 
   it("keeps the atomic status route bound to the primary handoff and disables alternates", () => {
@@ -149,7 +171,9 @@ describe("V18 pad legacy route fallback", () => {
     const alternateDisplay = displayedRouteForChoice(status, alternate);
     expect(alternateDisplay.steps[0]?.displayName).toBe("MUST NOT REPLACE ATOMIC ROAD");
     expect(alternateDisplay.geometry).toBe(alternate.geometry);
-    expect(buildGoogleHandoffView(status, true, alternateDisplay.selectedRouteIsPrimary).available).toBe(false);
+    const alternateView = buildGoogleHandoffView(status, true, alternateDisplay.selectedRouteIsPrimary);
+    expect(alternateView.available).toBe(false);
+    expect(buildFixedNavigationAction(alternateView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/search/") });
   });
 
   it("never carries a previous pad status or Google link across a route-parameter change", () => {
@@ -174,9 +198,9 @@ describe("V18 pad legacy route fallback", () => {
 
     expect(pinUrl).toBe("https://www.google.com/maps/search/?api=1&query=40.25403%2C-80.913577");
     expect(html).toContain("Copy GPS");
-    expect(html).toContain("Open destination pin only");
-    expect(html).toContain("Pin only — not an approved route.");
-    expect(html).toContain("this is not an approved route");
+    expect(html).toContain('class="pad-gps-coordinate-link mono"');
+    expect(html).toContain("Tap coordinates to open Google Maps · pin only, not an approved route.");
+    expect(html).toContain("destination pin only, not an approved route");
     expect(html).not.toContain("Reviewed approved route");
     expect(html).not.toContain("/maps/dir/");
   });
@@ -196,7 +220,9 @@ describe("V18 pad legacy route fallback", () => {
 
     expect(destinationPinUrl(referencePad)).toBeNull();
     expect(html).toContain("Copy GPS");
-    expect(html).toContain("Pin link requires a verified driver entrance");
+    expect(html).toContain("Navigation requires a verified driver entrance");
+    expect(html).toContain("Display-only GPS · not a verified driver entrance or navigation target.");
+    expect(html).not.toContain("pad-gps-coordinate-link");
     expect(html).not.toContain("google.com/maps/search");
   });
 
@@ -216,19 +242,23 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain('<details className="detail-card"><summary><span><strong>Data source and freshness</strong>');
   });
 
-  it("places the compact map beside the pad name and moves the administrative location under operating status", () => {
+  it("places the compact map beside the pad name and keeps operating status in data-source details", () => {
     const headerStart = padPage.indexOf('className="pad-header-primary"');
     const heroStart = padPage.indexOf('className="pad-hero"', headerStart);
     const mapStart = padPage.indexOf('className="pad-header-map-slot"', headerStart);
     const gpsStart = padPage.indexOf('<PadGpsActions pad={pad}/>', headerStart);
     const wellStart = padPage.indexOf('className="detail-card pad-well-card" open');
-    const statusStart = padPage.indexOf('<small>Operating status</small>', wellStart);
-    const administrativeLocationStart = padPage.indexOf('<small>County / township / state</small>', statusStart);
+    const routeStart = padPage.indexOf('className="route-steps-card"', wellStart);
+    const administrativeLocationStart = padPage.indexOf('<small>County / township / state</small>', wellStart);
+    const freshnessStart = padPage.indexOf("Data source and freshness", routeStart);
+    const statusStart = padPage.indexOf('<small>Operating status</small>', freshnessStart);
 
-    expect([headerStart, heroStart, mapStart, gpsStart, wellStart, statusStart, administrativeLocationStart].every((index) => index >= 0)).toBe(true);
+    expect([headerStart, heroStart, mapStart, gpsStart, wellStart, routeStart, administrativeLocationStart, freshnessStart, statusStart].every((index) => index >= 0)).toBe(true);
     expect(heroStart).toBeLessThan(mapStart);
     expect(mapStart).toBeLessThan(gpsStart);
-    expect(statusStart).toBeLessThan(administrativeLocationStart);
+    expect(administrativeLocationStart).toBeLessThan(routeStart);
+    expect(freshnessStart).toBeLessThan(statusStart);
+    expect(padPage.slice(wellStart, routeStart)).not.toContain('<small>Operating status</small>');
     expect(padPage.slice(heroStart, mapStart)).not.toContain('className="pad-location"');
     expect(padPage).toMatch(/<div className="pad-header-primary">[\s\S]*?<div className="pad-header-map-slot">\s*<PadMapPreview pad=\{pad\} status=\{status\} routeGeometry=\{displayedRouteGeometry\}\/?>\s*<\/div>\s*<\/div>\s*<PadGpsActions pad=\{pad\}\/>/);
     expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:/s);

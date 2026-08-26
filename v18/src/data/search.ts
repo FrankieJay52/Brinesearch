@@ -82,7 +82,7 @@ export function searchDirectory(rows: PadSummary[], rawQuery: string, filters: S
     .map((item) => item.row);
 }
 
-function validOrigin(origin: SearchOrigin | null): origin is SearchOrigin {
+export function isValidSearchOrigin(origin: SearchOrigin | null): origin is SearchOrigin {
   return Boolean(origin)
     && Number.isFinite(origin?.latitude)
     && Number.isFinite(origin?.longitude)
@@ -129,17 +129,16 @@ export function closestPadSearchResults(
   const pads = rows.filter((row) => row.recordType === "pad"
     && (!query || normalizeSearchText(row.padName).includes(query)));
 
-  if (!validOrigin(origin)) {
+  if (!isValidSearchOrigin(origin)) {
     if (!query) return [];
     return pads.slice().sort(deterministicPadOrder).slice(0, limit);
   }
 
   return pads
-    .map((pad, originalIndex) => {
+    .map((pad) => {
       const coordinate = mapDisplayCoordinate(pad);
       return {
         pad,
-        originalIndex,
         distance: coordinate
           ? distanceMilesBetween(origin, { latitude: coordinate.latitude, longitude: coordinate.longitude })
           : null,
@@ -149,13 +148,33 @@ export function closestPadSearchResults(
     .sort((left, right) => {
       if (left.distance !== null && right.distance !== null) {
         return left.distance - right.distance
-          || deterministicPadOrder(left.pad, right.pad)
-          || left.originalIndex - right.originalIndex;
+          || deterministicPadOrder(left.pad, right.pad);
       }
       if (left.distance !== null) return -1;
       if (right.distance !== null) return 1;
-      return deterministicPadOrder(left.pad, right.pad) || left.originalIndex - right.originalIndex;
+      return deterministicPadOrder(left.pad, right.pad);
     })
     .slice(0, limit)
     .map((result) => result.pad);
+}
+
+export function distanceMilesFromPad(pad: PadSummary, origin: SearchOrigin | null) {
+  if (!isValidSearchOrigin(origin)) return null;
+  const coordinate = mapDisplayCoordinate(pad);
+  return coordinate
+    ? distanceMilesBetween(origin, { latitude: coordinate.latitude, longitude: coordinate.longitude })
+    : null;
+}
+
+export function nearbyDistanceLabel(distance: number | null) {
+  if (distance === null || !Number.isFinite(distance) || distance < 0) return null;
+  if (distance < 0.1) return "<0.1 mi from phone GPS";
+  if (distance < 10) return `~${distance.toFixed(1)} mi from phone GPS`;
+  return `~${Math.round(distance).toLocaleString()} mi from phone GPS`;
+}
+
+export function nearbyPadResultsHeading(rawQuery: string, origin: SearchOrigin | null) {
+  const hasQuery = normalizeSearchText(rawQuery).length > 0;
+  if (hasQuery) return isValidSearchOrigin(origin) ? "Closest matching pads" : "Pad-name matches";
+  return isValidSearchOrigin(origin) ? "7 closest pads" : "Nearby pads";
 }

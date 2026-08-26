@@ -9,6 +9,7 @@ import { saveRecent } from "@/data/offline";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
+import { verifiedDriverEntrancePinUrl } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { buildPendingPadStatus, loadPadStatus } from "@/data/status";
 import type { DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
@@ -81,22 +82,50 @@ export function buildGoogleHandoffView(
   return { available, state, routeUrl: releasedPackageAvailable ? releasedRouteUrl : liveStatusAvailable ? status.google.routeUrl : null, reason };
 }
 
-export function FixedNavigateAction({ view }: { view: GoogleHandoffView }) {
-  if (!view.available || !view.routeUrl) return null;
-  return <nav className="pad-fixed-navigation" aria-label="Approved route navigation">
-    <a className="navigate-action" href={view.routeUrl} target="_blank" rel="noreferrer" aria-label="Navigate the reviewed approved route in Google Maps">
-      <Icon name="route"/>
-      <span><strong>Navigate</strong><small>Reviewed approved route</small></span>
+export type FixedNavigationAction =
+  | { kind: "approved_route"; href: string; detail: string; ariaLabel: string }
+  | { kind: "destination_pin"; href: string; detail: string; ariaLabel: string }
+  | { kind: "unavailable"; href: null; detail: string; ariaLabel: string };
+
+export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSummary): FixedNavigationAction {
+  if (view.available && view.routeUrl) return {
+    kind: "approved_route",
+    href: view.routeUrl,
+    detail: "Reviewed approved route",
+    ariaLabel: "Navigate the reviewed approved route in Google Maps",
+  };
+  const pinUrl = destinationPinUrl(pad);
+  if (pinUrl) return {
+    kind: "destination_pin",
+    href: pinUrl,
+    detail: "GPS destination only · not an approved route",
+    ariaLabel: "Open the verified driver entrance in Google Maps; destination only, not a BrineSearch-approved route",
+  };
+  return {
+    kind: "unavailable",
+    href: null,
+    detail: "No verified driver entrance",
+    ariaLabel: "Navigation unavailable because this pad has no verified driver entrance",
+  };
+}
+
+export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pad: PadSummary }) {
+  const action = buildFixedNavigationAction(view, pad);
+  return <nav className="pad-fixed-navigation" aria-label="Pad navigation">
+    {action.href ? <a className={`navigate-action is-${action.kind.replaceAll("_", "-")}`} href={action.href} target="_blank" rel="noreferrer" aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
+      <Icon name={action.kind === "approved_route" ? "route" : "location"}/>
+      <span><strong>Navigate</strong><small>{action.detail}</small></span>
       <b aria-hidden="true">↗</b>
-    </a>
+    </a> : <button className="navigate-action is-unavailable" type="button" disabled aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
+      <Icon name="location"/>
+      <span><strong>Navigate</strong><small>{action.detail}</small></span>
+      <b aria-hidden="true">—</b>
+    </button>}
   </nav>;
 }
 
 export function destinationPinUrl(pad: PadSummary) {
-  const coordinate = mapDisplayCoordinate(pad);
-  if (!coordinate || coordinate.role !== "driver_entrance") return null;
-  const query = `${coordinate.latitude},${coordinate.longitude}`;
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  return verifiedDriverEntrancePinUrl(pad);
 }
 
 export function PadGpsActions({ pad }: { pad: PadSummary }) {
@@ -116,12 +145,12 @@ export function PadGpsActions({ pad }: { pad: PadSummary }) {
     }
   };
   return <aside className="pad-gps-actions" aria-label="Pad map location tools">
-    <div><small>{locationLabel}</small><strong className="mono">{coordinateText}</strong><span>Pin only — not an approved route.</span></div>
+    <div><small>{locationLabel}</small>{pinUrl
+      ? <a className="pad-gps-coordinate-link mono" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${coordinateText} in Google Maps; destination pin only, not an approved route`}>{coordinateText}</a>
+      : <strong className="mono">{coordinateText}</strong>}<span>{pinUrl ? "Tap coordinates to open Google Maps · pin only, not an approved route." : "Display-only GPS · not a verified driver entrance or navigation target."}</span></div>
     <div className="pad-gps-buttons">
       <button type="button" onClick={copyGps} aria-label={`Copy ${locationLabel.toLowerCase()} GPS coordinates`}>{copied ? "Copied" : "Copy GPS"}</button>
-      {pinUrl
-        ? <a href={pinUrl} target="_blank" rel="noreferrer" aria-label="Open destination pin only in Google Maps; this is not an approved route">Open destination pin only</a>
-        : <span className="pad-gps-pin-held">Pin link requires a verified driver entrance</span>}
+      {!pinUrl && <span className="pad-gps-pin-held">Navigation requires a verified driver entrance</span>}
     </div>
   </aside>;
 }
@@ -225,7 +254,7 @@ export function PadPage() {
   );
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
-  return <article className={`pad-page ${googleHandoff.available ? "has-fixed-navigation" : ""}`}>
+  return <article className="pad-page has-fixed-navigation">
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><span className="pad-topbar-spacer" aria-hidden="true"/></header>
     <section className="pad-header-block" aria-labelledby="pad-detail-title">
       <div className="pad-header-primary">
@@ -242,7 +271,7 @@ export function PadPage() {
     </section>
 
     <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
-      <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong><div className="pad-administrative-location"><small>County / township / state</small><strong><Icon name="location"/>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</strong></div></div></div>
+      <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div className="pad-administrative-location"><small>County / township / state</small><strong><Icon name="location"/>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</strong></div></div>
       <section className="pad-identifier-board" aria-labelledby="pad-identifiers-title">
         <header><div><span className="eyebrow">PUBLIC WELL IDENTIFIERS</span><h3 id="pad-identifiers-title">Well names, APIs, and properties</h3></div></header>
         {wellRows === undefined ? <p className="pad-identifier-loading">Loading reviewed well rows…</p>
@@ -282,8 +311,8 @@ export function PadPage() {
         </div>
       </div>
     </details>
-    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoff.state.replaceAll("_", " ")}</strong></div></div></details>
+    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record status, identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoff.state.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
-    <FixedNavigateAction view={googleHandoff}/>
+    <FixedNavigateAction view={googleHandoff} pad={pad}/>
   </article>;
 }

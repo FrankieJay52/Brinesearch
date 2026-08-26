@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync(new URL(
   "../../../supabase/migrations/20260826013012_v18_released_google_handoff_snapshot.sql",
   import.meta.url,
-), "utf8");
+), "utf8").replaceAll("\r\n", "\n");
 
 describe("released Google handoff snapshot migration", () => {
   it("exposes only the byte-identical unrevoked reviewed release", () => {
