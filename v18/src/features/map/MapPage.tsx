@@ -752,13 +752,14 @@ export function MapPage() {
         <span><small>{row.recordType === "disposal" ? "DISPOSAL" : row.company || "FIELD PAD"}</small><strong>{row.padName}</strong><span>{[row.county, row.state].filter(Boolean).join(", ") || "Location not listed"}</span></span><b>Select</b>
       </button>)}</div>
     </aside> : selected ? <article className="map-selection-card">
-      <button className="selection-close" onClick={() => { pendingRouteFitRef.current = false; setSelectedId(null); }} aria-label="Close selected pad"><Icon name="close"/></button>
-      <div className="selection-kicker">{selected.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</div>
-      <h2>{selected.padName}</h2>
-      <p>{selected.company} · {[selected.county, selected.state].filter(Boolean).join(", ")}</p>
+      <header className="map-selection-header"><div>
+        <div className="selection-kicker">{selected.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</div>
+        <h2>{selected.padName}</h2>
+        <p className="selection-subtitle">{selected.company} · {[selected.county, selected.state].filter(Boolean).join(", ")}</p>
+      </div><button className="selection-close" onClick={() => { pendingRouteFitRef.current = false; setSelectedId(null); }} aria-label="Close selected pad"><Icon name="close"/></button></header>
       <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedGoogleState} label={`Google ${selectedGoogleState.replaceAll("_", " ")}`}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
       {currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
-      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
+      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
@@ -767,7 +768,7 @@ export function MapPage() {
           : selectedPinUrl ? <MapDestinationPinLink pinUrl={selectedPinUrl} padName={selected.padName}/>
           : <small className="map-google-link-state">No verified driver entrance</small>}
       </div>}
-      {selected.structuredRoadSequence && <div className="map-saved-road-sequence"><strong>Saved road sequence</strong><span>{selected.structuredRoadSequence}</span></div>}
+      {selected.structuredRoadSequence && <details className="map-saved-road-sequence"><summary><strong>Saved road sequence</strong><span>View</span></summary><p>{selected.structuredRoadSequence}</p></details>}
       {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}

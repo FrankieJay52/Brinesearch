@@ -107,6 +107,7 @@ describe("map viewer controls", () => {
 
 describe("map viewer authority boundary", () => {
   const pageSource = readFileSync(new URL("./MapPage.tsx", import.meta.url), "utf8");
+  const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "utf8");
 
   it("loads only the published approved-road overlay in road mode", () => {
     expect(pageSource).toContain('companyRoads.selectRoads("all")');
@@ -120,7 +121,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('selectedRouteChoice?.routeGroup === "alternate"');
     expect(pageSource).toContain("currentSelectedStatus?.route.geometry || null");
     expect(pageSource).toContain("loadDriverRouteChoices(selected)");
-    expect(pageSource).toContain("No route line was inferred.");
+    expect(pageSource).toContain("No approved inbound route is public · no route line inferred.");
     expect(pageSource).not.toContain("nearest_road");
     expect(pageSource).not.toContain("fuzzy_name");
   });
@@ -130,6 +131,29 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
+  });
+
+  it("keeps the selected-pad driver card compact without dropping route context", () => {
+    const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
+    const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedPinUrl}", approvedAction);
+    const disabledAction = pageSource.indexOf("No verified driver entrance", pinAction);
+    const sequenceDisclosure = pageSource.indexOf('<details className="map-saved-road-sequence">');
+    const referenceWarning = pageSource.indexOf('selectedCoordinate?.role !== "driver_entrance"', sequenceDisclosure);
+
+    expect(pageSource).toContain('className="map-selection-header"');
+    expect(pageSource).toContain('<details className="map-saved-road-sequence">');
+    expect(pageSource).toContain("{selected.structuredRoadSequence}");
+    expect(pageSource).toContain("Open pad details");
+    expect([approvedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
+    expect(approvedAction).toBeLessThan(pinAction);
+    expect(pinAction).toBeLessThan(disabledAction);
+    expect(sequenceDisclosure).toBeLessThan(referenceWarning);
+    expect(appCss).toMatch(/\.map-selection-card\s*\{[^}]*padding:\s*16px;/s);
+    expect(appCss).toMatch(/\.map-selection-card\s*\{[^}]*max-height:\s*min\(64dvh,\s*560px\);/s);
+    expect(appCss).toMatch(/\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*48px;/s);
+    expect(appCss).toMatch(/\.map-saved-road-sequence summary\s*\{[^}]*display:\s*flex;/s);
+    expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card\s*\{[^}]*max-height:\s*min\(54dvh,\s*470px\);[^}]*padding:\s*13px;/s);
+    expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*44px;/s);
   });
 
   it("marks Google unavailable for an alternate even when the primary is ready", () => {
