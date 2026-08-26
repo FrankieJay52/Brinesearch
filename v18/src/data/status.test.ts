@@ -261,7 +261,7 @@ describe("public driver status boundary", () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
       {
         ...exactReadyStatusRow(),
-        statusRevision: "9".repeat(32),
+        statusRevision: "1".repeat(32),
         route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
         graph: { state: "held", county: "Belmont", lastVerifiedAt: "2026-08-26T20:00:00Z" },
         google: { publicState: "not_published", safeReason: "Public Google remains off." },
@@ -285,6 +285,49 @@ describe("public driver status boundary", () => {
     expect(new URL(status.namedApproaches![0].navigationUrl).searchParams.get("waypoints"))
       .toBe("40.15,-80.95|40.12,-80.92|40.105,-80.905");
     expect(cached.loadProvenance).toBe("session_cache");
+  });
+
+  it("uses the immutable atomic named receipt while the directory GPS reference is still loading", async () => {
+    const freeport = namedApproachRow();
+    const cadiz = namedApproachRow("via-cadiz", "Via Cadiz", "alternate", 2, 0.02);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "1".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport, cadiz],
+    ))));
+
+    const status = await loadPadStatus(pad({ coordinate: null, mapReference: null }));
+    expect(status.namedApproaches?.map((approach) => approach.approachLabel)).toEqual(["Via Freeport", "Via Cadiz"]);
+  });
+
+  it("fails named receipts closed when their valid revision does not equal the atomic status revision", async () => {
+    const freeport = namedApproachRow();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "2".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport],
+    ))));
+
+    const status = await loadPadStatus(pad({ coordinate: null, mapReference: null }));
+    expect(status.namedApproaches).toEqual([]);
   });
 
   it("fails the complete named choice set closed when one release drifts", async () => {

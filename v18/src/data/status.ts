@@ -297,8 +297,14 @@ const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
 const completedLiveStatusCache = new Map<string, DriverPadStatus>();
 let completedLiveStatusCacheGeneration = 0;
 
-function liveStatusKey(pad: Pick<PadSummary, "padId" | "recordRevision">, sourceState?: DirectorySourceState) {
-  return `${pad.padId}:${pad.recordRevision}:${sourceState || "unknown"}`;
+type LiveStatusPadKey = Pick<PadSummary, "padId" | "recordRevision" | "coordinate" | "mapReference">;
+
+function liveStatusKey(pad: LiveStatusPadKey, sourceState?: DirectorySourceState) {
+  const destination = trustedNamedSavedDestination(pad as PadSummary);
+  const destinationKey = destination
+    ? `${destination.latitude},${destination.longitude}`
+    : "destination-pending";
+  return `${pad.padId}:${pad.recordRevision}:${sourceState || "unknown"}:${destinationKey}`;
 }
 
 export function completedPadStatusIsReusable(status: DriverPadStatus) {
@@ -316,7 +322,7 @@ export function completedPadStatusIsReusable(status: DriverPadStatus) {
  * unknown, never held: only the full status boundary may prove a held state.
  */
 export function hasCompletedReadyPadStatus(
-  pad: Pick<PadSummary, "padId" | "recordRevision">,
+  pad: LiveStatusPadKey,
   sourceState?: DirectorySourceState,
 ) {
   if (!deviceIsOnline()) return false;
@@ -360,11 +366,21 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
       const rawNamedApproaches = envelope.namedApproaches ?? envelope.named_approaches ?? [];
       const namedApproaches = buildNamedApproachReleaseSet(rawNamedApproaches);
       const trustedSavedDestination = trustedNamedSavedDestination(pad);
+      const atomicStatusRevision = nullableText(row.statusRevision ?? row.status_revision);
       for (const approach of namedApproaches) {
+        if (!atomicStatusRevision || approach.statusRevision !== atomicStatusRevision) {
+          throw new Error("Named approach release does not match the atomic status revision");
+        }
         if (approach.finalLegMode === "google_to_saved_gps_unapproved") {
-          if (!trustedSavedDestination
-              || approach.destination.latitude !== trustedSavedDestination.latitude
-              || approach.destination.longitude !== trustedSavedDestination.longitude) {
+          // The atomic server wrapper already binds every release to this
+          // exact p_pad_id and status revision. Directory pad references load
+          // asynchronously, so their absence must not discard that immutable
+          // reviewed receipt. When a current reference is available, retain
+          // the extra client-side equality check and key the request/cache by
+          // that coordinate so enrichment cannot reuse a pre-reference result.
+          if (trustedSavedDestination
+              && (approach.destination.latitude !== trustedSavedDestination.latitude
+              || approach.destination.longitude !== trustedSavedDestination.longitude)) {
             throw new Error("Named approach GPS destination does not match the current trusted pad reference");
           }
         } else if (status.destination.available !== true
