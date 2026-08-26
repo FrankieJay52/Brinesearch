@@ -133,7 +133,7 @@ export function PadGpsActions({ pad }: { pad: PadSummary }) {
   const coordinate = mapDisplayCoordinate(pad);
   const pinUrl = destinationPinUrl(pad);
   if (!coordinate) return null;
-  const coordinateText = `${coordinate.latitude.toFixed(6)}, ${coordinate.longitude.toFixed(6)}`;
+  const coordinateText = `${coordinate.latitude.toFixed(6)},${coordinate.longitude.toFixed(6)}`;
   const locationLabel = mapDisplayCoordinateLabel(pad);
   const copyGps = async () => {
     try {
@@ -145,12 +145,13 @@ export function PadGpsActions({ pad }: { pad: PadSummary }) {
     }
   };
   return <aside className="pad-gps-actions" aria-label="Pad map location tools">
-    <div><small>{locationLabel}</small>{pinUrl
+    <small className="pad-gps-role">{locationLabel}</small>
+    {pinUrl
       ? <a className="pad-gps-coordinate-link mono" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${coordinateText} in Google Maps; destination pin only, not an approved route`}>{coordinateText}</a>
-      : <strong className="mono">{coordinateText}</strong>}<span>{pinUrl ? "Tap coordinates to open Google Maps · pin only, not an approved route." : "Display-only GPS · not a verified driver entrance or navigation target."}</span></div>
+      : <strong className="mono">{coordinateText}</strong>}
+    <span className="pad-gps-boundary">{pinUrl ? "Google pin only · not an approved route" : "Display GPS only · no navigation"}</span>
     <div className="pad-gps-buttons">
-      <button type="button" onClick={copyGps} aria-label={`Copy ${locationLabel.toLowerCase()} GPS coordinates`}>{copied ? "Copied" : "Copy GPS"}</button>
-      {!pinUrl && <span className="pad-gps-pin-held">Navigation requires a verified driver entrance</span>}
+      <button type="button" className="pad-gps-copy-pill" onClick={copyGps} aria-label={copied ? `${locationLabel} GPS coordinates copied` : `Copy ${locationLabel.toLowerCase()} GPS coordinates`}>{copied ? "COPIED" : "COPY"}</button>
     </div>
   </aside>;
 }
@@ -271,13 +272,12 @@ export function PadPage() {
     <section className="pad-header-block" aria-labelledby="pad-detail-title">
       <div className="pad-header-primary">
         <section className="pad-hero">
-          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><div className="pad-header-actions" role="group" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" aria-label={`Share ${pad.padName}`} onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div></div>
+          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><PadGpsActions pad={pad}/><div className="pad-header-actions" role="group" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" aria-label={`Share ${pad.padName}`} onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div></div>
         </section>
         <div className="pad-header-map-slot">
           <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
         </div>
       </div>
-      <PadGpsActions pad={pad}/>
     </section>
 
     <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
