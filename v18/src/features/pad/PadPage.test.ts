@@ -311,6 +311,10 @@ describe("V18 pad legacy route fallback", () => {
     expect(padMapPreview).toContain("map.resize()");
     expect(padMapPreview).toContain("padMapFramePoints(routeGeometry, destination)");
     expect(padMapPreview).toContain("collapseCompactAttribution(attributionHost.current)");
+    expect(padMapPreview).toContain('attribution?.addEventListener("click", preserveAttributionChoice)');
+    expect(padMapPreview).toContain('if (!attributionChoiceMade) collapseCompactAttribution(attributionHost.current)');
+    expect(padMapPreview).toContain('map.off("sourcedata", settleAutomaticAttribution)');
+    expect(padMapPreview).toContain('map.off("styledata", settleAutomaticAttribution)');
     expect(padMapPreview).toContain('target.closest(".maplibregl-ctrl")');
     expect(padMapPreview).toContain('className="pad-map-route-overlay"');
     expect(padMapPreview).toContain("drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry)");

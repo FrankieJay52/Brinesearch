@@ -128,11 +128,12 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     host.current.dataset.destination = destination ? `${destination[1].toFixed(6)},${destination[0].toFixed(6)}` : "unavailable";
     host.current.dataset.routeOverlayReady = "false";
     let map: MapLibreMap;
+    let attribution: HTMLElement | null = null;
     try {
       map = new MapLibreMap({ container: host.current, style: mapStyle, center, zoom: 12.5, interactive: true, attributionControl: false });
       mapInstance.current = map;
       map.addControl(new AttributionControl({ compact: true }));
-      const attribution = host.current.querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
+      attribution = host.current.querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
       if (attribution && attributionHost.current) attributionHost.current.appendChild(attribution);
       collapseCompactAttribution(attributionHost.current);
       if (destination) new Marker({ color: status.destination.available ? "#52e4bd" : "#f0b45d" }).setLngLat(destination).addTo(map);
@@ -140,6 +141,25 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
       setMapError("Map preview could not start. The verified status above remains authoritative.");
       return;
     }
+    let attributionSettleTimer: number | null = null;
+    let attributionChoiceMade = false;
+    const preserveAttributionChoice = () => {
+      attributionChoiceMade = true;
+      if (attributionSettleTimer !== null) window.clearTimeout(attributionSettleTimer);
+      attributionSettleTimer = null;
+    };
+    const settleAutomaticAttribution = () => {
+      if (attributionChoiceMade) return;
+      if (attributionSettleTimer !== null) window.clearTimeout(attributionSettleTimer);
+      attributionSettleTimer = window.setTimeout(() => {
+        attributionSettleTimer = null;
+        if (!attributionChoiceMade) collapseCompactAttribution(attributionHost.current);
+      }, 500);
+    };
+    attribution?.addEventListener("click", preserveAttributionChoice);
+    map.on("styledata", settleAutomaticAttribution);
+    map.on("sourcedata", settleAutomaticAttribution);
+    settleAutomaticAttribution();
     const drawRouteOverlay = () => {
       const renderedLines = drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry);
       if (host.current) host.current.dataset.routeOverlayReady = String(renderedLines > 0);
@@ -198,6 +218,10 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     return () => {
       window.clearTimeout(loadDeadline);
       if (overlayFrame !== null) window.cancelAnimationFrame(overlayFrame);
+      if (attributionSettleTimer !== null) window.clearTimeout(attributionSettleTimer);
+      attribution?.removeEventListener("click", preserveAttributionChoice);
+      map.off("styledata", settleAutomaticAttribution);
+      map.off("sourcedata", settleAutomaticAttribution);
       map.off("click", toggleMapSize);
       map.off("move", scheduleRouteOverlay);
       map.off("resize", scheduleRouteOverlay);
