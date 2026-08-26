@@ -45,7 +45,7 @@ assert.match(appJavascript, /Closest matching pads/, "Built V18 app is missing n
 assert.match(appJavascript, /Pad-name matches/, "Built V18 app is missing honest no-GPS search labeling");
 assert.match(appJavascript, /from phone GPS/, "Built V18 app is missing phone-relative distance labeling");
 assert.match(appJavascript, /Using this phone's current GPS/, "Built V18 app is missing phone-location search disclosure");
-assert.match(appJavascript, /Expand map/, "Built V18 app is missing the compact expandable pad map");
+assert.match(appJavascript, /Expand pad map/, "Built V18 app is missing the compact expandable pad map");
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 

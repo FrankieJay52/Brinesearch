@@ -47,6 +47,14 @@ export function padSearchResultsReady(state: PadSearchLocationState, origin: Sea
   return isValidSearchOrigin(origin) || state === "denied" || state === "unavailable";
 }
 
+export function padSearchResultsReadyForQuery(
+  state: PadSearchLocationState,
+  origin: SearchOrigin | null,
+  rawQuery: string,
+) {
+  return rawQuery.trim().length > 0 || padSearchResultsReady(state, origin);
+}
+
 export function usePadSearchLocation() {
   const mountedRef = useRef(false);
   const inFlightRef = useRef(false);

@@ -39,7 +39,7 @@ import {
   type MapViewerMode,
 } from "./mapModel";
 import { MapApprovedRouteLink, MapDestinationPinLink } from "./MapApprovedRouteLink";
-import { padSearchResultsReady, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
+import { padSearchResultsReadyForQuery, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
 const fallbackMapStyle: StyleSpecification = {
@@ -359,7 +359,7 @@ export function MapPage() {
     [selectedRoadCompany, snapshot, typeFilter],
   );
   const visibleMappedCount = useMemo(() => visibleRows.filter(hasSafeCoordinate).length, [visibleRows]);
-  const mapSearchReady = padSearchResultsReady(mapSearchLocationState, mapSearchOrigin);
+  const mapSearchReady = padSearchResultsReadyForQuery(mapSearchLocationState, mapSearchOrigin, mapSearch);
   const searchResults = useMemo(
     () => mapSearchReady ? closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7) : [],
     [mapSearch, mapSearchOrigin, mapSearchReady, snapshot],

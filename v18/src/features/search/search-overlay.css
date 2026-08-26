@@ -183,6 +183,23 @@
 .search-overlay-copy small { color: var(--teal-bright); font-size: .58rem; letter-spacing: .1em; font-weight: 850; }
 .search-overlay-copy strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .93rem; }
 .search-overlay-copy > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: .72rem; }
+.search-overlay-result-state { display: grid; justify-items: end; gap: 3px; }
+.search-overlay-result-state b {
+  padding: 4px 7px;
+  border: 1px solid var(--line-soft);
+  border-radius: 999px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: .56rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+.search-overlay-result-state b.is-ready {
+  color: var(--teal-bright);
+  border-color: color-mix(in srgb, var(--teal) 42%, var(--line));
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface));
+}
+.search-overlay-result-state .result-arrow { color: var(--muted); font-size: 1.2rem; line-height: .8; }
 
 .search-overlay-prompt {
   min-height: 150px;

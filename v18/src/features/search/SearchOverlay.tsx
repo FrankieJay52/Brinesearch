@@ -1,20 +1,23 @@
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useNavigate } from "react-router-dom";
 import { Icon } from "@/components/Icon";
+import { useNetworkState } from "@/app/useNetworkState";
 import { useDirectory } from "@/data/DirectoryContext";
 import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
-import { padSearchResultsReady, usePadSearchLocation } from "./usePadSearchLocation";
+import { hasCompletedReadyPadStatus } from "@/data/status";
+import { padSearchResultsReadyForQuery, usePadSearchLocation } from "./usePadSearchLocation";
 import "./search-overlay.css";
 
 export function SearchOverlay() {
   const { snapshot } = useDirectory();
+  const online = useNetworkState();
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [query, setQuery] = useState("");
   const [visibleViewport, setVisibleViewport] = useState({ height: 0, offsetTop: 0 });
   const { origin, state: locationState, requestLocation, retryLocation } = usePadSearchLocation();
   const normalizedQuery = query.trim();
-  const resultsReady = padSearchResultsReady(locationState, origin);
+  const resultsReady = padSearchResultsReadyForQuery(locationState, origin, query);
   const resultsHeading = nearbyPadResultsHeading(query, origin);
   const results = useMemo(
     () => resultsReady ? closestPadSearchResults(snapshot?.rows || [], query, origin, 7) : [],
@@ -88,6 +91,7 @@ export function SearchOverlay() {
       <div id="quick-search-results" className="search-overlay-results" role="region" aria-label="Pad search results" aria-live="polite">
         {results.length ? results.map((pad) => {
           const distance = nearbyDistanceLabel(distanceMilesFromPad(pad, origin));
+          const exactRouteReady = online && hasCompletedReadyPadStatus(pad, snapshot?.sourceState);
           return <button
             type="button"
             className="search-overlay-result"
@@ -96,7 +100,7 @@ export function SearchOverlay() {
           >
             <span className={`search-overlay-symbol search-overlay-${pad.recordType}`}><Icon name={pad.recordType === "disposal" ? "location" : "route"}/></span>
             <span className="search-overlay-copy"><small>{pad.recordType === "disposal" ? "DISPOSAL" : pad.company.toUpperCase()}</small><strong>{pad.padName}</strong><span>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}{distance ? ` · ${distance}` : ""}</span></span>
-            <span className="result-arrow" aria-hidden="true">›</span>
+            <span className="search-overlay-result-state"><b className={exactRouteReady ? "is-ready" : "is-unchecked"}>{exactRouteReady ? "Ready" : "Check route"}</b><span className="result-arrow" aria-hidden="true">›</span></span>
           </button>;
         })
           : <div className="search-overlay-prompt"><Icon name="search"/><strong>{!resultsReady ? "Finding pads near this phone…" : normalizedQuery ? "No exact pad-name match" : "Phone location is needed"}</strong><p>{!resultsReady ? "Using the phone's current GPS position to order the seven nearest pads." : normalizedQuery ? "Try another pad spelling. BrineSearch will not guess." : "Enable location, then tap Use phone GPS. Name search still works without it."}</p></div>}

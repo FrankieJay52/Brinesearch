@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clearCompletedPadStatusCache, completedPadStatusIsReusable, loadPadStatus } from "./status";
+import { clearCompletedPadStatusCache, completedPadStatusIsReusable, hasCompletedReadyPadStatus, loadPadStatus } from "./status";
 import type { DriverRouteStep, PadSummary } from "./types";
 
 function pad(overrides: Partial<PadSummary> = {}): PadSummary {
@@ -170,6 +170,7 @@ describe("public driver status boundary", () => {
     }))));
     vi.stubGlobal("fetch", fetchMock);
 
+    expect(hasCompletedReadyPadStatus(pad())).toBe(false);
     const first = await loadPadStatus(pad());
     const second = await loadPadStatus(pad());
     expect(completedPadStatusIsReusable(first)).toBe(true);
@@ -177,8 +178,12 @@ describe("public driver status boundary", () => {
     expect(second.loadProvenance).toBe("session_cache");
     expect(second.route).toEqual(first.route);
     expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(hasCompletedReadyPadStatus(pad())).toBe(true);
+    expect(hasCompletedReadyPadStatus(pad({ recordRevision: "fixture-r2" }))).toBe(false);
+    expect(hasCompletedReadyPadStatus(pad(), "cached_live")).toBe(false);
 
     clearCompletedPadStatusCache();
+    expect(hasCompletedReadyPadStatus(pad())).toBe(false);
     const refreshed = await loadPadStatus(pad());
     expect(completedPadStatusIsReusable(refreshed)).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);
@@ -203,6 +208,24 @@ describe("public driver status boundary", () => {
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
+  it("never labels an online session check Ready after the phone goes offline", async () => {
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
+      ...exactReadyStatusRow(),
+      google: { publicState: "not_published", safeReason: "Not published." },
+    }))));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await loadPadStatus(pad());
+    expect(hasCompletedReadyPadStatus(pad())).toBe(true);
+
+    vi.stubGlobal("navigator", { onLine: false });
+    expect(hasCompletedReadyPadStatus(pad())).toBe(false);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+
+    vi.stubGlobal("navigator", { onLine: true });
+    expect(hasCompletedReadyPadStatus(pad())).toBe(true);
+  });
+
   it("never reuses a held or incomplete route as a completed session check", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
       ...exactReadyStatusRow(),
@@ -217,6 +240,7 @@ describe("public driver status boundary", () => {
     expect(first.route.state).toBe("held");
     expect(second.route.state).toBe("held");
     expect(completedPadStatusIsReusable(first)).toBe(false);
+    expect(hasCompletedReadyPadStatus(pad())).toBe(false);
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   initialPadSearchLocationSnapshot,
   padSearchResultsReady,
+  padSearchResultsReadyForQuery,
   reducePadSearchLocation,
 } from "./usePadSearchLocation";
 
@@ -15,6 +16,12 @@ describe("phone-location search readiness", () => {
   it("keeps exact name search available after permission denial or GPS failure", () => {
     expect(padSearchResultsReady("denied", null)).toBe(true);
     expect(padSearchResultsReady("unavailable", null)).toBe(true);
+  });
+
+  it("shows literal typed matches while phone GPS is still resolving", () => {
+    expect(padSearchResultsReadyForQuery("locating", null, "COLOGIE")).toBe(true);
+    expect(padSearchResultsReadyForQuery("locating", null, "   ")).toBe(false);
+    expect(padSearchResultsReadyForQuery("ready", { latitude: 40.25, longitude: -80.91 }, "")).toBe(true);
   });
 
   it("clears the prior coordinate while a fresh phone reading is in progress", () => {
