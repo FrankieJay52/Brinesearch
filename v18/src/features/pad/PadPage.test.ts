@@ -233,6 +233,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toMatch(/<div className="pad-header-primary">[\s\S]*?<div className="pad-header-map-slot">\s*<PadMapPreview pad=\{pad\} status=\{status\} routeGeometry=\{displayedRouteGeometry\}\/?>\s*<\/div>\s*<\/div>\s*<PadGpsActions pad=\{pad\}\/>/);
     expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:/s);
     expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-shell\s*\{[^}]*margin:\s*0 0 0 auto;/s);
+    expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-empty\s*\{[^}]*min-height:\s*0;[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
   });
 
   it("uses a compact header map that can expand and shrink without rebuilding route authority", () => {
@@ -242,6 +243,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padMapPreview).toContain('map.on("click", toggleMapSize)');
     expect(padMapPreview).toContain("map.resize()");
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-warning\[role="note"\]\s*\{[^}]*display:\s*none;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-expanded\s*\{[^}]*position:\s*fixed;/s);
   });
 

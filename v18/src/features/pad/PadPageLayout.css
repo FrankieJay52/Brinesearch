@@ -37,6 +37,17 @@
   margin: 0 0 0 auto;
 }
 
+.pad-header-map-slot > .pad-map-empty {
+  width: 100%;
+  min-height: 0;
+  aspect-ratio: 4 / 3;
+  padding: 10px;
+  border-radius: 17px;
+  text-align: center;
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
 .pad-header-block .pad-connection-badge {
   margin: 0;
 }
@@ -122,6 +133,10 @@
   min-height: 0;
   border-radius: 17px;
   box-shadow: var(--shadow-soft);
+}
+
+.pad-page .pad-map-shell.is-compact .pad-map-warning[role="note"] {
+  display: none;
 }
 
 .pad-page .pad-map-shell.is-expanded {
