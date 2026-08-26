@@ -14,7 +14,9 @@ function routePoints(geometry: DriverRouteGeometry | null): [number, number][] {
 
 export function PadMapPreview({ pad, status, routeGeometry = status.route.geometry }: { pad: PadSummary; status: DriverPadStatus; routeGeometry?: DriverRouteGeometry | null }) {
   const host = useRef<HTMLDivElement | null>(null);
+  const mapInstance = useRef<MapLibreMap | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
   useEffect(() => {
     if (!host.current) return;
     setMapError(null);
@@ -28,6 +30,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     let map: MapLibreMap;
     try {
       map = new MapLibreMap({ container: host.current, style: mapStyle, center, zoom: 12.5, interactive: true, attributionControl: false });
+      mapInstance.current = map;
       map.addControl(new AttributionControl({ compact: true }));
       if (destination) new Marker({ color: status.destination.available ? "#52e4bd" : "#f0b45d" }).setLngLat(destination).addTo(map);
     } catch {
@@ -50,15 +53,35 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
         setMapError("Approved route detail could not be drawn. No substitute route was inferred.");
       }
     });
+    const toggleMapSize = () => setExpanded((current) => !current);
+    map.on("click", toggleMapSize);
     return () => {
       window.clearTimeout(loadDeadline);
+      map.off("click", toggleMapSize);
+      mapInstance.current = null;
       map.remove();
     };
   }, [pad, routeGeometry, status]);
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const map = mapInstance.current;
+      if (!map) return;
+      map.resize();
+      const points = routePoints(routeGeometry);
+      if (points.length) {
+        const bounds = points.reduce((next, point) => next.extend(point), new LngLatBounds(points[0], points[0]));
+        map.fitBounds(bounds, { padding: expanded ? 58 : 28, maxZoom: 14, duration: 0 });
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [expanded, routeGeometry]);
   if (!mapDisplayCoordinate(pad) && !routeGeometry) return <div className="pad-map-empty">No safe mapped location</div>;
-  return <div className="pad-map-shell">
+  return <section className={`pad-map-shell ${expanded ? "is-expanded" : "is-compact"}`} aria-label={`${expanded ? "Expanded" : "Compact"} map for ${pad.padName}`}>
     <div className="pad-map-preview" ref={host} aria-label={`Map preview and approved route for ${pad.padName}`}/>
+    <button type="button" className="pad-map-size-toggle" aria-expanded={expanded} aria-label={expanded ? "Shrink pad map" : "Expand pad map"} onClick={() => setExpanded((current) => !current)}>
+      {expanded ? <><span aria-hidden="true">×</span> Shrink map</> : "Expand map"}
+    </button>
     {mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. Display only; it cannot launch navigation.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}
-  </div>;
+  </section>;
 }

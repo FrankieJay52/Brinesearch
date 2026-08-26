@@ -5,6 +5,7 @@ import {
   coincidentLocationsNeedChooser,
   emptyMapCoordinateNotice,
   filterMapRows,
+  mapGoogleHandoffState,
   mapPadSearchResults,
   mapViewerModeFromParam,
 } from "./mapModel";
@@ -116,7 +117,8 @@ describe("map viewer authority boundary", () => {
 
   it("draws a selected inbound route only from the fail-closed driver status geometry", () => {
     expect(pageSource).toContain("selectedRouteRef.current = selectedRouteGeometry");
-    expect(pageSource).toContain("selectedRouteChoice?.geometry || selectedStatus?.route.geometry || null");
+    expect(pageSource).toContain('selectedRouteChoice?.routeGroup === "alternate"');
+    expect(pageSource).toContain("currentSelectedStatus?.route.geometry || null");
     expect(pageSource).toContain("loadDriverRouteChoices(selected)");
     expect(pageSource).toContain("No route line was inferred.");
     expect(pageSource).not.toContain("nearest_road");
@@ -128,6 +130,30 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
+  });
+
+  it("marks Google unavailable for an alternate even when the primary is ready", () => {
+    expect(mapGoogleHandoffState("ready", true, false)).toBe("unavailable");
+    expect(mapGoogleHandoffState("held", true, true)).toBe("ready");
+    expect(mapGoogleHandoffState("held", false, true)).toBe("held");
+  });
+
+  it("replaces Copy GPS with the single reviewed Google release on the selected pad card", () => {
+    expect(pageSource).toContain("loadReleasedGoogleHandoff(selected)");
+    expect(pageSource).toContain("currentReleasedGoogleHandoff(releasedHandoff, selected)");
+    expect(pageSource).toContain("releasedGoogleNavigationUrl(");
+    expect(pageSource).toContain("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
+    expect(pageSource).not.toContain("Copy GPS");
+    expect(pageSource).not.toContain("navigator.clipboard.writeText");
+    expect(pageSource).not.toContain("google.com/maps/search");
+  });
+
+  it("keys status and route choices to the current pad before rendering authority", () => {
+    expect(pageSource).toContain("selectedStatus?.padId === selected.padId");
+    expect(pageSource).toContain("selectedStatus.recordRevision === selected.recordRevision");
+    expect(pageSource).toContain("routeChoicesRecordKey === selectedRecordKey");
+    expect(pageSource).toContain("`${selected.padId}:${selected.recordRevision}`");
+    expect(pageSource).toContain('selectedRouteIsPrimary ? "primary" : "alternate"');
   });
 
   it("keeps phone map search compact while preserving expandable filters", () => {

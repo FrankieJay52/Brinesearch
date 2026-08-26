@@ -16,8 +16,14 @@ import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
+import {
+  currentReleasedGoogleHandoff,
+  loadReleasedGoogleHandoff,
+  releasedGoogleNavigationUrl,
+} from "@/data/releasedGoogleHandoff";
 import { loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
+import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
 import {
   coincidentLocationsNeedChooser,
@@ -26,10 +32,12 @@ import {
   groupCoincidentProjectedPads,
   hasSafeCoordinate,
   mapDisplayCoordinate,
+  mapGoogleHandoffState,
   mapPadSearchResults,
   mapViewerModeFromParam,
   type MapViewerMode,
 } from "./mapModel";
+import { MapApprovedRouteLink } from "./MapApprovedRouteLink";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
 const fallbackMapStyle: StyleSpecification = {
@@ -314,7 +322,9 @@ export function MapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
+  const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffPlan | null | undefined>(undefined);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
+  const [routeChoicesRecordKey, setRouteChoicesRecordKey] = useState<string | null>(null);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [typeFilter, setTypeFilter] = useState<"all" | "pad" | "disposal">("all");
   const [mapRenderState, setMapRenderState] = useState<MapRenderState>("loading");
@@ -349,8 +359,24 @@ export function MapPage() {
   const searchResults = useMemo(() => mapPadSearchResults(snapshot?.rows || [], mapSearch), [mapSearch, snapshot]);
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
   const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
-  const selectedRouteChoice = routeChoices.find((choice) => choice.routeKey === selectedRouteKey) || routeChoices[0] || null;
-  const selectedRouteGeometry = selectedRouteChoice?.geometry || selectedStatus?.route.geometry || null;
+  const currentSelectedStatus = selected
+    && selectedStatus?.padId === selected.padId
+    && selectedStatus.recordRevision === selected.recordRevision ? selectedStatus : null;
+  const selectedRecordKey = selected ? `${selected.padId}:${selected.recordRevision}` : null;
+  const currentRouteChoices = routeChoicesRecordKey === selectedRecordKey ? routeChoices : [];
+  const selectedRouteChoice = currentRouteChoices.find((choice) => choice.routeKey === selectedRouteKey) || currentRouteChoices[0] || null;
+  const selectedRouteIsPrimary = selectedRouteChoice?.routeGroup !== "alternate";
+  const currentReleasedHandoffPlan = currentReleasedGoogleHandoff(releasedHandoff, selected);
+  const approvedNavigationUrl = online ? releasedGoogleNavigationUrl(
+    currentReleasedHandoffPlan,
+    selectedRouteIsPrimary ? "primary" : "alternate",
+  ) : null;
+  const selectedGoogleState = currentSelectedStatus
+    ? mapGoogleHandoffState(currentSelectedStatus.google.publicState, Boolean(approvedNavigationUrl), selectedRouteIsPrimary)
+    : approvedNavigationUrl ? "ready" : null;
+  const selectedRouteGeometry = selectedRouteChoice?.routeGroup === "alternate"
+    ? selectedRouteChoice.geometry
+    : currentSelectedStatus?.route.geometry || null;
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedRouteGeometry;
   companyRoadRowsRef.current = companyRoads.overlay?.rows || [];
@@ -422,9 +448,14 @@ export function MapPage() {
   useEffect(() => {
     let cancelled = false;
     setSelectedStatus(null);
+    setReleasedHandoff(undefined);
     setRouteChoices([]);
+    setRouteChoicesRecordKey(null);
     setSelectedRouteKey("");
     if (selected) {
+      loadReleasedGoogleHandoff(selected).then((plan) => {
+        if (!cancelled) setReleasedHandoff(plan);
+      });
       if (online) {
         readPadDirectionsOffline(selected).then((cached) => {
           if (!cancelled && cached) setSelectedStatus((current) => current || cached);
@@ -437,6 +468,7 @@ export function MapPage() {
           loadDriverRouteChoices(selected).then((choices) => {
             if (cancelled) return;
             setRouteChoices(choices);
+            setRouteChoicesRecordKey(`${selected.padId}:${selected.recordRevision}`);
             setSelectedRouteKey(choices[0]?.routeKey || "");
           });
         }
@@ -446,7 +478,7 @@ export function MapPage() {
   }, [online, selected, snapshot?.sourceState]);
 
   useEffect(() => {
-    if (!selectedStatus || !selected || !pendingRouteFitRef.current || !mapRef.current) return;
+    if (!currentSelectedStatus || !selected || !pendingRouteFitRef.current || !mapRef.current) return;
     pendingRouteFitRef.current = false;
     const lines = routeLines(selectedRouteGeometry);
     const coordinate = mapDisplayCoordinate(selected);
@@ -454,7 +486,7 @@ export function MapPage() {
     const bounds = new LngLatBounds([coordinate.longitude, coordinate.latitude], [coordinate.longitude, coordinate.latitude]);
     for (const line of lines) for (const coordinate of line) bounds.extend(coordinate);
     mapRef.current.fitBounds(bounds, { padding: fullscreen ? 64 : 84, maxZoom: 15, duration: 520 });
-  }, [fullscreen, selected, selectedRouteGeometry, selectedStatus]);
+  }, [currentSelectedStatus, fullscreen, selected, selectedRouteGeometry]);
 
   useEffect(() => {
     if (!mapHost.current || !padOverlay.current || mapRef.current) return;
@@ -712,12 +744,13 @@ export function MapPage() {
       <div className="selection-kicker">{selected.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</div>
       <h2>{selected.padName}</h2>
       <p>{selected.company} · {[selected.county, selected.state].filter(Boolean).join(", ")}</p>
-      <div className="selection-statuses">{selectedStatus ? <><StatusBadge status={selectedStatus.route.state} label={selectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedStatus.google.publicState} label={`Google ${selectedStatus.google.publicState.replaceAll("_", " ")}`}/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
-      {routeChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{routeChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
-      {selectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
+      <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedGoogleState} label={`Google ${selectedGoogleState.replaceAll("_", " ")}`}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
+      {currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
+      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong><small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small></span>
-        <button type="button" onClick={() => navigator.clipboard.writeText(`${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)}`).catch(() => undefined)}>Copy GPS</button>
+        {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName}/>
+          : <small className="map-google-link-state">{online && releasedHandoff === undefined ? "Checking route…" : "No approved Google route"}</small>}
       </div>}
       {selected.structuredRoadSequence && <div className="map-saved-road-sequence"><strong>Saved road sequence</strong><span>{selected.structuredRoadSequence}</span></div>}
       {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}

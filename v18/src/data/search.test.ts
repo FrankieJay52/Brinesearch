@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getPackagedSnapshotForTest } from "./directory";
-import { searchDirectory } from "./search";
+import { closestPadSearchResults, distanceMilesBetween, searchDirectory } from "./search";
 
 const filters = { type: "all", route: "all" } as const;
 
@@ -63,5 +63,44 @@ describe("driver search", () => {
 
   it("never creates a result for punctuation-only input", () => {
     expect(searchDirectory(snapshot.rows, "---", filters)).toEqual([]);
+  });
+
+  it("returns exactly seven closest mapped pads for an empty quick search", () => {
+    const origin = { latitude: 40.25, longitude: -80.91 };
+    const results = closestPadSearchResults(snapshot.rows, "", origin);
+
+    expect(results).toHaveLength(7);
+    expect(results.every((row) => row.recordType === "pad")).toBe(true);
+  });
+
+  it("filters literal pad-name matches and ranks them nearest-first", () => {
+    const base = snapshot.rows.find((row) => row.recordType === "pad")!;
+    const rows = [
+      { ...base, padId: "far", padName: "ALPHA FAR", coordinate: { latitude: 40.5, longitude: -80.5, role: "driver_entrance" as const } },
+      { ...base, padId: "other", padName: "BRAVO NEAR", coordinate: { latitude: 40.001, longitude: -80, role: "driver_entrance" as const } },
+      { ...base, padId: "near", padName: "ALPHA NEAR", coordinate: { latitude: 40.01, longitude: -80, role: "driver_entrance" as const } },
+    ];
+
+    expect(closestPadSearchResults(rows, "alpha", { latitude: 40, longitude: -80 }).map((row) => row.padId)).toEqual(["near", "far"]);
+    expect(closestPadSearchResults(rows, "a", { latitude: 40, longitude: -80 }).map((row) => row.padId)).toEqual(["other", "near", "far"]);
+  });
+
+  it("falls back to deterministic name search when device location is unavailable", () => {
+    const base = snapshot.rows.find((row) => row.recordType === "pad")!;
+    const rows = [
+      { ...base, padId: "zulu", padName: "COLOGIE ZULU" },
+      { ...base, padId: "alpha", padName: "COLOGIE ALPHA" },
+    ];
+
+    expect(closestPadSearchResults(rows, "cologie", null).map((row) => row.padId)).toEqual(["alpha", "zulu"]);
+    expect(closestPadSearchResults(rows, "", null)).toEqual([]);
+    expect(closestPadSearchResults(rows, "---", null)).toEqual([]);
+  });
+
+  it("uses real great-circle distance without changing route authority", () => {
+    expect(distanceMilesBetween(
+      { latitude: 40, longitude: -80 },
+      { latitude: 41, longitude: -80 },
+    )).toBeCloseTo(69.1, 0);
   });
 });

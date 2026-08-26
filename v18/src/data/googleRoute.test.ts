@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGoogleRoutePublicPlan } from "./googleRoute";
+import { buildGoogleRoutePublicPlan, buildReleasedGoogleHandoffPlan } from "./googleRoute";
 
 const padId = "e2b32e85-9e93-4388-8215-9d8167cbbeb8";
 const shape = (sequence: number, latitude: number, longitude: number, role?: string) => ({
@@ -65,6 +65,20 @@ function handoffRow(value: ReturnType<typeof row>, sequences = [1, 13, 15]) {
   };
 }
 
+function releasedRow(value: ReturnType<typeof row>, sequences = [1, 13, 15]) {
+  const reviewed = handoffRow(value, sequences);
+  return {
+    padId: reviewed.pad_id,
+    routeRevision: reviewed.route_revision,
+    sourceManifestDigest: reviewed.source_manifest_digest,
+    sourceDependencyDigest: reviewed.source_dependency_digest,
+    handoffVersion: reviewed.handoff_version,
+    handoff: reviewed.handoff,
+    handoffDigest: reviewed.handoff_digest,
+    publishedAt: reviewed.published_at,
+  };
+}
+
 describe("public Google route manifest", () => {
   it("builds only from a matching public exact manifest", () => {
     const plan = buildGoogleRoutePublicPlan(row([
@@ -122,6 +136,37 @@ describe("public Google route manifest", () => {
     expect(url.searchParams.get("waypoints")).toBe([value.manifest.points[0], value.manifest.points[12], value.manifest.points[14]]
       .map((point) => `${point.latitude},${point.longitude}`).join("|"));
     expect(url.searchParams.get("destination")).toBe("40.25403,-80.913577");
+  });
+
+  it("builds one current-location Google URL from an immutable reviewed release", () => {
+    const value = row([
+      ...Array.from({ length: 15 }, (_, index) => shape(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+    ]);
+    const plan = buildReleasedGoogleHandoffPlan(releasedRow(value));
+    const url = new URL(plan.singleUrl!);
+
+    expect(plan.padId).toBe(padId);
+    expect(plan.routeRevision).toBe(7);
+    expect(plan.handoffDigest).toBe("d".repeat(32));
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(url.searchParams.get("waypoints")).toBe([value.manifest.points[0], value.manifest.points[12], value.manifest.points[14]]
+      .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+    expect(url.searchParams.get("destination")).toBe("40.25403,-80.913577");
+  });
+
+  it("fails closed on released package drift or unsupported fields", () => {
+    const value = row([
+      ...Array.from({ length: 15 }, (_, index) => shape(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+    ]);
+    const released = releasedRow(value);
+    expect(() => buildReleasedGoogleHandoffPlan({ ...released, padId: "different-pad" })).toThrow(/bound to its reviewed receipt/i);
+    expect(() => buildReleasedGoogleHandoffPlan({ ...released, privateEvidence: "must not leak" })).toThrow(/unsupported data/i);
+    expect(() => buildReleasedGoogleHandoffPlan({ ...released, handoff: { ...released.handoff, origin_mode: "fixed_origin" } })).toThrow(/bound to its reviewed receipt/i);
+    expect(() => buildReleasedGoogleHandoffPlan({ ...released, handoff: { ...released.handoff, waypoints: [...released.handoff.waypoints].reverse() } })).toThrow(/order is invalid/i);
+    expect(() => buildReleasedGoogleHandoffPlan({ ...released, handoff: { ...released.handoff, destination: { ...released.handoff.destination, pad_id: "different-pad" } } })).toThrow(/destination is not bound/i);
   });
 
   it("rejects a compact handoff that drifts from the exact manifest binding", () => {

@@ -28,10 +28,17 @@ describe("V18 map search dropdown", () => {
   });
 
   it("uses the existing deterministic directory search contract", () => {
-    expect(overlay).toContain('import { searchDirectory } from "@/data/search"');
-    expect(overlay).toContain('searchDirectory(snapshot?.rows || [], normalizedQuery, { type, route: "all" }, 8)');
+    expect(overlay).toContain('closestPadSearchResults(snapshot?.rows || [], query, origin, 7)');
     expect(overlay).toContain('role="dialog"');
     expect(overlay).toContain('role="listbox"');
     expect(overlay).toContain('navigate(`/pad/${encodeURIComponent(pad.padId)}`)');
+  });
+
+  it("requests device location once and keeps denied-location name search available", () => {
+    expect(overlay).toContain("navigator.geolocation.getCurrentPosition(");
+    expect(overlay).toContain("locationRequestedRef.current = true");
+    expect(overlay).toContain("7 closest pads");
+    expect(overlay).toContain("Closest matching pads");
+    expect(overlay).toContain("Enable location to see the 7 closest pads. Name search still works.");
   });
 });
