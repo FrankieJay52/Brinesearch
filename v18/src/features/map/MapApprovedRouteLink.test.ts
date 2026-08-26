@@ -17,15 +17,16 @@ describe("map approved route link", () => {
     expect(html).not.toContain("Copy GPS");
   });
 
-  it("keeps a GPS-pin fallback explicitly separate from approved route authority", () => {
-    const pinUrl = "https://www.google.com/maps/search/?api=1&query=40.25403%2C-80.913577";
-    const html = renderToStaticMarkup(createElement(MapDestinationPinLink, { pinUrl, padName: "BANNOCK" }));
+  it("keeps GPS-only navigation explicitly separate from approved route authority", () => {
+    const pinUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.25403%2C-80.913577";
+    const html = renderToStaticMarkup(createElement(MapDestinationPinLink, { pinUrl, padName: "BANNOCK", sourceLabel: "Saved pad GPS" }));
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${pinUrl.replaceAll("&", "&amp;")}"`);
-    expect(html).toContain("Open GPS pin");
-    expect(html).toContain("Not an approved route");
-    expect(html).not.toContain(">Navigate<");
-    expect(html).not.toContain("/maps/dir/");
+    expect(html).toContain(">Navigate<");
+    expect(html).toContain("GPS destination only");
+    expect(html).toContain("GPS destination only · Saved pad GPS");
+    expect(html).toContain("saved pad gps");
+    expect(html).toContain("not an approved route");
   });
 });
