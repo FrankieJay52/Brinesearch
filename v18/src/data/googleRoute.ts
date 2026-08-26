@@ -21,6 +21,16 @@ export interface ReleasedGoogleHandoffPlan extends GoogleRoutePlan {
   publishedAt: string;
 }
 
+export interface CoreDestinationReleasePlan {
+  padId: string;
+  recordRevision: string;
+  routeRevision: number;
+  dependencyDigest: string;
+  releaseDigest: string;
+  publishedAt: string;
+  singleUrl: string;
+}
+
 function record(value: unknown, message: string): UnknownRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
   return value as UnknownRecord;
@@ -60,6 +70,54 @@ function coordinate(point: UnknownRecord) {
   if (Number(latitude) === 0 && Number(longitude) === 0) throw new Error("Google route coordinate cannot use the zero origin");
   if (!isInsideCoordinateServiceArea(Number(latitude), Number(longitude))) throw new Error("Google route coordinate is outside the BrineSearch service area");
   return `${latitude},${longitude}`;
+}
+
+type RouteCoordinate = [number, number];
+
+function routeCoordinate(value: unknown, field: string): RouteCoordinate {
+  if (!Array.isArray(value) || value.length !== 2) throw new Error(`Core-destination ${field} is not an exact coordinate`);
+  const longitude = Number(coordinateValue(value[0], -180, 180, `${field} longitude`));
+  const latitude = Number(coordinateValue(value[1], -90, 90, `${field} latitude`));
+  if (!isInsideCoordinateServiceArea(latitude, longitude)) throw new Error(`Core-destination ${field} is outside the BrineSearch service area`);
+  return [longitude, latitude];
+}
+
+function pointCoordinate(value: UnknownRecord): RouteCoordinate {
+  return [
+    Number(coordinateValue(value.longitude, -180, 180, "longitude")),
+    Number(coordinateValue(value.latitude, -90, 90, "latitude")),
+  ];
+}
+
+function sameRouteCoordinate(left: RouteCoordinate, right: RouteCoordinate) {
+  // Public GeoJSON is intentionally rounded to seven decimal places. This
+  // tolerance is below a foot in the V18 service area and only permits that
+  // serialization difference; it is never used to select a road.
+  return Math.abs(left[0] - right[0]) <= 0.000001
+    && Math.abs(left[1] - right[1]) <= 0.000001;
+}
+
+function exactCoreRouteLines(value: unknown, steps: unknown[]) {
+  const collection = record(value, "Core-destination route geometry is invalid");
+  if (collection.type !== "FeatureCollection" || !Array.isArray(collection.features)
+      || collection.features.length !== 2 || steps.length !== 2) {
+    throw new Error("Core-destination v1 requires exactly two approved road features and two steps");
+  }
+  return collection.features.map((rawFeature, index) => {
+    const feature = record(rawFeature, `Core-destination route feature ${index + 1} is invalid`);
+    const properties = record(feature.properties, `Core-destination route feature ${index + 1} properties are invalid`);
+    const geometry = record(feature.geometry, `Core-destination route feature ${index + 1} geometry is invalid`);
+    const step = record(steps[index], `Core-destination route step ${index + 1} is invalid`);
+    if (feature.type !== "Feature" || Number(properties.stepOrder) !== index + 1
+        || Number(step.order) !== index + 1 || geometry.type !== "LineString"
+        || !Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
+      throw new Error("Core-destination route geometry is not ordered with its approved steps");
+    }
+    return (geometry.coordinates as unknown[]).map((point, pointIndex) => routeCoordinate(
+      point,
+      `feature ${index + 1} point ${pointIndex + 1}`,
+    ));
+  });
 }
 
 function validatePoint(value: unknown, index: number, total: number) {
@@ -277,6 +335,104 @@ export function buildReleasedGoogleHandoffPlan(value: unknown): ReleasedGoogleHa
     singleUrl: routeUrl(destination, waypoints),
     handoffDigest,
     publishedAt,
+  };
+}
+
+/**
+ * Validate the deliberately separate exact-road-core + saved-GPS contract.
+ * The final GPS is a destination, never an inferred road occurrence or an
+ * assertion that the approved geometry reaches the pad.
+ */
+export function buildCoreDestinationReleasePlan(value: unknown): CoreDestinationReleasePlan {
+  const row = record(value, "Core-destination release is invalid");
+  if (!onlyKeys(row, [
+    "padId", "recordRevision", "routeRevision", "releaseVersion",
+    "routeSteps", "routeGeometry", "graphCounty", "graphLastVerifiedAt",
+    "destination", "handoff", "dependencyDigest", "releaseDigest",
+    "publishedAt",
+  ])) throw new Error("Core-destination release exposes unsupported data");
+
+  const padId = identifier(row.padId, "core-destination pad ID");
+  const recordRevision = identifier(row.recordRevision, "core-destination record revision");
+  const routeRevision = revision(row.routeRevision, "core-destination route revision");
+  const dependencyDigest = digest(row.dependencyDigest, "core-destination dependency digest");
+  const releaseDigest = digest(row.releaseDigest, "core-destination release digest");
+  const publishedAt = String(row.publishedAt || "");
+  if (row.releaseVersion !== "v18-core-destination-v1") throw new Error("Core-destination release version is unsupported");
+  if (!publishedAt || Number.isNaN(Date.parse(publishedAt))) throw new Error("Core-destination publication time is invalid");
+  identifier(row.graphCounty, "core-destination graph county");
+  const graphLastVerifiedAt = String(row.graphLastVerifiedAt || "");
+  if (!graphLastVerifiedAt || Number.isNaN(Date.parse(graphLastVerifiedAt))) throw new Error("Core-destination graph verification time is invalid");
+  if (!Array.isArray(row.routeSteps) || !row.routeSteps.length) throw new Error("Core-destination route steps are missing");
+  const routeLines = exactCoreRouteLines(row.routeGeometry, row.routeSteps);
+
+  const destinationValue = record(row.destination, "Core-destination GPS is invalid");
+  if (!onlyKeys(destinationValue, ["available", "role", "latitude", "longitude"])
+      || destinationValue.available !== true
+      || destinationValue.role !== "saved_pad_destination") {
+    throw new Error("Core-destination GPS is not a destination-only coordinate");
+  }
+  const destination = coordinate(destinationValue);
+
+  const handoff = record(row.handoff, "Core-destination handoff is invalid");
+  if (!onlyKeys(handoff, [
+    "handoff_version", "pad_id", "route_revision", "source_dependency_digest",
+    "origin_mode", "waypoints", "core_end", "destination", "final_leg_mode",
+  ])) throw new Error("Core-destination handoff exposes unsupported data");
+  if (handoff.handoff_version !== row.releaseVersion
+      || identifier(handoff.pad_id, "core-destination handoff pad ID") !== padId
+      || revision(handoff.route_revision, "core-destination handoff route revision") !== routeRevision
+      || digest(handoff.source_dependency_digest, "core-destination handoff dependency digest") !== dependencyDigest
+      || handoff.origin_mode !== "current_location_until_route_ingress"
+      || handoff.final_leg_mode !== "google_to_saved_gps_unapproved") {
+    throw new Error("Core-destination handoff is not bound to its reviewed release");
+  }
+
+  const rawWaypoints = Array.isArray(handoff.waypoints) ? handoff.waypoints : [];
+  if (rawWaypoints.length < 1 || rawWaypoints.length > maxWaypoints) throw new Error("Core-destination handoff must contain one to three reviewed core waypoints");
+  const waypoints = rawWaypoints.map((value, index) => {
+    const waypoint = record(value, `Core-destination waypoint ${index + 1} is invalid`);
+    if (!onlyKeys(waypoint, ["sequence", "latitude", "longitude"])
+        || compactSequence(waypoint.sequence, "core waypoint sequence") !== index + 1) {
+      throw new Error("Core-destination waypoint order is not contiguous");
+    }
+    return coordinate(waypoint);
+  });
+
+  const waypointCoordinates = rawWaypoints.map((value) => pointCoordinate(record(value, "Core-destination waypoint is invalid")));
+  if (!sameRouteCoordinate(routeLines[0][0], waypointCoordinates[0])
+      || !sameRouteCoordinate(routeLines[0].at(-1)!, waypointCoordinates[1])
+      || !sameRouteCoordinate(routeLines[1][0], waypointCoordinates[1])
+      || !sameRouteCoordinate(routeLines[1].at(-1)!, waypointCoordinates[2])) {
+    throw new Error("Core-destination waypoints are not the ordered endpoints of the approved geometry");
+  }
+
+  const coreEnd = record(handoff.core_end, "Core-destination road handoff is invalid");
+  if (!onlyKeys(coreEnd, ["sequence", "role", "latitude", "longitude"])
+      || compactSequence(coreEnd.sequence, "core end sequence") !== rawWaypoints.length
+      || coreEnd.role !== "exact_public_road_handoff"
+      || coordinate(coreEnd) !== waypoints.at(-1)) {
+    throw new Error("Core-destination approved geometry does not end at its exact handoff");
+  }
+
+  const handoffDestination = record(handoff.destination, "Core-destination handoff GPS is invalid");
+  if (!onlyKeys(handoffDestination, ["sequence", "pad_id", "role", "latitude", "longitude"])
+      || compactSequence(handoffDestination.sequence, "core destination sequence") !== rawWaypoints.length + 1
+      || identifier(handoffDestination.pad_id, "core destination pad ID") !== padId
+      || handoffDestination.role !== "saved_pad_destination"
+      || coordinate(handoffDestination) !== destination) {
+    throw new Error("Core-destination saved GPS is not bound to the selected pad");
+  }
+  if (coordinate(coreEnd) === destination) throw new Error("Core-destination contract must preserve the separate GPS leg");
+
+  return {
+    padId,
+    recordRevision,
+    routeRevision,
+    dependencyDigest,
+    releaseDigest,
+    publishedAt,
+    singleUrl: routeUrl(destination, waypoints),
   };
 }
 

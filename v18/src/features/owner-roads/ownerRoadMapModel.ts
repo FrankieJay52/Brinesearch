@@ -57,6 +57,9 @@ export function ownerPadOverlayStatus(status: DriverPadStatus | null): OwnerPadO
   const reason = padStatusReasonText(status);
   if (/\brestrict(?:ed|ion)?\b|\broad[_ -]?closed\b|\bclosed[_ -]?to[_ -]?truck/.test(reason)) return "restricted";
   if (status?.dataState !== "live") return "held";
+  // The owner viewport RPC can only paint its existing exact-route/current-graph
+  // focus contract. A frozen core-destination release is shown on the pad card;
+  // it must not turn this separate viewport into a teal authority claim.
   if (status?.route.state === "ready" && status.route.source === "exact_graph" && status.graph.state === "active_current") return "ready";
   if (status?.route.state === "written_only") return "candidate";
   return "held";
@@ -71,13 +74,16 @@ export function ownerPadOverlayBlockReason(status: DriverPadStatus | null, hasAc
   if (hasActiveRoutePrep === false) return "No exact route match";
   if (!status) return "Checking route status";
   if (status.dataState !== "live") return "Status not current";
+  if (status.route.state === "ready"
+      && status.route.source === "exact_graph_handoff"
+      && status.graph.state === "verified_release") return "Approved core on pad card";
   if (/\bname[_ -]?only\b/.test(reason)) return "Name-only match";
   if (/\bfield[_ -]?check\b/.test(reason)) return "Field check";
   if (/\bno[_ -]?gps\b|\bmissing[_ -]?(?:gps|coordinate)\b/.test(reason)) return "No GPS";
   if (/\bno[_ -]?match\b|\bexact[_ -]?route[_ -]?not[_ -]?ready\b/.test(reason)) return "No exact route match";
   if (status.route.state === "stale" || status.graph.state === "stale") return "Route evidence stale";
   if (status.route.state === "held" && (status.graph.state === "held" || status.graph.state === "unavailable")) return "Route not reconciled";
-  if (status.graph.state !== "active_current") return "Graph not current";
+  if (status.graph.state !== "active_current") return "Route release unavailable";
   return "Route held";
 }
 

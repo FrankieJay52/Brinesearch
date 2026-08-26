@@ -59,7 +59,7 @@ function exactStatus(): DriverPadStatus {
       lastVerifiedAt: "2026-08-25T12:01:00.000Z",
     },
     google: { publicState: "not_published", routeUrl: null, safeReason: "Not published." },
-    destination: { available: true, latitude: 40.1, longitude: -80.9 },
+    destination: { available: true, role: "driver_entrance", latitude: 40.1, longitude: -80.9 },
     routeSteps: [{
       order: 1,
       kind: "continue",
@@ -69,6 +69,29 @@ function exactStatus(): DriverPadStatus {
       distanceMiles: 1.2,
     }],
   };
+}
+
+function immutableHandoffStatus(): DriverPadStatus {
+  const status = exactStatus();
+  status.route.source = "exact_graph_handoff";
+  status.graph.state = "verified_release";
+  status.graph.publicSource = "BrineSearch immutable approved release";
+  status.google = {
+    publicState: "ready",
+    routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.12%2C-80.88&waypoints=40.1%2C-80.9%7C40.11%2C-80.89",
+    safeReason: "Frozen reviewed handoff.",
+  };
+  status.destination = {
+    available: true,
+    role: "saved_pad_destination",
+    latitude: 40.12,
+    longitude: -80.88,
+  };
+  return status;
+}
+
+function copyRecord<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 describe("V18 offline route SQLite model", () => {
@@ -111,6 +134,43 @@ describe("V18 offline route SQLite model", () => {
       destination: { available: false },
     });
     expect(status?.routeSteps).toEqual(exactStatus().routeSteps);
+  });
+
+  it("restores a validated frozen core handoff without claiming an offline revocation check", () => {
+    const sourcePad = pad();
+    const status = immutableHandoffStatus();
+    const record = buildOfflineRouteRecord(sourcePad, status, "2026-08-25T12:02:00.000Z");
+    expect(record).not.toBeNull();
+    const restored = restoreOfflinePadStatus(sourcePad, record);
+    expect(restored).toMatchObject({
+      dataState: "cached",
+      loadProvenance: "device_cache",
+      route: { state: "ready", source: "exact_graph_handoff", geometry: null },
+      graph: { state: "verified_release" },
+      google: { publicState: "ready", routeUrl: status.google.routeUrl },
+      destination: { available: true, role: "saved_pad_destination", latitude: 40.12, longitude: -80.88 },
+    });
+    expect(restored?.route.safeReason).toMatch(/last-known frozen approved release/i);
+    expect(restored?.route.safeReason).toMatch(/revocation cannot be checked/i);
+  });
+
+  it.each([
+    ["script URL", "javascript:alert(1)"],
+    ["wrong host", "https://example.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.12%2C-80.88&waypoints=40.1%2C-80.9%7C40.11%2C-80.89"],
+    ["changed approved waypoint", "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.12%2C-80.88&waypoints=40.2%2C-80.9%7C40.11%2C-80.89"],
+    ["out-of-area waypoint", "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.12%2C-80.88&waypoints=40.1%2C-100%7C40.11%2C-80.89"],
+    ["changed destination", "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.13%2C-80.88&waypoints=40.1%2C-80.9%7C40.11%2C-80.89"],
+    ["origin injection", "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&origin=40.2%2C-80.9&destination=40.12%2C-80.88&waypoints=40.1%2C-80.9%7C40.11%2C-80.89"],
+    ["extra parameter", "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.12%2C-80.88&waypoints=40.1%2C-80.9%7C40.11%2C-80.89&avoid=tolls"],
+  ])("rejects a locally tampered immutable handoff: %s", (_label, routeUrl) => {
+    const sourcePad = pad();
+    const record = buildOfflineRouteRecord(sourcePad, immutableHandoffStatus(), "2026-08-25T12:02:00.000Z")!;
+    const tampered = copyRecord(record);
+    tampered.contract.immutableNavigationUrl = routeUrl;
+    const restored = restoreOfflinePadStatus(sourcePad, tampered);
+    expect(restored?.google.routeUrl ?? null).toBeNull();
+    expect(restored?.google.publicState ?? "unavailable").not.toBe("ready");
+    expect(restored?.route.state ?? "unavailable").not.toBe("ready");
   });
 
   it("preserves reviewed written directions without manufacturing structured steps", () => {

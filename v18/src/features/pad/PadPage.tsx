@@ -11,7 +11,7 @@ import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDispl
 import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
 import { verifiedDriverEntrancePinUrl } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
-import { buildPendingPadStatus, loadPadStatus } from "@/data/status";
+import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import { loadPadWellRows } from "@/data/wellRows";
@@ -45,6 +45,7 @@ export interface GoogleHandoffView {
   state: DriverPadStatus["google"]["publicState"];
   routeUrl: string | null;
   reason: string;
+  mode: "exact_full_route" | "exact_core_destination" | null;
 }
 
 interface LoadedPadWellRows {
@@ -65,21 +66,39 @@ export function buildGoogleHandoffView(
       state: "unavailable",
       routeUrl: null,
       reason: "Reconnect to confirm and open the reviewed approved-route handoff.",
+      mode: null,
     };
   }
-  const liveStatusAvailable = selectedRouteIsPrimary
-    && exactRouteDisplayed
+  const cachedFrozenReleaseAvailable = status.loadProvenance === "device_cache"
+    && status.route.state === "ready"
+    && status.route.source === "exact_graph_handoff"
+    && status.graph.state === "verified_release"
+    && status.routeSteps.length > 0
+    && status.destination.available
+    && status.destination.role === "saved_pad_destination";
+  const statusRouteAvailable = selectedRouteIsPrimary
+    && (exactRouteDisplayed || cachedFrozenReleaseAvailable)
     && status.google.publicState === "ready"
     && Boolean(status.google.routeUrl);
   const releasedPackageAvailable = selectedRouteIsPrimary && Boolean(releasedRouteUrl);
-  const available = liveStatusAvailable || releasedPackageAvailable;
+  const available = statusRouteAvailable || releasedPackageAvailable;
   const state = available ? "ready" : status.google.publicState === "ready" ? "unavailable" : status.google.publicState;
   const reason = !selectedRouteIsPrimary
     ? "The selected approved route is available in BrineSearch only."
     : exactRouteDisplayed
       ? "Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available."
       : "No exact approved route is available for a Google handoff.";
-  return { available, state, routeUrl: releasedPackageAvailable ? releasedRouteUrl : liveStatusAvailable ? status.google.routeUrl : null, reason };
+  return {
+    available,
+    state,
+    routeUrl: statusRouteAvailable ? status.google.routeUrl : releasedPackageAvailable ? releasedRouteUrl : null,
+    reason,
+    mode: available
+      ? status.route.source === "exact_graph_handoff" && statusRouteAvailable
+        ? "exact_core_destination"
+        : "exact_full_route"
+      : null,
+  };
 }
 
 export type FixedNavigationAction =
@@ -91,8 +110,10 @@ export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSumm
   if (view.available && view.routeUrl) return {
     kind: "approved_route",
     href: view.routeUrl,
-    detail: "Reviewed approved route",
-    ariaLabel: "Navigate the reviewed approved route in Google Maps",
+    detail: view.mode === "exact_core_destination" ? "Approved road core · GPS destination" : "Reviewed approved route",
+    ariaLabel: view.mode === "exact_core_destination"
+      ? "Navigate the exact approved road core, then continue to the saved GPS destination in Google Maps"
+      : "Navigate the reviewed approved route in Google Maps",
   };
   const pinUrl = destinationPinUrl(pad);
   if (pinUrl) return {
@@ -255,8 +276,8 @@ export function PadPage() {
   const displayedRouteGeometry = displayedRoute.geometry;
   const currentReleasedHandoffPlan = online ? currentReleasedGoogleHandoff(releasedHandoff, pad) : null;
   const exactRouteDisplayed = status.route.state === "ready"
-    && status.route.source === "exact_graph"
-    && status.graph.state === "active_current"
+    && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
+    && graphStateSupportsRoute(status.route.source, status.graph.state)
     && displayedRouteSteps.length > 0
     && displayedRouteGeometry !== null;
   const googleHandoff = buildGoogleHandoffView(
@@ -304,10 +325,11 @@ export function PadPage() {
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? "Approved route" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
          : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and the Google Maps handoff stays disabled until approval is complete.</p></div>
         : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
+      {displayedRouteSteps.length > 0 && status.route.source === "exact_graph_handoff" && <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining lease access to the saved pad GPS is shown as a separate destination, not as an approved public road.</div>}
     </section>
 
     {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{displayWrittenDirections(status.route.writtenDirections)}</p></details>}

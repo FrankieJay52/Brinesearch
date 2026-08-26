@@ -243,7 +243,7 @@ describe("owner road map model", () => {
       route: { state, source, geometry: null, safeReason, lastVerifiedAt: null, writtenDirections: null },
       graph: { state: graph, county: "Harrison", publicSource: null, lastVerifiedAt: null },
       google: { publicState: "not_published", routeUrl: null, safeReason: "exact_route_not_ready" },
-      destination: { available: false, latitude: null, longitude: null }, routeSteps: [],
+      destination: { available: false, role: null, latitude: null, longitude: null }, routeSteps: [],
     });
     const cologie = ownerPadOverlayMarker(
       { padId: "11111111-1111-4111-8111-111111111111", padName: "COLOGIE", company: "Ascent", state: "OH", latitude: 40.25403, longitude: -80.913577 },
@@ -270,6 +270,10 @@ describe("owner road map model", () => {
       expect.objectContaining({ padName: "COLOGIE", overlayStatus: "ready", selected: true, inspected: false }),
       expect.objectContaining({ padName: "LASSO", overlayStatus: "held", selected: false, inspected: true }),
     ]);
+
+    const frozenCore = status("ready", "exact_graph_handoff", "verified_release");
+    expect(ownerPadOverlayStatus(frozenCore)).toBe("held");
+    expect(ownerPadOverlayBlockReason(frozenCore, true)).toBe("Approved core on pad card");
   });
 
   it("uses only safe status fields for candidate, restricted, and fit bounds", () => {
@@ -278,7 +282,7 @@ describe("owner road map model", () => {
       route: { state: "written_only" as const, source: "legacy_written" as const, geometry: null, safeReason: null, lastVerifiedAt: null, writtenDirections: "Reviewed" },
       graph: { state: "held" as const, county: "Harrison", publicSource: null, lastVerifiedAt: null },
       google: { publicState: "held" as const, routeUrl: null, safeReason: "exact_route_not_ready" },
-      destination: { available: false, latitude: null, longitude: null }, routeSteps: [],
+      destination: { available: false, role: null, latitude: null, longitude: null }, routeSteps: [],
     } satisfies DriverPadStatus;
     expect(ownerPadOverlayStatus(base)).toBe("candidate");
     expect(ownerPadOverlayStatus({ ...base, route: { ...base.route, state: "held", safeReason: "road_restricted" } })).toBe("restricted");
