@@ -197,9 +197,12 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(PadGpsActions, { pad }));
 
     expect(pinUrl).toBe("https://www.google.com/maps/search/?api=1&query=40.25403%2C-80.913577");
-    expect(html).toContain("Copy GPS");
+    expect(html).toContain(">COPY<");
+    expect(html).toContain('class="pad-gps-copy-pill"');
     expect(html).toContain('class="pad-gps-coordinate-link mono"');
-    expect(html).toContain("Tap coordinates to open Google Maps · pin only, not an approved route.");
+    expect(html).toContain('target="_blank"');
+    expect(html).toContain('rel="noreferrer"');
+    expect(html).toContain("Google pin only · not an approved route");
     expect(html).toContain("destination pin only, not an approved route");
     expect(html).not.toContain("Reviewed approved route");
     expect(html).not.toContain("/maps/dir/");
@@ -219,9 +222,9 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(PadGpsActions, { pad: referencePad }));
 
     expect(destinationPinUrl(referencePad)).toBeNull();
-    expect(html).toContain("Copy GPS");
-    expect(html).toContain("Navigation requires a verified driver entrance");
-    expect(html).toContain("Display-only GPS · not a verified driver entrance or navigation target.");
+    expect(html).toContain(">COPY<");
+    expect(html).toContain('class="pad-gps-copy-pill"');
+    expect(html).toContain("Display GPS only · no navigation");
     expect(html).not.toContain("pad-gps-coordinate-link");
     expect(html).not.toContain("google.com/maps/search");
   });
@@ -247,23 +250,32 @@ describe("V18 pad legacy route fallback", () => {
     const heroStart = padPage.indexOf('className="pad-hero"', headerStart);
     const mapStart = padPage.indexOf('className="pad-header-map-slot"', headerStart);
     const gpsStart = padPage.indexOf('<PadGpsActions pad={pad}/>', headerStart);
+    const companyStart = padPage.indexOf('className="pad-company"', heroStart);
+    const actionsStart = padPage.indexOf('className="pad-header-actions"', heroStart);
     const wellStart = padPage.indexOf('className="detail-card pad-well-card" open');
     const routeStart = padPage.indexOf('className="route-steps-card"', wellStart);
     const administrativeLocationStart = padPage.indexOf('<small>County / township / state</small>', wellStart);
     const freshnessStart = padPage.indexOf("Data source and freshness", routeStart);
     const statusStart = padPage.indexOf('<small>Operating status</small>', freshnessStart);
 
-    expect([headerStart, heroStart, mapStart, gpsStart, wellStart, routeStart, administrativeLocationStart, freshnessStart, statusStart].every((index) => index >= 0)).toBe(true);
+    expect([headerStart, heroStart, mapStart, gpsStart, companyStart, actionsStart, wellStart, routeStart, administrativeLocationStart, freshnessStart, statusStart].every((index) => index >= 0)).toBe(true);
     expect(heroStart).toBeLessThan(mapStart);
-    expect(mapStart).toBeLessThan(gpsStart);
+    expect(companyStart).toBeLessThan(gpsStart);
+    expect(gpsStart).toBeLessThan(actionsStart);
+    expect(actionsStart).toBeLessThan(mapStart);
     expect(administrativeLocationStart).toBeLessThan(routeStart);
     expect(freshnessStart).toBeLessThan(statusStart);
     expect(padPage.slice(wellStart, routeStart)).not.toContain('<small>Operating status</small>');
     expect(padPage.slice(heroStart, mapStart)).not.toContain('className="pad-location"');
-    expect(padPage).toMatch(/<div className="pad-header-primary">[\s\S]*?<div className="pad-header-map-slot">\s*<PadMapPreview pad=\{pad\} status=\{status\} routeGeometry=\{displayedRouteGeometry\}\/?>\s*<\/div>\s*<\/div>\s*<PadGpsActions pad=\{pad\}\/>/);
+    expect(padPage).toMatch(/<p className="pad-company">\{pad\.company\}<\/p><PadGpsActions pad=\{pad\}\/?>[\s\S]*?className="pad-header-actions"[\s\S]*?<div className="pad-header-map-slot">/);
+    expect(padPage.slice(mapStart, wellStart)).not.toContain("<PadGpsActions");
     expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:/s);
     expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-shell\s*\{[^}]*margin:\s*0 0 0 auto;/s);
     expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-empty\s*\{[^}]*min-height:\s*0;[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
+    expect(padLayoutCss).toMatch(/\.pad-gps-actions\s*\{[^}]*width:\s*min\(100%,\s*12rem\);[^}]*border:\s*0;/s);
+    expect(padLayoutCss).toMatch(/\.pad-gps-buttons\s*\{[^}]*display:\s*flex;[^}]*justify-content:\s*center;/s);
+    expect(padLayoutCss).toMatch(/\.pad-gps-buttons \.pad-gps-copy-pill\s*\{[^}]*width:\s*auto;[^}]*min-width:\s*4\.5rem;[^}]*min-height:\s*44px;/s);
+    expect(padLayoutCss).not.toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.pad-gps-buttons\s*\{[^}]*display:\s*grid;/s);
   });
 
   it("groups Save and Share below the company so the top-right map can use their former space", () => {

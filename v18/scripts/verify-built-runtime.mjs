@@ -37,7 +37,8 @@ assert.match(appJavascript, /Navigate the reviewed approved route in Google Maps
 assert.match(appJavascript, /Approval begins at its verified ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
 assert.match(appJavascript, /Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available/, "Built V18 app is missing the in-app-only exact-route fallback");
 assert.match(appJavascript, /GPS destination only/, "Built V18 app is missing the always-present destination-pin navigation fallback");
-assert.match(appJavascript, /Tap coordinates to open Google Maps/, "Built V18 app is missing clickable verified GPS coordinates");
+assert.match(appJavascript, /destination pin only, not an approved route/, "Built V18 app is missing clickable verified GPS coordinates");
+assert.match(appJavascript, /Google pin only · not an approved route/, "Built V18 app is missing the compact GPS authority boundary");
 assert.match(appJavascript, /No verified driver entrance/, "Built V18 app is missing the disabled navigation state");
 assert.match(appJavascript, /7 closest pads/, "Built V18 app is missing nearest-pad quick search");
 assert.match(appJavascript, /Closest matching pads/, "Built V18 app is missing nearest-first matching search");
