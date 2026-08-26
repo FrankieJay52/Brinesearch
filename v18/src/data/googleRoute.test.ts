@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildReleasedGoogleHandoffPlan } from "./googleRoute";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet, buildReleasedGoogleHandoffPlan } from "./googleRoute";
 
 const padId = "e2b32e85-9e93-4388-8215-9d8167cbbeb8";
 const shape = (sequence: number, latitude: number, longitude: number, role?: string) => ({
@@ -148,7 +148,113 @@ function coreDestinationRowV2() {
   };
 }
 
+function namedApproach(
+  approachKey = "via-freeport",
+  approachLabel = "Via Freeport",
+  routeGroup: "primary" | "alternate" = "primary",
+  variantIndex = 1,
+  longitudeOffset = 0,
+) {
+  const start = { latitude: 40.2, longitude: -81.2 + longitudeOffset };
+  const middle = { latitude: 40.21, longitude: -81.18 + longitudeOffset };
+  const coreEnd = { latitude: 40.22, longitude: -81.16 + longitudeOffset };
+  const destination = { latitude: 40.23, longitude: -81.15 };
+  return {
+    approachKey,
+    approachLabel,
+    routeGroup,
+    variantIndex,
+    releaseVersion: "v18-named-approach-v1",
+    routeRevision: 9,
+    steps: [
+      { order: 1, kind: "continue", displayName: "US-250", verifiedDesignations: ["US-250"], instruction: "Continue on US-250", distanceMiles: 4.2 },
+      { order: 2, kind: "turn", displayName: "Pancoast Rd", verifiedDesignations: ["CR-12"], instruction: "Turn onto Pancoast Rd", distanceMiles: 1.8 },
+    ],
+    geometry: {
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { stepOrder: 1 }, geometry: { type: "LineString", coordinates: [[start.longitude, start.latitude], [middle.longitude, middle.latitude]] } },
+        { type: "Feature", properties: { stepOrder: 2 }, geometry: { type: "LineString", coordinates: [[middle.longitude, middle.latitude], [coreEnd.longitude, coreEnd.latitude]] } },
+      ],
+    },
+    ingress: { role: "exact_approved_ingress", label: approachLabel, ...start },
+    coreEnd: { role: "exact_approved_handoff", label: "Approved road handoff", ...coreEnd },
+    destination: { role: "saved_pad_destination", label: "Saved pad GPS", ...destination },
+    finalLegMode: "google_to_saved_gps_unapproved",
+    handoff: {
+      originMode: "current_location_to_named_ingress",
+      handoffMode: "verified_compact",
+      waypoints: [start, middle, coreEnd],
+    },
+    lastVerifiedAt: "2026-08-26T20:00:00Z",
+    statusRevision: "1".repeat(32),
+    releaseDigest: "2".repeat(64),
+    publishedAt: "2026-08-26T20:05:00Z",
+  };
+}
+
 describe("public Google route manifest", () => {
+  it("keeps two reviewed named approaches as separate current-location handoffs", () => {
+    const rows = [
+      namedApproach(),
+      namedApproach("via-cadiz", "Via Cadiz", "alternate", 2, 0.1),
+    ];
+    const approaches = buildNamedApproachReleaseSet(rows);
+
+    expect(approaches.map((approach) => approach.approachLabel)).toEqual(["Via Freeport", "Via Cadiz"]);
+    expect(approaches[0].steps).not.toBe(approaches[1].steps);
+    for (const [index, approach] of approaches.entries()) {
+      const row = rows[index];
+      const url = new URL(approach.navigationUrl);
+      expect(url.searchParams.get("origin")).toBeNull();
+      expect(url.searchParams.get("waypoints")).toBe(row.handoff.waypoints
+        .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+      expect(url.searchParams.get("destination")).toBe(`${row.destination.latitude},${row.destination.longitude}`);
+      expect(approach.finalLegMode).toBe("google_to_saved_gps_unapproved");
+    }
+  });
+
+  it("fails the whole named release set closed on drift, private fields, or unsafe ordering", () => {
+    const freeport = namedApproach();
+    const cadiz = namedApproach("via-cadiz", "Via Cadiz", "alternate", 2, 0.1);
+    expect(() => buildNamedApproachReleaseSet([
+      freeport,
+      { ...cadiz, statusRevision: "not-a-digest" },
+    ])).toThrow(/status revision/i);
+    expect(() => buildNamedApproachReleaseSet([
+      { ...freeport, privateNotes: "must not leak" },
+    ])).toThrow(/unsupported data/i);
+    expect(() => buildNamedApproachReleaseSet([
+      { ...freeport, handoff: { ...freeport.handoff, waypoints: [...freeport.handoff.waypoints].reverse() } },
+    ])).toThrow(/ingress|ordered/i);
+    expect(() => buildNamedApproachReleaseSet([
+      freeport,
+      { ...cadiz, approachKey: freeport.approachKey },
+    ])).toThrow(/unique primary-first/i);
+  });
+
+  it("omits the approved destination from full-route waypoints", () => {
+    const value = namedApproach();
+    const fullRoute = {
+      ...value,
+      steps: value.steps.slice(0, 1),
+      geometry: { ...value.geometry, features: value.geometry.features.slice(0, 1) },
+      coreEnd: { ...value.coreEnd, latitude: 40.21, longitude: -81.18 },
+      destination: { role: "driver_entrance", label: "Verified entrance", latitude: 40.21, longitude: -81.18 },
+      finalLegMode: "full_approved_route",
+      handoff: { ...value.handoff, handoffMode: "full_geometry_endpoints", waypoints: [value.handoff.waypoints[0]] },
+    };
+    const approach = buildNamedApproachReleaseSet([fullRoute])[0];
+    const url = new URL(approach.navigationUrl);
+    expect(url.searchParams.get("waypoints")).toBe("40.2,-81.2");
+    expect(url.searchParams.get("destination")).toBe("40.21,-81.18");
+
+    expect(() => buildNamedApproachReleaseSet([{
+      ...fullRoute,
+      handoff: { ...fullRoute.handoff, waypoints: [value.handoff.waypoints[0], { latitude: fullRoute.destination.latitude, longitude: fullRoute.destination.longitude }] },
+    }])).toThrow(/ordered approved geometry controls|duplicates/i);
+  });
+
   it("builds one current-location URL from an exact road core and separate saved GPS", () => {
     const value = coreDestinationRow();
     const plan = buildCoreDestinationReleasePlan(value);

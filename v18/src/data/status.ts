@@ -1,6 +1,7 @@
 import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
-import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan } from "./googleRoute";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet } from "./googleRoute";
 import { parseCoordinatePair } from "./coordinates";
+import { trustedPadDestination } from "./googleDestination";
 import { deviceIsOnline, readPadDirectionsOffline, savePadDirectionsOffline } from "./offlineRoutes";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
@@ -29,6 +30,17 @@ function finiteNumber(value: unknown) {
 
 function safeEnum<T extends string>(value: unknown, allowed: Set<T>, fallback: T): T {
   return typeof value === "string" && allowed.has(value as T) ? (value as T) : fallback;
+}
+
+function trustedNamedSavedDestination(pad: PadSummary) {
+  if (pad.coordinate?.role === "saved_pad_destination") {
+    const parsed = parseCoordinatePair(pad.coordinate.latitude, pad.coordinate.longitude, "saved_pad_destination");
+    if (parsed.ok) return { latitude: parsed.value.latitude, longitude: parsed.value.longitude };
+  }
+  const trusted = trustedPadDestination(pad);
+  return trusted && trusted.source !== "verified_driver_entrance"
+    ? { latitude: trusted.latitude, longitude: trusted.longitude }
+    : null;
 }
 
 export function graphStateSupportsRoute(
@@ -71,6 +83,7 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
       longitude: pad.coordinate?.longitude ?? null,
     },
     routeSteps: [],
+    namedApproaches: [],
   };
 }
 
@@ -284,17 +297,24 @@ const liveStatusRequests = new Map<string, Promise<DriverPadStatus | null>>();
 const completedLiveStatusCache = new Map<string, DriverPadStatus>();
 let completedLiveStatusCacheGeneration = 0;
 
-function liveStatusKey(pad: Pick<PadSummary, "padId" | "recordRevision">, sourceState?: DirectorySourceState) {
-  return `${pad.padId}:${pad.recordRevision}:${sourceState || "unknown"}`;
+type LiveStatusPadKey = Pick<PadSummary, "padId" | "recordRevision" | "coordinate" | "mapReference">;
+
+function liveStatusKey(pad: LiveStatusPadKey, sourceState?: DirectorySourceState) {
+  const destination = trustedNamedSavedDestination(pad as PadSummary);
+  const destinationKey = destination
+    ? `${destination.latitude},${destination.longitude}`
+    : "destination-pending";
+  return `${pad.padId}:${pad.recordRevision}:${sourceState || "unknown"}:${destinationKey}`;
 }
 
 export function completedPadStatusIsReusable(status: DriverPadStatus) {
   return status.loadProvenance === "live_response"
-    && status.route.state === "ready"
-    && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
-    && graphStateSupportsRoute(status.route.source, status.graph.state)
-    && status.routeSteps.length > 0
-    && status.route.geometry !== null;
+    && (Boolean(status.namedApproaches?.length)
+      || status.route.state === "ready"
+        && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
+        && graphStateSupportsRoute(status.route.source, status.graph.state)
+        && status.routeSteps.length > 0
+        && status.route.geometry !== null);
 }
 
 /**
@@ -302,7 +322,7 @@ export function completedPadStatusIsReusable(status: DriverPadStatus) {
  * unknown, never held: only the full status boundary may prove a held state.
  */
 export function hasCompletedReadyPadStatus(
-  pad: Pick<PadSummary, "padId" | "recordRevision">,
+  pad: LiveStatusPadKey,
   sourceState?: DirectorySourceState,
 ) {
   if (!deviceIsOnline()) return false;
@@ -319,7 +339,7 @@ export function clearCompletedPadStatusCache() {
 async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus | null> {
   if (!pad.canonicalId) return null;
   try {
-    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status_with_google_handoff`;
+    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status_with_named_approaches`;
     const response = await fetch(url, {
       method: "POST",
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
@@ -340,8 +360,40 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     if (returnedPadId !== pad.canonicalId) return null;
     const returnedRecordRevision = nullableText(row.recordRevision ?? row.record_revision);
     if (returnedRecordRevision !== pad.recordRevision) return null;
-    const status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : null;
+    let status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : null;
     if (!status) return null;
+    try {
+      const rawNamedApproaches = envelope.namedApproaches ?? envelope.named_approaches ?? [];
+      const namedApproaches = buildNamedApproachReleaseSet(rawNamedApproaches);
+      const trustedSavedDestination = trustedNamedSavedDestination(pad);
+      const atomicStatusRevision = nullableText(row.statusRevision ?? row.status_revision);
+      for (const approach of namedApproaches) {
+        if (!atomicStatusRevision || approach.statusRevision !== atomicStatusRevision) {
+          throw new Error("Named approach release does not match the atomic status revision");
+        }
+        if (approach.finalLegMode === "google_to_saved_gps_unapproved") {
+          // The atomic server wrapper already binds every release to this
+          // exact p_pad_id and status revision. Directory pad references load
+          // asynchronously, so their absence must not discard that immutable
+          // reviewed receipt. When a current reference is available, retain
+          // the extra client-side equality check and key the request/cache by
+          // that coordinate so enrichment cannot reuse a pre-reference result.
+          if (trustedSavedDestination
+              && (approach.destination.latitude !== trustedSavedDestination.latitude
+              || approach.destination.longitude !== trustedSavedDestination.longitude)) {
+            throw new Error("Named approach GPS destination does not match the current trusted pad reference");
+          }
+        } else if (status.destination.available !== true
+            || status.destination.role !== "driver_entrance"
+            || approach.destination.latitude !== status.destination.latitude
+            || approach.destination.longitude !== status.destination.longitude) {
+          throw new Error("Named full route does not end at the atomic verified driver entrance");
+        }
+      }
+      status = { ...status, namedApproaches };
+    } catch {
+      status = { ...status, namedApproaches: [] };
+    }
     if (status.google.publicState !== "ready") return status;
     try {
       const coreReleaseRow = envelope.coreDestinationRelease ?? envelope.core_destination_release;

@@ -12,7 +12,7 @@ import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/
 import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
-import type { DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
+import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
@@ -45,7 +45,10 @@ export interface GoogleHandoffView {
   state: DriverPadStatus["google"]["publicState"];
   routeUrl: string | null;
   reason: string;
-  mode: "exact_full_route" | "exact_core_destination" | null;
+  mode: "exact_full_route" | "exact_core_destination" | "named_approach" | null;
+  approachLabel: string | null;
+  finalLegMode: DriverNamedApproach["finalLegMode"] | null;
+  selectionRequired: boolean;
 }
 
 interface LoadedPadWellRows {
@@ -59,6 +62,8 @@ export function buildGoogleHandoffView(
   selectedRouteIsPrimary: boolean,
   releasedRouteUrl: string | null = null,
   online = true,
+  namedApproach: DriverNamedApproach | null = null,
+  namedSelectionRequired = false,
 ): GoogleHandoffView {
   if (!online) {
     return {
@@ -67,6 +72,35 @@ export function buildGoogleHandoffView(
       routeUrl: null,
       reason: "Reconnect to confirm and open the reviewed approved-route handoff.",
       mode: null,
+      approachLabel: null,
+      finalLegMode: null,
+      selectionRequired: false,
+    };
+  }
+  if (namedSelectionRequired) {
+    return {
+      available: false,
+      state: "unavailable",
+      routeUrl: null,
+      reason: "Choose one reviewed approach before opening navigation.",
+      mode: null,
+      approachLabel: null,
+      finalLegMode: null,
+      selectionRequired: true,
+    };
+  }
+  if (namedApproach) {
+    return {
+      available: true,
+      state: "ready",
+      routeUrl: namedApproach.navigationUrl,
+      reason: namedApproach.finalLegMode === "google_to_saved_gps_unapproved"
+        ? "Approved roads end at the exact handoff; the final GPS leg is not approved road geometry."
+        : "The selected named approach is an exact approved route.",
+      mode: "named_approach",
+      approachLabel: namedApproach.approachLabel,
+      finalLegMode: namedApproach.finalLegMode,
+      selectionRequired: false,
     };
   }
   const cachedFrozenReleaseAvailable = status.loadProvenance === "device_cache"
@@ -98,34 +132,51 @@ export function buildGoogleHandoffView(
         ? "exact_core_destination"
         : "exact_full_route"
       : null,
+    approachLabel: null,
+    finalLegMode: null,
+    selectionRequired: false,
   };
 }
 
 export type FixedNavigationAction =
-  | { kind: "approved_route"; href: string; detail: string; ariaLabel: string }
-  | { kind: "destination_pin"; href: string; detail: string; ariaLabel: string }
-  | { kind: "unavailable"; href: null; detail: string; ariaLabel: string };
+  | { kind: "approved_route"; href: string; title: string; detail: string; ariaLabel: string }
+  | { kind: "destination_pin"; href: string; title: string; detail: string; ariaLabel: string }
+  | { kind: "unavailable"; href: null; title: string; detail: string; ariaLabel: string };
 
 export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSummary): FixedNavigationAction {
   if (view.available && view.routeUrl) return {
     kind: "approved_route",
     href: view.routeUrl,
-    detail: view.mode === "exact_core_destination" ? "Approved road core · GPS destination" : "Reviewed approved route",
-    ariaLabel: view.mode === "exact_core_destination"
+    title: view.approachLabel ? `Navigate ${view.approachLabel}` : "Navigate",
+    detail: view.mode === "named_approach" && view.finalLegMode === "google_to_saved_gps_unapproved"
+      ? "Approved roads to handoff · GPS-only final leg · not approved"
+      : view.mode === "exact_core_destination" ? "Approved road core · GPS destination" : "Reviewed approved route",
+    ariaLabel: view.mode === "named_approach"
+      ? `Navigate ${view.approachLabel} in Google Maps using its reviewed approved-road controls${view.finalLegMode === "google_to_saved_gps_unapproved" ? "; final GPS leg is not approved road geometry" : ""}`
+      : view.mode === "exact_core_destination"
       ? "Navigate the exact approved road core, then continue to the saved GPS destination in Google Maps"
       : "Navigate the reviewed approved route in Google Maps",
+  };
+  if (view.selectionRequired) return {
+    kind: "unavailable",
+    href: null,
+    title: "Choose an approach",
+    detail: view.reason,
+    ariaLabel: "Choose one reviewed named approach before navigation",
   };
   const destinationUrl = padDestinationNavigationUrl(pad);
   const destination = trustedPadDestination(pad);
   if (destinationUrl && destination) return {
     kind: "destination_pin",
     href: destinationUrl,
+    title: "Navigate",
     detail: `GPS destination only · ${destination.label} · not an approved route`,
     ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
   };
   return {
     kind: "unavailable",
     href: null,
+    title: "Navigate",
     detail: "No trusted GPS destination",
     ariaLabel: "Navigation unavailable because this pad has no explicitly sourced GPS destination",
   };
@@ -136,11 +187,11 @@ export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pa
   return <nav className="pad-fixed-navigation" aria-label="Pad navigation">
     {action.href ? <a className={`navigate-action is-${action.kind.replaceAll("_", "-")}`} href={action.href} target="_blank" rel="noreferrer" aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
       <Icon name={action.kind === "approved_route" ? "route" : "location"}/>
-      <span><strong>Navigate</strong><small>{action.detail}</small></span>
+      <span><strong>{action.title}</strong><small>{action.detail}</small></span>
       <b aria-hidden="true">↗</b>
     </a> : <button className="navigate-action is-unavailable" type="button" disabled aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
       <Icon name="location"/>
-      <span><strong>Navigate</strong><small>{action.detail}</small></span>
+      <span><strong>{action.title}</strong><small>{action.detail}</small></span>
       <b aria-hidden="true">—</b>
     </button>}
   </nav>;
@@ -200,7 +251,18 @@ export function padRouteConnectionState(status: DriverPadStatus | null, online: 
   return "unavailable";
 }
 
-export function displayedRouteForChoice(status: DriverPadStatus, choice: DriverRouteChoice | null) {
+export function displayedRouteForChoice(
+  status: DriverPadStatus,
+  choice: DriverRouteChoice | null,
+  namedApproach: DriverNamedApproach | null = null,
+  namedSelectionRequired = false,
+) {
+  if (namedSelectionRequired) return { selectedRouteIsPrimary: false, steps: [], geometry: null };
+  if (namedApproach) return {
+    selectedRouteIsPrimary: namedApproach.routeGroup === "primary",
+    steps: namedApproach.steps,
+    geometry: namedApproach.geometry,
+  };
   const selectedRouteIsPrimary = !choice || choice.routeGroup === "primary";
   return {
     selectedRouteIsPrimary,
@@ -219,6 +281,7 @@ export function PadPage() {
   const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffPlan | null | undefined>(undefined);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
+  const [selectedNamedApproachKey, setSelectedNamedApproachKey] = useState("");
   const [loadedWellRows, setLoadedWellRows] = useState<LoadedPadWellRows | null>(null);
 
   useEffect(() => {
@@ -228,6 +291,7 @@ export function PadPage() {
     setReleasedHandoff(undefined);
     setRouteChoices([]);
     setSelectedRouteKey("");
+    setSelectedNamedApproachKey("");
     setLoadedWellRows(null);
     const recordKey = `${pad.padId}:${pad.recordRevision}`;
     saveRecent(pad).catch(() => undefined);
@@ -242,7 +306,9 @@ export function PadPage() {
     loadPadStatus(pad, snapshot?.sourceState).then((next) => {
       if (cancelled) return;
       setStatus(next);
-      if (online && next.dataState === "live" && next.route.state === "ready" && next.route.source === "exact_graph" && next.graph.state === "active_current") {
+      const namedApproaches = next.namedApproaches || [];
+      setSelectedNamedApproachKey(namedApproaches.length === 1 ? namedApproaches[0].approachKey : "");
+      if (!namedApproaches.length && online && next.dataState === "live" && next.route.state === "ready" && next.route.source === "exact_graph" && next.graph.state === "active_current") {
         loadDriverRouteChoices(pad).then((choices) => {
           if (cancelled) return;
           setRouteChoices(choices);
@@ -263,6 +329,7 @@ export function PadPage() {
   const wellRows = loadedWellRows?.recordKey === padRecordKey ? loadedWellRows.rows : undefined;
   const status = currentResolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
   const currentRouteChoices = currentResolvedStatus ? routeChoices : [];
+  const currentNamedApproaches = currentResolvedStatus?.namedApproaches || [];
   const connectionState = padRouteConnectionState(currentResolvedStatus, online);
   const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "session-checked" ? "Ready" : connectionState === "saved-reviewed" ? "Saved reviewed" : connectionState === "unavailable" ? "Unavailable" : "Checking";
   const hasSavedReviewedStatus = status.loadProvenance === "device_cache";
@@ -270,11 +337,26 @@ export function PadPage() {
 
   const favorite = favorites.has(pad.padId);
   const identifierGroups = buildPadIdentifierGroups(pad);
-  const selectedRouteChoice = currentRouteChoices.find((choice) => choice.routeKey === selectedRouteKey) || currentRouteChoices[0] || null;
-  const displayedRoute = displayedRouteForChoice(status, selectedRouteChoice);
+  const selectedNamedApproach = currentNamedApproaches.length === 1
+    ? currentNamedApproaches[0]
+    : currentNamedApproaches.find((approach) => approach.approachKey === selectedNamedApproachKey) || null;
+  const namedSelectionRequired = currentNamedApproaches.length > 1 && !selectedNamedApproach;
+  const selectedRouteChoice = currentNamedApproaches.length
+    ? null
+    : currentRouteChoices.find((choice) => choice.routeKey === selectedRouteKey) || currentRouteChoices[0] || null;
+  const displayedRoute = displayedRouteForChoice(status, selectedRouteChoice, selectedNamedApproach, namedSelectionRequired);
   const selectedRouteIsPrimary = displayedRoute.selectedRouteIsPrimary;
   const displayedRouteSteps = displayedRoute.steps;
   const displayedRouteGeometry = displayedRoute.geometry;
+  const displayedMapStatus = selectedNamedApproach ? {
+    ...status,
+    destination: {
+      available: true,
+      role: selectedNamedApproach.destination.role,
+      latitude: selectedNamedApproach.destination.latitude,
+      longitude: selectedNamedApproach.destination.longitude,
+    },
+  } : status;
   const currentReleasedHandoffPlan = online ? currentReleasedGoogleHandoff(releasedHandoff, pad) : null;
   const exactRouteDisplayed = status.route.state === "ready"
     && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
@@ -287,6 +369,8 @@ export function PadPage() {
     selectedRouteIsPrimary,
     currentReleasedHandoffPlan?.singleUrl || null,
     online,
+    selectedNamedApproach,
+    namedSelectionRequired,
   );
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
@@ -298,7 +382,7 @@ export function PadPage() {
           <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><PadGpsActions pad={pad}/><div className="pad-header-actions" role="group" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" aria-label={`Share ${pad.padName}`} onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div></div>
         </section>
         <div className="pad-header-map-slot">
-          <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
+          <PadMapPreview pad={pad} status={displayedMapStatus} routeGeometry={displayedRouteGeometry}/>
         </div>
       </div>
     </section>
@@ -319,18 +403,28 @@ export function PadPage() {
       </section>
     </details>
 
-    {currentRouteChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
+    {currentNamedApproaches.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-named-approach-title">
+      <div><span className="eyebrow">REVIEWED APPROACH</span><h2 id="driver-named-approach-title">Choose how you are approaching</h2><p>Each named option is a separate BrineSearch-reviewed approach. Choose one before its steps, map line, and navigation action are enabled.</p></div>
+      <div className="driver-route-choice-buttons">{currentNamedApproaches.map((approach) => <button key={approach.approachKey} type="button" className={approach.approachKey === selectedNamedApproach?.approachKey ? "is-selected" : ""} aria-pressed={approach.approachKey === selectedNamedApproach?.approachKey} onClick={() => setSelectedNamedApproachKey(approach.approachKey)}><strong>{approach.approachLabel}</strong><span>{approach.steps.length} exact {approach.steps.length === 1 ? "road step" : "road steps"}{approach.finalLegMode === "google_to_saved_gps_unapproved" ? " · GPS-only final leg" : ""}</span></button>)}</div>
+      <small>Google receives only the selected approach's reviewed controls. It does not choose among BrineSearch alternatives.</small>
+    </section>}
+
+    {!currentNamedApproaches.length && currentRouteChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
       <div><span className="eyebrow">APPROVED ROUTE CHOICE</span><h2 id="driver-route-choice-title">Choose the route you want to view</h2><p>Every option shown here independently passed the exact route, current graph, verified destination, and public projection gates.</p></div>
       <div className="driver-route-choice-buttons">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => setSelectedRouteKey(choice.routeKey)}><strong>{choice.label}</strong><span>{choice.steps.length} exact {choice.steps.length === 1 ? "road step" : "road steps"}</span></button>)}</div>
       <small>Choosing a route changes the highlighted BrineSearch route. Google publication remains a separate safety gate.</small>
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `Approved road core · ${selectedNamedApproach.approachLabel}` : `Approved route · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : namedSelectionRequired ? "Choose a reviewed approach" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
+        : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. No route line, steps, or navigation action has been chosen for you.</p>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
         : <p className="card-empty">No reviewed field directions are on file. GPS-only navigation remains destination utility and is not an approved route.</p>}
-      {displayedRouteSteps.length > 0 && status.route.source === "exact_graph_handoff" && <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining lease access to the saved pad GPS is shown as a separate destination, not as an approved public road.</div>}
+      {displayedRouteSteps.length > 0 && (selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved"
+        ? <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining GPS-only final leg is a destination handoff, not approved road geometry.</div>
+        : status.route.source === "exact_graph_handoff" ? <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining lease access to the saved pad GPS is shown as a separate destination, not as an approved public road.</div>
+        : null)}
     </section>
 
     {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{displayWrittenDirections(status.route.writtenDirections)}</p></details>}
@@ -343,7 +437,7 @@ export function PadPage() {
         <div className="readiness-grid">
           <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
           <StatusColumn icon="graph" label="ROAD GRAPH" detail={`${status.graph.county || pad.county || "County not listed"} · ${dateLabel(status.graph.lastVerifiedAt)}`}><StatusBadge status={status.graph.state}/><strong>{status.graph.publicSource || "Public graph status"}</strong></StatusColumn>
-          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={googleHandoff.state}/><strong>{googleHandoff.available ? "Approved route action available" : "No exact Google handoff"}</strong></StatusColumn>
+          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={googleHandoff.state}/><strong>{googleHandoff.available ? googleHandoff.approachLabel ? `${googleHandoff.approachLabel} action available` : "Approved route action available" : googleHandoff.selectionRequired ? "Choose a reviewed approach" : "No exact Google handoff"}</strong></StatusColumn>
         </div>
       </div>
     </details>

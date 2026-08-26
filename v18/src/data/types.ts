@@ -114,6 +114,48 @@ export interface DriverRouteChoice {
   statusRevision: string;
 }
 
+export type DriverNamedApproachFinalLegMode = "full_approved_route" | "google_to_saved_gps_unapproved";
+
+export interface DriverNamedApproach {
+  approachKey: string;
+  approachLabel: string;
+  routeGroup: "primary" | "alternate";
+  variantIndex: number;
+  releaseVersion: "v18-named-approach-v1";
+  routeRevision: number;
+  steps: DriverRouteStep[];
+  geometry: DriverRouteGeometry;
+  ingress: {
+    role: "exact_approved_ingress";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  coreEnd: {
+    role: "exact_approved_handoff";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  destination: {
+    role: "driver_entrance" | "saved_pad_destination";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  finalLegMode: DriverNamedApproachFinalLegMode;
+  handoff: {
+    originMode: "current_location_to_named_ingress";
+    handoffMode: "full_geometry_endpoints" | "verified_compact";
+    waypoints: Array<{ latitude: number; longitude: number }>;
+  };
+  lastVerifiedAt: string;
+  statusRevision: string;
+  releaseDigest: string;
+  publishedAt: string;
+  navigationUrl: string;
+}
+
 export type CompanyRoadGeometry =
   | { type: "LineString"; coordinates: [number, number][] }
   | { type: "MultiLineString"; coordinates: [number, number][][] };
@@ -171,6 +213,11 @@ export interface DriverPadStatus {
     longitude: number | null;
   };
   routeSteps: DriverRouteStep[];
+  /**
+   * Separately reviewed named approaches returned atomically with this pad
+   * status. Older offline records omit this additive field.
+   */
+  namedApproaches?: DriverNamedApproach[];
 }
 
 export interface SearchFilters {

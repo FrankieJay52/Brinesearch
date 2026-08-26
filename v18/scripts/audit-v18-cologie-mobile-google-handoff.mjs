@@ -70,6 +70,7 @@ assert.match(googleRoute, /waypoint is not copied from the exact manifest/, "V18
 assert.match(googleRoute, /Google handoff must begin at the exact route ingress/, "V18 must start the handoff at the exact route ingress");
 assert.match(googleRoute, /destination is not the exact saved pad destination/, "V18 must retain the exact saved destination");
 assert.doesNotMatch(googleRoute, /origin["']?\s*,/, "V18 must leave the Google origin to the driver's current location");
-assert.match(status, /brinesearch_v18_driver_pad_status_with_google_handoff/, "V18 must use the one-snapshot public status/handoff envelope");
+assert.match(status, /rpc\/brinesearch_v18_driver_pad_status_with_named_approaches/, "V18 must use the additive atomic named-approach envelope");
+assert.doesNotMatch(status, /rpc\/brinesearch_v18_driver_pad_status_with_google_handoff/, "V18 must not bypass the revision-bound named-approach envelope");
 
 console.log("V18 Cologie reviewed mobile Google handoff audit passed.");

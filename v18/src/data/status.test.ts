@@ -154,8 +154,51 @@ function atomicStatusEnvelope(
   publicGoogleRoute: Record<string, unknown> | null = null,
   publicGoogleHandoff: Record<string, unknown> | null = null,
   coreDestinationRelease: Record<string, unknown> | null = null,
+  namedApproaches: Record<string, unknown>[] = [],
 ) {
-  return { status, publicGoogleRoute, publicGoogleHandoff, coreDestinationRelease };
+  return { status, publicGoogleRoute, publicGoogleHandoff, coreDestinationRelease, namedApproaches };
+}
+
+function namedApproachRow(
+  approachKey = "via-freeport",
+  approachLabel = "Via Freeport",
+  routeGroup: "primary" | "alternate" = "primary",
+  variantIndex = 1,
+  longitudeOffset = 0,
+) {
+  const start = { latitude: 40.15, longitude: -80.95 + longitudeOffset };
+  const middle = { latitude: 40.12, longitude: -80.92 + longitudeOffset };
+  const coreEnd = { latitude: 40.105, longitude: -80.905 + longitudeOffset };
+  const destination = { latitude: 40.1, longitude: -80.9 };
+  return {
+    approachKey,
+    approachLabel,
+    routeGroup,
+    variantIndex,
+    releaseVersion: "v18-named-approach-v1",
+    routeRevision: 9,
+    steps: exactSteps(),
+    geometry: {
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { stepOrder: 1 }, geometry: { type: "LineString", coordinates: [[start.longitude, start.latitude], [middle.longitude, middle.latitude]] } },
+        { type: "Feature", properties: { stepOrder: 2 }, geometry: { type: "LineString", coordinates: [[middle.longitude, middle.latitude], [coreEnd.longitude, coreEnd.latitude]] } },
+      ],
+    },
+    ingress: { role: "exact_approved_ingress", label: approachLabel, ...start },
+    coreEnd: { role: "exact_approved_handoff", label: "Approved road handoff", ...coreEnd },
+    destination: { role: "saved_pad_destination", label: "Saved pad GPS", ...destination },
+    finalLegMode: "google_to_saved_gps_unapproved",
+    handoff: {
+      originMode: "current_location_to_named_ingress",
+      handoffMode: "verified_compact",
+      waypoints: [start, middle, coreEnd],
+    },
+    lastVerifiedAt: "2026-08-26T20:00:00Z",
+    statusRevision: "1".repeat(32),
+    releaseDigest: variantIndex.toString(16).repeat(64),
+    publishedAt: "2026-08-26T20:05:00Z",
+  };
 }
 
 function coreDestinationReleaseRow() {
@@ -212,6 +255,132 @@ afterEach(() => {
 });
 
 describe("public driver status boundary", () => {
+  it("loads named approaches atomically without changing the public Google state", async () => {
+    const freeport = namedApproachRow();
+    const cadiz = namedApproachRow("via-cadiz", "Via Cadiz", "alternate", 2, 0.02);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "1".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont", lastVerifiedAt: "2026-08-26T20:00:00Z" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport, cadiz],
+    ))));
+
+    const legacyPad = pad({
+      coordinate: null,
+      mapReference: { role: "reference", kind: "saved_pad_reference", latitude: 40.1, longitude: -80.9 },
+    });
+    const status = await loadPadStatus(legacyPad);
+    const cached = await loadPadStatus(legacyPad);
+    expect(status.route).toMatchObject({ state: "held", source: "legacy_written" });
+    expect(status.google).toMatchObject({ publicState: "not_published", routeUrl: null });
+    expect(status.namedApproaches?.map((approach) => approach.approachLabel)).toEqual(["Via Freeport", "Via Cadiz"]);
+    expect(new URL(status.namedApproaches![0].navigationUrl).searchParams.get("waypoints"))
+      .toBe("40.15,-80.95|40.12,-80.92|40.105,-80.905");
+    expect(cached.loadProvenance).toBe("session_cache");
+  });
+
+  it("uses the immutable atomic named receipt while the directory GPS reference is still loading", async () => {
+    const freeport = namedApproachRow();
+    const cadiz = namedApproachRow("via-cadiz", "Via Cadiz", "alternate", 2, 0.02);
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "1".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport, cadiz],
+    ))));
+
+    const status = await loadPadStatus(pad({ coordinate: null, mapReference: null }));
+    expect(status.namedApproaches?.map((approach) => approach.approachLabel)).toEqual(["Via Freeport", "Via Cadiz"]);
+  });
+
+  it("fails named receipts closed when their valid revision does not equal the atomic status revision", async () => {
+    const freeport = namedApproachRow();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "2".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport],
+    ))));
+
+    const status = await loadPadStatus(pad({ coordinate: null, mapReference: null }));
+    expect(status.namedApproaches).toEqual([]);
+  });
+
+  it("fails the complete named choice set closed when one release drifts", async () => {
+    const freeport = namedApproachRow();
+    const cadiz = { ...namedApproachRow("via-cadiz", "Via Cadiz", "alternate", 2, 0.02), statusRevision: "not-a-digest" };
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "9".repeat(32),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport, cadiz],
+    ))));
+
+    const status = await loadPadStatus(pad({
+      coordinate: null,
+      mapReference: { role: "reference", kind: "saved_pad_reference", latitude: 40.1, longitude: -80.9 },
+    }));
+    expect(status.route.state).toBe("held");
+    expect(status.namedApproaches).toEqual([]);
+    expect(status.google.publicState).toBe("not_published");
+  });
+
+  it("rejects a named GPS final leg that does not match the current trusted pad reference", async () => {
+    const freeport = namedApproachRow();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        route: { state: "held", source: "legacy_written", safeReason: "Base route remains held." },
+        graph: { state: "held", county: "Belmont" },
+        google: { publicState: "not_published", safeReason: "Public Google remains off." },
+        destination: { available: false, role: null, latitude: null, longitude: null },
+      },
+      null,
+      null,
+      null,
+      [freeport],
+    ))));
+
+    const status = await loadPadStatus(pad({
+      coordinate: null,
+      mapReference: { role: "reference", kind: "saved_pad_reference", latitude: 40.11, longitude: -80.91 },
+    }));
+    expect(status.route.state).toBe("held");
+    expect(status.namedApproaches).toEqual([]);
+  });
+
   it("reuses a completed revision-locked route for repeat opens until Settings clears the session check", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
       ...exactReadyStatusRow(),
@@ -318,7 +487,7 @@ describe("public driver status boundary", () => {
     expect(status.google.publicState).toBe("ready");
     expect(status.google.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_google_handoff");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_named_approaches");
   });
 
   it("launches one reviewed exact road core with a separately labelled saved GPS destination", async () => {
