@@ -126,6 +126,21 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("fuzzy_name");
   });
 
+  it("requires a named approach choice and binds its map line and navigation action together", () => {
+    expect(pageSource).toContain("const currentNamedApproaches = currentSelectedStatus?.namedApproaches || []");
+    expect(pageSource).toContain("currentNamedApproaches.length > 1 && !selectedNamedApproach");
+    expect(pageSource).toContain("selectedNamedApproach?.navigationUrl");
+    expect(pageSource).toContain("selectedNamedApproach.geometry");
+    expect(pageSource).toContain('aria-label="Choose reviewed named approach"');
+    expect(pageSource).toContain("setSelectedNamedApproachKey(approach.approachKey)");
+    expect(pageSource).toContain("Choose one reviewed approach to enable navigation");
+    expect(pageSource).toContain("GPS-only final leg is not approved road geometry.");
+    expect(pageSource).toContain("This GPS destination is the separate unapproved final leg.");
+    expect(pageSource).toContain("approachLabel={selectedNamedApproach?.approachLabel}");
+    expect(pageSource).toContain('`${selectedNamedApproach.approachLabel} core + GPS`');
+    expect(pageSource).toContain('`${selectedNamedApproach.approachLabel} ready`');
+  });
+
   it("labels a released core plus GPS handoff without implying an end-to-end Google route", () => {
     expect(pageSource).toContain('? "Approved core + GPS"');
     expect(pageSource).toContain('currentSelectedStatus?.route.source === "exact_graph_handoff"');

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import type { DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
+import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
 import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
@@ -52,6 +52,31 @@ function mappedPad(): PadSummary {
   };
 }
 
+function namedApproach(): DriverNamedApproach {
+  const steps = [{ order: 1, kind: "continue" as const, displayName: "US-250", verifiedDesignations: ["US-250"], instruction: "Continue on US-250", distanceMiles: 2 }];
+  const geometry: DriverNamedApproach["geometry"] = { type: "FeatureCollection", features: [{ type: "Feature", properties: { stepOrder: 1 }, geometry: { type: "LineString", coordinates: [[-81.2, 40.2], [-81.1, 40.25]] } }] };
+  return {
+    approachKey: "via-freeport",
+    approachLabel: "Via Freeport",
+    routeGroup: "primary",
+    variantIndex: 1,
+    releaseVersion: "v18-named-approach-v1",
+    routeRevision: 9,
+    steps,
+    geometry,
+    ingress: { role: "exact_approved_ingress", label: "Via Freeport", latitude: 40.2, longitude: -81.2 },
+    coreEnd: { role: "exact_approved_handoff", label: "Approved road handoff", latitude: 40.25, longitude: -81.1 },
+    destination: { role: "saved_pad_destination", label: "Saved pad GPS", latitude: 40.26, longitude: -81.09 },
+    finalLegMode: "google_to_saved_gps_unapproved",
+    handoff: { originMode: "current_location_to_named_ingress", handoffMode: "verified_compact", waypoints: [{ latitude: 40.2, longitude: -81.2 }, { latitude: 40.25, longitude: -81.1 }] },
+    lastVerifiedAt: "2026-08-26T20:00:00Z",
+    statusRevision: "1".repeat(32),
+    releaseDigest: "2".repeat(64),
+    publishedAt: "2026-08-26T20:05:00Z",
+    navigationUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.26%2C-81.09&waypoints=40.2%2C-81.2%7C40.25%2C-81.1",
+  };
+}
+
 describe("V18 pad legacy route fallback", () => {
   it("shows saved BrineSearch route data when structured route steps are absent", () => {
     expect(padPage).toContain('const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
@@ -77,7 +102,7 @@ describe("V18 pad legacy route fallback", () => {
 
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
-    expect(padPage).toContain('<span><strong>Navigate</strong><small>{action.detail}</small></span>');
+    expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
     expect(padPage).toContain('"Approved road core · GPS destination" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
@@ -85,6 +110,38 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toMatch(/Open route .* of/);
     expect(padPage).not.toContain("route-chunk-list");
     expect(padPage).not.toContain("DriverActionPanel");
+  });
+
+  it("requires an explicit named approach choice and keeps its steps, geometry, and URL together", () => {
+    const status = statusWithGoogle(null);
+    const approach = namedApproach();
+    const unselected = buildGoogleHandoffView(status, false, false, null, true, null, true);
+    const unselectedAction = buildFixedNavigationAction(unselected, mappedPad());
+    const hiddenRoute = displayedRouteForChoice(status, null, null, true);
+
+    expect(unselected).toMatchObject({ available: false, selectionRequired: true, routeUrl: null });
+    expect(unselectedAction).toMatchObject({ kind: "unavailable", title: "Choose an approach", href: null });
+    expect(hiddenRoute).toMatchObject({ steps: [], geometry: null });
+
+    const selectedRoute = displayedRouteForChoice(status, null, approach, false);
+    const selected = buildGoogleHandoffView(status, true, true, null, true, approach, false);
+    const selectedAction = buildFixedNavigationAction(selected, mappedPad());
+    expect(selectedRoute.steps).toBe(approach.steps);
+    expect(selectedRoute.geometry).toBe(approach.geometry);
+    expect(padPage).toContain("const displayedMapStatus = selectedNamedApproach ?");
+    expect(padPage).toContain("status={displayedMapStatus} routeGeometry={displayedRouteGeometry}");
+    expect(padPage).toContain('`Approved road core · ${selectedNamedApproach.approachLabel}`');
+    expect(padPage).toContain('`Approved route · ${selectedNamedApproach.approachLabel}`');
+    expect(selected).toMatchObject({ available: true, mode: "named_approach", approachLabel: "Via Freeport", routeUrl: approach.navigationUrl });
+    expect(selectedAction).toMatchObject({
+      kind: "approved_route",
+      title: "Navigate Via Freeport",
+      detail: "Approved roads to handoff · GPS-only final leg · not approved",
+      href: approach.navigationUrl,
+    });
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
+    expect(html).toContain("Navigate Via Freeport");
+    expect(html).toContain("GPS-only final leg · not approved");
   });
 
   it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
@@ -369,6 +426,7 @@ describe("V18 pad legacy route fallback", () => {
   it("labels exact numbered road instructions as one approved route", () => {
     expect(padPage).toContain('status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route"');
     expect(padPage).toContain("The remaining lease access to the saved pad GPS is shown as a separate destination");
+    expect(padPage).toContain("The remaining GPS-only final leg is a destination handoff, not approved road geometry.");
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 

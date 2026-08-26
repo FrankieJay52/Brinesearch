@@ -1,4 +1,5 @@
 import { isInsideCoordinateServiceArea } from "./coordinates";
+import type { DriverNamedApproach, DriverRouteGeometry, DriverRouteStep } from "./types";
 
 const maxWaypoints = 3;
 const maxUrlLength = 2048;
@@ -30,6 +31,16 @@ export interface CoreDestinationReleasePlan {
   publishedAt: string;
   singleUrl: string;
 }
+
+const namedApproachKeys = [
+  "approachKey", "approachLabel", "routeGroup", "variantIndex",
+  "releaseVersion", "routeRevision", "steps", "geometry", "ingress",
+  "coreEnd", "destination", "finalLegMode", "handoff", "lastVerifiedAt",
+  "statusRevision", "releaseDigest", "publishedAt",
+];
+const namedStepKinds = new Set<DriverRouteStep["kind"]>(["turn", "continue", "name_change", "shared_begin", "shared_end"]);
+const namedRevisionPattern = /^[0-9a-f]{32,64}$/;
+const namedApproachKeyPattern = /^[a-z0-9][a-z0-9_-]{0,63}$/;
 
 function record(value: unknown, message: string): UnknownRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
@@ -95,6 +106,144 @@ function sameRouteCoordinate(left: RouteCoordinate, right: RouteCoordinate) {
   // serialization difference; it is never used to select a road.
   return Math.abs(left[0] - right[0]) <= 0.000001
     && Math.abs(left[1] - right[1]) <= 0.000001;
+}
+
+function namedTimestamp(value: unknown, field: string) {
+  const result = String(value ?? "").trim();
+  if (!result || Number.isNaN(Date.parse(result))) throw new Error(`Named approach ${field} is invalid`);
+  return result;
+}
+
+function namedRevision(value: unknown, field: string) {
+  const result = String(value ?? "").trim().toLowerCase();
+  if (!namedRevisionPattern.test(result)) throw new Error(`Named approach ${field} is invalid`);
+  return result;
+}
+
+function namedReleaseDigest(value: unknown) {
+  const result = String(value ?? "").trim().toLowerCase();
+  if (!/^[0-9a-f]{64}$/.test(result)) throw new Error("Named approach release digest is invalid");
+  return result;
+}
+
+function namedLabel(value: unknown, field: string) {
+  const result = String(value ?? "").trim();
+  if (!result || result.length > 100) throw new Error(`Named approach ${field} is invalid`);
+  return result;
+}
+
+function namedSteps(value: unknown): DriverRouteStep[] {
+  if (!Array.isArray(value) || value.length < 1 || value.length > 500) {
+    throw new Error("Named approach approved steps are missing");
+  }
+  return value.map((rawStep, index) => {
+    const step = record(rawStep, `Named approach step ${index + 1} is invalid`);
+    if (!onlyKeys(step, ["order", "kind", "displayName", "verifiedDesignations", "instruction", "distanceMiles"])) {
+      throw new Error("Named approach step exposes unsupported data");
+    }
+    const order = step.order;
+    const kind = String(step.kind || "") as DriverRouteStep["kind"];
+    if (typeof step.displayName !== "string" || typeof step.instruction !== "string") {
+      throw new Error("Named approach step labels must be exact public strings");
+    }
+    const displayName = namedLabel(step.displayName, `step ${index + 1} road name`);
+    const instruction = namedLabel(step.instruction, `step ${index + 1} instruction`);
+    const designations = step.verifiedDesignations;
+    const normalizedDesignations = Array.isArray(designations)
+      ? designations.map((designation) => typeof designation === "string" ? designation.trim() : "")
+      : [];
+    const rawMiles = step.distanceMiles;
+    const distanceMiles = rawMiles === null ? null : rawMiles;
+    if (!Number.isInteger(order) || order !== index + 1 || !namedStepKinds.has(kind)
+        || !Array.isArray(designations)
+        || designations.some((designation) => typeof designation !== "string" || !designation.trim())
+        || new Set(normalizedDesignations).size !== normalizedDesignations.length
+        || distanceMiles !== null && (typeof distanceMiles !== "number" || !Number.isFinite(distanceMiles) || distanceMiles < 0)) {
+      throw new Error("Named approach steps are not an exact ordered public projection");
+    }
+    return {
+      order: order as number,
+      kind,
+      displayName,
+      verifiedDesignations: normalizedDesignations,
+      instruction,
+      distanceMiles: distanceMiles as number | null,
+    };
+  });
+}
+
+interface NamedGeometryProjection {
+  geometry: DriverRouteGeometry;
+  milestones: RouteCoordinate[];
+  vertices: RouteCoordinate[];
+}
+
+function namedGeometry(value: unknown, steps: DriverRouteStep[]): NamedGeometryProjection {
+  const collection = record(value, "Named approach geometry is invalid");
+  if (!onlyKeys(collection, ["type", "features"])
+      || collection.type !== "FeatureCollection"
+      || !Array.isArray(collection.features)
+      || collection.features.length !== steps.length) {
+    throw new Error("Named approach geometry is not aligned with its approved steps");
+  }
+  const features: DriverRouteGeometry["features"] = [];
+  const milestones: RouteCoordinate[] = [];
+  const vertices: RouteCoordinate[] = [];
+  let priorEnd: RouteCoordinate | null = null;
+  for (const [featureIndex, rawFeature] of collection.features.entries()) {
+    const feature = record(rawFeature, `Named approach feature ${featureIndex + 1} is invalid`);
+    const properties = record(feature.properties, `Named approach feature ${featureIndex + 1} properties are invalid`);
+    const geometry = record(feature.geometry, `Named approach feature ${featureIndex + 1} geometry is invalid`);
+    if (!onlyKeys(feature, ["type", "properties", "geometry"])
+        || feature.type !== "Feature"
+        || !onlyKeys(properties, ["stepOrder"])
+        || !Number.isInteger(properties.stepOrder) || properties.stepOrder !== featureIndex + 1
+        || (geometry.type !== "LineString" && geometry.type !== "MultiLineString")) {
+      throw new Error("Named approach geometry is not an exact ordered public projection");
+    }
+    const rawLines = geometry.type === "LineString" ? [geometry.coordinates] : geometry.coordinates;
+    if (!Array.isArray(rawLines) || !rawLines.length) throw new Error("Named approach geometry contains an empty road line");
+    const lines: RouteCoordinate[][] = [];
+    let featurePriorEnd: RouteCoordinate | null = null;
+    for (const [lineIndex, rawLine] of rawLines.entries()) {
+      if (!Array.isArray(rawLine) || rawLine.length < 2 || rawLine.length > 20_000) {
+        throw new Error("Named approach geometry contains an invalid road line");
+      }
+      const line = rawLine.map((point, pointIndex) => {
+        if (!Array.isArray(point) || point.some((coordinatePart) => typeof coordinatePart !== "number")) {
+          throw new Error("Named approach geometry coordinates must be exact JSON numbers");
+        }
+        return routeCoordinate(point, `feature ${featureIndex + 1} line ${lineIndex + 1} point ${pointIndex + 1}`);
+      });
+      if (featurePriorEnd && !sameRouteCoordinate(featurePriorEnd, line[0])) {
+        throw new Error("Named approach multipart geometry is not continuous");
+      }
+      featurePriorEnd = line.at(-1)!;
+      lines.push(line);
+    }
+    const featureStart = lines[0][0];
+    const featureEnd = lines.at(-1)!.at(-1)!;
+    if (priorEnd && !sameRouteCoordinate(priorEnd, featureStart)) {
+      throw new Error("Named approach approved geometry is not continuous");
+    }
+    if (!milestones.length) milestones.push(featureStart);
+    milestones.push(featureEnd);
+    for (const line of lines) {
+      for (const point of line) {
+        if (!vertices.length || !sameRouteCoordinate(vertices.at(-1)!, point)) vertices.push(point);
+      }
+    }
+    priorEnd = featureEnd;
+    features.push({
+      type: "Feature",
+      properties: { stepOrder: featureIndex + 1 },
+      geometry: geometry.type === "LineString"
+        ? { type: "LineString", coordinates: lines[0] }
+        : { type: "MultiLineString", coordinates: lines },
+    });
+  }
+  if (vertices.length > 50_000) throw new Error("Named approach geometry exceeds the public point limit");
+  return { geometry: { type: "FeatureCollection", features }, milestones, vertices };
 }
 
 function exactCoreRouteLines(value: unknown, steps: unknown[], releaseVersion: string) {
@@ -448,6 +597,235 @@ export function buildCoreDestinationReleasePlan(value: unknown): CoreDestination
     publishedAt,
     singleUrl: routeUrl(destination, waypoints),
   };
+}
+
+interface NamedPointProjection {
+  role: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+  coordinate: RouteCoordinate;
+  coordinateText: string;
+}
+
+function namedPoint(
+  value: unknown,
+  field: string,
+  roles: readonly string[],
+): NamedPointProjection {
+  const point = record(value, `Named approach ${field} is invalid`);
+  if (!onlyKeys(point, ["role", "label", "latitude", "longitude"])
+      || !roles.includes(String(point.role || ""))
+      || typeof point.role !== "string" || typeof point.label !== "string"
+      || typeof point.latitude !== "number" || typeof point.longitude !== "number") {
+    throw new Error(`Named approach ${field} has an unsupported authority role`);
+  }
+  const coordinateText = coordinate(point);
+  const coordinatePair = pointCoordinate(point);
+  return {
+    role: String(point.role),
+    label: namedLabel(point.label, `${field} label`),
+    latitude: coordinatePair[1],
+    longitude: coordinatePair[0],
+    coordinate: coordinatePair,
+    coordinateText,
+  };
+}
+
+function namedHandoffWaypoints(value: unknown) {
+  if (!Array.isArray(value) || value.length < 1 || value.length > maxWaypoints) {
+    throw new Error("Named approach handoff must contain one to three reviewed controls");
+  }
+  return value.map((rawWaypoint, index) => {
+    const waypoint = record(rawWaypoint, `Named approach waypoint ${index + 1} is invalid`);
+    if (!onlyKeys(waypoint, ["latitude", "longitude"])
+        || typeof waypoint.latitude !== "number" || typeof waypoint.longitude !== "number") {
+      throw new Error("Named approach waypoint exposes unsupported data");
+    }
+    return {
+      latitude: pointCoordinate(waypoint)[1],
+      longitude: pointCoordinate(waypoint)[0],
+      coordinate: pointCoordinate(waypoint),
+      coordinateText: coordinate(waypoint),
+    };
+  });
+}
+
+function validateNamedWaypointOrder(
+  waypoints: ReturnType<typeof namedHandoffWaypoints>,
+  projection: NamedGeometryProjection,
+  handoffMode: "full_geometry_endpoints" | "verified_compact",
+  finalLegMode: "full_approved_route" | "google_to_saved_gps_unapproved",
+  destination: RouteCoordinate,
+) {
+  for (let index = 1; index < waypoints.length; index += 1) {
+    if (sameRouteCoordinate(waypoints[index - 1].coordinate, waypoints[index].coordinate)) {
+      throw new Error("Named approach handoff contains duplicate consecutive controls");
+    }
+  }
+  if (!sameRouteCoordinate(waypoints[0].coordinate, projection.milestones[0])) {
+    throw new Error("Named approach handoff must begin at its exact named ingress");
+  }
+  const expectedFullControls = finalLegMode === "google_to_saved_gps_unapproved"
+    ? projection.milestones
+    : projection.milestones.slice(0, -1);
+  if (handoffMode === "full_geometry_endpoints") {
+    if (waypoints.length !== expectedFullControls.length
+        || waypoints.some((waypoint, index) => !sameRouteCoordinate(waypoint.coordinate, expectedFullControls[index]))) {
+      throw new Error("Named approach full handoff does not contain the ordered approved geometry controls");
+    }
+    return;
+  }
+
+  let nextVertexIndex = 0;
+  for (const waypoint of waypoints) {
+    const foundIndex = projection.vertices.findIndex((vertex, index) => (
+      index >= nextVertexIndex && sameRouteCoordinate(vertex, waypoint.coordinate)
+    ));
+    if (foundIndex < 0) throw new Error("Named approach compact handoff is not ordered on its exact geometry");
+    nextVertexIndex = foundIndex + 1;
+  }
+  if (finalLegMode === "google_to_saved_gps_unapproved"
+      && !sameRouteCoordinate(waypoints.at(-1)!.coordinate, projection.milestones.at(-1)!)) {
+    throw new Error("Named approach GPS handoff must preserve its exact approved core end");
+  }
+  if (finalLegMode === "full_approved_route"
+      && waypoints.some((waypoint) => sameRouteCoordinate(waypoint.coordinate, destination))) {
+    throw new Error("Named approach full-route handoff duplicates its final destination");
+  }
+}
+
+/**
+ * Validate an atomic set of separately reviewed named approaches. Google is
+ * given no fixed origin: the phone routes to the selected named ingress, then
+ * follows only that release's ordered controls. The selected steps, geometry,
+ * and generated URL are returned as one indivisible client object.
+ */
+export function buildNamedApproachReleaseSet(
+  value: unknown,
+): DriverNamedApproach[] {
+  if (value === null || value === undefined) return [];
+  if (!Array.isArray(value) || value.length > 8) throw new Error("Named approach release set is invalid");
+  if (!value.length) return [];
+  const approaches = value.map((rawApproach, index): DriverNamedApproach => {
+    const approach = record(rawApproach, `Named approach ${index + 1} is invalid`);
+    if (!onlyKeys(approach, namedApproachKeys)) throw new Error("Named approach release exposes unsupported data");
+
+    if (typeof approach.approachKey !== "string" || typeof approach.approachLabel !== "string"
+        || typeof approach.routeGroup !== "string" || typeof approach.statusRevision !== "string"
+        || typeof approach.releaseDigest !== "string" || typeof approach.lastVerifiedAt !== "string"
+        || typeof approach.publishedAt !== "string") {
+      throw new Error("Named approach scalar fields must use the exact public types");
+    }
+    const approachKey = approach.approachKey.trim();
+    const approachLabel = namedLabel(approach.approachLabel, "label");
+    const routeGroup = approach.routeGroup;
+    const variantIndex = approach.variantIndex;
+    if (typeof approach.routeRevision !== "number") throw new Error("Named approach route revision must be a JSON number");
+    const routeRevision = revision(approach.routeRevision, "named approach route revision");
+    const statusRevision = namedRevision(approach.statusRevision, "status revision");
+    const releaseDigest = namedReleaseDigest(approach.releaseDigest);
+    if (!namedApproachKeyPattern.test(approachKey)
+        || !/^Via\s+\S/u.test(approachLabel)
+        || (routeGroup !== "primary" && routeGroup !== "alternate")
+        || !Number.isInteger(variantIndex) || (variantIndex as number) < 1 || (variantIndex as number) > 8
+        || approach.releaseVersion !== "v18-named-approach-v1") {
+      throw new Error("Named approach identity is invalid");
+    }
+
+    const steps = namedSteps(approach.steps);
+    const projection = namedGeometry(approach.geometry, steps);
+    const ingress = namedPoint(approach.ingress, "ingress", ["exact_approved_ingress"]);
+    const coreEnd = namedPoint(approach.coreEnd, "core end", ["exact_approved_handoff"]);
+    const destination = namedPoint(approach.destination, "destination", ["driver_entrance", "saved_pad_destination"]);
+    if (!sameRouteCoordinate(ingress.coordinate, projection.milestones[0])
+        || !sameRouteCoordinate(coreEnd.coordinate, projection.milestones.at(-1)!)) {
+      throw new Error("Named approach authority points do not match its exact approved geometry");
+    }
+
+    const finalLegMode = String(approach.finalLegMode || "");
+    if (finalLegMode !== "full_approved_route" && finalLegMode !== "google_to_saved_gps_unapproved") {
+      throw new Error("Named approach final-leg mode is unsupported");
+    }
+    if (finalLegMode === "full_approved_route"
+      ? destination.role !== "driver_entrance" || !sameRouteCoordinate(coreEnd.coordinate, destination.coordinate)
+      : destination.role !== "saved_pad_destination" || sameRouteCoordinate(coreEnd.coordinate, destination.coordinate)) {
+      throw new Error("Named approach destination does not preserve its approved/unapproved boundary");
+    }
+
+    const handoff = record(approach.handoff, "Named approach handoff is invalid");
+    if (!onlyKeys(handoff, ["originMode", "handoffMode", "waypoints"])
+        || handoff.originMode !== "current_location_to_named_ingress"
+        || (handoff.handoffMode !== "full_geometry_endpoints" && handoff.handoffMode !== "verified_compact")) {
+      throw new Error("Named approach handoff is not bound to current-location ingress routing");
+    }
+    if (finalLegMode === "full_approved_route"
+      ? handoff.handoffMode !== "full_geometry_endpoints"
+      : handoff.handoffMode !== "verified_compact") {
+      throw new Error("Named approach handoff mode does not preserve its final-leg authority boundary");
+    }
+    const waypoints = namedHandoffWaypoints(handoff.waypoints);
+    validateNamedWaypointOrder(
+      waypoints,
+      projection,
+      handoff.handoffMode,
+      finalLegMode,
+      destination.coordinate,
+    );
+    const navigationUrl = routeUrl(destination.coordinateText, waypoints.map((waypoint) => waypoint.coordinateText));
+
+    return {
+      approachKey,
+      approachLabel,
+      routeGroup,
+      variantIndex: variantIndex as number,
+      releaseVersion: "v18-named-approach-v1",
+      routeRevision,
+      steps,
+      geometry: projection.geometry,
+      ingress: {
+        role: "exact_approved_ingress",
+        label: ingress.label,
+        latitude: ingress.latitude,
+        longitude: ingress.longitude,
+      },
+      coreEnd: {
+        role: "exact_approved_handoff",
+        label: coreEnd.label,
+        latitude: coreEnd.latitude,
+        longitude: coreEnd.longitude,
+      },
+      destination: {
+        role: destination.role as DriverNamedApproach["destination"]["role"],
+        label: destination.label,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+      },
+      finalLegMode,
+      handoff: {
+        originMode: "current_location_to_named_ingress",
+        handoffMode: handoff.handoffMode,
+        waypoints: waypoints.map(({ latitude, longitude }) => ({ latitude, longitude })),
+      },
+      lastVerifiedAt: namedTimestamp(approach.lastVerifiedAt, "verification time"),
+      statusRevision,
+      releaseDigest,
+      publishedAt: namedTimestamp(approach.publishedAt, "publication time"),
+      navigationUrl,
+    };
+  });
+
+  approaches.sort((left, right) => left.variantIndex - right.variantIndex || left.approachKey.localeCompare(right.approachKey));
+  const keys = new Set(approaches.map((approach) => approach.approachKey));
+  const labels = new Set(approaches.map((approach) => approach.approachLabel.toLocaleLowerCase()));
+  const variants = new Set(approaches.map((approach) => approach.variantIndex));
+  if (keys.size !== approaches.length || labels.size !== approaches.length || variants.size !== approaches.length
+      || approaches.some((approach, index) => approach.variantIndex !== index + 1)
+      || approaches[0].routeGroup !== "primary"
+      || approaches.slice(1).some((approach) => approach.routeGroup !== "alternate")) {
+    throw new Error("Named approach choices are not a unique primary-first release set");
+  }
+  return approaches;
 }
 
 export function buildGoogleRoutePublicPlan(value: unknown, handoffValue: unknown = null): GoogleRoutePlan {
