@@ -200,7 +200,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).not.toContain("google.com/maps/search");
   });
 
-  it("orders the pad content as header, compact map, wells, route, collapsed readiness, then freshness", () => {
+  it("orders the pad content as header with compact map, wells, route, collapsed readiness, then freshness", () => {
     const sections = [
       padPage.indexOf('className="pad-header-block"'),
       padPage.indexOf("<PadMapPreview pad={pad}"),
@@ -216,13 +216,34 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain('<details className="detail-card"><summary><span><strong>Data source and freshness</strong>');
   });
 
-  it("uses a compact square map that can expand and shrink without rebuilding route authority", () => {
+  it("places the compact map beside the pad name and moves the administrative location under operating status", () => {
+    const headerStart = padPage.indexOf('className="pad-header-primary"');
+    const heroStart = padPage.indexOf('className="pad-hero"', headerStart);
+    const mapStart = padPage.indexOf('className="pad-header-map-slot"', headerStart);
+    const gpsStart = padPage.indexOf('<PadGpsActions pad={pad}/>', headerStart);
+    const wellStart = padPage.indexOf('className="detail-card pad-well-card" open');
+    const statusStart = padPage.indexOf('<small>Operating status</small>', wellStart);
+    const administrativeLocationStart = padPage.indexOf('<small>County / township / state</small>', statusStart);
+
+    expect([headerStart, heroStart, mapStart, gpsStart, wellStart, statusStart, administrativeLocationStart].every((index) => index >= 0)).toBe(true);
+    expect(heroStart).toBeLessThan(mapStart);
+    expect(mapStart).toBeLessThan(gpsStart);
+    expect(statusStart).toBeLessThan(administrativeLocationStart);
+    expect(padPage.slice(heroStart, mapStart)).not.toContain('className="pad-location"');
+    expect(padPage).toMatch(/<div className="pad-header-primary">[\s\S]*?<div className="pad-header-map-slot">\s*<PadMapPreview pad=\{pad\} status=\{status\} routeGeometry=\{displayedRouteGeometry\}\/?>\s*<\/div>\s*<\/div>\s*<PadGpsActions pad=\{pad\}\/>/);
+    expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:/s);
+    expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-shell\s*\{[^}]*margin:\s*0 0 0 auto;/s);
+    expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-empty\s*\{[^}]*min-height:\s*0;[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
+  });
+
+  it("uses a compact header map that can expand and shrink without rebuilding route authority", () => {
     expect(padMapPreview).toContain("const [expanded, setExpanded] = useState(false)");
     expect(padMapPreview).toContain('expanded ? "is-expanded" : "is-compact"');
     expect(padMapPreview).toContain('aria-label={expanded ? "Shrink pad map" : "Expand pad map"}');
     expect(padMapPreview).toContain('map.on("click", toggleMapSize)');
     expect(padMapPreview).toContain("map.resize()");
-    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*1;/s);
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-warning\[role="note"\]\s*\{[^}]*display:\s*none;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-expanded\s*\{[^}]*position:\s*fixed;/s);
   });
 

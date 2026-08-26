@@ -228,19 +228,22 @@ export function PadPage() {
   return <article className={`pad-page ${googleHandoff.available ? "has-fixed-navigation" : ""}`}>
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><button className={`icon-button ${favorite ? "is-favorite" : ""}`} onClick={() => toggleFavorite(pad.padId)} aria-label={favorite ? "Remove favorite" : "Save favorite"}><Icon name="saved"/></button></header>
     <section className="pad-header-block" aria-labelledby="pad-detail-title">
-      <section className="pad-hero">
-        <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><p className="pad-location"><Icon name="location"/>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</p></div>
-        <button className="share-button" onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button>
-      </section>
+      <div className="pad-header-primary">
+        <section className="pad-hero">
+          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p></div>
+          <button className="share-button" onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button>
+        </section>
+        <div className="pad-header-map-slot">
+          <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
+        </div>
+      </div>
       <PadGpsActions pad={pad}/>
       <div className={`pad-connection-badge is-${connectionState}`} role="status" aria-live="polite"><span/><strong>{connectionLabel}</strong><small>{connectionState === "live" ? "Current public route response" : connectionState === "checking" ? "Showing the pad while route status loads" : "Device-stored route information"}</small></div>
       {connectionState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{offlineCacheMiss ? "Offline · not cached" : connectionState === "checking" ? "Checking current route status" : connectionState === "offline" ? "Offline directions" : "Last known directions"}</strong><span>{offlineCacheMiss ? "Open this pad once while online to save reviewed directions on this device." : `Current graph checks are not assumed. Last record update: ${dateLabel(pad.updatedAt)}`}</span></div></div>}
     </section>
 
-    <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
-
     <details className="detail-card pad-well-card" open><summary><span><strong>Pad and well information</strong><small>{wellRows?.length ? `${wellRows.length} synchronized well rows` : padIdentifierSummary(pad)}</small></span><span>⌄</span></summary>
-      <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div></div>
+      <div className="pad-location-grid"><div><small>Address / location</small><strong>{pad.address || "Not listed"}</strong></div><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong><div className="pad-administrative-location"><small>County / township / state</small><strong><Icon name="location"/>{[pad.county, pad.township, pad.state].filter(Boolean).join(" · ") || "Location not listed"}</strong></div></div></div>
       <section className="pad-identifier-board" aria-labelledby="pad-identifiers-title">
         <header><div><span className="eyebrow">PUBLIC WELL IDENTIFIERS</span><h3 id="pad-identifiers-title">Well names, APIs, and properties</h3></div></header>
         {wellRows === undefined ? <p className="pad-identifier-loading">Loading reviewed well rows…</p>
