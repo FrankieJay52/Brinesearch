@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildGoogleRoutePublicPlan, buildReleasedGoogleHandoffPlan } from "./googleRoute";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildReleasedGoogleHandoffPlan } from "./googleRoute";
 
 const padId = "e2b32e85-9e93-4388-8215-9d8167cbbeb8";
 const shape = (sequence: number, latitude: number, longitude: number, role?: string) => ({
@@ -79,7 +79,98 @@ function releasedRow(value: ReturnType<typeof row>, sequences = [1, 13, 15]) {
   };
 }
 
+function coreDestinationRow() {
+  const waypoints = [
+    { sequence: 1, latitude: 40.25, longitude: -80.95 },
+    { sequence: 2, latitude: 40.24, longitude: -80.92 },
+    { sequence: 3, latitude: 40.241093947, longitude: -80.915437726 },
+  ];
+  const destination = { sequence: 4, pad_id: padId, role: "saved_pad_destination", latitude: 40.240883, longitude: -80.913963 };
+  return {
+    padId,
+    recordRevision: "1787459253071652",
+    routeRevision: 1,
+    releaseVersion: "v18-core-destination-v1",
+    routeSteps: [{ order: 1 }, { order: 2 }],
+    routeGeometry: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { stepOrder: 1 },
+          geometry: { type: "LineString", coordinates: [[-80.95, 40.25], [-80.92, 40.24]] },
+        },
+        {
+          type: "Feature",
+          properties: { stepOrder: 2 },
+          geometry: { type: "LineString", coordinates: [[-80.92, 40.24], [-80.915437726, 40.241093947]] },
+        },
+      ],
+    },
+    graphCounty: "Harrison",
+    graphLastVerifiedAt: "2026-08-24T23:53:01.785257Z",
+    destination: { available: true, role: "saved_pad_destination", latitude: destination.latitude, longitude: destination.longitude },
+    handoff: {
+      handoff_version: "v18-core-destination-v1",
+      pad_id: padId,
+      route_revision: 1,
+      source_dependency_digest: "e".repeat(32),
+      origin_mode: "current_location_until_route_ingress",
+      waypoints,
+      core_end: { ...waypoints[2], role: "exact_public_road_handoff" },
+      destination,
+      final_leg_mode: "google_to_saved_gps_unapproved",
+    },
+    dependencyDigest: "e".repeat(32),
+    releaseDigest: "f".repeat(32),
+    publishedAt: "2026-08-26T16:45:38Z",
+  };
+}
+
 describe("public Google route manifest", () => {
+  it("builds one current-location URL from an exact road core and separate saved GPS", () => {
+    const value = coreDestinationRow();
+    const plan = buildCoreDestinationReleasePlan(value);
+    const url = new URL(plan.singleUrl);
+
+    expect(plan).toMatchObject({ padId, recordRevision: "1787459253071652", routeRevision: 1 });
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe(value.handoff.waypoints
+      .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+    expect(url.searchParams.get("destination")).toBe("40.240883,-80.913963");
+  });
+
+  it("fails closed when a core-destination package blurs the public-road and GPS boundary", () => {
+    const value = coreDestinationRow();
+    expect(() => buildCoreDestinationReleasePlan({ ...value, privateEvidence: true })).toThrow(/unsupported data/i);
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      destination: { ...value.destination, role: "driver_entrance" },
+    })).toThrow(/destination-only/i);
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      handoff: { ...value.handoff, final_leg_mode: "approved_lease_road" },
+    })).toThrow(/not bound/i);
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      handoff: { ...value.handoff, core_end: { ...value.handoff.core_end, longitude: -80.91 } },
+    })).toThrow(/exact handoff/i);
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      handoff: { ...value.handoff, destination: { ...value.handoff.destination, pad_id: "different-pad" } },
+    })).toThrow(/selected pad/i);
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      routeGeometry: {
+        ...value.routeGeometry,
+        features: value.routeGeometry.features.map((feature, index) => index === 1 ? {
+          ...feature,
+          geometry: { ...feature.geometry, coordinates: [[-80.919, 40.239], ...feature.geometry.coordinates.slice(1)] },
+        } : feature),
+      },
+    })).toThrow(/ordered endpoints/i);
+  });
+
   it("builds only from a matching public exact manifest", () => {
     const plan = buildGoogleRoutePublicPlan(row([
       shape(1, 40.2, -80.9, "route_ingress"),

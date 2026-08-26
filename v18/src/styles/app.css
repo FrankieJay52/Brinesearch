@@ -611,7 +611,7 @@ h2 { letter-spacing: -.035em; }
   background: var(--surface-soft);
   border: 1px solid var(--line-soft);
 }
-.status-ready, .status-active_current, .status-live { color: var(--green); border-color: color-mix(in srgb, var(--green) 32%, transparent); background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
+.status-ready, .status-active_current, .status-verified_release, .status-live { color: var(--green); border-color: color-mix(in srgb, var(--green) 32%, transparent); background: color-mix(in srgb, var(--green) 10%, var(--surface)); }
 .status-held, .status-stale, .status-written_only, .status-fallback { color: var(--amber); border-color: color-mix(in srgb, var(--amber) 32%, transparent); background: color-mix(in srgb, var(--amber) 9%, var(--surface)); }
 .status-unavailable, .status-not_published, .status-cached { color: var(--muted-strong); }
 .mini-badge.muted { color: var(--muted); }

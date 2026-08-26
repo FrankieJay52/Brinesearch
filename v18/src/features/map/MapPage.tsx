@@ -22,7 +22,7 @@ import {
   loadReleasedGoogleHandoff,
   releasedGoogleNavigationUrl,
 } from "@/data/releasedGoogleHandoff";
-import { loadPadStatus } from "@/data/status";
+import { graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
@@ -375,10 +375,20 @@ export function MapPage() {
   const selectedRouteChoice = currentRouteChoices.find((choice) => choice.routeKey === selectedRouteKey) || currentRouteChoices[0] || null;
   const selectedRouteIsPrimary = selectedRouteChoice?.routeGroup !== "alternate";
   const currentReleasedHandoffPlan = currentReleasedGoogleHandoff(releasedHandoff, selected);
-  const approvedNavigationUrl = online ? releasedGoogleNavigationUrl(
+  const liveApprovedNavigationUrl = selectedRouteIsPrimary
+    && currentSelectedStatus?.route.state === "ready"
+    && (currentSelectedStatus.route.source === "exact_graph" || currentSelectedStatus.route.source === "exact_graph_handoff")
+    && graphStateSupportsRoute(currentSelectedStatus.route.source, currentSelectedStatus.graph.state)
+    && currentSelectedStatus.google.publicState === "ready"
+    ? currentSelectedStatus.google.routeUrl
+    : null;
+  const approvedNavigationUrl = online ? liveApprovedNavigationUrl || releasedGoogleNavigationUrl(
     currentReleasedHandoffPlan,
     selectedRouteIsPrimary ? "primary" : "alternate",
   ) : null;
+  const approvedNavigationDetail = liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "exact_graph_handoff"
+    ? "Approved road core · GPS destination"
+    : "Approved route";
   const selectedGoogleState = currentSelectedStatus
     ? mapGoogleHandoffState(currentSelectedStatus.google.publicState, Boolean(approvedNavigationUrl), selectedRouteIsPrimary)
     : approvedNavigationUrl ? "ready" : null;
@@ -759,17 +769,17 @@ export function MapPage() {
       </div><button className="selection-close" onClick={() => { pendingRouteFitRef.current = false; setSelectedId(null); }} aria-label="Close selected pad"><Icon name="close"/></button></header>
       <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedGoogleState} label={`Google ${selectedGoogleState.replaceAll("_", " ")}`}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
       {currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
-      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
+      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
-        {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName}/>
+        {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail}/>
           : selectedPinUrl ? <MapDestinationPinLink pinUrl={selectedPinUrl} padName={selected.padName}/>
           : <small className="map-google-link-state">No verified driver entrance</small>}
       </div>}
       {selected.structuredRoadSequence && <details className="map-saved-road-sequence"><summary><strong>Saved road sequence</strong><span>View</span></summary><p>{selected.structuredRoadSequence}</p></details>}
-      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;

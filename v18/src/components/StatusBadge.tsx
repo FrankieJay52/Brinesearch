@@ -9,6 +9,7 @@ const labels: Record<Status, string> = {
   stale: "Stale",
   unavailable: "Unavailable",
   active_current: "Active & current",
+  verified_release: "Approved release",
   not_published: "Not published",
   live: "Live",
   cached: "Cached",

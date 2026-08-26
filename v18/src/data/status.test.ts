@@ -153,8 +153,57 @@ function atomicStatusEnvelope(
   status: Record<string, unknown>,
   publicGoogleRoute: Record<string, unknown> | null = null,
   publicGoogleHandoff: Record<string, unknown> | null = null,
+  coreDestinationRelease: Record<string, unknown> | null = null,
 ) {
-  return { status, publicGoogleRoute, publicGoogleHandoff };
+  return { status, publicGoogleRoute, publicGoogleHandoff, coreDestinationRelease };
+}
+
+function coreDestinationReleaseRow() {
+  const canonicalId = "11111111-1111-4111-8111-111111111111";
+  const waypoints = [
+    { sequence: 1, latitude: 40.15, longitude: -80.95 },
+    { sequence: 2, latitude: 40.12, longitude: -80.92 },
+    { sequence: 3, latitude: 40.105, longitude: -80.905 },
+  ];
+  return {
+    padId: canonicalId,
+    recordRevision: "fixture-r1",
+    routeRevision: 1,
+    releaseVersion: "v18-core-destination-v1",
+    routeSteps: exactSteps(),
+    routeGeometry: {
+      type: "FeatureCollection",
+      features: [
+        {
+          type: "Feature",
+          properties: { stepOrder: 1 },
+          geometry: { type: "LineString", coordinates: [[-80.95, 40.15], [-80.92, 40.12]] },
+        },
+        {
+          type: "Feature",
+          properties: { stepOrder: 2 },
+          geometry: { type: "LineString", coordinates: [[-80.92, 40.12], [-80.905, 40.105]] },
+        },
+      ],
+    },
+    graphCounty: "Belmont",
+    graphLastVerifiedAt: "2026-08-24T23:53:01Z",
+    destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+    handoff: {
+      handoff_version: "v18-core-destination-v1",
+      pad_id: canonicalId,
+      route_revision: 1,
+      source_dependency_digest: "e".repeat(32),
+      origin_mode: "current_location_until_route_ingress",
+      waypoints,
+      core_end: { ...waypoints[2], role: "exact_public_road_handoff" },
+      destination: { sequence: 4, pad_id: canonicalId, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+      final_leg_mode: "google_to_saved_gps_unapproved",
+    },
+    dependencyDigest: "e".repeat(32),
+    releaseDigest: "f".repeat(32),
+    publishedAt: "2026-08-26T16:45:38Z",
+  };
 }
 
 afterEach(() => {
@@ -270,6 +319,75 @@ describe("public driver status boundary", () => {
     expect(status.google.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_google_handoff");
+  });
+
+  it("launches one reviewed exact road core with a separately labelled saved GPS destination", async () => {
+    const release = coreDestinationReleaseRow();
+    const statusRow = {
+      ...exactReadyStatusRow(),
+      statusRevision: "f".repeat(32),
+      route: { state: "ready", source: "exact_graph_handoff", steps: exactSteps(), geometry: release.routeGeometry },
+      graph: { state: "verified_release", county: "Belmont", publicSource: "BrineSearch immutable approved release", lastVerifiedAt: "2026-08-24T23:53:01Z" },
+      destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+    };
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      statusRow,
+      null,
+      null,
+      release,
+    )));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await loadPadStatus(pad());
+    const url = new URL(status.google.routeUrl!);
+
+    expect(status.route).toMatchObject({ state: "ready", source: "exact_graph_handoff" });
+    expect(status.destination).toMatchObject({ available: true, role: "saved_pad_destination" });
+    expect(status.google.publicState).toBe("ready");
+    expect(status.google.safeReason).toMatch(/approved road core/i);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe("40.15,-80.95|40.12,-80.92|40.105,-80.905");
+    expect(url.searchParams.get("destination")).toBe("40.1,-80.9");
+  });
+
+  it("removes navigation when a core-destination release drifts from the selected pad", async () => {
+    const release = coreDestinationReleaseRow();
+    release.handoff.destination.pad_id = "22222222-2222-4222-8222-222222222222";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "f".repeat(32),
+        route: { state: "ready", source: "exact_graph_handoff", steps: exactSteps(), geometry: release.routeGeometry },
+        graph: { state: "verified_release", county: "Belmont", publicSource: "BrineSearch immutable approved release", lastVerifiedAt: "2026-08-24T23:53:01Z" },
+        destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+      },
+      null,
+      null,
+      release,
+    ))));
+
+    const status = await loadPadStatus(pad());
+    expect(status.route.state).toBe("ready");
+    expect(status.google).toMatchObject({ publicState: "stale", routeUrl: null });
+  });
+
+  it("removes navigation when the immutable release digest does not match the status receipt", async () => {
+    const release = coreDestinationReleaseRow();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      {
+        ...exactReadyStatusRow(),
+        statusRevision: "0".repeat(32),
+        route: { state: "ready", source: "exact_graph_handoff", steps: exactSteps(), geometry: release.routeGeometry },
+        graph: { state: "verified_release", county: "Belmont", publicSource: "BrineSearch immutable approved release", lastVerifiedAt: "2026-08-24T23:53:01Z" },
+        destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+      },
+      null,
+      null,
+      release,
+    ))));
+
+    const status = await loadPadStatus(pad());
+    expect(status.google).toMatchObject({ publicState: "stale", routeUrl: null });
   });
 
   it("keeps a valid multi-section manifest in-app instead of exposing its first section as a route", async () => {
@@ -389,7 +507,7 @@ describe("public driver status boundary", () => {
     );
 
     expect(status.route).toMatchObject({ state: "unavailable", source: "destination_only" });
-    expect(status.destination).toEqual({ available: false, latitude: 40.09955, longitude: -80.840213 });
+    expect(status.destination).toEqual({ available: false, role: null, latitude: 40.09955, longitude: -80.840213 });
     expect(status.google.routeUrl).toBeNull();
   });
 
@@ -433,7 +551,7 @@ describe("public driver status boundary", () => {
       destination: { available: true, role: "driver_entrance", latitude: 0, longitude: 0 },
     });
     const zeroOrigin = await loadPadStatus(pad());
-    expect(zeroOrigin.destination).toEqual({ available: false, latitude: null, longitude: null });
+    expect(zeroOrigin.destination).toEqual({ available: false, role: null, latitude: null, longitude: null });
 
     publicResponse({
       route: { state: "ready", source: "exact_graph" },
@@ -644,7 +762,7 @@ describe("public driver status boundary", () => {
       writtenDirections: null,
     });
     expect(status.routeSteps).toEqual([]);
-    expect(status.destination).toEqual({ available: false, latitude: 40.1, longitude: -80.9 });
+    expect(status.destination).toEqual({ available: false, role: null, latitude: 40.1, longitude: -80.9 });
   });
 
   it("does not revive legacy route prose or steps after the current status RPC fails", async () => {
@@ -663,7 +781,7 @@ describe("public driver status boundary", () => {
       writtenDirections: null,
     });
     expect(status.routeSteps).toEqual([]);
-    expect(status.destination).toEqual({ available: false, latitude: 40.1, longitude: -80.9 });
+    expect(status.destination).toEqual({ available: false, role: null, latitude: 40.1, longitude: -80.9 });
     expect(status.google.routeUrl).toBeNull();
   });
 });

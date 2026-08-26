@@ -1,5 +1,5 @@
 import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
-import { buildGoogleRoutePublicPlan } from "./googleRoute";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan } from "./googleRoute";
 import { parseCoordinatePair } from "./coordinates";
 import { deviceIsOnline, readPadDirectionsOffline, savePadDirectionsOffline } from "./offlineRoutes";
 
@@ -8,8 +8,8 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd";
 
 const routeStates = new Set<DriverPadStatus["route"]["state"]>(["ready", "written_only", "held", "stale", "unavailable"]);
-const routeSources = new Set<DriverPadStatus["route"]["source"]>(["exact_graph", "reviewed_written", "legacy_written", "destination_only", "none"]);
-const graphStates = new Set<DriverPadStatus["graph"]["state"]>(["active_current", "stale", "held", "unavailable"]);
+const routeSources = new Set<DriverPadStatus["route"]["source"]>(["exact_graph", "exact_graph_handoff", "reviewed_written", "legacy_written", "destination_only", "none"]);
+const graphStates = new Set<DriverPadStatus["graph"]["state"]>(["active_current", "verified_release", "stale", "held", "unavailable"]);
 const googleStates = new Set<DriverPadStatus["google"]["publicState"]>(["ready", "held", "not_published", "stale", "unavailable"]);
 const maxPublicRouteSteps = 500;
 const maxPublicRouteLinePoints = 20_000;
@@ -29,6 +29,14 @@ function finiteNumber(value: unknown) {
 
 function safeEnum<T extends string>(value: unknown, allowed: Set<T>, fallback: T): T {
   return typeof value === "string" && allowed.has(value as T) ? (value as T) : fallback;
+}
+
+export function graphStateSupportsRoute(
+  source: DriverPadStatus["route"]["source"],
+  state: DriverPadStatus["graph"]["state"],
+) {
+  return source === "exact_graph" && state === "active_current"
+    || source === "exact_graph_handoff" && state === "verified_release";
 }
 
 function statusDataState(sourceState: DirectorySourceState | undefined, canonical: boolean): DriverPadStatus["dataState"] {
@@ -58,6 +66,7 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
     google: { publicState: "not_published", routeUrl: null, safeReason: "No exact Google handoff is available." },
     destination: {
       available: false,
+      role: null,
       latitude: pad.coordinate?.latitude ?? null,
       longitude: pad.coordinate?.longitude ?? null,
     },
@@ -170,19 +179,30 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const googleState = google.publicState ?? row.public_google_state;
   const destinationAvailable = destination.available ?? row.destination_available;
   const destinationRole = nullableText(destination.role ?? row.destination_role);
-  const parsedDestination = destinationAvailable === true && destinationRole === "driver_entrance"
-    ? parseCoordinatePair(destination.latitude ?? row.destination_latitude, destination.longitude ?? row.destination_longitude, "driver_entrance")
+  const parsedDestination = destinationAvailable === true
+    && (destinationRole === "driver_entrance" || destinationRole === "saved_pad_destination")
+    ? parseCoordinatePair(
+      destination.latitude ?? row.destination_latitude,
+      destination.longitude ?? row.destination_longitude,
+      destinationRole,
+    )
     : null;
   const claimedRouteState = safeEnum(routeState, routeStates, base.route.state);
   const safeRouteSource = safeEnum(routeSource, routeSources, base.route.source);
   const safeGraphState = safeEnum(graphState, graphStates, base.graph.state);
-  const exactProjection = claimedRouteState === "ready" && safeRouteSource === "exact_graph" && safeGraphState === "active_current"
+  const graphAuthorityReady = graphStateSupportsRoute(safeRouteSource, safeGraphState);
+  const exactProjection = claimedRouteState === "ready"
+    && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
+    && graphAuthorityReady
     ? normalizeDriverRouteProjection(rawSteps, route.geometry ?? row.route_geometry)
     : null;
+  const handoffDestinationReady = safeRouteSource !== "exact_graph_handoff"
+    || parsedDestination?.ok === true && parsedDestination.value.role === "saved_pad_destination";
   const exactResponseReady = claimedRouteState === "ready"
-    && safeRouteSource === "exact_graph"
-    && safeGraphState === "active_current"
-    && exactProjection !== null;
+    && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
+    && graphAuthorityReady
+    && exactProjection !== null
+    && handoffDestinationReady;
   const safeRouteState = claimedRouteState === "ready" && !exactResponseReady ? "held" : claimedRouteState;
   const routeSafeReason = claimedRouteState === "ready" && !exactResponseReady
     ? "The approved route response failed exact public validation and cannot be used."
@@ -218,6 +238,9 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
     },
     destination: {
       available: parsedDestination?.ok === true,
+      role: parsedDestination?.ok === true
+        ? parsedDestination.value.role === "saved_pad_destination" ? "saved_pad_destination" : "driver_entrance"
+        : null,
       latitude: parsedDestination?.ok === true ? parsedDestination.value.latitude : null,
       longitude: parsedDestination?.ok === true ? parsedDestination.value.longitude : null,
     },
@@ -268,8 +291,8 @@ function liveStatusKey(pad: Pick<PadSummary, "padId" | "recordRevision">, source
 export function completedPadStatusIsReusable(status: DriverPadStatus) {
   return status.loadProvenance === "live_response"
     && status.route.state === "ready"
-    && status.route.source === "exact_graph"
-    && status.graph.state === "active_current"
+    && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
+    && graphStateSupportsRoute(status.route.source, status.graph.state)
     && status.routeSteps.length > 0
     && status.route.geometry !== null;
 }
@@ -321,6 +344,32 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     if (!status) return null;
     if (status.google.publicState !== "ready") return status;
     try {
+      const coreReleaseRow = envelope.coreDestinationRelease ?? envelope.core_destination_release;
+      if (coreReleaseRow) {
+        const plan = buildCoreDestinationReleasePlan(coreReleaseRow);
+        const release = object(coreReleaseRow);
+        const releaseDestination = object(release.destination);
+        const statusRoute = object(row.route);
+        const statusRevision = nullableText(row.statusRevision ?? row.status_revision);
+        if (plan.padId !== pad.canonicalId || plan.recordRevision !== pad.recordRevision
+            || plan.releaseDigest !== statusRevision
+            || status.route.source !== "exact_graph_handoff"
+            || status.destination.role !== "saved_pad_destination"
+            || status.destination.latitude !== finiteNumber(releaseDestination.latitude)
+            || status.destination.longitude !== finiteNumber(releaseDestination.longitude)
+            || JSON.stringify(release.routeSteps) !== JSON.stringify(statusRoute.steps ?? row.route_steps)
+            || JSON.stringify(release.routeGeometry) !== JSON.stringify(statusRoute.geometry ?? row.route_geometry)) {
+          throw new Error("Core-destination release did not match the selected pad");
+        }
+        return {
+          ...status,
+          google: {
+            ...status.google,
+            routeUrl: plan.singleUrl,
+            safeReason: "Reviewed navigation follows the exact approved road core, then uses the saved GPS as a destination-only final leg.",
+          },
+        };
+      }
       const routeRow = envelope.publicGoogleRoute ?? envelope.public_google_route;
       const handoffRow = envelope.publicGoogleHandoff ?? envelope.public_google_handoff;
       const approvedRoutePlan = buildGoogleRoutePublicPlan(routeRow, handoffRow);

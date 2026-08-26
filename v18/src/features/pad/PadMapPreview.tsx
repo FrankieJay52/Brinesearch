@@ -126,6 +126,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     host.current.dataset.routeFeatureCount = String(routeGeometry?.features.length || 0);
     host.current.dataset.framePointCount = String(framePoints.length);
     host.current.dataset.destination = destination ? `${destination[1].toFixed(6)},${destination[0].toFixed(6)}` : "unavailable";
+    host.current.dataset.destinationRole = status.destination.role || displayCoordinate?.role || "unavailable";
     host.current.dataset.routeOverlayReady = "false";
     let map: MapLibreMap;
     let attribution: HTMLElement | null = null;
@@ -136,7 +137,11 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
       attribution = host.current.querySelector<HTMLElement>(".maplibregl-ctrl-attrib");
       if (attribution && attributionHost.current) attributionHost.current.appendChild(attribution);
       collapseCompactAttribution(attributionHost.current);
-      if (destination) new Marker({ color: status.destination.available ? "#52e4bd" : "#f0b45d" }).setLngLat(destination).addTo(map);
+      if (destination) new Marker({
+        color: status.destination.role === "saved_pad_destination"
+          ? "#f0b45d"
+          : status.destination.available ? "#52e4bd" : "#8e9bab",
+      }).setLngLat(destination).addTo(map);
     } catch {
       setMapError("Map preview could not start. The verified status above remains authoritative.");
       return;
@@ -266,7 +271,9 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
         {expanded ? <><span aria-hidden="true">×</span> Shrink map</> : <><span aria-hidden="true">↗</span> Expand</>}
       </button>
     </div>
-    {mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. Display only; it cannot launch navigation.</div>}
+    {status.destination.role === "saved_pad_destination"
+      ? <div className="pad-map-warning" role="note">Saved pad GPS. The approved road core ends at its handoff; lease access is destination-only.</div>
+      : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. Display only; it cannot launch navigation.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}
   </section>;
 }

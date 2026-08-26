@@ -6,11 +6,11 @@ export type DirectorySourceState =
   | "packaged_fallback"
   | "unavailable";
 
-export type CoordinateRole = "driver_entrance" | "legacy_saved" | "reference";
+export type CoordinateRole = "driver_entrance" | "saved_pad_destination" | "legacy_saved" | "reference";
 
 export type RouteState = "ready" | "written_only" | "held" | "stale" | "unavailable";
-export type RouteSource = "exact_graph" | "reviewed_written" | "legacy_written" | "destination_only" | "none";
-export type GraphState = "active_current" | "stale" | "held" | "unavailable";
+export type RouteSource = "exact_graph" | "exact_graph_handoff" | "reviewed_written" | "legacy_written" | "destination_only" | "none";
+export type GraphState = "active_current" | "verified_release" | "stale" | "held" | "unavailable";
 export type PublicGoogleState = "ready" | "held" | "not_published" | "stale" | "unavailable";
 
 export interface PadCoordinate {
@@ -166,6 +166,7 @@ export interface DriverPadStatus {
   };
   destination: {
     available: boolean;
+    role: "driver_entrance" | "saved_pad_destination" | null;
     latitude: number | null;
     longitude: number | null;
   };

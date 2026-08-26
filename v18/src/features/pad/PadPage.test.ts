@@ -18,7 +18,7 @@ function statusWithGoogle(routeUrl: string | null): DriverPadStatus {
     route: { state: "ready", source: "exact_graph", geometry: null, safeReason: null, lastVerifiedAt: null, writtenDirections: null },
     graph: { state: "active_current", county: "Harrison", publicSource: "BrineSearch Authoritative Graph", lastVerifiedAt: null },
     google: { publicState: "ready", routeUrl, safeReason: null },
-    destination: { available: true, latitude: 40.25403, longitude: -80.913577 },
+    destination: { available: true, role: "driver_entrance", latitude: 40.25403, longitude: -80.913577 },
     routeSteps: [],
   };
 }
@@ -78,7 +78,7 @@ describe("V18 pad legacy route fallback", () => {
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
     expect(padPage).toContain('<span><strong>Navigate</strong><small>{action.detail}</small></span>');
-    expect(padPage).toContain('detail: "Reviewed approved route"');
+    expect(padPage).toContain('"Approved road core · GPS destination" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
     expect(padPage).not.toContain("status.google.safeReason ||");
@@ -108,6 +108,45 @@ describe("V18 pad legacy route fallback", () => {
     expect(missingHtml).toContain("GPS destination only · not an approved route");
     expect(missingHtml).toContain("google.com/maps/search");
     expect(missingHtml).not.toContain("/maps/dir/");
+  });
+
+  it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&destination=40.240883%2C-80.913963";
+    const status = statusWithGoogle(routeUrl);
+    status.route.source = "exact_graph_handoff";
+    status.graph.state = "verified_release";
+    status.destination = { available: true, role: "saved_pad_destination", latitude: 40.240883, longitude: -80.913963 };
+    const view = buildGoogleHandoffView(status, true, true);
+    const action = buildFixedNavigationAction(view, mappedPad());
+
+    expect(view.mode).toBe("exact_core_destination");
+    expect(action).toMatchObject({
+      kind: "approved_route",
+      detail: "Approved road core · GPS destination",
+    });
+  });
+
+  it("shows a strictly restored frozen handoff immediately while the online refresh runs", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.240883%2C-80.913963&waypoints=40.2%2C-80.95";
+    const status = statusWithGoogle(routeUrl);
+    status.dataState = "cached";
+    status.loadProvenance = "device_cache";
+    status.route.source = "exact_graph_handoff";
+    status.graph.state = "verified_release";
+    status.routeSteps = [{ order: 1, kind: "continue", displayName: "US-250", verifiedDesignations: ["US-250"], instruction: "Continue", distanceMiles: 1 }];
+    status.destination = { available: true, role: "saved_pad_destination", latitude: 40.240883, longitude: -80.913963 };
+
+    expect(buildGoogleHandoffView(status, false, true, null, true)).toMatchObject({
+      available: true,
+      state: "ready",
+      routeUrl,
+      mode: "exact_core_destination",
+    });
+    expect(buildGoogleHandoffView(status, false, true, null, false)).toMatchObject({
+      available: false,
+      state: "unavailable",
+      routeUrl: null,
+    });
   });
 
   it("always renders a disabled Navigate control when there is no verified driver entrance", () => {
@@ -326,7 +365,8 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("labels exact numbered road instructions as one approved route", () => {
-    expect(padPage).toContain('displayedRouteSteps.length ? "Approved route"');
+    expect(padPage).toContain('status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route"');
+    expect(padPage).toContain("The remaining lease access to the saved pad GPS is shown as a separate destination");
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
