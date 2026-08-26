@@ -10,9 +10,14 @@
 
 .pad-header-primary {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(8rem, 23vw, 11rem);
+  grid-template-columns: minmax(0, 1fr) clamp(8.75rem, 26vw, 12.5rem);
   align-items: start;
   gap: clamp(12px, 2vw, 20px);
+}
+
+.pad-topbar-spacer {
+  width: 44px;
+  height: 44px;
 }
 
 .pad-header-block .pad-hero {
@@ -27,6 +32,40 @@
 
 .pad-header-block .pad-hero h1 {
   overflow-wrap: anywhere;
+}
+
+.pad-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+
+.pad-header-action {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted-strong);
+  background: var(--surface);
+  font-size: .7rem;
+  font-weight: 820;
+  cursor: pointer;
+}
+
+.pad-header-action svg {
+  width: 16px;
+  height: 16px;
+}
+
+.pad-header-action.is-favorite {
+  color: var(--teal-bright);
+  border-color: color-mix(in srgb, var(--teal) 42%, var(--line));
+  background: color-mix(in srgb, var(--teal) 10%, var(--surface));
 }
 
 .pad-header-map-slot {
@@ -249,7 +288,7 @@
 
 @media (max-width: 620px) {
   .pad-header-primary {
-    grid-template-columns: minmax(0, 1fr) clamp(7.75rem, 34vw, 9.5rem);
+    grid-template-columns: minmax(0, 1fr) clamp(8.25rem, 38vw, 10.5rem);
   }
 
   .pad-gps-actions {
