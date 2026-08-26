@@ -246,10 +246,16 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage.slice(topbarStart, headerStart)).not.toContain('aria-label={favorite ? "Remove favorite" : "Save favorite"}');
     expect(actionsStart).toBeGreaterThan(headerStart);
     expect(actionsStart).toBeLessThan(mapStart);
-    expect(padPage.slice(actionsStart, mapStart)).toContain('aria-pressed={favorite}');
-    expect(padPage.slice(actionsStart, mapStart)).toContain('{favorite ? "Saved" : "Save"}');
-    expect(padPage.slice(actionsStart, mapStart)).toContain('<Icon name="share"/>Share');
+    const actionSource = padPage.slice(actionsStart, mapStart);
+    expect(actionSource).toContain('role="group" aria-label="Pad actions"');
+    expect(actionSource).toContain('aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`}');
+    expect(actionSource).toContain('aria-pressed={favorite}');
+    expect(actionSource).toContain('onClick={() => toggleFavorite(pad.padId)}');
+    expect(actionSource).toContain('{favorite ? "Saved" : "Save"}');
+    expect(actionSource).toContain('aria-label={`Share ${pad.padName}`}');
+    expect(actionSource).toContain('navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href })');
     expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:[^;]*12\.5rem/s);
+    expect(padLayoutCss).toMatch(/\.pad-header-action\s*\{[^}]*min-height:\s*44px;/s);
   });
 
   it("uses a compact header map that can expand and shrink without rebuilding route authority", () => {
