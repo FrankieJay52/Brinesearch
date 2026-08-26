@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const migration = readFileSync(new URL(
-  "../../../supabase/migrations/20260826214500_issue97_revoke_incomplete_harrison_core_handoffs.sql",
+  "../../../supabase/migrations/20260826215136_issue97_revoke_incomplete_harrison_core_handoffs.sql",
   import.meta.url,
 ), "utf8").replaceAll("\r\n", "\n");
 
