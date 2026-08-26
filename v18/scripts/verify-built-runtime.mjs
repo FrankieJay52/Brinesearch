@@ -33,7 +33,8 @@ assert.match(appJavascript, /Ends at selected pad road projection/, "Built V18 a
 assert.match(appJavascript, /Gold inspection road/, "Built V18 app is missing the selected-road inspection legend");
 assert.match(appJavascript, /Reviewed field directions/, "Built V18 app is missing reviewed directions in the owner map");
 assert.match(appJavascript, /Approved route/, "Built V18 app is missing the single exact approved-route action");
-assert.match(appJavascript, /Open in Google Maps · BrineSearch exact-approved path/, "Built V18 app does not label BrineSearch as route authority");
+assert.match(appJavascript, /Open Google Maps through reviewed BrineSearch controls/, "Built V18 app does not label BrineSearch as route authority");
+assert.match(appJavascript, /BrineSearch approval begins at the verified route ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
 assert.match(appJavascript, /Approved route shown in BrineSearch/, "Built V18 app is missing the in-app-only exact-route fallback");
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list|Open destination pin/, "Built V18 app exposes a multipart or destination-only driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");

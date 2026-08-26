@@ -21,11 +21,46 @@ function row(points: Record<string, unknown>[]) {
     manifest: {
       manifest_version: "issue97-google-v1",
       manifest_digest: "b".repeat(32),
+      dependency_digest: "c".repeat(32),
       status: "ready",
       route_ready: true,
       pad_id: padId,
       route_revision: 7,
       points,
+    },
+  };
+}
+
+function handoffRow(value: ReturnType<typeof row>, sequences = [1, 13, 15]) {
+  const points = value.manifest.points;
+  const destination = points.at(-1)!;
+  return {
+    pad_id: padId,
+    route_revision: 7,
+    source_manifest_digest: "b".repeat(32),
+    source_dependency_digest: "c".repeat(32),
+    handoff_version: "v18-google-mobile-v1",
+    handoff_digest: "d".repeat(32),
+    published_at: "2026-08-25T22:10:00Z",
+    handoff: {
+      handoff_version: "v18-google-mobile-v1",
+      pad_id: padId,
+      route_revision: 7,
+      source_manifest_digest: "b".repeat(32),
+      source_dependency_digest: "c".repeat(32),
+      origin_mode: "current_location_until_route_ingress",
+      mobile_waypoint_limit: 3,
+      waypoints: sequences.map((sequence) => ({
+        sequence,
+        latitude: points[sequence - 1]?.latitude,
+        longitude: points[sequence - 1]?.longitude,
+      })),
+      destination: {
+        sequence: points.length,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+        pad_id: padId,
+      },
     },
   };
 }
@@ -67,7 +102,41 @@ describe("public Google route manifest", () => {
       { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
     ]));
     expect(plan.pointCount).toBe(16);
+    expect(plan.handoffMode).toBe("none");
     expect(plan.singleUrl).toBeNull();
+  });
+
+  it("uses one separately reviewed compact handoff without changing the full manifest", () => {
+    const value = row([
+      ...Array.from({ length: 15 }, (_, index) => shape(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+    ]);
+    const plan = buildGoogleRoutePublicPlan(value, handoffRow(value));
+
+    expect(plan.pointCount).toBe(16);
+    expect(plan.manifestDigest).toBe("b".repeat(32));
+    expect(plan.dependencyDigest).toBe("c".repeat(32));
+    expect(plan.handoffMode).toBe("verified_compact");
+    const url = new URL(plan.singleUrl!);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe([value.manifest.points[0], value.manifest.points[12], value.manifest.points[14]]
+      .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+    expect(url.searchParams.get("destination")).toBe("40.25403,-80.913577");
+  });
+
+  it("rejects a compact handoff that drifts from the exact manifest binding", () => {
+    const value = row([
+      ...Array.from({ length: 15 }, (_, index) => shape(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: padId },
+    ]);
+    expect(() => buildGoogleRoutePublicPlan(value, {
+      ...handoffRow(value),
+      source_manifest_digest: "e".repeat(32),
+    })).toThrow(/manifest digest does not match/i);
+    expect(() => buildGoogleRoutePublicPlan(value, handoffRow(value, [1, 15, 13]))).toThrow(/order is invalid/i);
+    const changed = handoffRow(value);
+    changed.handoff.destination.latitude = 40.25;
+    expect(() => buildGoogleRoutePublicPlan(value, changed)).toThrow(/exact saved pad destination/i);
   });
 
   it("fails closed when row, manifest, revision, or destination identity differs", () => {

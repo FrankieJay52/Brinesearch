@@ -94,11 +94,46 @@ function publicGoogleRow(points: Record<string, unknown>[]) {
     manifest: {
       manifest_version: "issue97-google-v1",
       manifest_digest: "b".repeat(32),
+      dependency_digest: "c".repeat(32),
       status: "ready",
       route_ready: true,
       pad_id: canonicalId,
       route_revision: 7,
       points,
+    },
+  };
+}
+
+function publicGoogleHandoffRow(value: ReturnType<typeof publicGoogleRow>, sequences = [1, 13, 15]) {
+  const points = value.manifest.points;
+  const destination = points.at(-1)!;
+  return {
+    pad_id: value.pad_id,
+    route_revision: value.route_revision,
+    source_manifest_digest: "b".repeat(32),
+    source_dependency_digest: "c".repeat(32),
+    handoff_version: "v18-google-mobile-v1",
+    handoff_digest: "d".repeat(32),
+    published_at: "2026-08-25T22:10:00Z",
+    handoff: {
+      handoff_version: "v18-google-mobile-v1",
+      pad_id: value.pad_id,
+      route_revision: value.route_revision,
+      source_manifest_digest: "b".repeat(32),
+      source_dependency_digest: "c".repeat(32),
+      origin_mode: "current_location_until_route_ingress",
+      mobile_waypoint_limit: 3,
+      waypoints: sequences.map((sequence) => ({
+        sequence,
+        latitude: points[sequence - 1]?.latitude,
+        longitude: points[sequence - 1]?.longitude,
+      })),
+      destination: {
+        sequence: points.length,
+        latitude: destination.latitude,
+        longitude: destination.longitude,
+        pad_id: value.pad_id,
+      },
     },
   };
 }
@@ -114,37 +149,48 @@ function exactReadyStatusRow() {
   };
 }
 
+function atomicStatusEnvelope(
+  status: Record<string, unknown>,
+  publicGoogleRoute: Record<string, unknown> | null = null,
+  publicGoogleHandoff: Record<string, unknown> | null = null,
+) {
+  return { status, publicGoogleRoute, publicGoogleHandoff };
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
 });
 
 describe("public driver status boundary", () => {
   it("launches one approved route only when the entire exact manifest has one mobile-safe URL", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse(exactReadyStatusRow()))
-      .mockResolvedValueOnce(jsonResponse([publicGoogleRow([
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      exactReadyStatusRow(),
+      publicGoogleRow([
         publicGooglePoint(1, 40.2, -80.9, "route_ingress"),
         { sequence: 2, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
-      ])]));
+      ]),
+    )));
     vi.stubGlobal("fetch", fetchMock);
 
     const status = await loadPadStatus(pad());
 
     expect(status.google.publicState).toBe("ready");
     expect(status.google.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_google_handoff");
   });
 
   it("keeps a valid multi-section manifest in-app instead of exposing its first section as a route", async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(jsonResponse(exactReadyStatusRow()))
-      .mockResolvedValueOnce(jsonResponse([publicGoogleRow([
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      exactReadyStatusRow(),
+      publicGoogleRow([
         publicGooglePoint(1, 40.2, -80.9, "route_ingress"),
         publicGooglePoint(2, 40.21, -80.91),
         publicGooglePoint(3, 40.22, -80.92),
         publicGooglePoint(4, 40.23, -80.93),
         { sequence: 5, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
-      ])]));
+      ]),
+    )));
     vi.stubGlobal("fetch", fetchMock);
 
     const status = await loadPadStatus(pad());
@@ -158,7 +204,53 @@ describe("public driver status boundary", () => {
       routeUrl: null,
       safeReason: "No single exact Google handoff is available. Use the BrineSearch map and approved steps.",
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("launches one Cologie-style reviewed compact handoff bound to a sixteen-point exact manifest", async () => {
+    const points = [
+      ...Array.from({ length: 15 }, (_, index) => publicGooglePoint(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
+    ];
+    const routeRow = publicGoogleRow(points);
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      exactReadyStatusRow(),
+      routeRow,
+      publicGoogleHandoffRow(routeRow),
+    )));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({ state: "ready", source: "exact_graph" });
+    expect(status.google.publicState).toBe("ready");
+    expect(status.google.safeReason).toMatch(/reviewed mobile controls/i);
+    const url = new URL(status.google.routeUrl!);
+    expect(url.searchParams.get("waypoints")).toBe([points[0], points[12], points[14]]
+      .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+    expect(url.searchParams.get("destination")).toBe("40.25403,-80.913577");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed when a compact handoff no longer matches its exact manifest", async () => {
+    const points = [
+      ...Array.from({ length: 15 }, (_, index) => publicGooglePoint(index + 1, 40.2 + index * 0.001, -80.9 - index * 0.001, index === 0 ? "route_ingress" : undefined)),
+      { sequence: 16, kind: "pad_destination", latitude: 40.25403, longitude: -80.913577, source_kind: "saved_pad_gps", pad_id: "11111111-1111-4111-8111-111111111111" },
+    ];
+    const routeRow = publicGoogleRow(points);
+    const handoff = publicGoogleHandoffRow(routeRow);
+    handoff.source_dependency_digest = "e".repeat(32);
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(
+      exactReadyStatusRow(),
+      routeRow,
+      handoff,
+    )));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({ state: "ready", source: "exact_graph" });
+    expect(status.google).toMatchObject({ publicState: "stale", routeUrl: null });
   });
 
   it("does not reveal private Google readiness in a split state", async () => {

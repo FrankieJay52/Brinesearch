@@ -36,6 +36,66 @@ function displayWrittenDirections(value: string) {
   return value.replace(/\\r\\n|\\n|\\r/g, "\n");
 }
 
+export interface GoogleHandoffView {
+  available: boolean;
+  state: DriverPadStatus["google"]["publicState"];
+  routeUrl: string | null;
+  reason: string;
+}
+
+export function buildGoogleHandoffView(
+  status: DriverPadStatus,
+  exactRouteDisplayed: boolean,
+  selectedRouteIsPrimary: boolean,
+): GoogleHandoffView {
+  const available = selectedRouteIsPrimary
+    && exactRouteDisplayed
+    && status.google.publicState === "ready"
+    && Boolean(status.google.routeUrl);
+  const state = status.google.publicState === "ready" && !available ? "unavailable" : status.google.publicState;
+  const reason = !selectedRouteIsPrimary
+    ? "The selected approved route is available in BrineSearch only."
+    : exactRouteDisplayed
+      ? "Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available."
+      : "No exact approved route is available for a Google handoff.";
+  return { available, state, routeUrl: available ? status.google.routeUrl : null, reason };
+}
+
+export function DriverActionPanel({ view, exactRouteDisplayed, hasWrittenDirections }: {
+  view: GoogleHandoffView;
+  exactRouteDisplayed: boolean;
+  hasWrittenDirections: boolean;
+}) {
+  return <div className="route-action-panel">
+    <span className="eyebrow">DRIVER ACTION</span>
+    {view.available && view.routeUrl ? <a className="navigate-action" href={view.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>Navigate approved route</strong><small>Open Google Maps through reviewed BrineSearch controls</small></span><b>↗</b></a>
+      : exactRouteDisplayed ? <div className="navigate-unavailable"><Icon name="route"/><span><strong>Approved route shown in BrineSearch</strong><small>Use the exact map and steps below. No single verified Google handoff is available.</small></span></div>
+      : <div className="navigate-unavailable"><Icon name="location"/><span><strong>No approved route action</strong><small>{hasWrittenDirections ? "Use only the reviewed directions and map shown in BrineSearch." : "No exact approved route is available yet."}</small></span></div>}
+    {view.available
+      ? <p className="route-safety-note"><strong>Approval boundary:</strong> Google chooses the approach from your current location. BrineSearch approval begins at the verified route ingress.</p>
+      : <p className="route-safety-note"><strong>Approved route handoff:</strong> {view.reason}</p>}
+  </div>;
+}
+
+export function currentStatusForPad(
+  resolvedStatus: DriverPadStatus | null,
+  pad: { padId: string; recordRevision: string },
+) {
+  return resolvedStatus?.padId === pad.padId
+    && resolvedStatus.recordRevision === pad.recordRevision
+    ? resolvedStatus
+    : null;
+}
+
+export function displayedRouteForChoice(status: DriverPadStatus, choice: DriverRouteChoice | null) {
+  const selectedRouteIsPrimary = !choice || choice.routeGroup === "primary";
+  return {
+    selectedRouteIsPrimary,
+    steps: choice?.routeGroup === "alternate" ? choice.steps : status.routeSteps,
+    geometry: choice?.routeGroup === "alternate" ? choice.geometry : status.route.geometry,
+  };
+}
+
 export function PadPage() {
   const { padId = "" } = useParams();
   const navigate = useNavigate();
@@ -77,32 +137,26 @@ export function PadPage() {
 
   if (loading) return <LoadingState message="Loading pad details…"/>;
   if (!pad) return <section className="page-state"><h1>Pad not found</h1><p>This link may refer to a removed or superseded record.</p><Link to="/search" className="button-primary">Return to Search</Link></section>;
-  const status = resolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
-  const connectionState = !online ? "offline" : resolvedStatus?.dataState === "live" ? "live" : resolvedStatus ? "last-known" : "checking";
+  const currentResolvedStatus = currentStatusForPad(resolvedStatus, pad);
+  const status = currentResolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
+  const currentRouteChoices = currentResolvedStatus ? routeChoices : [];
+  const connectionState = !online ? "offline" : currentResolvedStatus?.dataState === "live" ? "live" : currentResolvedStatus ? "last-known" : "checking";
   const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "last-known" ? "Last known" : "Checking live";
   const offlineCacheMiss = !online && status.route.safeReason === "Directions for this pad are not cached on this device.";
 
   const favorite = favorites.has(pad.padId);
   const identifierGroups = buildPadIdentifierGroups(pad);
-  const selectedRouteChoice = routeChoices.find((choice) => choice.routeKey === selectedRouteKey) || routeChoices[0] || null;
-  const displayedRouteSteps = selectedRouteChoice?.steps || status.routeSteps;
-  const displayedRouteGeometry = selectedRouteChoice?.geometry || status.route.geometry;
-  const selectedRouteIsPrimary = !selectedRouteChoice || selectedRouteChoice.routeGroup === "primary";
+  const selectedRouteChoice = currentRouteChoices.find((choice) => choice.routeKey === selectedRouteKey) || currentRouteChoices[0] || null;
+  const displayedRoute = displayedRouteForChoice(status, selectedRouteChoice);
+  const selectedRouteIsPrimary = displayedRoute.selectedRouteIsPrimary;
+  const displayedRouteSteps = displayedRoute.steps;
+  const displayedRouteGeometry = displayedRoute.geometry;
   const exactRouteDisplayed = status.route.state === "ready"
     && status.route.source === "exact_graph"
     && status.graph.state === "active_current"
     && displayedRouteSteps.length > 0
     && displayedRouteGeometry !== null;
-  const googleHandoffAvailable = selectedRouteIsPrimary
-    && exactRouteDisplayed
-    && status.google.publicState === "ready"
-    && Boolean(status.google.routeUrl);
-  const googleHandoffState = status.google.publicState === "ready" && !googleHandoffAvailable ? "unavailable" : status.google.publicState;
-  const googleHandoffReason = !selectedRouteIsPrimary
-    ? "The selected approved route is available in BrineSearch only."
-    : exactRouteDisplayed
-      ? "Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available."
-      : "No exact approved route is available for a Google handoff.";
+  const googleHandoff = buildGoogleHandoffView(status, exactRouteDisplayed, selectedRouteIsPrimary);
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
   return <article className="pad-page">
@@ -115,21 +169,15 @@ export function PadPage() {
     <div className={`pad-connection-badge is-${connectionState}`} role="status" aria-live="polite"><span/><strong>{connectionLabel}</strong><small>{connectionState === "live" ? "Current public route response" : connectionState === "checking" ? "Showing the pad while route status loads" : "Device-stored route information"}</small></div>
     {connectionState !== "live" && <div className="stale-banner"><Icon name="offline"/><div><strong>{offlineCacheMiss ? "Offline · not cached" : connectionState === "checking" ? "Checking current route status" : connectionState === "offline" ? "Offline directions" : "Last known directions"}</strong><span>{offlineCacheMiss ? "Open this pad once while online to save reviewed directions on this device." : `Current graph checks are not assumed. Last record update: ${dateLabel(pad.updatedAt)}`}</span></div></div>}
 
-    {routeChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
+    {currentRouteChoices.length > 1 && <section className="driver-route-choice-card" aria-labelledby="driver-route-choice-title">
       <div><span className="eyebrow">APPROVED ROUTE CHOICE</span><h2 id="driver-route-choice-title">Choose the route you want to view</h2><p>Every option shown here independently passed the exact route, current graph, verified destination, and public projection gates.</p></div>
-      <div className="driver-route-choice-buttons">{routeChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => setSelectedRouteKey(choice.routeKey)}><strong>{choice.label}</strong><span>{choice.steps.length} exact {choice.steps.length === 1 ? "road step" : "road steps"}</span></button>)}</div>
+      <div className="driver-route-choice-buttons">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => setSelectedRouteKey(choice.routeKey)}><strong>{choice.label}</strong><span>{choice.steps.length} exact {choice.steps.length === 1 ? "road step" : "road steps"}</span></button>)}</div>
       <small>Choosing a route changes the highlighted BrineSearch route. Google publication remains a separate safety gate.</small>
     </section>}
 
     <section className="pad-route-layout">
       <PadMapPreview pad={pad} status={status} routeGeometry={displayedRouteGeometry}/>
-      <div className="route-action-panel">
-        <span className="eyebrow">DRIVER ACTION</span>
-        {googleHandoffAvailable && status.google.routeUrl ? <a className="navigate-action" href={status.google.routeUrl} target="_blank" rel="noreferrer"><Icon name="route"/><span><strong>Approved route</strong><small>Open in Google Maps · BrineSearch exact-approved path</small></span><b>↗</b></a>
-          : exactRouteDisplayed ? <div className="navigate-unavailable"><Icon name="route"/><span><strong>Approved route shown in BrineSearch</strong><small>Use the exact map and steps below. No single verified Google handoff is available.</small></span></div>
-          : <div className="navigate-unavailable"><Icon name="location"/><span><strong>No approved route action</strong><small>{status.route.writtenDirections ? "Use only the reviewed directions and map shown in BrineSearch." : "No exact approved route is available yet."}</small></span></div>}
-        {!googleHandoffAvailable && <p className="route-safety-note"><strong>Approved route handoff:</strong> {googleHandoffReason}</p>}
-      </div>
+      <DriverActionPanel view={googleHandoff} exactRouteDisplayed={exactRouteDisplayed} hasWrittenDirections={Boolean(status.route.writtenDirections)}/>
     </section>
 
     <section className="readiness-card">
@@ -137,7 +185,7 @@ export function PadPage() {
       <div className="readiness-grid">
         <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
         <StatusColumn icon="graph" label="ROAD GRAPH" detail={`${status.graph.county || pad.county || "County not listed"} · ${dateLabel(status.graph.lastVerifiedAt)}`}><StatusBadge status={status.graph.state}/><strong>{status.graph.publicSource || "Public graph status"}</strong></StatusColumn>
-        <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoffAvailable ? "A single exact BrineSearch route package is available." : googleHandoffReason}><StatusBadge status={googleHandoffState}/><strong>{googleHandoffAvailable ? "Approved route action available" : "No exact Google handoff"}</strong></StatusColumn>
+        <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={googleHandoff.state}/><strong>{googleHandoff.available ? "Approved route action available" : "No exact Google handoff"}</strong></StatusColumn>
       </div>
     </section>
 
@@ -164,7 +212,7 @@ export function PadPage() {
         {wellRows !== undefined && <p className="pad-identifier-note">{wellRows?.length ? "Each row preserves the reviewed production well, API, and property relationship." : "The synchronized row contract is unavailable, so identifiers remain grouped by type and are not paired."}</p>}
       </section>
     </details>
-    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoffState.replaceAll("_", " ")}</strong></div></div></details>
+    <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoff.state.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
   </article>;
 }
