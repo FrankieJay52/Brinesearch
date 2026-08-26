@@ -113,14 +113,15 @@
 
 .pad-page .pad-map-shell.is-compact {
   width: min(100%, 15rem);
-  aspect-ratio: 1;
+  aspect-ratio: 4 / 3;
 }
 
 .pad-page .pad-map-shell.is-compact .pad-map-preview {
   width: 100%;
   height: 100%;
   min-height: 0;
-  border-radius: 20px;
+  border-radius: 17px;
+  box-shadow: var(--shadow-soft);
 }
 
 .pad-page .pad-map-shell.is-expanded {

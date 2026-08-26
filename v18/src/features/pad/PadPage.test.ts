@@ -235,13 +235,13 @@ describe("V18 pad legacy route fallback", () => {
     expect(padLayoutCss).toMatch(/\.pad-header-map-slot\s*>\s*\.pad-map-shell\s*\{[^}]*margin:\s*0 0 0 auto;/s);
   });
 
-  it("uses a compact square map that can expand and shrink without rebuilding route authority", () => {
+  it("uses a compact header map that can expand and shrink without rebuilding route authority", () => {
     expect(padMapPreview).toContain("const [expanded, setExpanded] = useState(false)");
     expect(padMapPreview).toContain('expanded ? "is-expanded" : "is-compact"');
     expect(padMapPreview).toContain('aria-label={expanded ? "Shrink pad map" : "Expand pad map"}');
     expect(padMapPreview).toContain('map.on("click", toggleMapSize)');
     expect(padMapPreview).toContain("map.resize()");
-    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*1;/s);
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-expanded\s*\{[^}]*position:\s*fixed;/s);
   });
 
