@@ -274,6 +274,19 @@ export function completedPadStatusIsReusable(status: DriverPadStatus) {
     && status.route.geometry !== null;
 }
 
+/**
+ * A cache-only readiness hint for lightweight lists. A miss is deliberately
+ * unknown, never held: only the full status boundary may prove a held state.
+ */
+export function hasCompletedReadyPadStatus(
+  pad: Pick<PadSummary, "padId" | "recordRevision">,
+  sourceState?: DirectorySourceState,
+) {
+  if (!deviceIsOnline()) return false;
+  const status = completedLiveStatusCache.get(liveStatusKey(pad, sourceState));
+  return Boolean(status && completedPadStatusIsReusable(status));
+}
+
 export function clearCompletedPadStatusCache() {
   completedLiveStatusCacheGeneration += 1;
   completedLiveStatusCache.clear();

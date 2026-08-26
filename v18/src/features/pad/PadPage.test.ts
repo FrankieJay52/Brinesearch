@@ -299,7 +299,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(actionSource).toContain('{favorite ? "Saved" : "Save"}');
     expect(actionSource).toContain('aria-label={`Share ${pad.padName}`}');
     expect(actionSource).toContain('navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href })');
-    expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:[^;]*12\.5rem/s);
+    expect(padLayoutCss).toMatch(/\.pad-header-primary\s*\{[^}]*grid-template-columns:[^;]*14\.5rem/s);
     expect(padLayoutCss).toMatch(/\.pad-header-action\s*\{[^}]*min-height:\s*44px;/s);
   });
 
@@ -309,9 +309,21 @@ describe("V18 pad legacy route fallback", () => {
     expect(padMapPreview).toContain('aria-label={expanded ? "Shrink pad map" : "Expand pad map"}');
     expect(padMapPreview).toContain('map.on("click", toggleMapSize)');
     expect(padMapPreview).toContain("map.resize()");
-    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
+    expect(padMapPreview).toContain("padMapFramePoints(routeGeometry, destination)");
+    expect(padMapPreview).toContain("collapseCompactAttribution(attributionHost.current)");
+    expect(padMapPreview).toContain('target.closest(".maplibregl-ctrl")');
+    expect(padMapPreview).toContain('className="pad-map-route-overlay"');
+    expect(padMapPreview).toContain("drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry)");
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-preview\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-warning\[role="note"\]\s*\{[^}]*display:\s*none;/s);
+    expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-size-toggle\s*\{[^}]*min-width:\s*86px;[^}]*height:\s*44px;/s);
+    expect(padMapPreview).toContain('className="pad-map-attribution-host" ref={attributionHost}');
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-expanded\s*\{[^}]*position:\s*fixed;/s);
+  });
+
+  it("labels exact numbered road instructions as one approved route", () => {
+    expect(padPage).toContain('displayedRouteSteps.length ? "Approved route"');
+    expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
   it("keeps saved written field directions visible below the fallback", () => {

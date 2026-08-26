@@ -38,8 +38,18 @@ describe("V18 map search dropdown", () => {
     expect(overlay).toContain('navigate(`/pad/${encodeURIComponent(pad.padId)}`)');
   });
 
+  it("shows distance and only cache-proven readiness without background status fan-out", () => {
+    expect(overlay).toContain("nearbyDistanceLabel(distanceMilesFromPad(pad, origin))");
+    expect(overlay).toContain("hasCompletedReadyPadStatus(pad, snapshot?.sourceState)");
+    expect(overlay).toContain("online && hasCompletedReadyPadStatus(pad, snapshot?.sourceState)");
+    expect(overlay).toContain('exactRouteReady ? "Ready" : "Check route"');
+    expect(overlay).not.toContain("loadPadStatus(");
+    expect(overlay).not.toContain('exactRouteReady ? "Ready" : "Held"');
+  });
+
   it("uses retryable phone GPS and keeps denied-location name search available", () => {
     expect(overlay).toContain("usePadSearchLocation()");
+    expect(overlay).toContain("padSearchResultsReadyForQuery(locationState, origin, query)");
     expect(overlay).toContain("retryLocation");
     expect(overlay).toContain("nearbyPadResultsHeading(query, origin)");
     expect(overlay).toContain("Use phone GPS");
