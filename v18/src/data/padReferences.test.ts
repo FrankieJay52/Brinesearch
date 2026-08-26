@@ -90,7 +90,7 @@ describe("V18 exact pad-reference contract", () => {
     });
   });
 
-  it("attaches saved pad GPS only when an exact packaged point is unavailable", () => {
+  it("keeps the current snapshot-bound saved pad GPS ahead of packaged display fallback", () => {
     const savedPayload = payload({
       kindCounts: { officialPadReference: 0, officialWellheadReference: 0, savedPadReference: 1 },
       rows: [{
@@ -111,11 +111,16 @@ describe("V18 exact pad-reference contract", () => {
     const packaged = snapshot();
     packaged.rows[0] = { ...packaged.rows[0], legacyId: "ascent--scout" };
     const result = attachPadReferences(packaged, references!);
-    expect(result.rows[0].mapReference).toBeNull();
+    expect(result.rows[0].mapReference).toMatchObject({
+      kind: "saved_pad_reference",
+      latitude: 40.2,
+      longitude: -80.8,
+    });
     expect(mapDisplayCoordinate(result.rows[0])).toEqual({
-      role: "legacy_saved",
-      latitude: 40.165091,
-      longitude: -80.903485,
+      role: "reference",
+      kind: "saved_pad_reference",
+      latitude: 40.2,
+      longitude: -80.8,
     });
   });
 

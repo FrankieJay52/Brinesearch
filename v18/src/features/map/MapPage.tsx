@@ -14,7 +14,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
-import { verifiedDriverEntrancePinUrl } from "@/data/googleDestination";
+import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import {
@@ -366,7 +366,9 @@ export function MapPage() {
   );
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
   const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
-  const selectedPinUrl = selected ? verifiedDriverEntrancePinUrl(selected) : null;
+  const selectedPinUrl = selected ? padDestinationPinUrl(selected) : null;
+  const selectedGpsNavigationUrl = selected ? padDestinationNavigationUrl(selected) : null;
+  const selectedGpsDestination = selected ? trustedPadDestination(selected) : null;
   const currentSelectedStatus = selected
     && selectedStatus?.padId === selected.padId
     && selectedStatus.recordRevision === selected.recordRevision ? selectedStatus : null;
@@ -775,11 +777,11 @@ export function MapPage() {
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
         {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail}/>
-          : selectedPinUrl ? <MapDestinationPinLink pinUrl={selectedPinUrl} padName={selected.padName}/>
-          : <small className="map-google-link-state">No verified driver entrance</small>}
+          : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
+          : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
       {selected.structuredRoadSequence && <details className="map-saved-road-sequence"><summary><strong>Saved road sequence</strong><span>View</span></summary><p>{selected.structuredRoadSequence}</p></details>}
-      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+      {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;

@@ -6,9 +6,9 @@ export function MapApprovedRouteLink({ routeUrl, padName, detail = "Approved rou
   </a>;
 }
 
-export function MapDestinationPinLink({ pinUrl, padName }: { pinUrl: string; padName: string }) {
-  return <a className="map-destination-pin-link" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Open the verified driver entrance for ${padName} in Google Maps; destination only, not an approved route`}>
-    <Icon name="location"/><span>Open GPS pin<small>Not an approved route</small></span><b>↗</b>
+export function MapDestinationPinLink({ pinUrl, padName, sourceLabel = "GPS destination" }: { pinUrl: string; padName: string; sourceLabel?: string }) {
+  return <a className="map-destination-pin-link" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Navigate to the ${sourceLabel.toLowerCase()} for ${padName} in Google Maps; GPS destination only, not an approved route`}>
+    <Icon name="location"/><span>Navigate<small>GPS destination only · {sourceLabel}</small></span><b>↗</b>
   </a>;
 }
 

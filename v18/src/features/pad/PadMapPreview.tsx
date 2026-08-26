@@ -273,7 +273,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     </div>
     {status.destination.role === "saved_pad_destination"
       ? <div className="pad-map-warning" role="note">Saved pad GPS. The approved road core ends at its handoff; lease access is destination-only.</div>
-      : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. Display only; it cannot launch navigation.</div>}
+      : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. GPS destination only; Google chooses the roads. Not a BrineSearch-approved route.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}
   </section>;
 }

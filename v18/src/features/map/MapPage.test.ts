@@ -135,8 +135,8 @@ describe("map viewer authority boundary", () => {
 
   it("keeps the selected-pad driver card compact without dropping route context", () => {
     const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
-    const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedPinUrl}", approvedAction);
-    const disabledAction = pageSource.indexOf("No verified driver entrance", pinAction);
+    const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}", approvedAction);
+    const disabledAction = pageSource.indexOf("No trusted GPS destination", pinAction);
     const sequenceDisclosure = pageSource.indexOf('<details className="map-saved-road-sequence">');
     const referenceWarning = pageSource.indexOf('selectedCoordinate?.role !== "driver_entrance"', sequenceDisclosure);
 
@@ -162,13 +162,15 @@ describe("map viewer authority boundary", () => {
     expect(mapGoogleHandoffState("held", false, true)).toBe("held");
   });
 
-  it("prioritizes the reviewed route and otherwise exposes only the verified entrance pin", () => {
+  it("prioritizes the reviewed route and otherwise exposes a sourced GPS-only destination", () => {
     expect(pageSource).toContain("loadReleasedGoogleHandoff(selected)");
     expect(pageSource).toContain("currentReleasedGoogleHandoff(releasedHandoff, selected)");
     expect(pageSource).toContain("releasedGoogleNavigationUrl(");
     expect(pageSource).toContain("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
-    expect(pageSource).toContain("verifiedDriverEntrancePinUrl(selected)");
-    expect(pageSource).toContain("<MapDestinationPinLink pinUrl={selectedPinUrl}");
+    expect(pageSource).toContain("padDestinationPinUrl(selected)");
+    expect(pageSource).toContain("padDestinationNavigationUrl(selected)");
+    expect(pageSource).toContain("trustedPadDestination(selected)");
+    expect(pageSource).toContain("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}");
     expect(pageSource).toContain('className="map-coordinate-pin"');
     expect(pageSource).toContain("destination pin only, not an approved route");
     expect(pageSource).not.toContain("Copy GPS");

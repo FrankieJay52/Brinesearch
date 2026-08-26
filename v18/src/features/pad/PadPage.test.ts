@@ -69,7 +69,7 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("keeps the fallback explicitly unverified and held behind route approval", () => {
-    expect(padPage).toContain("This is not a verified structured route, and the Google Maps handoff stays disabled until approval is complete.");
+    expect(padPage).toContain("They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.");
     expect(padPage).toContain("<StatusBadge status={status.route.state}/>");
     expect(padPage).toContain('status.google.publicState === "ready"');
     expect(padPage).toContain("Boolean(status.google.routeUrl)");
@@ -87,7 +87,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toContain("DriverActionPanel");
   });
 
-  it("prioritizes the exact approved route and otherwise keeps Navigate on the verified GPS pin", () => {
+  it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&destination=40.25403%2C-80.913577";
     const pad = mappedPad();
     const availableView = buildGoogleHandoffView(statusWithGoogle(routeUrl), true, true);
@@ -105,9 +105,9 @@ describe("V18 pad legacy route fallback", () => {
     const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
     expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
-    expect(missingHtml).toContain("GPS destination only · not an approved route");
-    expect(missingHtml).toContain("google.com/maps/search");
-    expect(missingHtml).not.toContain("/maps/dir/");
+    expect(missingHtml).toContain("GPS destination only · Verified driver entrance · not an approved route");
+    expect(missingHtml).toContain("google.com/maps/dir");
+    expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
   });
 
   it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
@@ -149,17 +149,16 @@ describe("V18 pad legacy route fallback", () => {
     });
   });
 
-  it("always renders a disabled Navigate control when there is no verified driver entrance", () => {
+  it("allows an exact ODNR pad reference as GPS destination-only without calling it an entrance", () => {
     const referencePad = { ...mappedPad(), coordinate: null, mapReference: { latitude: 40.25, longitude: -80.91, role: "reference" as const, kind: "official_pad_reference" as const } };
     const view = buildGoogleHandoffView(statusWithGoogle(null), false, true);
     const action = buildFixedNavigationAction(view, referencePad);
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
 
-    expect(action).toMatchObject({ kind: "unavailable", href: null });
-    expect(html).toContain("<button");
-    expect(html).toContain("disabled");
-    expect(html).toContain("No verified driver entrance");
-    expect(html).not.toContain("href=");
+    expect(action).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
+    expect(html).toContain("GPS destination only · ODNR official pad GPS · not an entrance · not an approved route");
+    expect(html).toContain("ODNR official pad GPS · not an entrance".toLowerCase());
+    expect(html).not.toContain("disabled");
   });
 
   it("shows the immutable reviewed release without waiting for the full status proof", () => {
@@ -180,7 +179,7 @@ describe("V18 pad legacy route fallback", () => {
     const offlineView = buildGoogleHandoffView(atomicStatus, true, true, null, false);
     expect(offlineView).toMatchObject({ available: false, state: "unavailable", routeUrl: null });
     expect(buildGoogleHandoffView(atomicStatus, true, true, routeUrl, false)).toMatchObject({ available: false, state: "unavailable", routeUrl: null });
-    expect(buildFixedNavigationAction(offlineView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/search/") });
+    expect(buildFixedNavigationAction(offlineView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
     expect(padPage).toContain("currentReleasedHandoffPlan?.singleUrl || null,");
     expect(padPage).toContain("    online,");
   });
@@ -212,7 +211,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(alternateDisplay.geometry).toBe(alternate.geometry);
     const alternateView = buildGoogleHandoffView(status, true, alternateDisplay.selectedRouteIsPrimary);
     expect(alternateView.available).toBe(false);
-    expect(buildFixedNavigationAction(alternateView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/search/") });
+    expect(buildFixedNavigationAction(alternateView, mappedPad())).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
   });
 
   it("never carries a previous pad status or Google link across a route-parameter change", () => {
@@ -242,13 +241,13 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain('class="pad-gps-coordinate-link mono"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
-    expect(html).toContain("Pin only · not an approved route");
+    expect(html).toContain("GPS destination only · not an approved route");
     expect(html).toContain("destination pin only, not an approved route");
     expect(html).not.toContain("Reviewed approved route");
     expect(html).not.toContain("/maps/dir/");
   });
 
-  it("never turns a display-only reference coordinate into a Google pin action", () => {
+  it("keeps an ODNR pad coordinate explicitly labelled while allowing destination-only navigation", () => {
     const referencePad = {
       ...mappedPad(),
       coordinate: null,
@@ -261,13 +260,14 @@ describe("V18 pad legacy route fallback", () => {
     };
     const html = renderToStaticMarkup(createElement(PadGpsActions, { pad: referencePad }));
 
-    expect(destinationPinUrl(referencePad)).toBeNull();
+    expect(destinationPinUrl(referencePad)).toBe("https://www.google.com/maps/search/?api=1&query=40.25%2C-80.91");
     expect(html).toContain(">COPY</span>");
     expect(html).toContain('class="pad-gps-copy-pill"');
     expect(html).toContain('class="pad-gps-copy-status" role="status" aria-live="polite"');
-    expect(html).toContain("Display only · no navigation");
-    expect(html).not.toContain("pad-gps-coordinate-link");
-    expect(html).not.toContain("google.com/maps/search");
+    expect(html).toContain("ODNR official pad GPS · not an entrance");
+    expect(html).toContain("GPS destination only · not an approved route");
+    expect(html).toContain("pad-gps-coordinate-link");
+    expect(html).toContain("google.com/maps/search");
   });
 
   it("orders the pad content as header with compact map, wells, route, collapsed readiness, then freshness", () => {
@@ -357,6 +357,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(padMapPreview).toContain('target.closest(".maplibregl-ctrl")');
     expect(padMapPreview).toContain('className="pad-map-route-overlay"');
     expect(padMapPreview).toContain("drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry)");
+    expect(padMapPreview).toContain("GPS destination only; Google chooses the roads. Not a BrineSearch-approved route.");
+    expect(padMapPreview).not.toContain("Display only; it cannot launch navigation.");
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-preview\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-warning\[role="note"\]\s*\{[^}]*display:\s*none;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-size-toggle\s*\{[^}]*min-width:\s*86px;[^}]*height:\s*44px;/s);

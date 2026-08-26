@@ -38,8 +38,11 @@ assert.match(appJavascript, /Approval begins at its verified ingress/, "Built V1
 assert.match(appJavascript, /Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available/, "Built V18 app is missing the in-app-only exact-route fallback");
 assert.match(appJavascript, /GPS destination only/, "Built V18 app is missing the always-present destination-pin navigation fallback");
 assert.match(appJavascript, /destination pin only, not an approved route/, "Built V18 app is missing clickable verified GPS coordinates");
-assert.match(appJavascript, /Pin only · not an approved route/, "Built V18 app is missing the compact GPS authority boundary");
-assert.match(appJavascript, /No verified driver entrance/, "Built V18 app is missing the disabled navigation state");
+assert.match(appJavascript, /GPS destination only · not an approved route/, "Built V18 app is missing the compact GPS authority boundary");
+assert.match(appJavascript, /No trusted GPS destination/, "Built V18 app is missing the disabled navigation state");
+assert.match(appJavascript, /ODNR official pad GPS · not an entrance/, "Built V18 app is missing the official-pad destination source label");
+assert.match(appJavascript, /ODNR official wellhead GPS · not an entrance/, "Built V18 app is missing the official-wellhead destination source label");
+assert.match(appJavascript, /Saved pad GPS/, "Built V18 app is missing the saved-pad destination source label");
 assert.match(appJavascript, /7 closest pads/, "Built V18 app is missing nearest-pad quick search");
 assert.match(appJavascript, /Closest matching pads/, "Built V18 app is missing nearest-first matching search");
 assert.match(appJavascript, /Pad-name matches/, "Built V18 app is missing honest no-GPS search labeling");

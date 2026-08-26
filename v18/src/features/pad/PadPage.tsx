@@ -9,7 +9,7 @@ import { saveRecent } from "@/data/offline";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
-import { verifiedDriverEntrancePinUrl } from "@/data/googleDestination";
+import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
@@ -115,18 +115,19 @@ export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSumm
       ? "Navigate the exact approved road core, then continue to the saved GPS destination in Google Maps"
       : "Navigate the reviewed approved route in Google Maps",
   };
-  const pinUrl = destinationPinUrl(pad);
-  if (pinUrl) return {
+  const destinationUrl = padDestinationNavigationUrl(pad);
+  const destination = trustedPadDestination(pad);
+  if (destinationUrl && destination) return {
     kind: "destination_pin",
-    href: pinUrl,
-    detail: "GPS destination only · not an approved route",
-    ariaLabel: "Open the verified driver entrance in Google Maps; destination only, not a BrineSearch-approved route",
+    href: destinationUrl,
+    detail: `GPS destination only · ${destination.label} · not an approved route`,
+    ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
   };
   return {
     kind: "unavailable",
     href: null,
-    detail: "No verified driver entrance",
-    ariaLabel: "Navigation unavailable because this pad has no verified driver entrance",
+    detail: "No trusted GPS destination",
+    ariaLabel: "Navigation unavailable because this pad has no explicitly sourced GPS destination",
   };
 }
 
@@ -146,7 +147,7 @@ export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pa
 }
 
 export function destinationPinUrl(pad: PadSummary) {
-  return verifiedDriverEntrancePinUrl(pad);
+  return padDestinationPinUrl(pad);
 }
 
 export function PadGpsActions({ pad }: { pad: PadSummary }) {
@@ -174,7 +175,7 @@ export function PadGpsActions({ pad }: { pad: PadSummary }) {
       <button type="button" className={`pad-gps-copy-pill${copied ? " is-copied" : ""}`} onClick={copyGps} aria-label={copied ? `${locationLabel} GPS coordinates copied` : `Copy ${locationLabel.toLowerCase()} GPS coordinates`}><span aria-hidden="true">COPY</span></button>
       <span className="pad-gps-copy-status" role="status" aria-live="polite">{copied ? "GPS copied" : ""}</span>
     </div>
-    <span className="pad-gps-boundary">{pinUrl ? "Pin only · not an approved route" : "Display only · no navigation"}</span>
+    <span className="pad-gps-boundary">{pinUrl ? "GPS destination only · not an approved route" : "Display only · no navigation"}</span>
   </aside>;
 }
 
@@ -327,8 +328,8 @@ export function PadPage() {
     <section className="route-steps-card">
       <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
-         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. This is not a verified structured route, and the Google Maps handoff stays disabled until approval is complete.</p></div>
-        : <p className="card-empty">No approved structured road cards or saved BrineSearch directions are publicly available yet.</p>}
+        : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
+        : <p className="card-empty">No reviewed field directions are on file. GPS-only navigation remains destination utility and is not an approved route.</p>}
       {displayedRouteSteps.length > 0 && status.route.source === "exact_graph_handoff" && <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining lease access to the saved pad GPS is shown as a separate destination, not as an approved public road.</div>}
     </section>
 

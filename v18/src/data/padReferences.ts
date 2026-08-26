@@ -1,5 +1,4 @@
 import { parseCoordinatePair } from "./coordinates";
-import { mapDisplayCoordinate } from "./mapDisplayCoordinates";
 import type { DirectorySnapshot, PadMapReference, PadMapReferenceKind } from "./types";
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wvxzqtoiwhrgovzddtvz.supabase.co";
@@ -87,8 +86,6 @@ export function attachPadReferences(snapshot: DirectorySnapshot, references: Map
     rows: snapshot.rows.map((row) => {
       const reference = references.get(row.padId) || null;
       if (!reference || row.coordinate) return { ...row, mapReference: null };
-      if (reference.kind === "saved_pad_reference"
-        && mapDisplayCoordinate({ ...row, mapReference: null })) return { ...row, mapReference: null };
       return { ...row, mapReference: reference };
     }),
   };
