@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getPackagedSnapshotForTest } from "./directory";
-import { closestPadSearchResults, distanceMilesBetween, searchDirectory } from "./search";
+import { closestPadSearchResults, distanceMilesBetween, nearbyDistanceLabel, nearbyPadResultsHeading, searchDirectory } from "./search";
 
 const filters = { type: "all", route: "all" } as const;
 
@@ -73,6 +73,21 @@ describe("driver search", () => {
     expect(results.every((row) => row.recordType === "pad")).toBe(true);
   });
 
+  it("puts the pad at the phone's current coordinates first", () => {
+    const base = snapshot.rows.find((row) => row.recordType === "pad")!;
+    const rows = [
+      { ...base, padId: "two-miles", padName: "SECOND", coordinate: { latitude: 40.029, longitude: -80, role: "driver_entrance" as const } },
+      { ...base, padId: "sitting-here", padName: "FIRST", coordinate: { latitude: 40, longitude: -80, role: "driver_entrance" as const } },
+      { ...base, padId: "one-mile", padName: "THIRD", coordinate: { latitude: 40.0145, longitude: -80, role: "driver_entrance" as const } },
+    ];
+
+    expect(closestPadSearchResults(rows, "", { latitude: 40, longitude: -80 }).map((row) => row.padId)).toEqual([
+      "sitting-here",
+      "one-mile",
+      "two-miles",
+    ]);
+  });
+
   it("filters literal pad-name matches and ranks them nearest-first", () => {
     const base = snapshot.rows.find((row) => row.recordType === "pad")!;
     const rows = [
@@ -95,6 +110,30 @@ describe("driver search", () => {
     expect(closestPadSearchResults(rows, "cologie", null).map((row) => row.padId)).toEqual(["alpha", "zulu"]);
     expect(closestPadSearchResults(rows, "", null)).toEqual([]);
     expect(closestPadSearchResults(rows, "---", null)).toEqual([]);
+  });
+
+  it("keeps equal-distance results deterministic when directory input order changes", () => {
+    const base = snapshot.rows.find((row) => row.recordType === "pad")!;
+    const alpha = { ...base, padId: "alpha", padName: "MATCH ALPHA", coordinate: { latitude: 40.01, longitude: -80, role: "driver_entrance" as const } };
+    const zulu = { ...base, padId: "zulu", padName: "MATCH ZULU", coordinate: { latitude: 40.01, longitude: -80, role: "driver_entrance" as const } };
+    const origin = { latitude: 40, longitude: -80 };
+
+    expect(closestPadSearchResults([zulu, alpha], "match", origin).map((row) => row.padId)).toEqual(["alpha", "zulu"]);
+    expect(closestPadSearchResults([alpha, zulu], "match", origin).map((row) => row.padId)).toEqual(["alpha", "zulu"]);
+  });
+
+  it("labels approximate phone distance without claiming the phone is at a pad entrance", () => {
+    expect(nearbyDistanceLabel(0)).toBe("<0.1 mi from phone GPS");
+    expect(nearbyDistanceLabel(1.24)).toBe("~1.2 mi from phone GPS");
+    expect(nearbyDistanceLabel(null)).toBeNull();
+  });
+
+  it("describes proximity only when a valid phone GPS is available", () => {
+    const phone = { latitude: 40.25, longitude: -80.91 };
+    expect(nearbyPadResultsHeading("", phone)).toBe("7 closest pads");
+    expect(nearbyPadResultsHeading("Cologie", phone)).toBe("Closest matching pads");
+    expect(nearbyPadResultsHeading("", null)).toBe("Nearby pads");
+    expect(nearbyPadResultsHeading("Cologie", null)).toBe("Pad-name matches");
   });
 
   it("uses real great-circle distance without changing route authority", () => {

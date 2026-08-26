@@ -296,7 +296,10 @@ h2 { letter-spacing: -.035em; }
 .map-inline-search button.map-filter-toggle[aria-expanded="true"] { color: #07131f; background: var(--teal); }
 .map-inline-search button.map-filter-toggle[data-active="true"][aria-expanded="false"] { color: var(--teal-bright); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--teal) 46%, transparent); }
 .map-filter-panel[hidden] { display: none; }
-.map-inline-results { max-height: min(42dvh, 330px); margin-top: 7px; padding: 5px; display: grid; gap: 4px; overflow-y: auto; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: 13px; background: var(--bg-deep); box-shadow: var(--shadow); }
+.map-inline-results { max-height: min(46dvh, 360px); margin-top: 7px; padding: 5px; display: grid; gap: 4px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 13px; background: var(--bg-deep); box-shadow: var(--shadow); }
+.map-inline-results-heading { min-height: 32px; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 8px; color: var(--muted); font-size: .63rem; }
+.map-inline-results-heading strong { color: var(--text); font-size: .7rem; }
+.map-inline-results-heading span { white-space: nowrap; }
 .map-inline-results > button { min-height: 51px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; border: 0; border-radius: 10px; color: var(--text); background: transparent; text-align: left; cursor: pointer; }
 .map-inline-results > button:hover, .map-inline-results > button[aria-selected="true"] { background: var(--surface-raised); }
 .map-inline-results > button > span:first-child { min-width: 0; display: grid; gap: 3px; }
@@ -304,6 +307,9 @@ h2 { letter-spacing: -.035em; }
 .map-inline-results small { color: var(--muted); font-size: .67rem; }
 .map-inline-results > button > svg { width: 1rem; color: var(--teal); }
 .map-inline-results > p { margin: 0; padding: 13px 10px; color: var(--muted); font-size: .75rem; }
+.map-inline-search-prompt { display: grid; gap: 8px; padding: 10px; color: var(--muted); font-size: .72rem; line-height: 1.4; }
+.map-inline-search-prompt p { margin: 0; }
+.map-inline-search-prompt button { min-height: 38px; border: 1px solid color-mix(in srgb, var(--teal) 45%, var(--line)); border-radius: 9px; color: var(--teal-bright); background: var(--surface-raised); font-size: .7rem; font-weight: 820; cursor: pointer; }
 .map-inline-results button.map-search-all { min-height: 42px; color: var(--teal-bright); border-top: 1px solid var(--line-soft); font-size: .7rem; font-weight: 800; }
 .filter-row { display: flex; align-items: center; gap: 8px; margin-top: 9px; }
 .filter-row button {
@@ -445,9 +451,13 @@ h2 { letter-spacing: -.035em; }
 .map-coordinate-reference > span { min-width: 0; display: grid; gap: 3px; }
 .map-coordinate-reference strong, .map-saved-road-sequence strong { font-size: .7rem; }
 .map-coordinate-reference small { color: var(--muted); font: 650 .68rem/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.map-coordinate-pin { width: fit-content; color: var(--teal-bright); font: 750 .68rem/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; text-decoration: underline; text-underline-offset: 3px; }
 .map-coordinate-reference > a { flex: 0 0 auto; min-height: 38px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid color-mix(in srgb, var(--teal) 55%, var(--line)); border-radius: 9px; color: #06131c; background: linear-gradient(135deg, var(--teal-bright), var(--teal)); font-size: .67rem; font-weight: 850; text-decoration: none; }
 .map-coordinate-reference > a svg { width: 15px; height: 15px; }
 .map-coordinate-reference > a b { font-size: .8rem; }
+.map-coordinate-reference > a.map-destination-pin-link { color: var(--text); border-color: color-mix(in srgb, var(--amber) 44%, var(--line)); background: color-mix(in srgb, var(--amber) 16%, var(--surface-raised)); }
+.map-destination-pin-link > span { display: grid; gap: 1px; }
+.map-coordinate-reference .map-destination-pin-link small { color: var(--muted); font: 700 .55rem/1.2 var(--font-body); }
 .map-google-link-state { max-width: 112px; color: var(--muted); text-align: right; font: 750 .63rem/1.25 var(--font-body); }
 .map-saved-road-sequence { display: grid; gap: 5px; }
 .map-saved-road-sequence span { color: var(--muted-strong); font-size: .7rem; line-height: 1.45; }

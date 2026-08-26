@@ -14,6 +14,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
+import { verifiedDriverEntrancePinUrl } from "@/data/googleDestination";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import {
@@ -23,6 +24,7 @@ import {
 } from "@/data/releasedGoogleHandoff";
 import { loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
+import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
 import {
@@ -33,11 +35,11 @@ import {
   hasSafeCoordinate,
   mapDisplayCoordinate,
   mapGoogleHandoffState,
-  mapPadSearchResults,
   mapViewerModeFromParam,
   type MapViewerMode,
 } from "./mapModel";
-import { MapApprovedRouteLink } from "./MapApprovedRouteLink";
+import { MapApprovedRouteLink, MapDestinationPinLink } from "./MapApprovedRouteLink";
+import { padSearchResultsReady, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
 const fallbackMapStyle: StyleSpecification = {
@@ -330,6 +332,7 @@ export function MapPage() {
   const [mapRenderState, setMapRenderState] = useState<MapRenderState>("loading");
   const [mapNotice, setMapNotice] = useState("Loading basemap and mapped locations…");
   const [companyRoadRenderFailed, setCompanyRoadRenderFailed] = useState(false);
+  const { origin: mapSearchOrigin, state: mapSearchLocationState, requestLocation: requestMapSearchLocation, retryLocation: retryMapSearchLocation } = usePadSearchLocation();
   const mapHost = useRef<HTMLDivElement | null>(null);
   const padOverlay = useRef<HTMLCanvasElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
@@ -356,9 +359,14 @@ export function MapPage() {
     [selectedRoadCompany, snapshot, typeFilter],
   );
   const visibleMappedCount = useMemo(() => visibleRows.filter(hasSafeCoordinate).length, [visibleRows]);
-  const searchResults = useMemo(() => mapPadSearchResults(snapshot?.rows || [], mapSearch), [mapSearch, snapshot]);
+  const mapSearchReady = padSearchResultsReady(mapSearchLocationState, mapSearchOrigin);
+  const searchResults = useMemo(
+    () => mapSearchReady ? closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7) : [],
+    [mapSearch, mapSearchOrigin, mapSearchReady, snapshot],
+  );
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
   const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
+  const selectedPinUrl = selected ? verifiedDriverEntrancePinUrl(selected) : null;
   const currentSelectedStatus = selected
     && selectedStatus?.padId === selected.padId
     && selectedStatus.recordRevision === selected.recordRevision ? selectedStatus : null;
@@ -693,8 +701,8 @@ export function MapPage() {
       <div className={`map-search-card${mapFiltersOpen ? " is-expanded" : ""}`}>
         <form className="map-inline-search" onSubmit={(event) => { event.preventDefault(); if (searchResults[0]) focusPad(searchResults[0]); }}>
           <Icon name="search"/>
-          <input type="search" value={mapSearch} onChange={(event) => { setMapSearch(event.target.value.slice(0, 120)); setMapSearchOpen(true); }} onFocus={() => setMapSearchOpen(true)} placeholder="Search pads" aria-label="Search pad name on map" autoComplete="off"/>
-          {mapSearch && <button type="button" onClick={() => { setMapSearch(""); setMapSearchOpen(false); }} aria-label="Clear map search"><Icon name="close"/></button>}
+          <input type="search" value={mapSearch} onChange={(event) => { setMapSearch(event.target.value.slice(0, 120)); setMapSearchOpen(true); if (mapSearchLocationState === "idle") requestMapSearchLocation(); }} onFocus={() => { setMapSearchOpen(true); requestMapSearchLocation(); }} placeholder="Search pads" aria-label="Search pad name on map" aria-controls="map-nearest-pad-results" autoComplete="off"/>
+          {mapSearch && <button type="button" onClick={() => { setMapSearch(""); setMapSearchOpen(true); requestMapSearchLocation(); }} aria-label="Clear map search"><Icon name="close"/></button>}
           <button
             type="button"
             className="map-filter-toggle"
@@ -705,10 +713,14 @@ export function MapPage() {
             onClick={() => setMapFiltersOpen((open) => !open)}
           ><Icon name="control"/><span>Filters</span></button>
         </form>
-        {mapSearchOpen && mapSearch.trim() && <div className="map-inline-results" role="listbox" aria-label="Mapped pad matches">
-          {searchResults.length ? searchResults.map((row) => <button key={row.padId} type="button" role="option" aria-selected={row.padId === selectedId} onClick={() => focusPad(row)}>
-            <span><strong>{row.padName}</strong><small>{[row.company, row.county, row.state].filter(Boolean).join(" · ")}</small></span><Icon name="location"/>
-          </button>) : <p>No safe map point matches that pad name.</p>}
+        {mapSearchOpen && <div id="map-nearest-pad-results" className="map-inline-results" role="region" aria-label="Pad search results" aria-live="polite">
+          <div className="map-inline-results-heading"><strong>{nearbyPadResultsHeading(mapSearch, mapSearchOrigin)}</strong><span>{mapSearchLocationState === "ready" ? "From this phone" : mapSearchLocationState === "locating" ? "Finding phone…" : "Phone GPS needed"}</span></div>
+          {searchResults.length ? searchResults.map((row) => {
+            const distance = nearbyDistanceLabel(distanceMilesFromPad(row, mapSearchOrigin));
+            return <button key={row.padId} type="button" aria-pressed={row.padId === selectedId} onClick={() => focusPad(row)}>
+              <span><strong>{row.padName}</strong><small>{[row.company, row.county, row.state, distance].filter(Boolean).join(" · ")}</small></span><Icon name="location"/>
+            </button>;
+          }) : <div className="map-inline-search-prompt"><p>{!mapSearchReady ? "Using this phone's current GPS to find nearby pads…" : mapSearch.trim() ? "No pad name matches that text." : "Allow location to see the seven closest pads."}</p>{mapSearchReady && !mapSearchOrigin && <button type="button" onClick={retryMapSearchLocation}>Use phone GPS</button>}</div>}
           <button type="button" className="map-search-all" onClick={() => navigate("/search/all")}>Search the complete directory <span>→</span></button>
         </div>}
         <div id="map-filter-panel" className="map-filter-panel" hidden={!mapFiltersOpen}>
@@ -748,9 +760,12 @@ export function MapPage() {
       {currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
       {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Exact approved inbound route highlighted. Other approved roads are subdued while this pad is selected.` : "No exact approved inbound route is currently public for this pad. No route line was inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
-        <span><strong>{mapDisplayCoordinateLabel(selected)}</strong><small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small></span>
+        <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
+          ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
+          : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
         {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName}/>
-          : <small className="map-google-link-state">{online && releasedHandoff === undefined ? "Checking route…" : "No approved Google route"}</small>}
+          : selectedPinUrl ? <MapDestinationPinLink pinUrl={selectedPinUrl} padName={selected.padName}/>
+          : <small className="map-google-link-state">No verified driver entrance</small>}
       </div>}
       {selected.structuredRoadSequence && <div className="map-saved-road-sequence"><strong>Saved road sequence</strong><span>{selected.structuredRoadSequence}</span></div>}
       {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selected.mapReference?.kind === "saved_pad_reference" ? "This exact saved pad GPS is displayed for field checking only. It is not a verified entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate?.role === "reference" ? "This exact official pad/wellhead reference is displayed only to locate the record. It is not a driver entrance, route endpoint, approved route, or permission to launch Google navigation." : selectedCoordinate ? "This exact saved GPS is displayed for field checking only. It is not a verified entrance, an approved route, or permission to launch Google navigation." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}

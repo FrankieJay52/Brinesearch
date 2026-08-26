@@ -36,10 +36,14 @@ assert.match(appJavascript, /Reviewed approved route/, "Built V18 app is missing
 assert.match(appJavascript, /Navigate the reviewed approved route in Google Maps/, "Built V18 app does not label the approved-route handoff");
 assert.match(appJavascript, /Approval begins at its verified ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
 assert.match(appJavascript, /Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available/, "Built V18 app is missing the in-app-only exact-route fallback");
-assert.match(appJavascript, /Open destination pin only/, "Built V18 app is missing the explicitly non-route GPS pin action");
-assert.match(appJavascript, /Pin only/, "Built V18 app does not distinguish a GPS pin from approved navigation");
+assert.match(appJavascript, /GPS destination only/, "Built V18 app is missing the always-present destination-pin navigation fallback");
+assert.match(appJavascript, /Tap coordinates to open Google Maps/, "Built V18 app is missing clickable verified GPS coordinates");
+assert.match(appJavascript, /No verified driver entrance/, "Built V18 app is missing the disabled navigation state");
 assert.match(appJavascript, /7 closest pads/, "Built V18 app is missing nearest-pad quick search");
 assert.match(appJavascript, /Closest matching pads/, "Built V18 app is missing nearest-first matching search");
+assert.match(appJavascript, /Pad-name matches/, "Built V18 app is missing honest no-GPS search labeling");
+assert.match(appJavascript, /from phone GPS/, "Built V18 app is missing phone-relative distance labeling");
+assert.match(appJavascript, /Using this phone's current GPS/, "Built V18 app is missing phone-location search disclosure");
 assert.match(appJavascript, /Expand map/, "Built V18 app is missing the compact expandable pad map");
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
