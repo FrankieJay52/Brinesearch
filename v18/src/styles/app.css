@@ -445,7 +445,10 @@ h2 { letter-spacing: -.035em; }
 .map-coordinate-reference > span { min-width: 0; display: grid; gap: 3px; }
 .map-coordinate-reference strong, .map-saved-road-sequence strong { font-size: .7rem; }
 .map-coordinate-reference small { color: var(--muted); font: 650 .68rem/1.3 ui-monospace, SFMono-Regular, Consolas, monospace; }
-.map-coordinate-reference button { flex: 0 0 auto; min-height: 36px; padding: 0 10px; border: 1px solid var(--line); border-radius: 9px; color: var(--teal-bright); background: var(--bg-deep); font-size: .67rem; font-weight: 800; cursor: pointer; }
+.map-coordinate-reference > a { flex: 0 0 auto; min-height: 38px; padding: 0 10px; display: inline-flex; align-items: center; gap: 6px; border: 1px solid color-mix(in srgb, var(--teal) 55%, var(--line)); border-radius: 9px; color: #06131c; background: linear-gradient(135deg, var(--teal-bright), var(--teal)); font-size: .67rem; font-weight: 850; text-decoration: none; }
+.map-coordinate-reference > a svg { width: 15px; height: 15px; }
+.map-coordinate-reference > a b { font-size: .8rem; }
+.map-google-link-state { max-width: 112px; color: var(--muted); text-align: right; font: 750 .63rem/1.25 var(--font-body); }
 .map-saved-road-sequence { display: grid; gap: 5px; }
 .map-saved-road-sequence span { color: var(--muted-strong); font-size: .7rem; line-height: 1.45; }
 .map-fullscreen .map-selection-card, .map-fullscreen .map-cluster-chooser { bottom: calc(env(safe-area-inset-bottom) + 14px); }

@@ -1,4 +1,10 @@
 import type { PadSummary, SearchFilters } from "./types";
+import { mapDisplayCoordinate } from "./mapDisplayCoordinates";
+
+export interface SearchOrigin {
+  latitude: number;
+  longitude: number;
+}
 
 export function normalizeSearchText(value: unknown) {
   return String(value ?? "")
@@ -74,4 +80,82 @@ export function searchDirectory(rows: PadSummary[], rawQuery: string, filters: S
     )
     .slice(0, limit)
     .map((item) => item.row);
+}
+
+function validOrigin(origin: SearchOrigin | null): origin is SearchOrigin {
+  return Boolean(origin)
+    && Number.isFinite(origin?.latitude)
+    && Number.isFinite(origin?.longitude)
+    && origin!.latitude >= -90
+    && origin!.latitude <= 90
+    && origin!.longitude >= -180
+    && origin!.longitude <= 180;
+}
+
+export function distanceMilesBetween(left: SearchOrigin, right: SearchOrigin) {
+  const radians = Math.PI / 180;
+  const latitudeDelta = (right.latitude - left.latitude) * radians;
+  const longitudeDelta = (right.longitude - left.longitude) * radians;
+  const leftLatitude = left.latitude * radians;
+  const rightLatitude = right.latitude * radians;
+  const chord = Math.sin(latitudeDelta / 2) ** 2
+    + Math.cos(leftLatitude) * Math.cos(rightLatitude) * Math.sin(longitudeDelta / 2) ** 2;
+  const boundedChord = Math.min(1, Math.max(0, chord));
+  return 3958.7613 * 2 * Math.atan2(Math.sqrt(boundedChord), Math.sqrt(1 - boundedChord));
+}
+
+function deterministicPadOrder(left: PadSummary, right: PadSummary) {
+  return left.padName.localeCompare(right.padName)
+    || left.company.localeCompare(right.company)
+    || left.state.localeCompare(right.state)
+    || left.county.localeCompare(right.county)
+    || left.padId.localeCompare(right.padId);
+}
+
+/**
+ * Ranks literal pad-name matches for display only. Coordinates never establish
+ * road or route authority; they only order already-known directory pads.
+ */
+export function closestPadSearchResults(
+  rows: PadSummary[],
+  rawQuery: string,
+  origin: SearchOrigin | null,
+  limit = 7,
+) {
+  const query = normalizeSearchText(rawQuery);
+  const hadInput = String(rawQuery ?? "").trim().length > 0;
+  if ((!query && hadInput) || limit <= 0) return [];
+
+  const pads = rows.filter((row) => row.recordType === "pad"
+    && (!query || normalizeSearchText(row.padName).includes(query)));
+
+  if (!validOrigin(origin)) {
+    if (!query) return [];
+    return pads.slice().sort(deterministicPadOrder).slice(0, limit);
+  }
+
+  return pads
+    .map((pad, originalIndex) => {
+      const coordinate = mapDisplayCoordinate(pad);
+      return {
+        pad,
+        originalIndex,
+        distance: coordinate
+          ? distanceMilesBetween(origin, { latitude: coordinate.latitude, longitude: coordinate.longitude })
+          : null,
+      };
+    })
+    .filter((result) => query || result.distance !== null)
+    .sort((left, right) => {
+      if (left.distance !== null && right.distance !== null) {
+        return left.distance - right.distance
+          || deterministicPadOrder(left.pad, right.pad)
+          || left.originalIndex - right.originalIndex;
+      }
+      if (left.distance !== null) return -1;
+      if (right.distance !== null) return 1;
+      return deterministicPadOrder(left.pad, right.pad) || left.originalIndex - right.originalIndex;
+    })
+    .slice(0, limit)
+    .map((result) => result.pad);
 }

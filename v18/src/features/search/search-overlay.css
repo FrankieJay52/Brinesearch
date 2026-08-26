@@ -84,6 +84,19 @@
 }
 .search-overlay-command button svg { width: 1rem; height: 1rem; }
 
+.search-overlay-nearby-heading {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 3px 7px;
+  color: var(--muted);
+  font-size: .72rem;
+}
+.search-overlay-nearby-heading strong { color: var(--text); font-size: .78rem; }
+.search-overlay-nearby-heading span { white-space: nowrap; }
+
 .search-overlay-filters {
   display: flex;
   gap: 8px;
@@ -167,6 +180,13 @@
 .search-overlay-prompt > svg { margin-bottom: 10px; color: var(--teal); }
 .search-overlay-prompt strong { color: var(--text); }
 .search-overlay-prompt p { max-width: 390px; margin: 6px 0 0; font-size: .76rem; line-height: 1.5; }
+
+.search-overlay-location-note {
+  margin: 8px 3px 0;
+  color: var(--muted);
+  font-size: .7rem;
+  line-height: 1.4;
+}
 
 .search-overlay-footer {
   display: flex;

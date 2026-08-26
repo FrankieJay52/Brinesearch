@@ -32,11 +32,16 @@ assert.match(appJavascript, /Selected pad held · no teal route/, "Built V18 app
 assert.match(appJavascript, /Ends at selected pad road projection/, "Built V18 app is missing the per-pad endpoint boundary label");
 assert.match(appJavascript, /Gold inspection road/, "Built V18 app is missing the selected-road inspection legend");
 assert.match(appJavascript, /Reviewed field directions/, "Built V18 app is missing reviewed directions in the owner map");
-assert.match(appJavascript, /Approved route/, "Built V18 app is missing the single exact approved-route action");
-assert.match(appJavascript, /Open Google Maps through reviewed BrineSearch controls/, "Built V18 app does not label BrineSearch as route authority");
-assert.match(appJavascript, /BrineSearch approval begins at the verified route ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
-assert.match(appJavascript, /Approved route shown in BrineSearch/, "Built V18 app is missing the in-app-only exact-route fallback");
-assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list|Open destination pin/, "Built V18 app exposes a multipart or destination-only driver action");
+assert.match(appJavascript, /Reviewed approved route/, "Built V18 app is missing the single fixed approved-route action");
+assert.match(appJavascript, /Navigate the reviewed approved route in Google Maps/, "Built V18 app does not label the approved-route handoff");
+assert.match(appJavascript, /Approval begins at its verified ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
+assert.match(appJavascript, /Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available/, "Built V18 app is missing the in-app-only exact-route fallback");
+assert.match(appJavascript, /Open destination pin only/, "Built V18 app is missing the explicitly non-route GPS pin action");
+assert.match(appJavascript, /Pin only/, "Built V18 app does not distinguish a GPS pin from approved navigation");
+assert.match(appJavascript, /7 closest pads/, "Built V18 app is missing nearest-pad quick search");
+assert.match(appJavascript, /Closest matching pads/, "Built V18 app is missing nearest-first matching search");
+assert.match(appJavascript, /Expand map/, "Built V18 app is missing the compact expandable pad map");
+assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
 console.log("Verified V18 built runtime: native sign-in, public Field Updates, reviewed directions, and owner-only exact-road highlights with per-pad endpoint boundaries are present without old-app bridges, private fields, or privileged material.");

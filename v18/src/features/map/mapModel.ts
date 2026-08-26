@@ -1,5 +1,5 @@
 import { hasMapDisplayCoordinate, mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
-import type { PadCoordinate, PadSummary } from "@/data/types";
+import type { DriverPadStatus, PadCoordinate, PadSummary } from "@/data/types";
 import { searchDirectory } from "@/data/search";
 
 export { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
@@ -40,6 +40,15 @@ export function emptyMapCoordinateNotice(visibleLocationCount: number) {
   return visibleLocationCount > 0
     ? `${visibleLocationCount.toLocaleString()} directory ${visibleLocationCount === 1 ? "location does" : "locations do"} not have a verified map coordinate yet. Use Search to open the directory record.`
     : "No locations match this map filter.";
+}
+
+export function mapGoogleHandoffState(
+  statusState: DriverPadStatus["google"]["publicState"],
+  hasReleasedNavigation: boolean,
+  selectedRouteIsPrimary: boolean,
+): DriverPadStatus["google"]["publicState"] {
+  if (!selectedRouteIsPrimary) return "unavailable";
+  return hasReleasedNavigation ? "ready" : statusState;
 }
 
 export interface ProjectedPad {

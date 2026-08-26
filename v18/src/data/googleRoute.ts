@@ -16,6 +16,11 @@ export interface GoogleRoutePlan {
   singleUrl: string | null;
 }
 
+export interface ReleasedGoogleHandoffPlan extends GoogleRoutePlan {
+  handoffDigest: string;
+  publishedAt: string;
+}
+
 function record(value: unknown, message: string): UnknownRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
   return value as UnknownRecord;
@@ -208,6 +213,71 @@ function routeUrl(destination: string, waypoints: string[]) {
   const url = `https://www.google.com/maps/dir/?${parameters.toString()}`;
   if (url.length > maxUrlLength) throw new Error("Google route exceeds the 2,048-character Maps URL limit");
   return url;
+}
+
+export function buildReleasedGoogleHandoffPlan(value: unknown): ReleasedGoogleHandoffPlan {
+  const row = record(value, "Released Google handoff is invalid");
+  if (!onlyKeys(row, [
+    "padId", "routeRevision", "sourceManifestDigest", "sourceDependencyDigest",
+    "handoffVersion", "handoff", "handoffDigest", "publishedAt",
+  ])) throw new Error("Released Google handoff exposes unsupported data");
+
+  const padId = identifier(row.padId, "released handoff pad ID");
+  const routeRevision = revision(row.routeRevision, "released handoff route revision");
+  const manifestDigest = digest(row.sourceManifestDigest, "released handoff manifest digest");
+  const dependencyDigest = digest(row.sourceDependencyDigest, "released handoff dependency digest");
+  const handoffDigest = digest(row.handoffDigest, "released handoff digest");
+  const publishedAt = String(row.publishedAt || "");
+  if (!publishedAt || Number.isNaN(Date.parse(publishedAt))) throw new Error("Released Google handoff publication time is invalid");
+  if (row.handoffVersion !== "v18-google-mobile-v1") throw new Error("Released Google handoff version is unsupported");
+
+  const handoff = record(row.handoff, "Released Google handoff package is invalid");
+  if (!onlyKeys(handoff, [
+    "handoff_version", "pad_id", "route_revision", "source_manifest_digest",
+    "source_dependency_digest", "origin_mode", "mobile_waypoint_limit",
+    "waypoints", "destination",
+  ])) throw new Error("Released Google handoff package exposes unsupported data");
+  if (handoff.handoff_version !== row.handoffVersion
+      || identifier(handoff.pad_id, "released package pad ID") !== padId
+      || revision(handoff.route_revision, "released package route revision") !== routeRevision
+      || digest(handoff.source_manifest_digest, "released package manifest digest") !== manifestDigest
+      || digest(handoff.source_dependency_digest, "released package dependency digest") !== dependencyDigest
+      || handoff.origin_mode !== "current_location_until_route_ingress"
+      || handoff.mobile_waypoint_limit !== maxWaypoints) {
+    throw new Error("Released Google handoff package is not bound to its reviewed receipt");
+  }
+
+  const rawWaypoints = Array.isArray(handoff.waypoints) ? handoff.waypoints : [];
+  if (rawWaypoints.length < 1 || rawWaypoints.length > maxWaypoints) throw new Error("Released Google handoff must contain one to three reviewed waypoints");
+  let previousSequence = 0;
+  const waypoints = rawWaypoints.map((value, index) => {
+    const waypoint = record(value, `Released Google handoff waypoint ${index + 1} is invalid`);
+    if (!onlyKeys(waypoint, ["sequence", "latitude", "longitude"])) throw new Error("Released Google handoff waypoint exposes unsupported data");
+    const sequence = compactSequence(waypoint.sequence, "released waypoint sequence");
+    if (sequence <= previousSequence || index === 0 && sequence !== 1) throw new Error("Released Google handoff waypoint order is invalid");
+    previousSequence = sequence;
+    return coordinate(waypoint);
+  });
+
+  const destinationValue = record(handoff.destination, "Released Google handoff destination is invalid");
+  if (!onlyKeys(destinationValue, ["sequence", "latitude", "longitude", "pad_id"])) throw new Error("Released Google handoff destination exposes unsupported data");
+  const destinationSequence = compactSequence(destinationValue.sequence, "released destination sequence");
+  if (destinationSequence <= previousSequence || identifier(destinationValue.pad_id, "released destination pad ID") !== padId) {
+    throw new Error("Released Google handoff destination is not bound to its pad");
+  }
+  const destination = coordinate(destinationValue);
+
+  return {
+    padId,
+    routeRevision,
+    manifestDigest,
+    dependencyDigest,
+    pointCount: destinationSequence,
+    handoffMode: "verified_compact",
+    singleUrl: routeUrl(destination, waypoints),
+    handoffDigest,
+    publishedAt,
+  };
 }
 
 export function buildGoogleRoutePublicPlan(value: unknown, handoffValue: unknown = null): GoogleRoutePlan {
