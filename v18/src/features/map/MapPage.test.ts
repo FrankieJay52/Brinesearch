@@ -126,6 +126,12 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("fuzzy_name");
   });
 
+  it("labels a released core plus GPS handoff without implying an end-to-end Google route", () => {
+    expect(pageSource).toContain('? "Approved core + GPS"');
+    expect(pageSource).toContain('currentSelectedStatus?.route.source === "exact_graph_handoff"');
+    expect(pageSource).toContain('"Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately."');
+  });
+
   it("provides an explicit full-screen exit and pad-detail connection", () => {
     expect(pageSource).toContain('className="map-view-exit"');
     expect(pageSource).toContain('changeViewerMode("standard")');

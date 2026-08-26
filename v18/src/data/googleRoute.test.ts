@@ -127,6 +127,27 @@ function coreDestinationRow() {
   };
 }
 
+function coreDestinationRowV2() {
+  const value = coreDestinationRow();
+  const waypoints = value.handoff.waypoints.slice(0, 2);
+  return {
+    ...value,
+    releaseVersion: "v18-core-destination-v2",
+    routeSteps: value.routeSteps.slice(0, 1),
+    routeGeometry: {
+      ...value.routeGeometry,
+      features: value.routeGeometry.features.slice(0, 1),
+    },
+    handoff: {
+      ...value.handoff,
+      handoff_version: "v18-core-destination-v2",
+      waypoints,
+      core_end: { ...waypoints[1], role: "exact_public_road_handoff" },
+      destination: { ...value.handoff.destination, sequence: 3 },
+    },
+  };
+}
+
 describe("public Google route manifest", () => {
   it("builds one current-location URL from an exact road core and separate saved GPS", () => {
     const value = coreDestinationRow();
@@ -138,6 +159,69 @@ describe("public Google route manifest", () => {
     expect(url.searchParams.get("waypoints")).toBe(value.handoff.waypoints
       .map((point) => `${point.latitude},${point.longitude}`).join("|"));
     expect(url.searchParams.get("destination")).toBe("40.240883,-80.913963");
+  });
+
+  it("builds a v2 handoff from one exact road line without weakening the frozen v1 contract", () => {
+    const value = coreDestinationRowV2();
+    const plan = buildCoreDestinationReleasePlan(value);
+    const url = new URL(plan.singleUrl);
+
+    expect(plan).toMatchObject({ padId, recordRevision: "1787459253071652", routeRevision: 1 });
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe(value.handoff.waypoints
+      .map((point) => `${point.latitude},${point.longitude}`).join("|"));
+    expect(url.searchParams.get("destination")).toBe("40.240883,-80.913963");
+
+    const v1WithOneLine = {
+      ...value,
+      releaseVersion: "v18-core-destination-v1",
+      handoff: { ...value.handoff, handoff_version: "v18-core-destination-v1" },
+    };
+    expect(() => buildCoreDestinationReleasePlan(v1WithOneLine)).toThrow(/v1 requires exactly two/i);
+  });
+
+  it("rejects a two-line package relabeled as the one-line v2 contract", () => {
+    const value = coreDestinationRow();
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      releaseVersion: "v18-core-destination-v2",
+      handoff: { ...value.handoff, handoff_version: "v18-core-destination-v2" },
+    })).toThrow(/v2 requires exactly one/i);
+  });
+
+  it("fails closed when a v2 waypoint is not an exact approved-line endpoint", () => {
+    const value = coreDestinationRowV2();
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      handoff: {
+        ...value.handoff,
+        waypoints: value.handoff.waypoints.map((point, index) => index === 1
+          ? { ...point, longitude: -80.91 }
+          : point),
+        core_end: { ...value.handoff.core_end, longitude: -80.91 },
+      },
+    })).toThrow(/ordered endpoints/i);
+  });
+
+  it("rejects a saved GPS that is numerically the core endpoint with different formatting", () => {
+    const value = coreDestinationRowV2();
+    const endpoint = value.handoff.core_end;
+    expect(() => buildCoreDestinationReleasePlan({
+      ...value,
+      destination: {
+        ...value.destination,
+        latitude: String(endpoint.latitude).concat("0"),
+        longitude: String(endpoint.longitude).concat("0"),
+      },
+      handoff: {
+        ...value.handoff,
+        destination: {
+          ...value.handoff.destination,
+          latitude: String(endpoint.latitude).concat("0"),
+          longitude: String(endpoint.longitude).concat("0"),
+        },
+      },
+    })).toThrow(/separate GPS leg/i);
   });
 
   it("fails closed when a core-destination package blurs the public-road and GPS boundary", () => {

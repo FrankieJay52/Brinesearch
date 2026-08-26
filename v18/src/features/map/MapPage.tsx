@@ -394,6 +394,10 @@ export function MapPage() {
   const selectedGoogleState = currentSelectedStatus
     ? mapGoogleHandoffState(currentSelectedStatus.google.publicState, Boolean(approvedNavigationUrl), selectedRouteIsPrimary)
     : approvedNavigationUrl ? "ready" : null;
+  const selectedGoogleLabel = currentSelectedStatus?.route.source === "exact_graph_handoff"
+    && selectedGoogleState === "ready"
+    ? "Approved core + GPS"
+    : selectedGoogleState ? `Google ${selectedGoogleState.replaceAll("_", " ")}` : "";
   const selectedRouteGeometry = selectedRouteChoice?.routeGroup === "alternate"
     ? selectedRouteChoice.geometry
     : currentSelectedStatus?.route.geometry || null;
@@ -769,7 +773,7 @@ export function MapPage() {
         <h2>{selected.padName}</h2>
         <p className="selection-subtitle">{selected.company} · {[selected.county, selected.state].filter(Boolean).join(", ")}</p>
       </div><button className="selection-close" onClick={() => { pendingRouteFitRef.current = false; setSelectedId(null); }} aria-label="Close selected pad"><Icon name="close"/></button></header>
-      <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedGoogleState} label={`Google ${selectedGoogleState.replaceAll("_", " ")}`}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
+      <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedGoogleState} label={selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
       {currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
       {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
