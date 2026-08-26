@@ -10,7 +10,8 @@ describe("map approved route link", () => {
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
-    expect(html).toContain("Navigate approved route");
+    expect(html).toContain(">Navigate<");
+    expect(html).toContain("Approved route");
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
     expect(html).not.toContain("Copy GPS");
@@ -24,7 +25,7 @@ describe("map approved route link", () => {
     expect(html).toContain(`href="${pinUrl.replaceAll("&", "&amp;")}"`);
     expect(html).toContain("Open GPS pin");
     expect(html).toContain("Not an approved route");
-    expect(html).not.toContain("Navigate approved route");
+    expect(html).not.toContain(">Navigate<");
     expect(html).not.toContain("/maps/dir/");
   });
 });

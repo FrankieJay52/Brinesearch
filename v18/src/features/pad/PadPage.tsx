@@ -146,13 +146,14 @@ export function PadGpsActions({ pad }: { pad: PadSummary }) {
   };
   return <aside className="pad-gps-actions" aria-label="Pad map location tools">
     <small className="pad-gps-role">{locationLabel}</small>
-    {pinUrl
-      ? <a className="pad-gps-coordinate-link mono" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${coordinateText} in Google Maps; destination pin only, not an approved route`}>{coordinateText}</a>
-      : <strong className="mono">{coordinateText}</strong>}
-    <span className="pad-gps-boundary">{pinUrl ? "Google pin only · not an approved route" : "Display GPS only · no navigation"}</span>
-    <div className="pad-gps-buttons">
-      <button type="button" className="pad-gps-copy-pill" onClick={copyGps} aria-label={copied ? `${locationLabel} GPS coordinates copied` : `Copy ${locationLabel.toLowerCase()} GPS coordinates`}>{copied ? "COPIED" : "COPY"}</button>
+    <div className="pad-gps-inline">
+      {pinUrl
+        ? <a className="pad-gps-coordinate-link mono" href={pinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${coordinateText} in Google Maps; destination pin only, not an approved route`}>{coordinateText}</a>
+        : <strong className="mono">{coordinateText}</strong>}
+      <button type="button" className={`pad-gps-copy-pill${copied ? " is-copied" : ""}`} onClick={copyGps} aria-label={copied ? `${locationLabel} GPS coordinates copied` : `Copy ${locationLabel.toLowerCase()} GPS coordinates`}><span aria-hidden="true">COPY</span></button>
+      <span className="pad-gps-copy-status" role="status" aria-live="polite">{copied ? "GPS copied" : ""}</span>
     </div>
+    <span className="pad-gps-boundary">{pinUrl ? "Pin only · not an approved route" : "Display only · no navigation"}</span>
   </aside>;
 }
 
