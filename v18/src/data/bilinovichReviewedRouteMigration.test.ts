@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { BILINOVICH_REVIEWED_GOOGLE_URL } from "./reviewedNavigationCandidates";
+
+const WITHDRAWN_BILINOVICH_BLAZE_URL = "https://www.google.com/maps/dir/?api=1&origin=Saint%20Clairsville%2C%20OH&destination=40.08738445%2C-81.30282620&waypoints=40.12303995%2C-81.35382341%7C40.112583770%2C-81.294937982%7C40.09955931%2C-81.29781917&travelmode=driving&dir_action=navigate";
 
 const migration = readFileSync(new URL(
   "../../../supabase/migrations/20260827000828_bilinovich_reviewed_route_correction.sql",
@@ -8,8 +9,8 @@ const migration = readFileSync(new URL(
 ), "utf8").replaceAll("\r\n", "\n");
 
 describe("BILINOVICH reviewed display-route correction", () => {
-  it("keeps the UI handoff byte-for-byte equal to the reviewed migration evidence", () => {
-    expect(migration).toContain(`'${BILINOVICH_REVIEWED_GOOGLE_URL}'`);
+  it("keeps the withdrawn Blaze URL only as historical migration evidence", () => {
+    expect(migration).toContain(`'${WITHDRAWN_BILINOVICH_BLAZE_URL}'`);
   });
 
   it("pins the one exact pad and preserves the raw source", () => {

@@ -1,0 +1,309 @@
+{
+  "schemaVersion": 1,
+  "artifactId": "issue97-bilinovich-no-blaze-backtrace-20260826",
+  "status": "evidence_only_held",
+  "method": {
+    "verificationDirection": "destination_to_anchor",
+    "driverPresentationDirection": "anchor_to_destination",
+    "rule": "Start at the trusted destination and lease-approach coordinates, trace exact official road occurrences backward to a proven anchor, then reverse only the proven order. A matching road name, nearby line, or another pad's shared trunk never proves a pad-specific route."
+  },
+  "pad": {
+    "padId": "59061829-1122-4aae-872d-cf5024310373",
+    "legacyId": "ascent--bilinovich",
+    "company": "Ascent",
+    "padName": "BILINOVICH",
+    "county": "Guernsey",
+    "state": "Ohio",
+    "leaseApproach": {
+      "role": "trusted_lease_approach",
+      "latitude": 40.08863,
+      "longitude": -81.304164,
+      "publicRoadEntranceVerified": false
+    },
+    "destination": {
+      "role": "odnr_pad_surface_destination",
+      "latitude": 40.08738445,
+      "longitude": -81.3028262,
+      "publicRoadEntranceVerified": false
+    }
+  },
+  "forbiddenRoad": {
+    "road": "Blaze Rd",
+    "officialSourceId": "TGUETR00964**C",
+    "guernseyObjectIds": [2582],
+    "odotObjectIds": [3347471, 3347472],
+    "ogripRecordIds": [2576],
+    "ownerFieldFact": "cannot_be_used",
+    "routeUseAllowed": false,
+    "junction": { "latitude": 40.09993740473726, "longitude": -81.29800320353017 },
+    "instruction": "At the Penrose/Logan/Blaze T, take Logan left; never take Blaze right."
+  },
+  "officialRoadOccurrences": [
+    {
+      "driverOrder": 1,
+      "road": "US-22 / Cadiz Rd",
+      "officialSourceId": "SGUEUS00022**C",
+      "guernseyObjectIds": [1542, 1553],
+      "odotObjectIds": [3261234, 3261235],
+      "ogripRecordIds": [1539, 1550]
+    },
+    {
+      "driverOrder": 2,
+      "road": "McCoy Rd / CR-82",
+      "officialSourceId": "CGUECR00082**C",
+      "guernseyObjectIds": [1507, 2780, 2778, 2776, 2774, 3505, 2814, 2815, 2772, 3508, 2770],
+      "odotObjectIds": [2993732, 2993733, 2993734, 2993735, 2993736, 2993737, 2993738],
+      "ogripRecordIds": [1504, 2774, 2772, 2770, 2768, 3498, 2808, 2809, 2766, 3501, 2764]
+    },
+    {
+      "driverOrder": 3,
+      "road": "Merry Rd / TR-967",
+      "officialSourceId": "TGUETR00967**C",
+      "guernseyObjectIds": [2769],
+      "odotObjectIds": [3347477],
+      "ogripRecordIds": [2763]
+    },
+    {
+      "driverOrder": 4,
+      "road": "Penrose Rd / CR-694",
+      "officialSourceId": "CGUECR00694**C",
+      "guernseyObjectIds": [2638, 2583],
+      "odotObjectIds": [2993952],
+      "ogripRecordIds": [2632, 2577],
+      "designationNote": "A neighboring written note says TR-694; current Guernsey and ODOT authority classify this occurrence as CR-694."
+    },
+    {
+      "driverOrder": 5,
+      "road": "Logan Rd / CR-964",
+      "officialSourceId": "CGUECR00964**C",
+      "guernseyObjectIds": [2581],
+      "odotObjectIds": [2994007],
+      "ogripRecordIds": [2575]
+    },
+    {
+      "driverOrder": 6,
+      "road": "Turkle Rd / TR-693",
+      "officialSourceId": "TGUETR00693**C",
+      "guernseyObjectIds": [5249],
+      "odotObjectIds": [3347374],
+      "ogripRecordIds": [5242]
+    }
+  ],
+  "junctions": [
+    {
+      "driverOrder": 1,
+      "name": "US-22/McCoy",
+      "latitude": 40.12330215617223,
+      "longitude": -81.35434374392844,
+      "driverAction": "take McCoy Rd"
+    },
+    {
+      "driverOrder": 2,
+      "name": "McCoy/Merry",
+      "latitude": 40.105411505310784,
+      "longitude": -81.27973620907376,
+      "driverAction": "continue nearly straight onto Merry Rd",
+      "localDeflectionDegrees": 14.0
+    },
+    {
+      "driverOrder": 3,
+      "name": "Merry/Penrose",
+      "latitude": 40.095844622248954,
+      "longitude": -81.28364619088083,
+      "driverAction": "turn right onto Penrose Rd",
+      "localDeflectionDegrees": 82.4
+    },
+    {
+      "driverOrder": 4,
+      "name": "Penrose/Logan/Blaze T",
+      "latitude": 40.09993740473726,
+      "longitude": -81.29800320353017,
+      "driverAction": "turn left onto Logan Rd; do not use Blaze Rd",
+      "localDeflectionDegrees": -86.2
+    },
+    {
+      "driverOrder": 5,
+      "name": "Logan/Turkle",
+      "latitude": 40.08875816830222,
+      "longitude": -81.30065039185683,
+      "driverAction": "continue nearly straight onto Turkle Rd",
+      "localDeflectionDegrees": 12.3
+    }
+  ],
+  "backtrace": [
+    {
+      "orderFromDestination": 1,
+      "pointRole": "pad_surface_destination",
+      "latitude": 40.08738445,
+      "longitude": -81.3028262,
+      "proof": "trusted destination role; not a verified entrance"
+    },
+    {
+      "orderFromDestination": 2,
+      "pointRole": "lease_approach",
+      "latitude": 40.08863,
+      "longitude": -81.304164,
+      "proof": "trusted approach role; private access geometry unverified"
+    },
+    {
+      "orderFromDestination": 3,
+      "pointRole": "nearest_official_turkle_centerline_projection",
+      "latitude": 40.088789769,
+      "longitude": -81.303990829,
+      "officialSourceId": "TGUETR00693**C"
+    },
+    {
+      "orderFromDestination": 4,
+      "pointRole": "logan_turkle_junction",
+      "latitude": 40.08875816830222,
+      "longitude": -81.30065039185683,
+      "distanceTowardDestinationMiles": 0.192961
+    },
+    {
+      "orderFromDestination": 5,
+      "pointRole": "penrose_logan_blaze_t",
+      "latitude": 40.09993740473726,
+      "longitude": -81.29800320353017,
+      "distanceTowardDestinationMiles": 0.876895,
+      "forbiddenBranch": "Blaze Rd"
+    },
+    {
+      "orderFromDestination": 6,
+      "pointRole": "merry_penrose_junction",
+      "latitude": 40.095844622248954,
+      "longitude": -81.28364619088083,
+      "distanceTowardDestinationMiles": 0.90039
+    },
+    {
+      "orderFromDestination": 7,
+      "pointRole": "mccoy_merry_junction",
+      "latitude": 40.105411505310784,
+      "longitude": -81.27973620907376,
+      "distanceTowardDestinationMiles": 0.720477
+    },
+    {
+      "orderFromDestination": 8,
+      "pointRole": "us22_mccoy_anchor",
+      "latitude": 40.12330215617223,
+      "longitude": -81.35434374392844,
+      "distanceTowardDestinationMiles": 4.475045
+    }
+  ],
+  "anchor": {
+    "road": "US-22",
+    "junctionLatitude": 40.12330215617223,
+    "junctionLongitude": -81.35434374392844,
+    "authority": "Exact shared Guernsey/OGRIP US-22/McCoy topology, corroborated by ODOT Road Inventory"
+  },
+  "driverSequence": [
+    "US-22",
+    "McCoy Rd / CR-82",
+    "Merry Rd / TR-967",
+    "Penrose Rd / CR-694",
+    "Logan Rd / CR-964",
+    "Turkle Rd / TR-693",
+    "trusted lease approach",
+    "BILINOVICH pad-surface destination"
+  ],
+  "driverActions": [
+    "Take McCoy Rd from US-22 and continue about 4.48 miles.",
+    "Continue nearly straight onto Merry Rd for about 0.72 mile.",
+    "Turn right onto Penrose Rd for about 0.90 mile.",
+    "At the T turn left onto Logan Rd; never take Blaze Rd right.",
+    "Continue about 0.88 mile, then nearly straight onto Turkle Rd.",
+    "Continue about 0.19 mile toward the trusted lease approach; the private final leg remains held."
+  ],
+  "terminalGap": {
+    "nearestOfficialRoadPoint": { "latitude": 40.088789769, "longitude": -81.303990829 },
+    "leaseApproachToTurkleCenterlineMeters": 23.0773,
+    "padDestinationToTurkleCenterlineMeters": 100.98,
+    "leaseApproachToPadDestinationDirectMeters": 179.2471,
+    "privateLeaseGeometryVerified": false,
+    "padEntranceVerified": false
+  },
+  "shapingControls": {
+    "status": "gis_derived_not_google_reviewed",
+    "fullRoadControls": [
+      { "road": "McCoy Rd", "latitude": 40.123158229, "longitude": -81.354045434 },
+      { "road": "Merry Rd", "latitude": 40.105149004, "longitude": -81.279681203 },
+      { "road": "Penrose Rd", "latitude": 40.095894612, "longitude": -81.283992781 },
+      { "road": "Logan Rd", "latitude": 40.099684564, "longitude": -81.297880136 },
+      { "road": "Turkle Rd", "latitude": 40.08864573, "longitude": -81.300971013 }
+    ],
+    "previouslyReviewedMcCoyIngress": { "latitude": 40.123106982, "longitude": -81.353948693 }
+  },
+  "sharedTrunkCandidates": {
+    "status": "written_candidate_only_not_transferable_route_authority",
+    "namedPads": [
+      {
+        "padName": "GIL",
+        "padId": "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+        "legacyId": "ascent--gil",
+        "writtenSharedTrunk": ["US-22", "McCoy Rd", "Merry Rd", "Penrose Rd", "Logan Rd"],
+        "source": "v17/src/data/directions/ascent-2.json:135"
+      },
+      {
+        "padName": "GILCHER",
+        "padId": "71c9c874-5514-46a4-8d91-b105c6734799",
+        "legacyId": "ascent--gilcher",
+        "writtenSharedTrunk": ["US-22", "McCoy Rd", "Merry Rd", "Penrose Rd"],
+        "source": "v17/src/data/directions/ascent-2.json:139"
+      },
+      {
+        "padName": "BILINOVICH",
+        "padId": "59061829-1122-4aae-872d-cf5024310373",
+        "legacyId": "ascent--bilinovich",
+        "writtenSharedTrunk": ["McCoy Rd", "Merry Rd", "Penrose Rd", "Logan Rd"],
+        "source": "v17/src/data/directions/ascent-1.json:115"
+      }
+    ],
+    "fourthCandidate": {
+      "padName": null,
+      "padId": null,
+      "status": "unproven",
+      "mustNotInferFromRoadOverlapOrProximity": true
+    }
+  },
+  "googleCandidate": {
+    "status": "private_unvalidated",
+    "origin": "phone_current_location",
+    "mobileWaypointLimit": 3,
+    "waypoints": [
+      { "latitude": 40.123106982, "longitude": -81.353948693, "role": "mccoy_ingress" },
+      { "latitude": 40.105149004, "longitude": -81.279681203, "role": "merry_after_mccoy" },
+      { "latitude": 40.099684564, "longitude": -81.297880136, "role": "logan_after_forbidden_blaze_fork" }
+    ],
+    "destination": { "latitude": 40.08738445, "longitude": -81.3028262 },
+    "url": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620&waypoints=40.123106982%2C-81.353948693%7C40.105149004%2C-81.279681203%7C40.099684564%2C-81.297880136",
+    "publicGoogleAuthority": false,
+    "visualValidationComplete": false,
+    "unvalidatedRequirements": [
+      "Google must render McCoy to Merry to Penrose to Logan without any Blaze segment.",
+      "Google must continue from Logan onto Turkle.",
+      "Google must use the trusted lease approach before the off-road pad destination."
+    ]
+  },
+  "authorityOutcome": {
+    "publicRoadIdentityChainProven": true,
+    "sourceFaithfulNoBlazeHeldDisplaySupported": true,
+    "exactPrivateLegProven": false,
+    "exactGraphRoute": false,
+    "reviewedNavigationCandidate": false,
+    "publicGooglePublished": false,
+    "cutover": false,
+    "heldReasons": [
+      "Private lease geometry and verified entrance are absent.",
+      "The trusted lease approach is off the official Turkle centerline.",
+      "The compact Google candidate has not been visually validated and cannot encode every control under the three-waypoint limit."
+    ]
+  },
+  "sources": [
+    "https://gis22.guernseycounty.org/server/rest/services/ParcelEditingService/FeatureServer/84",
+    "https://tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0",
+    "https://gis1.oit.ohio.gov/geodatadownloadtable/lbrs.aspx",
+    "https://gis1.oit.ohio.gov/LBRS/_downloads/GUE_CL.zip",
+    "v17/src/data/directions/ascent-1.json:115",
+    "v17/src/data/directions/ascent-2.json:135",
+    "v17/src/data/directions/ascent-2.json:139"
+  ]
+}

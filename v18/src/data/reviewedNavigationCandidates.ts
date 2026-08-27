@@ -13,8 +13,6 @@ export interface ReviewedNavigationSafetyHold {
   detail: string;
 }
 
-export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&origin=Saint%20Clairsville%2C%20OH&destination=40.08738445%2C-81.30282620&waypoints=40.12303995%2C-81.35382341%7C40.112583770%2C-81.294937982%7C40.09955931%2C-81.29781917&travelmode=driving&dir_action=navigate";
-
 export const LAWSON_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.124991%2C-81.295913&waypoints=40.123106982%2C-81.353948693%7C40.111789555%2C-81.300978103%7C40.124973191%2C-81.294865644";
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
