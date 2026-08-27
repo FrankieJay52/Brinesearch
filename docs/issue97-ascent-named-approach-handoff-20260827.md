@@ -131,7 +131,7 @@ The owner then requested that the first control move to the turn so drivers can
 arrive along OH-519 from either state-route direction. Independent routing
 showed that an exact-intersection waypoint biased one approach, so the safe
 candidate uses a point 20 metres inside Sixteen instead. That preserves the
-confirmed post-turn points; the revised URL still requires a final phone
-rendering check. It does
+confirmed post-turn points. The owner opened the revised exact URL on a phone
+and confirmed the final Google rendering on 2026-08-27. It does
 not change BEETLE's held graph, route, or public-Google authority state; the
 lease/GPS leg remains explicitly unapproved geometry in the driver display.
