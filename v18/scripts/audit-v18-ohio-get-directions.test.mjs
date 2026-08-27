@@ -4,7 +4,7 @@ import path from "node:path";
 import { after, before, describe, it } from "node:test";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
-import { inspectGoogleDirectionsUrl, validateDestinationOnlyAction } from "./audit-v18-ohio-get-directions.mjs";
+import { buildCoverageReport, inspectGoogleDirectionsUrl, validateDestinationOnlyAction } from "./audit-v18-ohio-get-directions.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const v18Root = path.resolve(here, "..");
@@ -242,6 +242,39 @@ describe("required negative mutations are rejected", () => {
   it("rejects a non-Google HTTPS endpoint", () => {
     const href = destination.padDestinationNavigationUrl(pad()).replace("https://www.google.com/maps/dir/", "https://example.invalid/maps/dir/");
     assert.ok(inspectGoogleDirectionsUrl(href).failures.includes("unexpected_google_endpoint"));
+  });
+
+  it("fails the complete coverage report for a non-Google HTTPS endpoint", async () => {
+    const padPageSource = await readFile(path.join(v18Root, "src/features/pad/PadPage.tsx"), "utf8");
+    const runtime = {
+      trustedPadDestination: destination.trustedPadDestination,
+      padDestinationNavigationUrl: destination.padDestinationNavigationUrl,
+      reviewedNavigationCandidateForPad: candidates.reviewedNavigationCandidateForPad,
+      reviewedPadIds: new Set([
+        "143f5268-33e4-4598-8101-40220b5cfdc4",
+        "59061829-1122-4aae-872d-cf5024310373",
+      ]),
+      unavailableView,
+      buildFixedNavigationAction(view, value, reviewed) {
+        const action = padPage.buildFixedNavigationAction(view, value, reviewed);
+        return action.href
+          ? { ...action, href: action.href.replace("https://www.google.com/maps/dir/", "https://example.invalid/maps/dir/") }
+          : action;
+      },
+    };
+    const report = await buildCoverageReport({
+      rows: [pad(), lawson(), bilinovich()],
+      snapshotId: "test-snapshot",
+      sourceRevision: "test-revision",
+      sourceState: "live_current",
+      generatedAt: "2026-08-27T00:00:00.000Z",
+    }, {
+      rowCount: 0,
+      contentSha256: "test-reference-digest",
+    }, runtime, padPageSource);
+
+    assert.equal(report.urlValidation.unexpectedGoogleEndpoints.length, 3);
+    assert.ok(report.violations.includes("unexpected Google endpoints: 3"));
   });
 
   it("rejects a swapped destination", () => {
