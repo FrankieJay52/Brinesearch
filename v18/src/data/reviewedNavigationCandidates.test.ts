@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "./types";
 import {
+  BILINOVICH_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
@@ -48,6 +49,14 @@ function lawson(): PadSummary {
   };
 }
 
+function correctedBilinovich(): PadSummary {
+  return {
+    ...bilinovich(),
+    recordRevision: "1787802711836476",
+    structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+  };
+}
+
 describe("reviewed navigation candidates", () => {
   it("withdraws the unsafe BILINOVICH Blaze handoff and binds the safety hold to the exact stale record", () => {
     expect(reviewedNavigationCandidateForPad(bilinovich())).toBeNull();
@@ -58,15 +67,44 @@ describe("reviewed navigation candidates", () => {
     });
   });
 
-  it("never turns the corrected no-Blaze display record into a Google handoff", () => {
-    const corrected = {
-      ...bilinovich(),
-      recordRevision: "corrected-production-revision",
-      structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
-    };
+  it("returns the exact corrected BILINOVICH no-Blaze handoff without promoting graph authority", () => {
+    const corrected = correctedBilinovich();
+    const candidate = reviewedNavigationCandidateForPad(corrected);
 
-    expect(reviewedNavigationCandidateForPad(corrected)).toBeNull();
+    expect(candidate).toMatchObject({
+      padId: "59061829-1122-4aae-872d-cf5024310373",
+      title: "Navigate reviewed route",
+      detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
+      routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+    });
     expect(reviewedNavigationSafetyHoldForPad(corrected)).toBeNull();
+
+    const url = new URL(candidate!.routeUrl);
+    const waypoints = url.searchParams.get("waypoints")?.split("|");
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.08738445,-81.30282620");
+    expect(waypoints).toEqual([
+      "40.123106982,-81.353948693",
+      "40.095894612,-81.283992781",
+      "40.099684564,-81.297880136",
+    ]);
+    expect(waypoints).toHaveLength(3);
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(candidate!.routeUrl).not.toContain("40.112583770%2C-81.294937982");
+  });
+
+  it.each([
+    ["padId", "not-bilinovich"],
+    ["canonicalId", "not-bilinovich"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "BILINOVICH EAST"],
+    ["state", "West Virginia"],
+    ["county", "Harrison"],
+    ["structuredRoadSequence", "McCoy Rd → Merry Rd → Pad"],
+  ] as const)("fails the corrected BILINOVICH handoff closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...correctedBilinovich(), [field]: value })).toBeNull();
   });
 
   it.each([

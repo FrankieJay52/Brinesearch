@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
+import { BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
@@ -63,6 +63,15 @@ function bilinovichPad(): PadSummary {
     padName: "BILINOVICH",
     county: "Guernsey",
     structuredRoadSequence: "I-70 W → Exit 193 → OH-513 N → US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Turkle Rd / lease access → BILINOVICH",
+  };
+}
+
+function correctedBilinovichPad(): PadSummary {
+  return {
+    ...bilinovichPad(),
+    recordRevision: "1787802711836476",
+    structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+    coordinate: { latitude: 40.08738445, longitude: -81.3028262, role: "saved_pad_destination" },
   };
 }
 
@@ -204,6 +213,32 @@ describe("V18 pad legacy route fallback", () => {
 
     const selectionView = buildGoogleHandoffView(statusWithGoogle(null), false, false, null, true, null, true);
     expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({ kind: "unavailable", title: "Choose an approach" });
+  });
+
+  it("shows one reviewed no-Blaze BILINOVICH link while route and graph authority remain held", () => {
+    const pad = correctedBilinovichPad();
+    const heldStatus = statusWithGoogle(null);
+    heldStatus.route.state = "held";
+    heldStatus.route.source = "legacy_written";
+    heldStatus.graph.state = "held";
+    heldStatus.google.publicState = "held";
+    const heldView = buildGoogleHandoffView(heldStatus, false, true);
+    const action = buildFixedNavigationAction(heldView, pad);
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad }));
+
+    expect(action).toMatchObject({
+      kind: "reviewed_route",
+      href: BILINOVICH_REVIEWED_GOOGLE_URL,
+      title: "Navigate reviewed route",
+      detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
+    });
+    expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
+    expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
+    expect(html).toContain('data-navigation-kind="reviewed_route"');
+    expect(html).toContain("Navigate reviewed route");
+    expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).not.toContain("GPS destination only");
+    expect(html).not.toContain("approved route");
   });
 
   it("formats reviewed prose legibly without creating structured route steps", () => {

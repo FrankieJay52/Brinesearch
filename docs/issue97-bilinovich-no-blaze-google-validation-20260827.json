@@ -1,0 +1,61 @@
+{
+  "issue": 97,
+  "pad": {
+    "padId": "59061829-1122-4aae-872d-cf5024310373",
+    "legacyId": "ascent--bilinovich",
+    "name": "BILINOVICH",
+    "recordRevision": "1787802711836476"
+  },
+  "validatedAt": "2026-08-27T00:26:30-04:00",
+  "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620&waypoints=40.123106982%2C-81.353948693%7C40.095894612%2C-81.283992781%7C40.099684564%2C-81.297880136",
+  "mobileContract": {
+    "origin": "omitted_current_phone_location",
+    "destination": "40.08738445,-81.30282620",
+    "waypoints": [
+      "40.123106982,-81.353948693",
+      "40.095894612,-81.283992781",
+      "40.099684564,-81.297880136"
+    ],
+    "waypointCount": 3
+  },
+  "googleMapsBrowserChecks": [
+    {
+      "segment": "McCoy ingress to Penrose shaping point",
+      "selectedResult": "10 min / 5.2 miles / via McCoy Rd",
+      "turnEvidence": [
+        "Continue straight onto Merry Rd",
+        "Turn right onto Penrose Rd"
+      ],
+      "blazeAlternativeSelected": false
+    },
+    {
+      "segment": "Penrose shaping point to Logan shaping point",
+      "selectedResult": "3 min / 0.9 mile / via Penrose Rd",
+      "blazeAlternativeSelected": false
+    },
+    {
+      "segment": "Logan shaping point to pad destination",
+      "selectedResult": "3 min / 1.2 miles / via Logan Rd",
+      "resolvedDestination": "23212 Turkle Rd, Quaker City, OH 43773",
+      "blazeAlternativeSelected": false
+    },
+    {
+      "segment": "Complete mobile URL",
+      "startingPoint": "Your location",
+      "orderedStops": [
+        "20294 Cadiz Rd, Freeport, OH 43973",
+        "24079 Penrose Rd, Quaker City, OH 43773",
+        "68958 Logan Rd, Quaker City, OH 43773",
+        "23212 Turkle Rd, Quaker City, OH 43773"
+      ],
+      "blazeAlternativeSelected": false
+    }
+  ],
+  "authority": {
+    "classification": "owner_reviewed_ui_handoff",
+    "structuredRoutePromoted": false,
+    "graphAuthorityChanged": false,
+    "publicGooglePublished": false,
+    "cutoverChanged": false
+  }
+}
