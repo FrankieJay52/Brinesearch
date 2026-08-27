@@ -126,7 +126,8 @@ describe("V18 pad legacy route fallback", () => {
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
     expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
-    expect(padPage).toContain('"Approved road core · GPS destination" : "Reviewed approved route"');
+    expect(padPage).toContain('"Reviewed approved route core · GPS-only final leg not approved"');
+    expect(padPage.match(/<FixedNavigateAction\b/g)).toHaveLength(1);
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
     expect(padPage).not.toContain("status.google.safeReason ||");
@@ -143,7 +144,7 @@ describe("V18 pad legacy route fallback", () => {
     const hiddenRoute = displayedRouteForChoice(status, null, null, true);
 
     expect(unselected).toMatchObject({ available: false, selectionRequired: true, routeUrl: null });
-    expect(unselectedAction).toMatchObject({ kind: "unavailable", title: "Choose an approach", href: null });
+    expect(unselectedAction).toMatchObject({ kind: "unavailable", title: "GET DIRECTIONS", href: null });
     expect(hiddenRoute).toMatchObject({ steps: [], geometry: null });
 
     const selectedRoute = displayedRouteForChoice(status, null, approach, false);
@@ -158,13 +159,13 @@ describe("V18 pad legacy route fallback", () => {
     expect(selected).toMatchObject({ available: true, mode: "named_approach", approachLabel: "Via Freeport", routeUrl: approach.navigationUrl });
     expect(selectedAction).toMatchObject({
       kind: "approved_route",
-      title: "Navigate Via Freeport",
-      detail: "Approved roads to handoff · GPS-only final leg · not approved",
+      title: "GET DIRECTIONS",
+      detail: "Reviewed approved route core · GPS-only final leg not approved",
       href: approach.navigationUrl,
     });
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
-    expect(html).toContain("Navigate Via Freeport");
-    expect(html).toContain("GPS-only final leg · not approved");
+    expect(html).toContain("GET DIRECTIONS");
+    expect(html).toContain("Reviewed approved route core · GPS-only final leg not approved");
   });
 
   it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
@@ -175,7 +176,7 @@ describe("V18 pad legacy route fallback", () => {
 
     expect(availableHtml.match(/<a\b/g)).toHaveLength(1);
     expect(availableHtml).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
-    expect(availableHtml).toContain(">Navigate<");
+    expect(availableHtml).toContain(">GET DIRECTIONS<");
     expect(availableHtml).toContain("Reviewed approved route");
     expect(availableHtml).toContain('data-navigation-kind="approved_route"');
     expect(availableHtml).toContain('class="pad-fixed-navigation"');
@@ -185,7 +186,7 @@ describe("V18 pad legacy route fallback", () => {
     const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
     expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
-    expect(missingHtml).toContain("GPS destination only · Verified driver entrance · not an approved route");
+    expect(missingHtml).toContain("GPS destination only · Google chooses the route · Verified driver entrance");
     expect(missingHtml).toContain("google.com/maps/dir");
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
   });
@@ -198,7 +199,7 @@ describe("V18 pad legacy route fallback", () => {
 
     expect(action).toMatchObject({
       kind: "destination_pin",
-      title: "Navigate",
+      title: "GET DIRECTIONS",
       detail: expect.stringContaining("GPS destination only"),
     });
     expect(html).toContain('data-navigation-kind="destination_pin"');
@@ -212,7 +213,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
 
     const selectionView = buildGoogleHandoffView(statusWithGoogle(null), false, false, null, true, null, true);
-    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({ kind: "unavailable", title: "Choose an approach" });
+    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({ kind: "unavailable", title: "GET DIRECTIONS" });
   });
 
   it("shows one reviewed no-Blaze BILINOVICH link while route and graph authority remain held", () => {
@@ -229,14 +230,14 @@ describe("V18 pad legacy route fallback", () => {
     expect(action).toMatchObject({
       kind: "reviewed_route",
       href: BILINOVICH_REVIEWED_GOOGLE_URL,
-      title: "Navigate reviewed route",
-      detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
+      title: "GET DIRECTIONS",
+      detail: "Owner-reviewed route in Google Maps",
     });
     expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
     expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
     expect(html).toContain('data-navigation-kind="reviewed_route"');
-    expect(html).toContain("Navigate reviewed route");
-    expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).toContain("GET DIRECTIONS");
+    expect(html).toContain("Owner-reviewed route in Google Maps");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
   });
@@ -265,7 +266,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(view.mode).toBe("exact_core_destination");
     expect(action).toMatchObject({
       kind: "approved_route",
-      detail: "Approved road core · GPS destination",
+      detail: "Reviewed approved route core · GPS-only final leg not approved",
     });
   });
 
@@ -299,7 +300,7 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
 
     expect(action).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
-    expect(html).toContain("GPS destination only · ODNR official pad GPS · not an entrance · not an approved route");
+    expect(html).toContain("GPS destination only · Google chooses the route · ODNR official pad GPS · not an entrance");
     expect(html).toContain("ODNR official pad GPS · not an entrance".toLowerCase());
     expect(html).not.toContain("disabled");
   });

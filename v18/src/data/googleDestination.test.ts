@@ -73,6 +73,33 @@ describe("trusted pad GPS destinations", () => {
     expect(padDestinationNavigationUrl(example)).toContain("destination=40.2%2C-80.8");
   });
 
+  it("rejects latitude-only and longitude-only destinations", () => {
+    const latitudeOnly = pad({
+      coordinate: { latitude: 40.2, longitude: undefined as unknown as number, role: "driver_entrance" },
+      mapReference: null,
+    });
+    const longitudeOnly = pad({
+      coordinate: { latitude: undefined as unknown as number, longitude: -80.8, role: "driver_entrance" },
+      mapReference: null,
+    });
+
+    expect(trustedPadDestination(latitudeOnly)).toBeNull();
+    expect(padDestinationNavigationUrl(latitudeOnly)).toBeNull();
+    expect(trustedPadDestination(longitudeOnly)).toBeNull();
+    expect(padDestinationNavigationUrl(longitudeOnly)).toBeNull();
+  });
+
+  it.each([
+    [Number.NaN, -80.8],
+    [91, -80.8],
+    [0, 0],
+    [35, -80.8],
+  ])("rejects an invalid trusted destination pair %s,%s", (latitude, longitude) => {
+    const example = pad({ coordinate: { latitude, longitude, role: "driver_entrance" }, mapReference: null });
+    expect(trustedPadDestination(example)).toBeNull();
+    expect(padDestinationNavigationUrl(example)).toBeNull();
+  });
+
   it("rejects missing, invalid, and packaged-only coordinates as navigation inputs", () => {
     expect(trustedPadDestination(pad({ coordinate: null, mapReference: null, legacyId: "unknown" }))).toBeNull();
     expect(padDestinationNavigationUrl(pad({ coordinate: { latitude: 40.1, longitude: -80.9, role: "legacy_saved" } }))).toBeNull();
