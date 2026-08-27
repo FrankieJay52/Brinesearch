@@ -1,7 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { MapApprovedRouteLink, MapDestinationPinLink } from "./MapApprovedRouteLink";
+import { MapApprovedRouteLink, MapDestinationPinLink, MapReviewedRouteLink } from "./MapApprovedRouteLink";
 
 describe("map approved route link", () => {
   it("renders exactly one clearly labelled reviewed Google handoff", () => {
@@ -43,5 +43,16 @@ describe("map approved route link", () => {
     expect(html).toContain("GPS destination only · Saved pad GPS");
     expect(html).toContain("saved pad gps");
     expect(html).toContain("not an approved route");
+  });
+
+  it("labels an owner-reviewed candidate without claiming public or graph approval", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&origin=Saint%20Clairsville%2C%20OH&destination=40.08738445%2C-81.30282620";
+    const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, { routeUrl, padName: "BILINOVICH" }));
+
+    expect(html.match(/<a\b/g)).toHaveLength(1);
+    expect(html).toContain("Owner-reviewed Google directions");
+    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).not.toContain("Approved route");
+    expect(html).not.toContain("Google ready");
   });
 });

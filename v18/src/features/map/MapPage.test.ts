@@ -156,7 +156,8 @@ describe("map viewer authority boundary", () => {
 
   it("keeps the selected-pad driver card compact without dropping route context", () => {
     const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
-    const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}", approvedAction);
+    const reviewedAction = pageSource.indexOf("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}", approvedAction);
+    const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}", reviewedAction);
     const disabledAction = pageSource.indexOf("No trusted GPS destination", pinAction);
     const sequenceDisclosure = pageSource.indexOf('<details className="map-saved-road-sequence">');
     const referenceWarning = pageSource.indexOf('selectedCoordinate?.role !== "driver_entrance"', sequenceDisclosure);
@@ -165,8 +166,9 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
     expect(pageSource).toContain("{selected.structuredRoadSequence}");
     expect(pageSource).toContain("Open pad details");
-    expect([approvedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
-    expect(approvedAction).toBeLessThan(pinAction);
+    expect([approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
+    expect(approvedAction).toBeLessThan(reviewedAction);
+    expect(reviewedAction).toBeLessThan(pinAction);
     expect(pinAction).toBeLessThan(disabledAction);
     expect(sequenceDisclosure).toBeLessThan(referenceWarning);
     expect(appCss).toMatch(/\.map-selection-card\s*\{[^}]*padding:\s*16px;/s);
@@ -188,6 +190,9 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("currentReleasedGoogleHandoff(releasedHandoff, selected)");
     expect(pageSource).toContain("releasedGoogleNavigationUrl(");
     expect(pageSource).toContain("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
+    expect(pageSource).toContain("reviewedNavigationCandidateForPad(selected)");
+    expect(pageSource).toContain("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}");
+    expect(pageSource).toContain("Owner-reviewed Google directions are available for this exact pad.");
     expect(pageSource).toContain("padDestinationPinUrl(selected)");
     expect(pageSource).toContain("padDestinationNavigationUrl(selected)");
     expect(pageSource).toContain("trustedPadDestination(selected)");

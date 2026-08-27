@@ -3,7 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState } from "./PadPage";
+import { BILINOVICH_REVIEWED_GOOGLE_URL } from "@/data/reviewedNavigationCandidates";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -49,6 +50,19 @@ function mappedPad(): PadSummary {
     verificationStatus: "verified",
     operatingStatus: "active",
     updatedAt: null,
+  };
+}
+
+function bilinovichPad(): PadSummary {
+  return {
+    ...mappedPad(),
+    padId: "59061829-1122-4aae-872d-cf5024310373",
+    canonicalId: "59061829-1122-4aae-872d-cf5024310373",
+    legacyId: "ascent--bilinovich",
+    recordRevision: "1787794115232844",
+    padName: "BILINOVICH",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 W → Exit 193 → OH-513 N → US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Turkle Rd / lease access → BILINOVICH",
   };
 }
 
@@ -165,6 +179,42 @@ describe("V18 pad legacy route fallback", () => {
     expect(missingHtml).toContain("GPS destination only · Verified driver entrance · not an approved route");
     expect(missingHtml).toContain("google.com/maps/dir");
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
+  });
+
+  it("shows the exact BILINOVICH reviewed link immediately while keeping approved authority separate", () => {
+    const pad = bilinovichPad();
+    const heldView = buildGoogleHandoffView(statusWithGoogle(null), false, true);
+    const action = buildFixedNavigationAction(heldView, pad);
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad }));
+
+    expect(action).toMatchObject({
+      kind: "reviewed_route",
+      href: BILINOVICH_REVIEWED_GOOGLE_URL,
+      title: "Navigate reviewed route",
+      detail: "Owner-reviewed Google directions · graph status separate",
+    });
+    expect(html).toContain('data-navigation-kind="reviewed_route"');
+    expect(html).toContain("Owner-reviewed Google directions");
+    expect(html).toContain("graph status separate");
+    expect(html).not.toContain("GPS destination only");
+
+    const approvedView = buildGoogleHandoffView(statusWithGoogle("https://www.google.com/maps/dir/?api=1&destination=40.1%2C-81.1"), true, true);
+    expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
+
+    const selectionView = buildGoogleHandoffView(statusWithGoogle(null), false, false, null, true, null, true);
+    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({ kind: "unavailable", title: "Choose an approach" });
+  });
+
+  it("formats reviewed prose legibly without creating structured route steps", () => {
+    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Turn right onto Blaze Road.\n3. Continue onto Logan Road.";
+    const html = renderToStaticMarkup(createElement(ReviewedWrittenDirections, { value: directions }));
+
+    expect(html).toContain("ROAD SEQUENCE");
+    expect(html).toContain("US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad");
+    expect(html.match(/<li>/g)).toHaveLength(3);
+    expect(html).toContain("Turn right onto Blaze Road.");
+    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/>");
+    expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
   });
 
   it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
@@ -430,11 +480,12 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
-  it("keeps saved written field directions visible below the fallback", () => {
-    expect(padPage).toContain('{status.route.writtenDirections && <details className="detail-card" open>');
-    expect(padPage).toContain("{displayWrittenDirections(status.route.writtenDirections)}</p></details>");
-    expect(appCss).toMatch(/\.written-directions\s*\{[^}]*white-space:\s*pre-wrap;/s);
-    expect(appCss).toMatch(/\.written-directions\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
+  it("keeps reviewed written directions below the fallback without opening the long text by default", () => {
+    expect(padPage).toContain('{status.route.writtenDirections && <details className="detail-card">');
+    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/></details>");
+    expect(padPage).toContain("Reviewed written directions");
+    expect(padLayoutCss).toMatch(/\.reviewed-written-directions\s*\{/);
+    expect(padLayoutCss).toMatch(/\.reviewed-written-directions li p\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
   });
 
   it("renders immediately and labels route provenance without deriving Live from directory state", () => {
