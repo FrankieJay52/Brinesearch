@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "./types";
 import {
-  BILINOVICH_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   reviewedNavigationCandidateForPad,
+  reviewedNavigationSafetyHoldForPad,
 } from "./reviewedNavigationCandidates";
 
 function bilinovich(): PadSummary {
@@ -49,27 +49,13 @@ function lawson(): PadSummary {
 }
 
 describe("reviewed navigation candidates", () => {
-  it("returns the exact owner-reviewed BILINOVICH mobile handoff", () => {
-    const candidate = reviewedNavigationCandidateForPad(bilinovich());
-    expect(candidate).toMatchObject({
+  it("withdraws the unsafe BILINOVICH Blaze handoff and binds the safety hold to the exact stale record", () => {
+    expect(reviewedNavigationCandidateForPad(bilinovich())).toBeNull();
+    expect(reviewedNavigationSafetyHoldForPad(bilinovich())).toMatchObject({
       padId: "59061829-1122-4aae-872d-cf5024310373",
-      title: "Navigate reviewed route",
-      detail: "Owner-reviewed Google directions · graph status separate",
-      routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+      title: "Reviewed route withdrawn",
+      detail: "Do not use Blaze Road · corrected route pending",
     });
-
-    const url = new URL(candidate!.routeUrl);
-    expect(url.protocol).toBe("https:");
-    expect(url.hostname).toBe("www.google.com");
-    expect(url.pathname).toBe("/maps/dir/");
-    expect(url.searchParams.get("origin")).toBe("Saint Clairsville, OH");
-    expect(url.searchParams.get("destination")).toBe("40.08738445,-81.30282620");
-    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
-      "40.12303995,-81.35382341",
-      "40.112583770,-81.294937982",
-      "40.09955931,-81.29781917",
-    ]);
-    expect(url.searchParams.get("dir_action")).toBe("navigate");
   });
 
   it.each([
@@ -82,8 +68,9 @@ describe("reviewed navigation candidates", () => {
     ["state", "West Virginia"],
     ["county", "Harrison"],
     ["structuredRoadSequence", "McCoy Rd → Merry Rd → Pad"],
-  ] as const)("fails closed when %s diverges", (field, value) => {
+  ] as const)("fails the BILINOVICH safety hold closed when %s diverges", (field, value) => {
     expect(reviewedNavigationCandidateForPad({ ...bilinovich(), [field]: value })).toBeNull();
+    expect(reviewedNavigationSafetyHoldForPad({ ...bilinovich(), [field]: value })).toBeNull();
   });
 
   it("returns LAWSON's exact reviewed road-core-to-GPS handoff without promoting graph authority", () => {

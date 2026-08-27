@@ -3,7 +3,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { BILINOVICH_REVIEWED_GOOGLE_URL } from "@/data/reviewedNavigationCandidates";
+import { reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
@@ -93,7 +93,7 @@ function namedApproach(): DriverNamedApproach {
 
 describe("V18 pad legacy route fallback", () => {
   it("shows saved BrineSearch route data when structured route steps are absent", () => {
-    expect(padPage).toContain('const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
+    expect(padPage).toContain('const hasSavedRouteFallback = !reviewedNavigationSafetyHold && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
     expect(padPage).toContain('hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"');
     expect(padPage).toContain("Legacy saved directions");
     expect(padPage).toContain("{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}");
@@ -181,22 +181,23 @@ describe("V18 pad legacy route fallback", () => {
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
   });
 
-  it("shows the exact BILINOVICH reviewed link immediately while keeping approved authority separate", () => {
+  it("withdraws the unsafe BILINOVICH Blaze route and falls back to GPS destination only", () => {
     const pad = bilinovichPad();
     const heldView = buildGoogleHandoffView(statusWithGoogle(null), false, true);
     const action = buildFixedNavigationAction(heldView, pad);
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad }));
 
     expect(action).toMatchObject({
-      kind: "reviewed_route",
-      href: BILINOVICH_REVIEWED_GOOGLE_URL,
-      title: "Navigate reviewed route",
-      detail: "Owner-reviewed Google directions · graph status separate",
+      kind: "destination_pin",
+      title: "Navigate",
+      detail: expect.stringContaining("GPS destination only"),
     });
-    expect(html).toContain('data-navigation-kind="reviewed_route"');
-    expect(html).toContain("Owner-reviewed Google directions");
-    expect(html).toContain("graph status separate");
-    expect(html).not.toContain("GPS destination only");
+    expect(html).toContain('data-navigation-kind="destination_pin"');
+    expect(html).toContain("GPS destination only");
+    expect(reviewedNavigationSafetyHoldForPad(pad)).toMatchObject({ detail: "Do not use Blaze Road · corrected route pending" });
+    expect(padPage).toContain("reviewedNavigationSafetyHoldForPad(pad)");
+    expect(padPage).toContain("BILINOVICH navigation is GPS destination only");
+    expect(padPage).toContain("!reviewedNavigationSafetyHold && status.route.writtenDirections");
 
     const approvedView = buildGoogleHandoffView(statusWithGoogle("https://www.google.com/maps/dir/?api=1&destination=40.1%2C-81.1"), true, true);
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
@@ -481,7 +482,7 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("keeps reviewed written directions below the fallback without opening the long text by default", () => {
-    expect(padPage).toContain('{status.route.writtenDirections && <details className="detail-card">');
+    expect(padPage).toContain('{!reviewedNavigationSafetyHold && status.route.writtenDirections && <details className="detail-card">');
     expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/></details>");
     expect(padPage).toContain("Reviewed written directions");
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions\s*\{/);

@@ -24,7 +24,7 @@ import {
 } from "@/data/releasedGoogleHandoff";
 import { graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
-import { reviewedNavigationCandidateForPad } from "@/data/reviewedNavigationCandidates";
+import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
@@ -372,6 +372,7 @@ export function MapPage() {
   const selectedGpsNavigationUrl = selected ? padDestinationNavigationUrl(selected) : null;
   const selectedGpsDestination = selected ? trustedPadDestination(selected) : null;
   const selectedReviewedNavigation = selected ? reviewedNavigationCandidateForPad(selected) : null;
+  const selectedReviewedNavigationSafetyHold = selected ? reviewedNavigationSafetyHoldForPad(selected) : null;
   const currentSelectedStatus = selected
     && selectedStatus?.padId === selected.padId
     && selectedStatus.recordRevision === selected.recordRevision ? selectedStatus : null;
@@ -815,7 +816,9 @@ export function MapPage() {
           : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
           : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
-      {selected.structuredRoadSequence && <details className="map-saved-road-sequence"><summary><strong>Saved road sequence</strong><span>View</span></summary><p>{selected.structuredRoadSequence}</p></details>}
+      {selectedReviewedNavigationSafetyHold
+        ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>
+        : selected.structuredRoadSequence && <details className="map-saved-road-sequence"><summary><strong>Saved road sequence</strong><span>View</span></summary><p>{selected.structuredRoadSequence}</p></details>}
       {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? "Owner-reviewed Google directions are available for this exact pad. The map point remains a saved GPS reference, not a verified public-road entrance or approved graph endpoint." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses exact approved roads to its reviewed handoff. This GPS destination is the separate unapproved final leg.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}

@@ -11,7 +11,7 @@ import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDispl
 import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
 import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
-import { reviewedNavigationCandidateForPad, type ReviewedNavigationCandidate } from "@/data/reviewedNavigationCandidates";
+import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad, type ReviewedNavigationCandidate } from "@/data/reviewedNavigationCandidates";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
@@ -402,7 +402,8 @@ export function PadPage() {
     namedSelectionRequired,
   );
   const reviewedNavigationCandidate = reviewedNavigationCandidateForPad(pad);
-  const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
+  const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
+  const hasSavedRouteFallback = !reviewedNavigationSafetyHold && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
   return <article className="pad-page has-fixed-navigation">
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><span className="pad-topbar-spacer" aria-hidden="true"/></header>
@@ -446,8 +447,9 @@ export function PadPage() {
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{displayedRouteSteps.length ? selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `Approved road core · ${selectedNamedApproach.approachLabel}` : `Approved route · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : namedSelectionRequired ? "Choose a reviewed approach" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
-      {displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `Approved road core · ${selectedNamedApproach.approachLabel}` : `Approved route · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : namedSelectionRequired ? "Choose a reviewed approach" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      {reviewedNavigationSafetyHold ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{reviewedNavigationSafetyHold.detail}</strong> BILINOVICH navigation is GPS destination only while its replacement route is traced backward from the pad.</div>
+        : displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
         : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. No route line, steps, or navigation action has been chosen for you.</p>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
         : <p className="card-empty">No reviewed field directions are on file. GPS-only navigation remains destination utility and is not an approved route.</p>}
@@ -457,7 +459,7 @@ export function PadPage() {
         : null)}
     </section>
 
-    {status.route.writtenDirections && <details className="detail-card"><summary><span><strong>Reviewed written directions</strong><small>Owner-reviewed wording · display guidance</small></span><span>⌄</span></summary><ReviewedWrittenDirections value={status.route.writtenDirections}/></details>}
+    {!reviewedNavigationSafetyHold && status.route.writtenDirections && <details className="detail-card"><summary><span><strong>Reviewed written directions</strong><small>Owner-reviewed wording · display guidance</small></span><span>⌄</span></summary><ReviewedWrittenDirections value={status.route.writtenDirections}/></details>}
 
     <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>
       <div className="pad-readiness-content">
