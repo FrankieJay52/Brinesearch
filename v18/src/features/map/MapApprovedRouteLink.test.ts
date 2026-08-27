@@ -55,4 +55,19 @@ describe("map approved route link", () => {
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("Google ready");
   });
+
+  it("renders candidate-specific held-graph wording", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&destination=40.124991%2C-81.295913";
+    const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, {
+      routeUrl,
+      padName: "LAWSON",
+      title: "Navigate reviewed route",
+      detail: "Reviewed road core → saved GPS · graph status separate",
+    }));
+
+    expect(html).toContain("Navigate reviewed route");
+    expect(html).toContain("Reviewed road core → saved GPS · graph status separate");
+    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).not.toContain("Approved route");
+  });
 });

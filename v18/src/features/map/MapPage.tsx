@@ -810,7 +810,7 @@ export function MapPage() {
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
         {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
-          : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName}/>
+          : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName} title={selectedReviewedNavigation.title} detail={selectedReviewedNavigation.detail}/>
           : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable navigation</small>
           : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
           : <small className="map-google-link-state">No trusted GPS destination</small>}
