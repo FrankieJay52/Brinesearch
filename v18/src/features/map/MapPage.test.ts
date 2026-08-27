@@ -191,6 +191,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("releasedGoogleNavigationUrl(");
     expect(pageSource).toContain("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
     expect(pageSource).toContain("reviewedNavigationCandidateForPad(selected)");
+    expect(pageSource).toContain("reviewedNavigationSafetyHoldForPad(selected)");
     expect(pageSource).toContain("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}");
     expect(pageSource).toContain("Owner-reviewed Google directions are available for this exact pad.");
     expect(pageSource).toContain("padDestinationPinUrl(selected)");
@@ -202,6 +203,12 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("Copy GPS");
     expect(pageSource).not.toContain("navigator.clipboard.writeText");
     expect(pageSource).not.toContain("google.com/maps/search");
+  });
+
+  it("withdraws a revision-bound unsafe route from the map without hiding its GPS destination", () => {
+    expect(pageSource).toContain("selectedReviewedNavigationSafetyHold");
+    expect(pageSource).toContain("GPS destination only until corrected");
+    expect(pageSource).toContain("selectedGpsNavigationUrl && selectedGpsDestination");
   });
 
   it("keys status and route choices to the current pad before rendering authority", () => {
