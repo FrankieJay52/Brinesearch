@@ -16,3 +16,9 @@ export function MapDestinationPinLink({ pinUrl, padName, sourceLabel = "GPS dest
   </a>;
 }
 
+export function MapReviewedRouteLink({ routeUrl, padName }: { routeUrl: string; padName: string }) {
+  return <a className="map-reviewed-route-link" href={routeUrl} target="_blank" rel="noreferrer" aria-label={`Open the owner-reviewed ${padName} route in Google Maps; exact graph and public Google authority remain separate`}>
+    <Icon name="google"/><span><strong>Navigate</strong><small>Owner-reviewed Google directions</small></span><b>↗</b>
+  </a>;
+}
+

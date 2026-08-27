@@ -1,5 +1,6 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
+import { BILINOVICH_REVIEWED_GOOGLE_URL } from "./reviewedNavigationCandidates";
 
 const migration = readFileSync(new URL(
   "../../../supabase/migrations/20260827000828_bilinovich_reviewed_route_correction.sql",
@@ -7,6 +8,10 @@ const migration = readFileSync(new URL(
 ), "utf8").replaceAll("\r\n", "\n");
 
 describe("BILINOVICH reviewed display-route correction", () => {
+  it("keeps the UI handoff byte-for-byte equal to the reviewed migration evidence", () => {
+    expect(migration).toContain(`'${BILINOVICH_REVIEWED_GOOGLE_URL}'`);
+  });
+
   it("pins the one exact pad and preserves the raw source", () => {
     expect(migration).toContain("59061829-1122-4aae-872d-cf5024310373");
     expect(migration).toContain("ascent--bilinovich");

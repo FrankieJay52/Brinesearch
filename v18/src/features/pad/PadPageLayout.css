@@ -380,6 +380,75 @@
   background: color-mix(in srgb, var(--amber) 17%, var(--surface-raised));
 }
 
+.pad-fixed-navigation .navigate-action.is-reviewed-route {
+  color: #06131c;
+  border-color: color-mix(in srgb, var(--teal-bright) 68%, var(--line));
+  background: linear-gradient(135deg, color-mix(in srgb, var(--teal-bright) 92%, white), var(--teal));
+}
+
+.reviewed-written-directions {
+  display: grid;
+  gap: 0;
+  padding: 18px 20px 22px;
+}
+
+.reviewed-route-sequence {
+  padding: 13px 14px;
+  border: 1px solid var(--line-soft);
+  border-radius: 13px;
+  background: var(--surface-raised);
+}
+
+.reviewed-route-sequence small {
+  color: var(--teal-bright);
+  font-size: .58rem;
+  font-weight: 850;
+  letter-spacing: .12em;
+}
+
+.reviewed-route-sequence p {
+  margin: 7px 0 0;
+  color: var(--muted-strong);
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
+.reviewed-written-directions ol {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reviewed-written-directions li {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 11px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.reviewed-written-directions li:first-child { border-top: 0; }
+
+.reviewed-written-directions li > span {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #06131c;
+  background: var(--teal);
+  font-size: .67rem;
+  font-weight: 900;
+}
+
+.reviewed-written-directions li p {
+  margin: 2px 0 0;
+  color: var(--muted-strong);
+  font-size: .76rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
 .pad-fixed-navigation .navigate-action.is-unavailable {
   color: var(--muted);
   border-color: var(--line-soft);

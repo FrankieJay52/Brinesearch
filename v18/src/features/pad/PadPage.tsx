@@ -11,6 +11,7 @@ import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDispl
 import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
 import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
+import { reviewedNavigationCandidateForPad, type ReviewedNavigationCandidate } from "@/data/reviewedNavigationCandidates";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
 import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
@@ -38,6 +39,22 @@ function semanticLabel(kind: DriverPadStatus["routeSteps"][number]["kind"]) {
 
 function displayWrittenDirections(value: string) {
   return value.replace(/\\r\\n|\\n|\\r/g, "\n");
+}
+
+export function ReviewedWrittenDirections({ value }: { value: string }) {
+  const lines = displayWrittenDirections(value).split("\n").map((line) => line.trim()).filter(Boolean);
+  const sequenceHeading = lines.findIndex((line) => /^road sequence reference:?$/i.test(line));
+  const stepsHeading = lines.findIndex((line) => /^step-by-step directions:?$/i.test(line));
+  const sequence = sequenceHeading >= 0 && sequenceHeading + 1 < lines.length ? lines[sequenceHeading + 1] : null;
+  const numbered = lines
+    .filter((line, index) => index > stepsHeading && /^\d+\.\s+/.test(line))
+    .map((line) => line.replace(/^\d+\.\s+/, ""));
+
+  if (!sequence && numbered.length === 0) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
+  return <div className="reviewed-written-directions">
+    {sequence && <div className="reviewed-route-sequence"><small>ROAD SEQUENCE</small><p>{sequence}</p></div>}
+    {numbered.length > 0 && <ol aria-label="Owner-reviewed written driving directions">{numbered.map((instruction, index) => <li key={`${index + 1}-${instruction}`}><span>{index + 1}</span><p>{instruction}</p></li>)}</ol>}
+  </div>;
 }
 
 export interface GoogleHandoffView {
@@ -140,10 +157,15 @@ export function buildGoogleHandoffView(
 
 export type FixedNavigationAction =
   | { kind: "approved_route"; href: string; title: string; detail: string; ariaLabel: string }
+  | { kind: "reviewed_route"; href: string; title: string; detail: string; ariaLabel: string }
   | { kind: "destination_pin"; href: string; title: string; detail: string; ariaLabel: string }
   | { kind: "unavailable"; href: null; title: string; detail: string; ariaLabel: string };
 
-export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSummary): FixedNavigationAction {
+export function buildFixedNavigationAction(
+  view: GoogleHandoffView,
+  pad: PadSummary,
+  reviewedCandidate: ReviewedNavigationCandidate | null = reviewedNavigationCandidateForPad(pad),
+): FixedNavigationAction {
   if (view.available && view.routeUrl) return {
     kind: "approved_route",
     href: view.routeUrl,
@@ -163,6 +185,13 @@ export function buildFixedNavigationAction(view: GoogleHandoffView, pad: PadSumm
     title: "Choose an approach",
     detail: view.reason,
     ariaLabel: "Choose one reviewed named approach before navigation",
+  };
+  if (reviewedCandidate) return {
+    kind: "reviewed_route",
+    href: reviewedCandidate.routeUrl,
+    title: reviewedCandidate.title,
+    detail: reviewedCandidate.detail,
+    ariaLabel: `Open the owner-reviewed ${pad.padName} route in Google Maps; exact graph and public Google authority remain separate`,
   };
   const destinationUrl = padDestinationNavigationUrl(pad);
   const destination = trustedPadDestination(pad);
@@ -186,7 +215,7 @@ export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pa
   const action = buildFixedNavigationAction(view, pad);
   return <nav className="pad-fixed-navigation" aria-label="Pad navigation">
     {action.href ? <a className={`navigate-action is-${action.kind.replaceAll("_", "-")}`} href={action.href} target="_blank" rel="noreferrer" aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
-      <Icon name={action.kind === "approved_route" ? "route" : "location"}/>
+      <Icon name={action.kind === "approved_route" || action.kind === "reviewed_route" ? "route" : "location"}/>
       <span><strong>{action.title}</strong><small>{action.detail}</small></span>
       <b aria-hidden="true">↗</b>
     </a> : <button className="navigate-action is-unavailable" type="button" disabled aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
@@ -372,6 +401,7 @@ export function PadPage() {
     selectedNamedApproach,
     namedSelectionRequired,
   );
+  const reviewedNavigationCandidate = reviewedNavigationCandidateForPad(pad);
   const hasSavedRouteFallback = displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
   return <article className="pad-page has-fixed-navigation">
@@ -427,7 +457,7 @@ export function PadPage() {
         : null)}
     </section>
 
-    {status.route.writtenDirections && <details className="detail-card" open><summary><span><strong>Written field directions</strong><small>Saved wording · verify current conditions</small></span><span>⌄</span></summary><p className="written-directions">{displayWrittenDirections(status.route.writtenDirections)}</p></details>}
+    {status.route.writtenDirections && <details className="detail-card"><summary><span><strong>Reviewed written directions</strong><small>Owner-reviewed wording · display guidance</small></span><span>⌄</span></summary><ReviewedWrittenDirections value={status.route.writtenDirections}/></details>}
 
     <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>
       <div className="pad-readiness-content">
@@ -437,7 +467,7 @@ export function PadPage() {
         <div className="readiness-grid">
           <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
           <StatusColumn icon="graph" label="ROAD GRAPH" detail={`${status.graph.county || pad.county || "County not listed"} · ${dateLabel(status.graph.lastVerifiedAt)}`}><StatusBadge status={status.graph.state}/><strong>{status.graph.publicSource || "Public graph status"}</strong></StatusColumn>
-          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={googleHandoff.state}/><strong>{googleHandoff.available ? googleHandoff.approachLabel ? `${googleHandoff.approachLabel} action available` : "Approved route action available" : googleHandoff.selectionRequired ? "Choose a reviewed approach" : "No exact Google handoff"}</strong></StatusColumn>
+          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={reviewedNavigationCandidate ? "Owner-reviewed mobile directions are available now. Exact graph and public Google authority remain separate." : googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={reviewedNavigationCandidate ? "ready" : googleHandoff.state} label={reviewedNavigationCandidate ? "Reviewed" : undefined}/><strong>{reviewedNavigationCandidate ? "Reviewed route action available" : googleHandoff.available ? googleHandoff.approachLabel ? `${googleHandoff.approachLabel} action available` : "Approved route action available" : googleHandoff.selectionRequired ? "Choose a reviewed approach" : "No exact Google handoff"}</strong></StatusColumn>
         </div>
       </div>
     </details>

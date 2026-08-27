@@ -463,6 +463,9 @@ h2 { letter-spacing: -.035em; }
 .map-coordinate-reference > a > span { display: grid; gap: 0; }
 .map-coordinate-reference > a > span > small { color: color-mix(in srgb, #06131c 72%, transparent); font: 750 .52rem/1.1 var(--font-body); }
 .map-coordinate-reference > a.map-destination-pin-link { color: var(--text); border-color: color-mix(in srgb, var(--amber) 44%, var(--line)); background: color-mix(in srgb, var(--amber) 16%, var(--surface-raised)); }
+.map-coordinate-reference > a.map-reviewed-route-link { color: #06131c; border-color: color-mix(in srgb, var(--teal-bright) 68%, var(--line)); background: linear-gradient(135deg, color-mix(in srgb, var(--teal-bright) 92%, white), var(--teal)); }
+.map-reviewed-route-link > span { display: grid; gap: 1px; }
+.map-coordinate-reference .map-reviewed-route-link small { color: color-mix(in srgb, #06131c 72%, transparent); font: 750 .55rem/1.2 var(--font-body); }
 .map-destination-pin-link > span { display: grid; gap: 1px; }
 .map-coordinate-reference .map-destination-pin-link small { color: var(--muted); font: 700 .55rem/1.2 var(--font-body); }
 .map-google-link-state { max-width: 112px; color: var(--muted); text-align: right; font: 750 .63rem/1.25 var(--font-body); }
