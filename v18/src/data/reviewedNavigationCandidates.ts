@@ -18,7 +18,7 @@ export interface ReviewedNavigationSafetyHold {
 
 export const LAWSON_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.124991%2C-81.295913&waypoints=40.123106982%2C-81.353948693%7C40.111789555%2C-81.300978103%7C40.124973191%2C-81.294865644";
 export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620&waypoints=40.123106982%2C-81.353948693%7C40.095894612%2C-81.283992781%7C40.099684564%2C-81.297880136";
-export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1870079210496%2C-80.9203701394203%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
+export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -66,8 +66,9 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
   },
   {
-    // Owner phone preview on 2026-08-27 confirmed the ordered OH-519,
-    // Sixteen Road, and private-lease legs without a loop or backtrack.
+    // The first waypoint is 20 metres inside Sixteen Road from its verified
+    // OH-519 junction. This avoids exact-intersection waypoint ambiguity and
+    // is designed to accept either state-route direction at the turn.
     padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
     canonicalId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
     legacyId: "ascent--beetle",

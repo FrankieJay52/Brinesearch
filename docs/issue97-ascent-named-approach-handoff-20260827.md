@@ -29,20 +29,23 @@ BEETLE. This is an owner-reviewed Google handoff, not a graph release and not a
 public-Google publication.
 
 New Athens remains the reviewed rural reference anchor. The mobile URL does not
-force every driver through it: Google may choose the highway/state-route
-portion from the phone's current location. All three waypoint controls are
-reserved for the safety-critical local movement on OH-519, onto Sixteen Road,
-and toward the satellite-visible lease approach. Cadiz-style anchors remain
-valid for other pads when their evidence supports one and the waypoint budget
-permits it.
+force every driver through it. The first mobile waypoint sits 20 metres inside
+Sixteen Road from its exact OH-519 junction. It is designed to let the phone's
+current location approach the turn along OH-519 from either the New Athens side
+or the US-250 side. A waypoint placed directly in the intersection was rejected
+because an independent router biased one approach and created a 4.89-kilometre
+detour. The ordered inside-Sixteen points instead keep the local movement on
+Sixteen after the state-route turn. Cadiz-style anchors remain valid for other
+pads when their evidence supports one and the waypoint budget permits it.
 
 The URL:
 
 - omits origin, so Google starts from the phone's current location;
-- uses an exact point on authoritative OH-519 about 99 metres west of the
-  verified Sixteen junction;
+- uses a point 20 metres inside Sixteen Road from the exact verified junction,
+  allowing either direction of OH-519 to make the turn without treating the
+  intersection itself as a waypoint arrival;
 - uses a shaping point about 200 metres inside Sixteen Road, forcing the
-  eastbound OH-519 to southbound Sixteen movement;
+  post-junction movement south onto Sixteen Road;
 - places one satellite-supported shaping point on the visible
   private lease road;
 - ends at BEETLE's exact saved pad GPS;
@@ -52,7 +55,8 @@ Exact points:
 
 | Role | Latitude | Longitude |
 |---|---:|---:|
-| Authoritative OH-519 shaping point west of the turn | 40.1870079210496 | -80.9203701394203 |
+| Verified OH-519/Sixteen Road junction (evidence; not a mobile waypoint) | 40.1871547 | -80.9192191 |
+| First mobile waypoint, 20 m inside Sixteen Road | 40.1869745925099 | -80.9192177275288 |
 | Inside Sixteen Road after the OH-519 turn | 40.185340499 | -80.919294431 |
 | Satellite-supported lease shaping point (unapproved) | 40.185025 | -80.920500 |
 | Saved BEETLE pad GPS destination | 40.185403 | -80.922718 |
@@ -121,8 +125,13 @@ is absent from the independent public routing graph used for a second check.
 That independent check proved the ordered OH-519/Sixteen movement but could not
 model the lease.
 
-On 2026-08-27, the owner opened the final exact URL on a phone and confirmed
-that it followed the intended route correctly. This closes the visual Google
-gate for this reviewed mobile handoff. It does not change BEETLE's held graph,
-route, or public-Google authority state; the lease/GPS leg remains explicitly
-unapproved geometry in the driver display.
+On 2026-08-27, the owner opened the original west-of-turn shaping version on a
+phone and confirmed the Sixteen Road and lease approach followed correctly.
+The owner then requested that the first control move to the turn so drivers can
+arrive along OH-519 from either state-route direction. Independent routing
+showed that an exact-intersection waypoint biased one approach, so the safe
+candidate uses a point 20 metres inside Sixteen instead. That preserves the
+confirmed post-turn points. The owner opened the revised exact URL on a phone
+and confirmed the final Google rendering on 2026-08-27. It does
+not change BEETLE's held graph, route, or public-Google authority state; the
+lease/GPS leg remains explicitly unapproved geometry in the driver display.

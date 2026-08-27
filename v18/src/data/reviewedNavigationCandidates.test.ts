@@ -192,12 +192,14 @@ describe("reviewed navigation candidates", () => {
     expect(url.searchParams.get("origin")).toBeNull();
     expect(url.searchParams.get("destination")).toBe("40.185403,-80.922718");
     expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
-      "40.1870079210496,-80.9203701394203",
+      "40.1869745925099,-80.9192177275288",
       "40.185340499,-80.919294431",
       "40.185025,-80.920500",
     ]);
     expect(url.searchParams.get("travelmode")).toBe("driving");
     expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(candidate!.routeUrl).not.toContain("40.1870079210496%2C-80.9203701394203");
+    expect(candidate!.routeUrl).not.toContain("40.1871547%2C-80.9192191");
     expect(candidate!.routeUrl).not.toContain("40.1883181%2C-80.9122508");
     expect(candidate!.reviewedRoadSequence).not.toContain("US-250");
   });
