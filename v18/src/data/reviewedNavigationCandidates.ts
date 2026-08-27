@@ -1,10 +1,13 @@
 import type { PadSummary } from "./types";
+import { trustedPadDestination, type PadDestinationSource } from "./googleDestination";
 
 export interface ReviewedNavigationCandidate {
   padId: string;
   title: string;
   detail: string;
   routeUrl: string;
+  reviewedRoadSequence?: string;
+  finalLegNotice?: string;
 }
 
 export interface ReviewedNavigationSafetyHold {
@@ -15,6 +18,7 @@ export interface ReviewedNavigationSafetyHold {
 
 export const LAWSON_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.124991%2C-81.295913&waypoints=40.123106982%2C-81.353948693%7C40.111789555%2C-81.300978103%7C40.124973191%2C-81.294865644";
 export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620&waypoints=40.123106982%2C-81.353948693%7C40.095894612%2C-81.283992781%7C40.099684564%2C-81.297880136";
+export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1870079210496%2C-80.9203701394203%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -25,6 +29,11 @@ interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   state: string;
   county: string;
   structuredRoadSequence: string;
+  destination?: {
+    latitude: number;
+    longitude: number;
+    source: PadDestinationSource;
+  };
 }
 
 const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
@@ -55,6 +64,29 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     title: "Navigate reviewed route",
     detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
     routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+  },
+  {
+    // Owner phone preview on 2026-08-27 confirmed the ordered OH-519,
+    // Sixteen Road, and private-lease legs without a loop or backtrack.
+    padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    canonicalId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    legacyId: "ascent--beetle",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "BEETLE",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "OH-519 → US-250 → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
+    routeUrl: BEETLE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "OH-519 → Sixteen Rd → lease approach → saved pad GPS",
+    finalLegNotice: "Sixteen Road is the reviewed local-road approach. The satellite-supported lease entrance, lease shaping point, and remaining leg to the saved pad GPS are not approved public-road geometry.",
+    destination: {
+      latitude: 40.185403,
+      longitude: -80.922718,
+      source: "saved_pad_gps",
+    },
   },
 ] as const;
 
@@ -104,7 +136,7 @@ export function reviewedNavigationSafetyHoldForPad(
  * steps, geometry, or a public Google release.
  */
 export function reviewedNavigationCandidateForPad(
-  pad: Pick<PadSummary, "padId" | "canonicalId" | "legacyId" | "recordRevision" | "company" | "padName" | "state" | "county" | "structuredRoadSequence">,
+  pad: PadSummary,
 ): ReviewedNavigationCandidate | null {
   const contract = reviewedNavigationContracts.find((candidate) => candidate.padId === pad.padId);
   if (!contract
@@ -117,10 +149,25 @@ export function reviewedNavigationCandidateForPad(
     || pad.county !== contract.county
     || pad.structuredRoadSequence !== contract.structuredRoadSequence) return null;
 
+  if (contract.destination) {
+    const destination = trustedPadDestination(pad);
+    const routeDestination = new URL(contract.routeUrl).searchParams.get("destination")?.split(",").map(Number) || [];
+    if (!destination
+      || destination.source !== contract.destination.source
+      || Math.abs(destination.latitude - contract.destination.latitude) > 1e-9
+      || Math.abs(destination.longitude - contract.destination.longitude) > 1e-9
+      || routeDestination.length !== 2
+      || !routeDestination.every(Number.isFinite)
+      || Math.abs(routeDestination[0] - destination.latitude) > 1e-9
+      || Math.abs(routeDestination[1] - destination.longitude) > 1e-9) return null;
+  }
+
   return {
     padId: contract.padId,
     title: contract.title,
     detail: contract.detail,
     routeUrl: contract.routeUrl,
+    reviewedRoadSequence: contract.reviewedRoadSequence,
+    finalLegNotice: contract.finalLegNotice,
   };
 }
