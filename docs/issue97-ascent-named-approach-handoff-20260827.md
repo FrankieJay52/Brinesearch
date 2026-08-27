@@ -83,7 +83,26 @@ tool timeout.
 - Branch: `claude/brinesearch-finish-audit-eks1cv`
 - Commit: `ea07b58` — Add BEETLE OH-519 named approach migration
 - File: `supabase/migrations/20260827180000_issue97_beetle_oh519_named_core.sql`
-- Status: **written, shapes validated, NOT rehearsed, NOT applied**
+- Status: **written, rehearsed against production, NOT applied**
+
+Rehearsed 2026-08-27 in two guarded passes, each ending in a deliberate
+`raise` so the transaction could only abort. Zero persistent delta confirmed
+afterwards (BEETLE private 0 / public 0, named_total unchanged at 13).
+
+| Pass | Result |
+|---|---|
+| Release logic + both inserts | `core_mi=0.574593 tail_ft=340.5 frac=1.0->0.94656907 pub_rows=1 steps=1 wp=2 leak=f` |
+| Full preflight gate | `google=1/1 cutover=null anchors=1 build=active receipts=ok` |
+
+Both inserts satisfied every CHECK constraint, the digest function accepted the
+row, and the public projection rendered with no private-field leak.
+
+Two bugs were found and fixed by rehearsing — neither was visible by reading:
+
+1. `extensions.gen_random_uuid()` — the function lives in `pg_catalog`, not
+   `extensions`. Would have failed at the insert.
+2. The preflight asserted public Google rows `= 0`. Production has 1 (COLOGIE).
+   The migration would have failed its own preflight. See §8.
 
 Validated before commit (all returned true / matching):
 - `brinesearch_v18_named_approach_waypoints_valid(...)` on the exact waypoint array
@@ -261,7 +280,14 @@ pad, zero missing). That has been true since Batch 0 / PR #177.
 
 ## 8. Standing constraints
 
-- Public Google rows: **0**. Cutover: **OFF**. Both must stay that way.
+- Public Google rows: **1 route + 1 handoff — NOT zero.** That one row is
+  COLOGIE (`e2b32e85-9e93-4388-8215-9d8167cbbeb8`), released by migration
+  `20260825210231_v18_cologie_exact_public_google_release.sql`. Several repo
+  docs — including `docs/issue97-ohio-source-gap-evidence-20260825.md` and the
+  Batch 0 ledger — still say "public Google rows: 0", because they predate that
+  release. **Verify against production, not the docs.** A migration that
+  asserts zero fails its own preflight; pin the COLOGIE baseline instead.
+- Cutover: **OFF** (`cutover_at is null`). Must stay off.
 - PR #98 is **closed and unmerged** — leave it closed.
 - COLOGIE is the only public Google row that exists. Any identity/mapping
   refresh queues dependent private-Google receipts through

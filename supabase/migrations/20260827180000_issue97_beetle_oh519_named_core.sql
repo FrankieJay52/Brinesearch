@@ -194,10 +194,20 @@ begin
     raise exception 'BEETLE ingress anchor is not exact and singular';
   end if;
 
-  -- Global authority must be untouched on entry.
-  if v_before.google_routes<>0 or v_before.google_handoffs<>0
+  -- Global authority must be untouched on entry. Public Google is NOT zero:
+  -- COLOGIE holds exactly one released route + handoff (migration
+  -- 20260825210231). Pin that exact baseline rather than asserting zero, and
+  -- fail on any other row appearing.
+  if v_before.google_routes<>1 or v_before.google_handoffs<>1
      or v_before.cutover_at is not null then
-    raise exception 'Google/cutover checkpoint diverged';
+    raise exception
+      'Google/cutover checkpoint diverged (routes % handoffs % cutover %)',
+      v_before.google_routes, v_before.google_handoffs, v_before.cutover_at;
+  end if;
+  if not exists(
+       select 1 from public.brinesearch_driver_google_routes_public
+        where pad_id='e2b32e85-9e93-4388-8215-9d8167cbbeb8') then
+    raise exception 'The one public Google route is not COLOGIE';
   end if;
 end
 $preflight$;
@@ -306,7 +316,7 @@ begin
     raise exception 'BEETLE base driver revision/authority checkpoint diverged';
   end if;
 
-  v_release.release_id:=extensions.gen_random_uuid();
+  v_release.release_id:=pg_catalog.gen_random_uuid();
   v_release.pad_id:='0e6f23f1-3bfb-44b0-aa4e-f24dde611880';
   v_release.approach_key:='us250-oh519-stumptown-westbound';
   v_release.approach_label:='US-250 at OH-519, then OH-519 west';
@@ -465,9 +475,12 @@ begin
     raise exception 'BEETLE named release is not active and atomic';
   end if;
 
-  -- Nothing else moved.
-  if (select pg_catalog.count(*) from public.brinesearch_driver_google_routes_public)<>0
-     or (select pg_catalog.count(*) from public.brinesearch_driver_google_handoffs_public)<>0
+  -- Nothing else moved: Google output must be byte-stable at the COLOGIE
+  -- baseline captured on entry, and cutover must remain off.
+  if (select pg_catalog.count(*) from public.brinesearch_driver_google_routes_public)
+       <>v_before.google_routes
+     or (select pg_catalog.count(*) from public.brinesearch_driver_google_handoffs_public)
+       <>v_before.google_handoffs
      or (select cutover_at from public.brinesearch_issue97_release_state
           where singleton) is not null then
     raise exception 'Google/cutover authority changed';
