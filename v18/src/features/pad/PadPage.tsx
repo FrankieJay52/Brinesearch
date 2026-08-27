@@ -171,20 +171,13 @@ export function buildFixedNavigationAction(
     href: view.routeUrl,
     title: view.approachLabel ? `Navigate ${view.approachLabel}` : "Navigate",
     detail: view.mode === "named_approach" && view.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads to handoff · GPS-only final leg · not approved"
-      : view.mode === "exact_core_destination" ? "Approved road core · GPS destination" : "Reviewed approved route",
+      ? "Approved roads then GPS"
+      : view.mode === "exact_core_destination" ? "Approved roads then GPS" : "Reviewed approved route",
     ariaLabel: view.mode === "named_approach"
       ? `Navigate ${view.approachLabel} in Google Maps using its reviewed approved-road controls${view.finalLegMode === "google_to_saved_gps_unapproved" ? "; final GPS leg is not approved road geometry" : ""}`
       : view.mode === "exact_core_destination"
       ? "Navigate the exact approved road core, then continue to the saved GPS destination in Google Maps"
       : "Navigate the reviewed approved route in Google Maps",
-  };
-  if (view.selectionRequired) return {
-    kind: "unavailable",
-    href: null,
-    title: "Choose an approach",
-    detail: view.reason,
-    ariaLabel: "Choose one reviewed named approach before navigation",
   };
   if (reviewedCandidate) return {
     kind: "reviewed_route",
@@ -201,6 +194,13 @@ export function buildFixedNavigationAction(
     title: "Navigate",
     detail: `GPS destination only · ${destination.label} · not an approved route`,
     ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
+  };
+  if (view.selectionRequired) return {
+    kind: "unavailable",
+    href: null,
+    title: "Choose an approach",
+    detail: view.reason,
+    ariaLabel: "Choose one reviewed named approach before navigation",
   };
   return {
     kind: "unavailable",

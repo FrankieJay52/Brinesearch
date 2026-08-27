@@ -403,11 +403,11 @@ export function MapPage() {
     : null) : null;
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads to handoff · GPS-only final leg · not approved"
-      : "Reviewed named approved route"
+      ? "Approved roads then GPS"
+      : "Reviewed approved route"
     : liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "exact_graph_handoff"
-      ? "Approved road core · GPS destination"
-      : "Approved route";
+      ? "Approved roads then GPS"
+      : "Reviewed approved route";
   const selectedGoogleState = currentNamedApproaches.length
     ? selectedNamedApproach ? "ready" : "unavailable"
     : currentSelectedStatus
@@ -805,15 +805,15 @@ export function MapPage() {
       <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? "Reviewed directions" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label="Reviewed directions"/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
       {currentNamedApproaches.length > 1 && <div className="map-route-choice" aria-label="Choose reviewed named approach">{currentNamedApproaches.map((approach) => <button key={approach.approachKey} type="button" className={approach.approachKey === selectedNamedApproach?.approachKey ? "is-selected" : ""} aria-pressed={approach.approachKey === selectedNamedApproach?.approachKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedNamedApproachKey(approach.approachKey); }}><strong>{approach.approachLabel}</strong><small>{approach.steps.length} exact steps{approach.finalLegMode === "google_to_saved_gps_unapproved" ? " · GPS-only final leg" : ""}</small></button>)}</div>}
       {!currentNamedApproaches.length && currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
-      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach. No route line or navigation action has been selected for you." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
+      {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach to use approved roads. GPS destination-only navigation remains available; no approved route line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
       {selectedCoordinate && <div className="map-coordinate-reference">
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
         {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
           : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName} title={selectedReviewedNavigation.title} detail={selectedReviewedNavigation.detail}/>
-          : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable navigation</small>
           : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
+          : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable approved-road navigation</small>
           : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
       {selectedReviewedNavigationSafetyHold

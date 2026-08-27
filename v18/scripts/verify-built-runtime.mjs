@@ -39,6 +39,9 @@ assert.match(appJavascript, /Use the BrineSearch map and approved steps; no sing
 assert.match(appJavascript, /GPS destination only/, "Built V18 app is missing the always-present destination-pin navigation fallback");
 assert.match(appJavascript, /destination pin only, not an approved route/, "Built V18 app is missing clickable verified GPS coordinates");
 assert.match(appJavascript, /GPS destination only · not an approved route/, "Built V18 app is missing the compact GPS authority boundary");
+assert.match(appJavascript, /Approved roads then GPS/, "Built V18 app is missing the exact state-2 navigation label");
+assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");
+assert.doesNotMatch(appJavascript, /Approved roads to handoff · GPS-only final leg/, "Built V18 app retained the superseded named state-2 label");
 assert.match(appJavascript, /No trusted GPS destination/, "Built V18 app is missing the disabled navigation state");
 assert.match(appJavascript, /ODNR official pad GPS · not an entrance/, "Built V18 app is missing the official-pad destination source label");
 assert.match(appJavascript, /ODNR official wellhead GPS · not an entrance/, "Built V18 app is missing the official-wellhead destination source label");
