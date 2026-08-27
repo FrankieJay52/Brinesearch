@@ -1,0 +1,1853 @@
+{
+  "schemaVersion": 1,
+  "audit": "v18-ohio-get-directions",
+  "snapshot": {
+    "snapshotId": "68f1d076-fe03-4519-a5cd-c68f8a28b06c",
+    "sourceRevision": "8",
+    "sourceState": "live_current",
+    "generatedAt": "2026-08-27T03:56:01.811696+00:00",
+    "directoryRows": 1214,
+    "referenceRows": 746,
+    "referenceContentSha256": "1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45"
+  },
+  "method": {
+    "directory": "V18 live-current directory loader plus strict snapshot-bound pad-reference projection",
+    "navigation": "Production trustedPadDestination and fixed-action builders loaded through Vite SSR",
+    "higherPriorityRoutes": "Exact current record-bound release/named-approach registries recovered read-only; no all-pad route/status fanout",
+    "denominator": "Derived at runtime; not pinned"
+  },
+  "counts": {
+    "totalCurrentOhioPadsExamined": 926,
+    "releasedApprovedRouteActions": 2,
+    "ownerReviewedRouteActions": 9,
+    "trustedGpsDestinationOnlyActions": 867,
+    "disabledMissingDestinationActions": 48,
+    "ownerReviewedImmediatelyClickableActions": 3,
+    "ownerReviewedSelectionRequiredActions": 6,
+    "invalidCoordinateRecords": 0,
+    "incompleteCoordinateRecords": 0,
+    "recordsWithActionCountViolation": 0
+  },
+  "trustedDestinationSources": {
+    "verified_driver_entrance": 132,
+    "saved_pad_gps": 582,
+    "official_pad_reference": 69,
+    "official_wellhead_reference": 95
+  },
+  "missingOrInvalidDestinations": {
+    "count": 48,
+    "records": [
+      {
+        "padId": "02537d09-8426-4863-8449-7d8d5cab66a1",
+        "legacyId": "gulfport--milburn",
+        "recordRevision": "1786246664880153",
+        "company": "Gulfport",
+        "padName": "MILBURN",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "0f6032ca-bf8d-430a-a261-c034eff2fa8d",
+        "legacyId": "eog--mellenger",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "MELLENGER",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "10a2814b-9a9b-48d8-990a-a63062950a17",
+        "legacyId": "eog--sable",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "SABLE",
+        "county": "Noble",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "11da52bb-f88d-4f48-a3cc-36a010ff792d",
+        "legacyId": "antero--ervin-pad",
+        "recordRevision": "1786265812046205",
+        "company": "Antero",
+        "padName": "ERVIN PAD",
+        "county": "Noble",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "16b3ba4c-b226-465a-898f-00e8f26822d0",
+        "legacyId": "eog--larke",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "LARKE",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "1991b268-8aa4-4c69-acc1-108a41e927a1",
+        "legacyId": "chesapeake--frank-zehentbauer",
+        "recordRevision": "1786246664880153",
+        "company": "Chesapeake",
+        "padName": "FRANK-ZEHENTBAUER",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "27a64061-c236-4700-b288-2c200dffa81f",
+        "legacyId": "eqt--radcliff",
+        "recordRevision": "1786265812046205",
+        "company": "Eqt",
+        "padName": "RADCLIFF",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "31d0f9bb-09be-4253-bc6b-778e3e19a879",
+        "legacyId": "ascent--roliff",
+        "recordRevision": "1786246617744175",
+        "company": "Ascent",
+        "padName": "ROLIFF",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "3cb8d583-595a-4f1d-bc33-0aad74112fd5",
+        "legacyId": "eog--edison-ruby",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "EDISON RUBY",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "4024f478-aa21-4c73-b1b6-b620a6a89729",
+        "legacyId": "eog--stalker",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "STALKER",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "43be9385-0ba0-4967-8f32-1ed7a87001c7",
+        "legacyId": "eog--riffle-pad",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "RIFFLE PAD",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "4f81a309-ff58-40be-904e-3cada7ea74db",
+        "legacyId": "cnx--switz-11",
+        "recordRevision": "1787459253071652",
+        "company": "Cnx",
+        "padName": "SWITZ-11",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "54d15e17-36af-4beb-8a11-b3e7cf0019bb",
+        "legacyId": "chesapeake--woodland",
+        "recordRevision": "1787459253071652",
+        "company": "Chesapeake",
+        "padName": "WOODLAND",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "6111ced2-5261-4436-8532-f3793a1e3ef3",
+        "legacyId": "eog--klodt",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "KLODT",
+        "county": "Harrison",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "66829ffd-eeb8-451d-ae32-673d3fb433ae",
+        "legacyId": "eog--allan",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "ALLAN",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "67d97bb2-7738-4d78-bcc9-ab618cfb31bb",
+        "legacyId": "eog--pearley",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "PEARLEY",
+        "county": "Tusc",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "706473d0-a70a-4495-9753-6195d1fd78b5",
+        "legacyId": "gulfport--sproul",
+        "recordRevision": "1786265812046205",
+        "company": "Gulfport",
+        "padName": "SPROUL",
+        "county": "Tusc",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "72b25dba-6279-41b6-b9fd-8ead758d0294",
+        "legacyId": "ascent--wiley",
+        "recordRevision": "1786246617744175",
+        "company": "Ascent",
+        "padName": "WILEY",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "73c4739f-1cf1-4ab2-9777-09e944a7794e",
+        "legacyId": "eog--judy-brown",
+        "recordRevision": "1786246617744175",
+        "company": "Eog",
+        "padName": "JUDY BROWN",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "79e2d3cc-2699-5a15-bfd4-99db006c723e",
+        "legacyId": "diversified--beachy",
+        "recordRevision": "1787459253071652",
+        "company": "Diversified",
+        "padName": "BEACHY",
+        "county": "Monroe",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "7adbf888-6f25-4f8f-b306-649fcc9387f5",
+        "legacyId": "ascent--durr",
+        "recordRevision": "1786314389553451",
+        "company": "Ascent",
+        "padName": "DURR",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "7ba348ef-19fb-483e-bd87-88acd89bccec",
+        "legacyId": "eog--stitt",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "STITT",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "7daeb24d-9f2d-4aa8-992c-1dbba40cc8da",
+        "legacyId": "xto--rs-bsa",
+        "recordRevision": "1786246664880153",
+        "company": "Xto",
+        "padName": "RS-BSA",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "7fc2bc91-1d55-491a-89a4-da627ff0b988",
+        "legacyId": "hilcorp--unkefer",
+        "recordRevision": "1787459253071652",
+        "company": "Hilcorp",
+        "padName": "UNKEFER",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "81d4e68b-682c-40db-aee6-7bd4ece21510",
+        "legacyId": "eog--pigeon-a",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "PIGEON A",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "878e60fe-cdfc-4bbb-a4e4-93b588bd2059",
+        "legacyId": "ascent--gatti",
+        "recordRevision": "1786246617744175",
+        "company": "Ascent",
+        "padName": "GATTI",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "8f4ff089-5213-46be-8931-4fa7a094622f",
+        "legacyId": "eog--neider-pad",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "NEIDER PAD",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "99363abc-52c5-5fd2-bfeb-316958d8d340",
+        "legacyId": "edgemarc--zorin",
+        "recordRevision": "1787459253071652",
+        "company": "Edgemarc",
+        "padName": "ZORIN",
+        "county": "Monroe",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "996f85c7-92c4-41bc-94ab-224d1baa6dbd",
+        "legacyId": "eog--db-kibler",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "DB KIBLER",
+        "county": "Columbiana",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "9e92afd4-8da6-4cf7-adbe-1cdf79cfc3cd",
+        "legacyId": "eclipse--scott-lateral-pipeline",
+        "recordRevision": "1786246664880153",
+        "company": "Eclipse",
+        "padName": "SCOTT-LATERAL-PIPELINE",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "a3179cff-bdf5-47f8-a28b-ceae42493039",
+        "legacyId": "infinity--perry",
+        "recordRevision": "1786265812046205",
+        "company": "Infinity",
+        "padName": "PERRY",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "a77e7898-9f9b-4fd8-82bb-da9ce26abd08",
+        "legacyId": "ascent--kantor",
+        "recordRevision": "1786165584958501",
+        "company": "Ascent",
+        "padName": "KANTOR",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "a83593a0-9497-4cc1-997b-c4bb926a7fa7",
+        "legacyId": "swn--stadler",
+        "recordRevision": "1786265812046205",
+        "company": "Swn",
+        "padName": "STADLER",
+        "county": "Guersney",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "a9c67700-7adb-4370-b42d-c9ccc42c4ec1",
+        "legacyId": "eog--garner-pad",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "GARNER PAD",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "ae04ec20-32ce-4b36-a6f6-588a4d3600f2",
+        "legacyId": "chesapeake--peterson",
+        "recordRevision": "1786265812046205",
+        "company": "Chesapeake",
+        "padName": "PETERSON",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "aebfd976-7c5f-5469-a0e0-2615df7b756a",
+        "legacyId": "grenadier--sylvester",
+        "recordRevision": "1787459253071652",
+        "company": "Grenadier",
+        "padName": "SYLVESTER",
+        "county": "Belmont",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "bb0ebf91-232e-4411-895d-c8ac12b278c9",
+        "legacyId": "chesapeake--walker",
+        "recordRevision": "1786265812046205",
+        "company": "Chesapeake",
+        "padName": "WALKER",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "c9681e56-4560-4cae-81b2-cd4e342e17f5",
+        "legacyId": "eog--tygers",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "TYGERS",
+        "county": "Guernsey",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "d0ebe92b-6cb1-4891-ba05-ae7c29c54a2b",
+        "legacyId": "eog--groselle",
+        "recordRevision": "1786246664880153",
+        "company": "Eog",
+        "padName": "GROSELLE",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "e0efdc27-5fb8-4d24-913c-779acba0debd",
+        "legacyId": "eog--kirk",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "KIRK",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "e2ef3c68-d3a6-43dd-817d-98db09dc4f6c",
+        "legacyId": "eog--shula",
+        "recordRevision": "1787459253071652",
+        "company": "Eog",
+        "padName": "SHULA",
+        "county": "Tuscarawas",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "e537c3cb-ac98-4a26-91b9-4d3bcfa1e525",
+        "legacyId": "ascent--weidinger-w",
+        "recordRevision": "1786165584958501",
+        "company": "Ascent",
+        "padName": "WEIDINGER W",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "e7cdfa07-1779-5e98-8a8a-7f4d26667a07",
+        "legacyId": "edgemarc--marlin",
+        "recordRevision": "1787459253071652",
+        "company": "Edgemarc",
+        "padName": "MARLIN",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "ed0a73f7-b5d6-57e3-91d0-c63d3e203845",
+        "legacyId": "geopetro-llc--chimney",
+        "recordRevision": "1787459253071652",
+        "company": "Geopetro-llc",
+        "padName": "CHIMNEY",
+        "county": "Guernsey",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "f135943f-35b7-4bb1-957b-bf6717cef360",
+        "legacyId": "eog--larke-pad",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "LARKE PAD",
+        "county": "Carroll",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "f1dbca30-4e2f-419e-b559-cf440387c27d",
+        "legacyId": "xto--northwest",
+        "recordRevision": "1786258360881449",
+        "company": "Xto",
+        "padName": "NORTHWEST",
+        "county": "Belmont",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "f43f2774-936d-4081-9453-3dddda37544f",
+        "legacyId": "eog--arbaugh",
+        "recordRevision": "1786265812046205",
+        "company": "Eog",
+        "padName": "ARBAUGH",
+        "county": "Harrison",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      },
+      {
+        "padId": "f52bdf46-6b4a-4901-8f66-175bb7220ad8",
+        "legacyId": "ascent--alderman",
+        "recordRevision": "1786246617744175",
+        "company": "Ascent",
+        "padName": "ALDERMAN",
+        "county": "",
+        "reason": "no_trusted_coordinate_in_safe_directory_model"
+      }
+    ],
+    "invalidCoordinates": [],
+    "incompleteCoordinates": []
+  },
+  "duplicatePadNames": {
+    "groupCount": 49,
+    "recordCount": 105,
+    "groups": [
+      {
+        "normalizedName": "ALBERT",
+        "companies": [
+          "Antero",
+          "Ascent"
+        ],
+        "counties": [
+          "Belmont",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "12da2a9f-c9ae-467f-abf5-723c31daecfe",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786405417119866"
+          },
+          {
+            "padId": "833f531d-8de2-41af-b1bf-1f6a820f9d06",
+            "company": "Antero",
+            "county": "Monroe",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ALPHA",
+        "companies": [
+          "Antero",
+          "Ascent",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Harrison",
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "9f32ed65-4fb4-4e23-9cf6-87afdb0acb9c",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "c561f3ad-ddc2-43b7-9c16-d995c56dee53",
+            "company": "Antero",
+            "county": "Noble",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "e74868b6-71ae-4307-a5bb-3661a43998db",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ANDERSON",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "4d1f8a4f-76f5-4a86-b5e0-d149f5878530",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "e1fbee61-fb5c-4d48-8b5d-cc4786f170d3",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "BETTS",
+        "companies": [
+          "Antero",
+          "Ascent"
+        ],
+        "counties": [
+          "Guernsey",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "6a76157e-c1c5-4624-bdf3-db996ed3aebd",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "7c951b70-3c7f-4e57-8465-995b2042b435",
+            "company": "Antero",
+            "county": "Monroe",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "BOOTH",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "0c220623-6e50-46d5-8e6c-fa66f5cd2f3d",
+            "company": "Eog",
+            "county": "Jefferson",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "880ee85d-f231-452e-95cd-9c849208784d",
+            "company": "Chesapeake",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "BROWN",
+        "companies": [
+          "Ascent",
+          "Chesapeake",
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Carroll",
+          "Guernsey",
+          "Jefferson",
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "0dc102c5-1640-47bf-9975-736cf684c227",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "2317fda6-6930-4636-ba7d-0ca2dad78039",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "7135790e-3e29-410c-87a2-0c35f4fc2da6",
+            "company": "Gulfport",
+            "county": "Noble",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "cf86addd-cbea-4036-ad84-7ab9c6ef8ead",
+            "company": "Chesapeake",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "BSA",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "3c9c7f2d-eb9d-406f-8a3d-0b4820514a94",
+            "company": "Eog",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "c3b42375-2422-470e-8949-f27e1f00b3d3",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1786258360881449"
+          }
+        ]
+      },
+      {
+        "normalizedName": "CONKLIN",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Tuscarawas"
+        ],
+        "records": [
+          {
+            "padId": "8b400bab-3cc5-484d-9074-94f153b51e86",
+            "company": "Chesapeake",
+            "county": "Tuscarawas",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "8bf33736-70c1-427b-acc7-280348ce2365",
+            "company": "Eog",
+            "county": "Tuscarawas",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "COOPER",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll",
+          "Guernsey"
+        ],
+        "records": [
+          {
+            "padId": "852a50cf-855e-4ebc-96db-19edd085b083",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "df86657a-20af-4234-a14d-3ca67a49ba83",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "DAWSON",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "18befd60-a104-4845-9e35-34a73cb9b109",
+            "company": "Ascent",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "2b93b7cb-2db8-47a8-bdd1-91ba900b0cf5",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ELWOOD",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "3cb1b488-0b0d-4121-b2dc-04998174fe28",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "8cdaade2-9d31-4564-a6f8-6150b186d014",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "EVANS",
+        "companies": [
+          "Chesapeake",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "45cf7898-9723-4aee-9da9-47a35653c483",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "dc2fa20a-ec40-4f1d-8686-0eee8ca3119c",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HARTLEY",
+        "companies": [
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "1aebdd75-2337-452b-88c9-bb01a3d0ec49",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "a0968b41-bb0a-452e-876b-3f49ac593fa6",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HARVEY",
+        "companies": [
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Carroll",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "04206c4a-6df0-47b9-ac3b-2d004f2021ba",
+            "company": "Gulfport",
+            "county": "Monroe",
+            "recordRevision": "1786769660231088"
+          },
+          {
+            "padId": "bc6a15ee-524f-449b-a9ec-4e2927dd3b2f",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HENDERSON",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Belmont",
+          "Columbiana"
+        ],
+        "records": [
+          {
+            "padId": "036d0ac7-d72e-49e4-a400-ee0a631029e1",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "3272428a-59f2-41c2-bb8e-047f403d579b",
+            "company": "Eog",
+            "county": "Columbiana",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HENRY",
+        "companies": [
+          "Ascent",
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Guernsey",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "1f15d0b2-e582-4c89-b6d4-4f2cbc3a915a",
+            "company": "Chesapeake",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "4cb9b97b-b672-46f8-aec8-109637015f24",
+            "company": "Eog",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "4d010be1-39a8-4e4e-8bc8-d2b3337964e8",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HOWELL",
+        "companies": [
+          "Ascent",
+          "Gulfport"
+        ],
+        "counties": [
+          "Jefferson",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "2805772b-58c9-4a41-9c75-de5355f2904a",
+            "company": "Ascent",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "4cc71e56-ef3b-42ae-9f12-5f1b171703f7",
+            "company": "Gulfport",
+            "county": "Monroe",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "HUFFMAN TRUST",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Columbiana"
+        ],
+        "records": [
+          {
+            "padId": "5e98e5a5-d586-4e78-9327-76fbb384ef63",
+            "company": "Chesapeake",
+            "county": "Columbiana",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "f396d424-8aef-48f1-ae1e-5eeb9cc5113e",
+            "company": "Eog",
+            "county": "Columbiana",
+            "recordRevision": "1786246617744175"
+          }
+        ]
+      },
+      {
+        "normalizedName": "JADE",
+        "companies": [
+          "Ascent",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "672dc563-2612-47b1-a14b-0b67085318e9",
+            "company": "Ascent",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "ded3a0a8-c9a6-4abc-9273-d187557d86c5",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "JONES",
+        "companies": [
+          "Ascent",
+          "Gulfport"
+        ],
+        "counties": [
+          "Harrison",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "3d8f12eb-538a-49b7-b668-08288e3a26a1",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "f27ab3db-18e6-4ea9-89b9-926d7f57e103",
+            "company": "Gulfport",
+            "county": "Monroe",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "JUDY BROWN",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Columbiana"
+        ],
+        "records": [
+          {
+            "padId": "73c4739f-1cf1-4ab2-9777-09e944a7794e",
+            "company": "Eog",
+            "county": "Columbiana",
+            "recordRevision": "1786246617744175"
+          },
+          {
+            "padId": "edffaf71-381e-4bb9-a84c-c6a6fe3f11c4",
+            "company": "Chesapeake",
+            "county": "Columbiana",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "KLODT",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "6111ced2-5261-4436-8532-f3793a1e3ef3",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "c6b408af-818f-496b-9006-f948ab91022e",
+            "company": "Chesapeake",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "KRUPA",
+        "companies": [
+          "Antero",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "35803738-d236-4a03-bd8c-e7fbab185290",
+            "company": "Antero",
+            "county": "Noble",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "c8e83b4b-410b-4225-9c5b-04d2fa48c209",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "LODESTAR",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "691fb27b-2b35-471d-81fa-9239f6bd4081",
+            "company": "Ascent",
+            "county": "Noble",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "faca95fe-1063-4b64-99b9-4416e51b527c",
+            "company": "Eog",
+            "county": "Noble",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "LOZIER",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "0a18e549-c719-4e72-a89b-299746d05eec",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "c4a22b58-77c0-4f7f-9b13-b980fa3a2434",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "MILLER",
+        "companies": [
+          "Ascent",
+          "Gulfport",
+          "Swn"
+        ],
+        "counties": [
+          "Belmont",
+          "Guernsey",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "0724bd18-311c-45e0-b65b-ff6f1350cae0",
+            "company": "Gulfport",
+            "county": "Guernsey",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "5538f1ea-b6a5-4db5-bd53-be4de6410696",
+            "company": "Swn",
+            "county": "Monroe",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "d5722be0-59a2-42ae-baed-4c73efef4df6",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "MORSHEISER",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "3b42cb50-a1e8-494e-897b-288c5b5cba30",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "42a10c88-5795-4029-a048-83fcf70fd082",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "PHILLIPS",
+        "companies": [
+          "Ascent",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "887512e9-c56f-4357-940c-fd3570f7306a",
+            "company": "Ascent",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "c3d62ced-cbb0-497b-a54c-16de33029b52",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "PICKENS",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "75427489-c68e-4f5b-bd57-f52b2c054413",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1787615581785257"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ROBERT",
+        "companies": [
+          "Antero",
+          "Gulfport"
+        ],
+        "counties": [
+          "Monroe",
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "35db7073-f9e4-40d6-936d-ce7470b339a8",
+            "company": "Antero",
+            "county": "Noble",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "e25540e6-a676-4cd9-a70c-d4395d84989f",
+            "company": "Gulfport",
+            "county": "Monroe",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ROSE",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll",
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "2320c393-cad9-4c1b-94f9-7021c8488bd1",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "a554095b-5dc0-4ff4-b836-3e4d31c71104",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "ROSS",
+        "companies": [
+          "Ascent",
+          "Swn"
+        ],
+        "counties": [
+          "Belmont"
+        ],
+        "records": [
+          {
+            "padId": "28bd6947-c99d-45d3-b953-9ce784f3206b",
+            "company": "Swn",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "73e32bb0-be54-47c7-a2bf-3472dd16fd33",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "RUBEL",
+        "companies": [
+          "Antero",
+          "Infinity"
+        ],
+        "counties": [
+          "Guernsey",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "0402f172-f00b-4a4b-94f2-bbc5e8f0ca6d",
+            "company": "Infinity",
+            "county": "Guernsey",
+            "recordRevision": "1786314689684411"
+          },
+          {
+            "padId": "71ae2798-bc87-48ae-ac87-101b74340954",
+            "company": "Antero",
+            "county": "Monroe",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "SADIE",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "376ae15e-9bf0-418d-a8e5-fef2d25841d0",
+            "company": "Chesapeake",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "60c99f87-c358-44a5-b5dd-b189c2b788b1",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "SCOTT",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "28914dbc-75e1-4813-8336-ed7565c413b2",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "ac75e61e-a499-4d38-8dad-cb58819fad95",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "SHANNON",
+        "companies": [
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "672bd51b-a70a-4514-8301-45cf317521f5",
+            "company": "Eog",
+            "county": "Jefferson",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "a8988a8b-0686-4847-97cf-e76682faf086",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "SMITH",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Belmont",
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "12a4073b-75ea-46f4-83a0-d032c0230fb4",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "59d66423-1e09-4ac8-b2ab-ae2d06d11f12",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "TANNER",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll",
+          "Jefferson"
+        ],
+        "records": [
+          {
+            "padId": "20f3a681-598a-4e42-87c4-915e68cca777",
+            "company": "Ascent",
+            "county": "Jefferson",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "8d76ea1c-f755-4c37-8d37-aa28536e5c6b",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "TRIPLETT",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "15f62c54-ba3f-4c8d-bf17-2f410c9eb092",
+            "company": "Ascent",
+            "county": "Harrison",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "468bb4ce-4a51-49e8-a706-a7381ab3d6a6",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1786258360881449"
+          }
+        ]
+      },
+      {
+        "normalizedName": "TROYER",
+        "companies": [
+          "Antero",
+          "Ascent"
+        ],
+        "counties": [
+          "Guernsey",
+          "Noble"
+        ],
+        "records": [
+          {
+            "padId": "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1786258360881449"
+          },
+          {
+            "padId": "e09a4594-793c-4c02-b0c7-e8ee4f01e8b2",
+            "company": "Antero",
+            "county": "Noble",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "TUCKOSH",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "7a0de7aa-6b30-48e8-bc4d-462bb6a3fdbd",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "864157a4-2d97-4af3-b10b-7022737b53a0",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WAGNER",
+        "companies": [
+          "Ascent",
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Guernsey",
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "0e852098-bf89-4b11-a21d-3ad3ca8fac5d",
+            "company": "Gulfport",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "c4ef4511-c391-48af-9e1a-7b70b90e9294",
+            "company": "Ascent",
+            "county": "Guernsey",
+            "recordRevision": "1786246617744175"
+          },
+          {
+            "padId": "ef13b855-a658-49de-a139-73e4e2af538a",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WALKER",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "33b04611-2619-4a4f-b3c2-eaca450c03df",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "bb0ebf91-232e-4411-895d-c8ac12b278c9",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WATKINS",
+        "companies": [
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "777d123a-fb7f-4309-9ca3-265bcc9488a1",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "ebc3ca81-0a59-484d-9b90-e2cf3b7cc29e",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WEST",
+        "companies": [
+          "Ascent",
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "6760e4cc-fe64-44f0-acb1-1a2b4e220eeb",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "8559596e-fb4f-49a3-8082-de11d9c313ef",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "ebe8e078-ab41-4151-84fb-4186772b4a07",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WHITE",
+        "companies": [
+          "Eog",
+          "Gulfport"
+        ],
+        "counties": [
+          "Belmont",
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "5ffce6a5-dc9c-410c-a75e-5cfa41031795",
+            "company": "Gulfport",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          },
+          {
+            "padId": "929a1a70-93e8-485f-bbb6-139ec5df40ee",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WILEY",
+        "companies": [
+          "Ascent",
+          "Swn"
+        ],
+        "counties": [
+          "",
+          "Monroe"
+        ],
+        "records": [
+          {
+            "padId": "72b25dba-6279-41b6-b9fd-8ead758d0294",
+            "company": "Ascent",
+            "county": "",
+            "recordRevision": "1786246617744175"
+          },
+          {
+            "padId": "e5dd99c1-2968-4c98-a6c3-f276569daf0c",
+            "company": "Swn",
+            "county": "Monroe",
+            "recordRevision": "1786265116076936"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WOODLAND",
+        "companies": [
+          "Chesapeake",
+          "Eog"
+        ],
+        "counties": [
+          "Carroll"
+        ],
+        "records": [
+          {
+            "padId": "26f585c2-1f5c-4f7b-a8f0-64dc68d06374",
+            "company": "Eog",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "54d15e17-36af-4beb-8a11-b3e7cf0019bb",
+            "company": "Chesapeake",
+            "county": "Carroll",
+            "recordRevision": "1787459253071652"
+          }
+        ]
+      },
+      {
+        "normalizedName": "WRIGHT",
+        "companies": [
+          "Ascent",
+          "Eog"
+        ],
+        "counties": [
+          "Belmont",
+          "Harrison"
+        ],
+        "records": [
+          {
+            "padId": "50c6b96f-040d-4f7f-b895-7bb6624ed663",
+            "company": "Eog",
+            "county": "Harrison",
+            "recordRevision": "1787459253071652"
+          },
+          {
+            "padId": "a2e0fe73-db17-44fd-86ce-5a0759971607",
+            "company": "Ascent",
+            "county": "Belmont",
+            "recordRevision": "1786265812046205"
+          }
+        ]
+      }
+    ]
+  },
+  "routeContracts": {
+    "releasedApproved": [
+      {
+        "padId": "e2b32e85-9e93-4388-8215-9d8167cbbeb8",
+        "legacyId": "ascent--cologie",
+        "recordRevision": "1787615581785257",
+        "company": "Ascent",
+        "padName": "COLOGIE",
+        "county": "Harrison"
+      },
+      {
+        "padId": "518659d9-bca2-47b0-b294-3141ba679fc4",
+        "legacyId": "ascent--lasso",
+        "recordRevision": "1787459253071652",
+        "company": "Ascent",
+        "padName": "LASSO",
+        "county": "Harrison"
+      }
+    ],
+    "namedOwnerReviewed": [
+      {
+        "padId": "b7526e45-0b33-4988-ae1c-0a4140971f8e",
+        "legacyId": "ascent--banjo",
+        "recordRevision": "1787615581785257",
+        "company": "Ascent",
+        "padName": "BANJO",
+        "county": "Harrison",
+        "approaches": 1
+      },
+      {
+        "padId": "185d9eb6-58af-4009-bf53-fdd23113a572",
+        "legacyId": "ascent--cardinal",
+        "recordRevision": "1787459253071652",
+        "company": "Ascent",
+        "padName": "CARDINAL",
+        "county": "Harrison",
+        "approaches": 2
+      },
+      {
+        "padId": "95dcbd15-afd0-4357-a521-e23bcd6b4118",
+        "legacyId": "ascent--conotton",
+        "recordRevision": "1786258360881449",
+        "company": "Ascent",
+        "padName": "CONOTTON",
+        "county": "Harrison",
+        "approaches": 2
+      },
+      {
+        "padId": "61e21e3c-360b-40b0-8153-209b4fb3d5eb",
+        "legacyId": "ascent--ellen",
+        "recordRevision": "1787459253071652",
+        "company": "Ascent",
+        "padName": "ELLEN",
+        "county": "Harrison",
+        "approaches": 2
+      },
+      {
+        "padId": "b9a8e55c-3583-4019-85fc-54a03d420ace",
+        "legacyId": "ascent--hamilton",
+        "recordRevision": "1786258360881449",
+        "company": "Ascent",
+        "padName": "HAMILTON",
+        "county": "Harrison",
+        "approaches": 2
+      },
+      {
+        "padId": "655a97d5-ffdf-4b13-bf66-3d22022239b4",
+        "legacyId": "ascent--pettay",
+        "recordRevision": "1787459253071652",
+        "company": "Ascent",
+        "padName": "PETTAY",
+        "county": "Harrison",
+        "approaches": 2
+      },
+      {
+        "padId": "f5a82acf-d7c0-4ce3-ad4e-0de810551450",
+        "legacyId": "ascent--sproull",
+        "recordRevision": "1786258360881449",
+        "company": "Ascent",
+        "padName": "SPROULL",
+        "county": "Harrison",
+        "approaches": 2
+      }
+    ],
+    "repositoryReviewed": [
+      "143f5268-33e4-4598-8101-40220b5cfdc4",
+      "59061829-1122-4aae-872d-cf5024310373"
+    ]
+  },
+  "urlValidation": {
+    "destinationOnlyUrlsChecked": 867,
+    "repositoryReviewedUrlsChecked": 2,
+    "serverReleasedUrls": "validated by existing release/named-approach runtime contracts; not refetched by this directory/GPS-only audit",
+    "unexpectedFixedOriginUrls": [],
+    "unexpectedGoogleEndpoints": [],
+    "unexpectedNonHttpsGoogleUrls": [],
+    "missingRequiredGoogleParameters": [],
+    "destinationMismatches": [],
+    "fabricatedDestinationLinks": []
+  },
+  "identityValidation": {
+    "staleReviewedCandidateMatches": [],
+    "fixedActionComponentOccurrences": 1,
+    "actionCountViolations": []
+  },
+  "regressions": {
+    "lawsonReviewedRouteExact": true,
+    "bilinovichReviewedRouteExactAndNoBlaze": true
+  },
+  "actionDigestSha256": "0ce1d7ef142c215db10bdd97fe2d55ac6f97e1ce8feecacee905c24dd6a2393c",
+  "violations": []
+}

@@ -169,10 +169,12 @@ export function buildFixedNavigationAction(
   if (view.available && view.routeUrl) return {
     kind: "approved_route",
     href: view.routeUrl,
-    title: view.approachLabel ? `Navigate ${view.approachLabel}` : "Navigate",
+    title: "GET DIRECTIONS",
     detail: view.mode === "named_approach" && view.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads to handoff · GPS-only final leg · not approved"
-      : view.mode === "exact_core_destination" ? "Approved road core · GPS destination" : "Reviewed approved route",
+      ? "Reviewed approved route core · GPS-only final leg not approved"
+      : view.mode === "exact_core_destination"
+        ? "Reviewed approved route core · GPS-only final leg not approved"
+        : "Reviewed approved route",
     ariaLabel: view.mode === "named_approach"
       ? `Navigate ${view.approachLabel} in Google Maps using its reviewed approved-road controls${view.finalLegMode === "google_to_saved_gps_unapproved" ? "; final GPS leg is not approved road geometry" : ""}`
       : view.mode === "exact_core_destination"
@@ -182,15 +184,15 @@ export function buildFixedNavigationAction(
   if (view.selectionRequired) return {
     kind: "unavailable",
     href: null,
-    title: "Choose an approach",
+    title: "GET DIRECTIONS",
     detail: view.reason,
     ariaLabel: "Choose one reviewed named approach before navigation",
   };
   if (reviewedCandidate) return {
     kind: "reviewed_route",
     href: reviewedCandidate.routeUrl,
-    title: reviewedCandidate.title,
-    detail: reviewedCandidate.detail,
+    title: "GET DIRECTIONS",
+    detail: "Owner-reviewed route in Google Maps",
     ariaLabel: `Open the owner-reviewed ${pad.padName} route in Google Maps; exact graph and public Google authority remain separate`,
   };
   const destinationUrl = padDestinationNavigationUrl(pad);
@@ -198,14 +200,14 @@ export function buildFixedNavigationAction(
   if (destinationUrl && destination) return {
     kind: "destination_pin",
     href: destinationUrl,
-    title: "Navigate",
-    detail: `GPS destination only · ${destination.label} · not an approved route`,
+    title: "GET DIRECTIONS",
+    detail: `GPS destination only · Google chooses the route · ${destination.label}`,
     ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
   };
   return {
     kind: "unavailable",
     href: null,
-    title: "Navigate",
+    title: "GET DIRECTIONS",
     detail: "No trusted GPS destination",
     ariaLabel: "Navigation unavailable because this pad has no explicitly sourced GPS destination",
   };
