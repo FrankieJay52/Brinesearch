@@ -3,8 +3,8 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
-import { BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedWrittenDirections } from "./PadPage";
+import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -75,6 +75,22 @@ function correctedBilinovichPad(): PadSummary {
   };
 }
 
+function beetlePad(): PadSummary {
+  return {
+    ...mappedPad(),
+    padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    canonicalId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    legacyId: "ascent--beetle",
+    recordRevision: "1787459253071652",
+    padName: "BEETLE",
+    county: "Harrison",
+    township: "SHORT CREEK",
+    coordinate: null,
+    mapReference: { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "saved_pad_reference" },
+    structuredRoadSequence: "OH-519 → US-250 → Pad",
+  };
+}
+
 function namedApproach(): DriverNamedApproach {
   const steps = [{ order: 1, kind: "continue" as const, displayName: "US-250", verifiedDesignations: ["US-250"], instruction: "Continue on US-250", distanceMiles: 2 }];
   const geometry: DriverNamedApproach["geometry"] = { type: "FeatureCollection", features: [{ type: "Feature", properties: { stepOrder: 1 }, geometry: { type: "LineString", coordinates: [[-81.2, 40.2], [-81.1, 40.25]] } }] };
@@ -102,7 +118,7 @@ function namedApproach(): DriverNamedApproach {
 
 describe("V18 pad legacy route fallback", () => {
   it("shows saved BrineSearch route data when structured route steps are absent", () => {
-    expect(padPage).toContain('const hasSavedRouteFallback = !reviewedNavigationSafetyHold && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
+    expect(padPage).toContain('const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
     expect(padPage).toContain('hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"');
     expect(padPage).toContain("Legacy saved directions");
     expect(padPage).toContain("{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}");
@@ -146,7 +162,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(unselectedAction).toMatchObject({
       kind: "destination_pin",
       title: "Navigate",
-      detail: "GPS destination only · Verified driver entrance · not an approved route",
+      detail: "GPS destination only · Verified driver entrance · choose an approach for reviewed roads",
       href: expect.stringContaining("destination=40.25403%2C-80.913577"),
     });
     expect(hiddenRoute).toMatchObject({ steps: [], geometry: null });
@@ -248,6 +264,64 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
+  });
+
+  it("shows BEETLE's reviewed Sixteen Road story without the stale US-250 sequence", () => {
+    const pad = beetlePad();
+    const candidate = reviewedNavigationCandidateForPad(pad);
+    expect(candidate).not.toBeNull();
+    const summary = renderToStaticMarkup(createElement(ReviewedRouteFallback, { candidate: candidate!, state: "held" }));
+    const action = buildFixedNavigationAction(buildGoogleHandoffView(statusWithGoogle(null), false, true), pad);
+
+    expect(action).toMatchObject({
+      kind: "reviewed_route",
+      href: BEETLE_REVIEWED_GOOGLE_URL,
+      detail: "OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
+    });
+    expect(summary).toContain("OH-519 → Sixteen Rd → lease approach → saved pad GPS");
+    expect(summary).toContain("not approved public-road geometry");
+    expect(summary).not.toContain("US-250");
+    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed local-road route\"");
+    expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null");
+  });
+
+  it("does not let a static reviewed fallback bypass a required named-approach choice", () => {
+    const pad = beetlePad();
+    const selectionView = buildGoogleHandoffView(statusWithGoogle(null), false, false, null, true, null, true);
+    expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
+    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({
+      kind: "destination_pin",
+      href: expect.stringContaining("destination=40.185403%2C-80.922718"),
+      detail: expect.stringContaining("choose an approach for reviewed roads"),
+    });
+  });
+
+  it("keeps an approved route above the BEETLE reviewed fallback everywhere", () => {
+    const pad = beetlePad();
+    const approvedUrl = "https://www.google.com/maps/dir/?api=1&destination=40.185403%2C-80.922718&waypoints=40.1871547%2C-80.9192191";
+    const approvedView = buildGoogleHandoffView(statusWithGoogle(approvedUrl), true, true);
+
+    expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
+    expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({
+      kind: "approved_route",
+      href: approvedUrl,
+    });
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null");
+    expect(padPage).toContain("detail={activeReviewedNavigationCandidate ?");
+    expect(padPage).not.toContain("detail={reviewedNavigationCandidate ?");
+  });
+
+  it("does not cross-wire BEETLE's static reviewed route onto a selected alternate", () => {
+    const pad = beetlePad();
+    const alternateView = buildGoogleHandoffView(statusWithGoogle(null), true, false);
+
+    expect(alternateView.selectedRouteIsPrimary).toBe(false);
+    expect(buildFixedNavigationAction(alternateView, pad)).toMatchObject({
+      kind: "destination_pin",
+      href: expect.stringContaining("destination=40.185403%2C-80.922718"),
+      detail: expect.stringContaining("GPS destination only"),
+    });
   });
 
   it("formats reviewed prose legibly without creating structured route steps", () => {

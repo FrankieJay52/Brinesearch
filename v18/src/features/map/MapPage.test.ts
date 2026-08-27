@@ -7,6 +7,7 @@ import {
   filterMapRows,
   mapGoogleHandoffState,
   mapPadSearchResults,
+  selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
 } from "./mapModel";
 
@@ -57,6 +58,15 @@ describe("coincidentLocationsNeedChooser", () => {
 
   it("does not open a chooser for a single location", () => {
     expect(coincidentLocationsNeedChooser([pad("alpha", 39.8, -81.2)])).toBe(false);
+  });
+});
+
+describe("selectedMapRouteIsPrimary", () => {
+  it("keeps named and ordinary alternate selections out of primary-only fallbacks", () => {
+    expect(selectedMapRouteIsPrimary("primary", null)).toBe(true);
+    expect(selectedMapRouteIsPrimary("alternate", null)).toBe(false);
+    expect(selectedMapRouteIsPrimary(null, "alternate")).toBe(false);
+    expect(selectedMapRouteIsPrimary(null, null)).toBe(true);
   });
 });
 
@@ -167,7 +177,11 @@ describe("map viewer authority boundary", () => {
 
     expect(pageSource).toContain('className="map-selection-header"');
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
-    expect(pageSource).toContain("{selected.structuredRoadSequence}");
+    expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
+    expect(pageSource).toContain("{selectedRoadSequence}");
+    expect(pageSource).toContain('selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"');
+    expect(pageSource).toContain("const selectedReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null");
+    expect(pageSource).not.toContain("selectedReviewedNavigationCandidate ? <MapReviewedRouteLink");
     expect(pageSource).toContain("Open pad details");
     expect([approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
     expect(approvedAction).toBeLessThan(reviewedAction);

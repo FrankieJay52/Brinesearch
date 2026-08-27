@@ -47,6 +47,7 @@ const unavailableView: GoogleHandoffView = {
   approachLabel: null,
   finalLegMode: null,
   selectionRequired: false,
+  selectedRouteIsPrimary: true,
 };
 
 function padFromLedger(row: Record<string, string>): PadSummary {

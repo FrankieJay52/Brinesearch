@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "./types";
 import {
+  BEETLE_REVIEWED_GOOGLE_URL,
   BILINOVICH_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   reviewedNavigationCandidateForPad,
@@ -54,6 +55,23 @@ function correctedBilinovich(): PadSummary {
     ...bilinovich(),
     recordRevision: "1787802711836476",
     structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+  };
+}
+
+function beetle(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    canonicalId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+    legacyId: "ascent--beetle",
+    recordRevision: "1787459253071652",
+    padName: "BEETLE",
+    county: "Harrison",
+    township: "SHORT CREEK",
+    address: "",
+    structuredRoadSequence: "OH-519 → US-250 → Pad",
+    coordinate: null,
+    mapReference: { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "saved_pad_reference" },
   };
 }
 
@@ -152,5 +170,59 @@ describe("reviewed navigation candidates", () => {
     ["structuredRoadSequence", "US-22 → nearest road → LAWSON"],
   ] as const)("fails LAWSON closed when %s diverges", (field, value) => {
     expect(reviewedNavigationCandidateForPad({ ...lawson(), [field]: value })).toBeNull();
+  });
+
+  it("returns BEETLE's owner-reviewed Sixteen Road handoff without promoting graph authority", () => {
+    const candidate = reviewedNavigationCandidateForPad(beetle());
+
+    expect(candidate).toMatchObject({
+      padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+      title: "Navigate reviewed route",
+      detail: "OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
+      routeUrl: BEETLE_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "OH-519 → Sixteen Rd → lease approach → saved pad GPS",
+      finalLegNotice: expect.stringContaining("not approved public-road geometry"),
+    });
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.protocol).toBe("https:");
+    expect(url.hostname).toBe("www.google.com");
+    expect(url.pathname).toBe("/maps/dir/");
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.185403,-80.922718");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.1870079210496,-80.9203701394203",
+      "40.185340499,-80.919294431",
+      "40.185025,-80.920500",
+    ]);
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(candidate!.routeUrl).not.toContain("40.1883181%2C-80.9122508");
+    expect(candidate!.reviewedRoadSequence).not.toContain("US-250");
+  });
+
+  it.each([
+    ["padId", "not-beetle"],
+    ["canonicalId", "not-beetle"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "BEETLE EAST"],
+    ["state", "West Virginia"],
+    ["county", "Belmont"],
+    ["structuredRoadSequence", "OH-519 → nearest road → BEETLE"],
+  ] as const)("fails the BEETLE reviewed handoff closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...beetle(), [field]: value })).toBeNull();
+  });
+
+  it.each([
+    ["missing", null],
+    ["changed latitude", { latitude: 40.1855, longitude: -80.922718, role: "reference", kind: "saved_pad_reference" }],
+    ["changed longitude", { latitude: 40.185403, longitude: -80.923, role: "reference", kind: "saved_pad_reference" }],
+    ["incomplete", { latitude: 40.185403, longitude: Number.NaN, role: "reference", kind: "saved_pad_reference" }],
+    ["different source", { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "official_pad_reference" }],
+  ] as const)("fails the BEETLE reviewed handoff closed when its trusted destination is %s", (_label, mapReference) => {
+    expect(reviewedNavigationCandidateForPad({ ...beetle(), mapReference })).toBeNull();
   });
 });

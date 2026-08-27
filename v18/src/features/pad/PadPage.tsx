@@ -66,6 +66,7 @@ export interface GoogleHandoffView {
   approachLabel: string | null;
   finalLegMode: DriverNamedApproach["finalLegMode"] | null;
   selectionRequired: boolean;
+  selectedRouteIsPrimary: boolean;
 }
 
 interface LoadedPadWellRows {
@@ -92,6 +93,7 @@ export function buildGoogleHandoffView(
       approachLabel: null,
       finalLegMode: null,
       selectionRequired: false,
+      selectedRouteIsPrimary,
     };
   }
   if (namedSelectionRequired) {
@@ -104,6 +106,7 @@ export function buildGoogleHandoffView(
       approachLabel: null,
       finalLegMode: null,
       selectionRequired: true,
+      selectedRouteIsPrimary: false,
     };
   }
   if (namedApproach) {
@@ -118,6 +121,7 @@ export function buildGoogleHandoffView(
       approachLabel: namedApproach.approachLabel,
       finalLegMode: namedApproach.finalLegMode,
       selectionRequired: false,
+      selectedRouteIsPrimary: namedApproach.routeGroup === "primary",
     };
   }
   const cachedFrozenReleaseAvailable = status.loadProvenance === "device_cache"
@@ -152,6 +156,7 @@ export function buildGoogleHandoffView(
     approachLabel: null,
     finalLegMode: null,
     selectionRequired: false,
+    selectedRouteIsPrimary,
   };
 }
 
@@ -179,7 +184,25 @@ export function buildFixedNavigationAction(
       ? "Navigate the exact approved road core, then continue to the saved GPS destination in Google Maps"
       : "Navigate the reviewed approved route in Google Maps",
   };
-  if (reviewedCandidate) return {
+  if (view.selectionRequired) {
+    const destinationUrl = padDestinationNavigationUrl(pad);
+    const destination = trustedPadDestination(pad);
+    if (destinationUrl && destination) return {
+      kind: "destination_pin",
+      href: destinationUrl,
+      title: "Navigate",
+      detail: `GPS destination only · ${destination.label} · choose an approach for reviewed roads`,
+      ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, or choose one reviewed approach for BrineSearch road guidance`,
+    };
+    return {
+      kind: "unavailable",
+      href: null,
+      title: "Choose an approach",
+      detail: view.reason,
+      ariaLabel: "Choose one reviewed named approach before navigation",
+    };
+  }
+  if (view.selectedRouteIsPrimary && reviewedCandidate) return {
     kind: "reviewed_route",
     href: reviewedCandidate.routeUrl,
     title: reviewedCandidate.title,
@@ -194,13 +217,6 @@ export function buildFixedNavigationAction(
     title: "Navigate",
     detail: `GPS destination only · ${destination.label} · not an approved route`,
     ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
-  };
-  if (view.selectionRequired) return {
-    kind: "unavailable",
-    href: null,
-    title: "Choose an approach",
-    detail: view.reason,
-    ariaLabel: "Choose one reviewed named approach before navigation",
   };
   return {
     kind: "unavailable",
@@ -224,6 +240,15 @@ export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pa
       <b aria-hidden="true">—</b>
     </button>}
   </nav>;
+}
+
+export function ReviewedRouteFallback({ candidate, state }: { candidate: ReviewedNavigationCandidate; state: DriverPadStatus["route"]["state"] }) {
+  return <div className="readiness-column">
+    <StatusBadge status={state}/>
+    <strong>Reviewed Google handoff</strong>
+    <p>{candidate.reviewedRoadSequence}</p>
+    <p>{candidate.finalLegNotice}</p>
+  </div>;
 }
 
 export function destinationPinUrl(pad: PadSummary) {
@@ -402,8 +427,10 @@ export function PadPage() {
     namedSelectionRequired,
   );
   const reviewedNavigationCandidate = reviewedNavigationCandidateForPad(pad);
+  const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null;
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
-  const hasSavedRouteFallback = !reviewedNavigationSafetyHold && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
+  const hasReviewedRouteFallback = !reviewedNavigationSafetyHold && Boolean(activeReviewedNavigationCandidate?.reviewedRoadSequence) && displayedRouteSteps.length === 0;
+  const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
 
   return <article className="pad-page has-fixed-navigation">
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><span className="pad-topbar-spacer" aria-hidden="true"/></header>
@@ -447,10 +474,11 @@ export function PadPage() {
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `Approved road core · ${selectedNamedApproach.approachLabel}` : `Approved route · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : namedSelectionRequired ? "Choose a reviewed approach" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `Approved road core · ${selectedNamedApproach.approachLabel}` : `Approved route · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route" : namedSelectionRequired ? "Choose a reviewed approach" : hasReviewedRouteFallback ? "Reviewed local-road route" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {reviewedNavigationSafetyHold ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{reviewedNavigationSafetyHold.detail}</strong> BILINOVICH navigation is GPS destination only while its replacement route is traced backward from the pad.</div>
         : displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
-        : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. No route line, steps, or navigation action has been chosen for you.</p>
+        : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. Until then, only GPS destination navigation is available.</p>
+        : hasReviewedRouteFallback && activeReviewedNavigationCandidate ? <ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
         : <p className="card-empty">No reviewed field directions are on file. GPS-only navigation remains destination utility and is not an approved route.</p>}
       {displayedRouteSteps.length > 0 && (selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved"
@@ -469,7 +497,7 @@ export function PadPage() {
         <div className="readiness-grid">
           <StatusColumn icon="route" label="ROUTE SOURCE" detail={status.route.safeReason || "BrineSearch route authority."}><StatusBadge status={status.route.state}/><strong>{status.route.source.replaceAll("_", " ")}</strong></StatusColumn>
           <StatusColumn icon="graph" label="ROAD GRAPH" detail={`${status.graph.county || pad.county || "County not listed"} · ${dateLabel(status.graph.lastVerifiedAt)}`}><StatusBadge status={status.graph.state}/><strong>{status.graph.publicSource || "Public graph status"}</strong></StatusColumn>
-          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={reviewedNavigationCandidate ? "Owner-reviewed mobile directions are available now. Exact graph and public Google authority remain separate." : googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={reviewedNavigationCandidate ? "ready" : googleHandoff.state} label={reviewedNavigationCandidate ? "Reviewed" : undefined}/><strong>{reviewedNavigationCandidate ? "Reviewed route action available" : googleHandoff.available ? googleHandoff.approachLabel ? `${googleHandoff.approachLabel} action available` : "Approved route action available" : googleHandoff.selectionRequired ? "Choose a reviewed approach" : "No exact Google handoff"}</strong></StatusColumn>
+          <StatusColumn icon="google" label="GOOGLE HANDOFF" detail={activeReviewedNavigationCandidate ? "Owner-reviewed mobile directions are available now. Exact graph and public Google authority remain separate." : googleHandoff.available ? "One reviewed mobile handoff is bound to this exact BrineSearch route. Approval begins at its verified ingress." : googleHandoff.reason}><StatusBadge status={activeReviewedNavigationCandidate ? "ready" : googleHandoff.state} label={activeReviewedNavigationCandidate ? "Reviewed" : undefined}/><strong>{activeReviewedNavigationCandidate ? "Reviewed route action available" : googleHandoff.available ? googleHandoff.approachLabel ? `${googleHandoff.approachLabel} action available` : "Approved route action available" : googleHandoff.selectionRequired ? "Choose a reviewed approach" : "No exact Google handoff"}</strong></StatusColumn>
         </div>
       </div>
     </details>

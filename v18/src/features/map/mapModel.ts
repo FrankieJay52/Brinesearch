@@ -6,6 +6,15 @@ export { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 
 export type MapViewerMode = "standard" | "fullscreen" | "roads";
 
+export function selectedMapRouteIsPrimary(
+  namedApproachRouteGroup: "primary" | "alternate" | null,
+  routeChoiceGroup: "primary" | "alternate" | null,
+) {
+  return namedApproachRouteGroup
+    ? namedApproachRouteGroup === "primary"
+    : routeChoiceGroup !== "alternate";
+}
+
 export function mapViewerModeFromParam(value: string | null | undefined): MapViewerMode {
   if (value === "roads") return "roads";
   if (value === "map") return "fullscreen";
