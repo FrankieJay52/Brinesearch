@@ -67,8 +67,8 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
   },
   {
     // The first waypoint is 20 metres inside Sixteen Road from its verified
-    // OH-519 junction. This avoids Google's intersection-arrival bias while
-    // allowing either state-route direction to make the turn.
+    // OH-519 junction. This avoids exact-intersection waypoint ambiguity and
+    // is designed to accept either state-route direction at the turn.
     padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
     canonicalId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
     legacyId: "ascent--beetle",

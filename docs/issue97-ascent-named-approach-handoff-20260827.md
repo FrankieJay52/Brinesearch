@@ -30,14 +30,13 @@ public-Google publication.
 
 New Athens remains the reviewed rural reference anchor. The mobile URL does not
 force every driver through it. The first mobile waypoint sits 20 metres inside
-Sixteen Road from its exact OH-519 junction, allowing Google to approach the
-turn along OH-519 from either the New Athens side or the US-250 side according
-to the phone's current location. A waypoint placed directly in the intersection
-was rejected because an independent router biased one approach and created a
-4.89-kilometre detour. The ordered inside-Sixteen points instead keep the local
-movement on Sixteen after the state-route turn. Cadiz-style anchors remain valid
-for other pads when their evidence supports one and the waypoint budget permits
-it.
+Sixteen Road from its exact OH-519 junction. It is designed to let the phone's
+current location approach the turn along OH-519 from either the New Athens side
+or the US-250 side. A waypoint placed directly in the intersection was rejected
+because an independent router biased one approach and created a 4.89-kilometre
+detour. The ordered inside-Sixteen points instead keep the local movement on
+Sixteen after the state-route turn. Cadiz-style anchors remain valid for other
+pads when their evidence supports one and the waypoint budget permits it.
 
 The URL:
 
