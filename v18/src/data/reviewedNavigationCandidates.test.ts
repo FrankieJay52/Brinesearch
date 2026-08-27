@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { PadSummary } from "./types";
 import {
   BILINOVICH_REVIEWED_GOOGLE_URL,
+  LAWSON_REVIEWED_GOOGLE_URL,
   reviewedNavigationCandidateForPad,
 } from "./reviewedNavigationCandidates";
 
@@ -31,6 +32,19 @@ function bilinovich(): PadSummary {
     verificationStatus: "official_api_verified",
     operatingStatus: "ACTIVE",
     updatedAt: "2026-08-27T01:28:35.232844Z",
+  };
+}
+
+function lawson(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+    canonicalId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+    legacyId: "ascent--lawson",
+    recordRevision: "1786258360881449",
+    padName: "LAWSON",
+    address: "23291 Millers Fork Road",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd",
   };
 }
 
@@ -70,5 +84,37 @@ describe("reviewed navigation candidates", () => {
     ["structuredRoadSequence", "McCoy Rd → Merry Rd → Pad"],
   ] as const)("fails closed when %s diverges", (field, value) => {
     expect(reviewedNavigationCandidateForPad({ ...bilinovich(), [field]: value })).toBeNull();
+  });
+
+  it("returns LAWSON's exact reviewed road-core-to-GPS handoff without promoting graph authority", () => {
+    const candidate = reviewedNavigationCandidateForPad(lawson());
+    expect(candidate).toMatchObject({
+      padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+      title: "Navigate reviewed route",
+      detail: "Reviewed road core → saved GPS · graph status separate",
+      routeUrl: LAWSON_REVIEWED_GOOGLE_URL,
+    });
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.124991,-81.295913");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.123106982,-81.353948693",
+      "40.111789555,-81.300978103",
+      "40.124973191,-81.294865644",
+    ]);
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+  });
+
+  it.each([
+    ["canonicalId", "not-lawson"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "LAWSON EAST"],
+    ["county", "Harrison"],
+    ["structuredRoadSequence", "US-22 → nearest road → LAWSON"],
+  ] as const)("fails LAWSON closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...lawson(), [field]: value })).toBeNull();
   });
 });

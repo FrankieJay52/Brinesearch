@@ -9,8 +9,22 @@ export interface ReviewedNavigationCandidate {
 
 export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&origin=Saint%20Clairsville%2C%20OH&destination=40.08738445%2C-81.30282620&waypoints=40.12303995%2C-81.35382341%7C40.112583770%2C-81.294937982%7C40.09955931%2C-81.29781917&travelmode=driving&dir_action=navigate";
 
-const bilinovichContract = {
+export const LAWSON_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.124991%2C-81.295913&waypoints=40.123106982%2C-81.353948693%7C40.111789555%2C-81.300978103%7C40.124973191%2C-81.294865644";
+
+interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
+  canonicalId: string;
+  legacyId: string;
+  recordRevision: string;
+  company: string;
+  padName: string;
+  state: string;
+  county: string;
+  structuredRoadSequence: string;
+}
+
+const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [{
   padId: "59061829-1122-4aae-872d-cf5024310373",
+  canonicalId: "59061829-1122-4aae-872d-cf5024310373",
   legacyId: "ascent--bilinovich",
   recordRevision: "1787794115232844",
   company: "Ascent",
@@ -18,7 +32,23 @@ const bilinovichContract = {
   state: "Ohio",
   county: "Guernsey",
   structuredRoadSequence: "I-70 W → Exit 193 → OH-513 N → US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Turkle Rd / lease access → BILINOVICH",
-} as const;
+  title: "Navigate reviewed route",
+  detail: "Owner-reviewed Google directions · graph status separate",
+  routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+}, {
+  padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+  canonicalId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+  legacyId: "ascent--lawson",
+  recordRevision: "1786258360881449",
+  company: "Ascent",
+  padName: "LAWSON",
+  state: "Ohio",
+  county: "Guernsey",
+  structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd",
+  title: "Navigate reviewed route",
+  detail: "Reviewed road core → saved GPS · graph status separate",
+  routeUrl: LAWSON_REVIEWED_GOOGLE_URL,
+}] as const;
 
 /**
  * Returns a route only when the current directory record is the exact reviewed
@@ -29,20 +59,21 @@ const bilinovichContract = {
 export function reviewedNavigationCandidateForPad(
   pad: Pick<PadSummary, "padId" | "canonicalId" | "legacyId" | "recordRevision" | "company" | "padName" | "state" | "county" | "structuredRoadSequence">,
 ): ReviewedNavigationCandidate | null {
-  if (pad.padId !== bilinovichContract.padId
-    || pad.canonicalId !== bilinovichContract.padId
-    || pad.legacyId !== bilinovichContract.legacyId
-    || pad.recordRevision !== bilinovichContract.recordRevision
-    || pad.company !== bilinovichContract.company
-    || pad.padName !== bilinovichContract.padName
-    || pad.state !== bilinovichContract.state
-    || pad.county !== bilinovichContract.county
-    || pad.structuredRoadSequence !== bilinovichContract.structuredRoadSequence) return null;
+  const contract = reviewedNavigationContracts.find((candidate) => candidate.padId === pad.padId);
+  if (!contract
+    || pad.canonicalId !== contract.canonicalId
+    || pad.legacyId !== contract.legacyId
+    || pad.recordRevision !== contract.recordRevision
+    || pad.company !== contract.company
+    || pad.padName !== contract.padName
+    || pad.state !== contract.state
+    || pad.county !== contract.county
+    || pad.structuredRoadSequence !== contract.structuredRoadSequence) return null;
 
   return {
-    padId: bilinovichContract.padId,
-    title: "Navigate reviewed route",
-    detail: "Owner-reviewed Google directions · graph status separate",
-    routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+    padId: contract.padId,
+    title: contract.title,
+    detail: contract.detail,
+    routeUrl: contract.routeUrl,
   };
 }

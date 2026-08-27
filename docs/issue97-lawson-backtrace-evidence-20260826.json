@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "method": {
+    "verificationDirection": "destination_to_anchor",
+    "driverPresentationDirection": "anchor_to_destination",
+    "rule": "Start at the trusted destination coordinate, prove each exact road occurrence backward to a proven anchor, then reverse only the verified occurrence order for driver presentation. Never select a road by name, proximity, or nearest geometry."
+  },
+  "pad": {
+    "padId": "143f5268-33e4-4598-8101-40220b5cfdc4",
+    "legacyId": "ascent--lawson",
+    "recordRevision": "1786258360881449",
+    "company": "Ascent",
+    "padName": "LAWSON",
+    "county": "Guernsey",
+    "state": "Ohio"
+  },
+  "destination": {
+    "role": "saved_pad_reference",
+    "latitude": 40.124991,
+    "longitude": -81.295913,
+    "centerlineOffsetMeters": 19.6,
+    "entranceVerified": false,
+    "authorityNote": "Destination utility only. The saved GPS is not promoted to a verified public-road entrance or exact graph endpoint."
+  },
+  "backtrace": [
+    {
+      "orderFromDestination": 1,
+      "driverRoad": "Millers Fork Rd",
+      "officialSourceId": "TGUETR00891**C",
+      "brineSearchRoadId": "4491d8c6-579f-42cc-a241-6c68879dc0b9",
+      "source": "Guernsey County Road Centerline layer 84, corroborated by ODOT Road Inventory",
+      "junctionTowardAnchor": { "latitude": 40.12508485734511, "longitude": -81.29442239705655 },
+      "googleSafeAfterTurnTowardDestination": { "latitude": 40.124973191, "longitude": -81.294865644 }
+    },
+    {
+      "orderFromDestination": 2,
+      "driverRoad": "Tyson Mill Rd",
+      "officialSourceId": "CGUECR00094**C",
+      "brineSearchRoadId": "2bf8689c-ea7b-47f1-865e-a477206d0dcd",
+      "source": "Guernsey County Road Centerline layer 84, corroborated by ODOT Road Inventory",
+      "junctionTowardAnchor": { "latitude": 40.111436283576616, "longitude": -81.30105866536715 },
+      "googleSafeAfterTurnTowardDestination": { "latitude": 40.111789555, "longitude": -81.300978103 }
+    },
+    {
+      "orderFromDestination": 3,
+      "driverRoad": "McCoy Rd",
+      "officialSourceId": "CGUECR00082**C",
+      "brineSearchRoadId": "6ce8ec7b-a330-4ba4-9f41-33ae37e888ad",
+      "source": "Guernsey County Road Centerline layer 84, corroborated by ODOT Road Inventory",
+      "junctionTowardAnchor": { "latitude": 40.12330215617223, "longitude": -81.35434374392844 },
+      "googleSafeAfterTurnTowardDestination": { "latitude": 40.123106982, "longitude": -81.353948693 }
+    }
+  ],
+  "anchor": {
+    "road": "US-22",
+    "junctionLatitude": 40.12330215617223,
+    "junctionLongitude": -81.35434374392844,
+    "authority": "Exact official US-22/McCoy junction"
+  },
+  "driverSequence": ["US-22", "McCoy Rd", "Tyson Mill Rd", "Millers Fork Rd", "saved LAWSON GPS"],
+  "googleCandidate": {
+    "origin": "phone_current_location",
+    "waypointCount": 3,
+    "url": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.124991%2C-81.295913&waypoints=40.123106982%2C-81.353948693%7C40.111789555%2C-81.300978103%7C40.124973191%2C-81.294865644",
+    "visualChecks": [
+      "Ordered stops render McCoy then Tyson Mill then Millers Fork then the saved GPS.",
+      "Fixed-origin audit from McCoy ingress renders 4.2 miles via McCoy Road without Blaze or Merry.",
+      "Local Tyson-to-Millers audit renders 1.1 miles via Tyson Mill Road."
+    ]
+  },
+  "authorityOutcome": {
+    "reviewedNavigationCandidate": true,
+    "exactGraphRoute": false,
+    "publicGooglePublished": false,
+    "cutover": false,
+    "heldReason": "Exact public-road identities are proven, but exact occurrence geometry is incomplete and the saved GPS is not a verified entrance."
+  },
+  "sources": [
+    "https://gis22.guernseycounty.org/server/rest/services/ParcelEditingService/MapServer/84",
+    "https://tims.dot.state.oh.us/ags/rest/services/Roadway_Information/Road_Inventory/FeatureServer/0"
+  ]
+}
