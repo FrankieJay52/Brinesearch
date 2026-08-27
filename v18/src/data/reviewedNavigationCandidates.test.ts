@@ -58,6 +58,17 @@ describe("reviewed navigation candidates", () => {
     });
   });
 
+  it("never turns the corrected no-Blaze display record into a Google handoff", () => {
+    const corrected = {
+      ...bilinovich(),
+      recordRevision: "corrected-production-revision",
+      structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+    };
+
+    expect(reviewedNavigationCandidateForPad(corrected)).toBeNull();
+    expect(reviewedNavigationSafetyHoldForPad(corrected)).toBeNull();
+  });
+
   it.each([
     ["padId", "not-bilinovich"],
     ["canonicalId", "not-bilinovich"],
