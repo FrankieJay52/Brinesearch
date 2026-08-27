@@ -133,7 +133,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("selectedNamedApproach.geometry");
     expect(pageSource).toContain('aria-label="Choose reviewed named approach"');
     expect(pageSource).toContain("setSelectedNamedApproachKey(approach.approachKey)");
-    expect(pageSource).toContain("Choose one reviewed approach to enable navigation");
+    expect(pageSource).toContain("Choose one reviewed approach to enable approved-road navigation");
+    expect(pageSource).toContain("GPS destination-only navigation remains available; no approved route line is selected.");
     expect(pageSource).toContain("GPS-only final leg is not approved road geometry.");
     expect(pageSource).toContain("This GPS destination is the separate unapproved final leg.");
     expect(pageSource).toContain("approachLabel={selectedNamedApproach?.approachLabel}");
@@ -143,6 +144,8 @@ describe("map viewer authority boundary", () => {
 
   it("labels a released core plus GPS handoff without implying an end-to-end Google route", () => {
     expect(pageSource).toContain('? "Approved core + GPS"');
+    expect(pageSource).toContain('? "Approved roads then GPS"');
+    expect(pageSource).toContain(': "Reviewed approved route"');
     expect(pageSource).toContain('currentSelectedStatus?.route.source === "exact_graph_handoff"');
     expect(pageSource).toContain('"Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately."');
   });
@@ -198,6 +201,9 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("padDestinationNavigationUrl(selected)");
     expect(pageSource).toContain("trustedPadDestination(selected)");
     expect(pageSource).toContain("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}");
+    expect(pageSource.indexOf("selectedGpsNavigationUrl && selectedGpsDestination")).toBeLessThan(
+      pageSource.indexOf("namedSelectionRequired ? <small", pageSource.indexOf("selectedGpsNavigationUrl && selectedGpsDestination")),
+    );
     expect(pageSource).toContain('className="map-coordinate-pin"');
     expect(pageSource).toContain("destination pin only, not an approved route");
     expect(pageSource).not.toContain("Copy GPS");

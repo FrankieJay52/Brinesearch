@@ -11,7 +11,8 @@ describe("map approved route link", () => {
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(html).toContain(">Navigate<");
-    expect(html).toContain("Approved route");
+    expect(html).toContain("Reviewed approved route");
+    expect(html).not.toContain("reviewed reviewed");
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
     expect(html).not.toContain("Copy GPS");
@@ -23,11 +24,11 @@ describe("map approved route link", () => {
       routeUrl,
       padName: "SPROULL",
       approachLabel: "Via Freeport",
-      detail: "Approved roads to handoff · GPS-only final leg · not approved",
+      detail: "Approved roads then GPS",
     }));
 
     expect(html).toContain("Navigate Via Freeport");
-    expect(html).toContain("GPS-only final leg · not approved");
+    expect(html).toContain("Approved roads then GPS");
     expect(html).toContain("using only its reviewed BrineSearch controls");
     expect(html.match(/<a\b/g)).toHaveLength(1);
   });

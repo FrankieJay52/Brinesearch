@@ -126,7 +126,7 @@ describe("V18 pad legacy route fallback", () => {
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
     expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
-    expect(padPage).toContain('"Approved road core · GPS destination" : "Reviewed approved route"');
+    expect(padPage).toContain('"Approved roads then GPS" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
     expect(padPage).not.toContain("status.google.safeReason ||");
@@ -143,7 +143,12 @@ describe("V18 pad legacy route fallback", () => {
     const hiddenRoute = displayedRouteForChoice(status, null, null, true);
 
     expect(unselected).toMatchObject({ available: false, selectionRequired: true, routeUrl: null });
-    expect(unselectedAction).toMatchObject({ kind: "unavailable", title: "Choose an approach", href: null });
+    expect(unselectedAction).toMatchObject({
+      kind: "destination_pin",
+      title: "Navigate",
+      detail: "GPS destination only · Verified driver entrance · not an approved route",
+      href: expect.stringContaining("destination=40.25403%2C-80.913577"),
+    });
     expect(hiddenRoute).toMatchObject({ steps: [], geometry: null });
 
     const selectedRoute = displayedRouteForChoice(status, null, approach, false);
@@ -159,12 +164,12 @@ describe("V18 pad legacy route fallback", () => {
     expect(selectedAction).toMatchObject({
       kind: "approved_route",
       title: "Navigate Via Freeport",
-      detail: "Approved roads to handoff · GPS-only final leg · not approved",
+      detail: "Approved roads then GPS",
       href: approach.navigationUrl,
     });
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
     expect(html).toContain("Navigate Via Freeport");
-    expect(html).toContain("GPS-only final leg · not approved");
+    expect(html).toContain("Approved roads then GPS");
   });
 
   it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
@@ -212,7 +217,11 @@ describe("V18 pad legacy route fallback", () => {
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
 
     const selectionView = buildGoogleHandoffView(statusWithGoogle(null), false, false, null, true, null, true);
-    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({ kind: "unavailable", title: "Choose an approach" });
+    expect(buildFixedNavigationAction(selectionView, pad)).toMatchObject({
+      kind: "destination_pin",
+      title: "Navigate",
+      detail: expect.stringContaining("GPS destination only"),
+    });
   });
 
   it("shows one reviewed no-Blaze BILINOVICH link while route and graph authority remain held", () => {
@@ -265,7 +274,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(view.mode).toBe("exact_core_destination");
     expect(action).toMatchObject({
       kind: "approved_route",
-      detail: "Approved road core · GPS destination",
+      detail: "Approved roads then GPS",
     });
   });
 

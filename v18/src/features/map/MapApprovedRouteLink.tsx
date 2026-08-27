@@ -1,10 +1,10 @@
 import { Icon } from "@/components/Icon";
 
-export function MapApprovedRouteLink({ routeUrl, padName, detail = "Approved route", approachLabel = null }: { routeUrl: string; padName: string; detail?: string; approachLabel?: string | null }) {
+export function MapApprovedRouteLink({ routeUrl, padName, detail = "Reviewed approved route", approachLabel = null }: { routeUrl: string; padName: string; detail?: string; approachLabel?: string | null }) {
   const title = approachLabel ? `Navigate ${approachLabel}` : "Navigate";
   const ariaLabel = approachLabel
     ? `${title} to ${padName} in Google Maps using only its reviewed BrineSearch controls`
-    : `Navigate the reviewed ${detail.toLowerCase()} to ${padName} in Google Maps`;
+    : `Navigate the ${detail.toLowerCase()} to ${padName} in Google Maps`;
   return <a href={routeUrl} target="_blank" rel="noreferrer" aria-label={ariaLabel}>
     <Icon name="google"/><span><strong>{title}</strong><small>{detail}</small></span><b>↗</b>
   </a>;
