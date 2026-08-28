@@ -74,24 +74,41 @@ export function normalizePadReferencePayload(value: unknown, expectedSnapshotId:
   return references;
 }
 
-export function attachPadReferences(snapshot: DirectorySnapshot, references: Map<string, PadMapReference>) {
-  if (!references.size) return snapshot;
+export interface PadReferenceAttachmentResult {
+  snapshot: DirectorySnapshot;
+  accepted: boolean;
+}
+
+export function attachPadReferencesResult(snapshot: DirectorySnapshot, references: Map<string, PadMapReference>): PadReferenceAttachmentResult {
+  if (!references.size) return { snapshot, accepted: true };
   const directoryRows = new Map(snapshot.rows.map((row) => [row.padId, row]));
   if ([...references.keys()].some((padId) => {
     const row = directoryRows.get(padId);
     return !row || row.recordType !== "pad" || row.state !== "Ohio" || row.coordinate !== null;
-  })) return snapshot;
+  })) return { snapshot, accepted: false };
   return {
-    ...snapshot,
-    rows: snapshot.rows.map((row) => {
-      const reference = references.get(row.padId) || null;
-      if (!reference || row.coordinate) return { ...row, mapReference: null };
-      return { ...row, mapReference: reference };
-    }),
+    accepted: true,
+    snapshot: {
+      ...snapshot,
+      rows: snapshot.rows.map((row) => {
+        const reference = references.get(row.padId) || null;
+        if (!reference || row.coordinate) return { ...row, mapReference: null };
+        return { ...row, mapReference: reference };
+      }),
+    },
   };
 }
 
-export async function loadPadReferences(snapshot: DirectorySnapshot) {
+export function attachPadReferences(snapshot: DirectorySnapshot, references: Map<string, PadMapReference>) {
+  return attachPadReferencesResult(snapshot, references).snapshot;
+}
+
+export interface PadReferenceLoadResult {
+  snapshot: DirectorySnapshot;
+  verified: boolean;
+}
+
+export async function loadPadReferencesResult(snapshot: DirectorySnapshot): Promise<PadReferenceLoadResult> {
   try {
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/brinesearch_v18_pad_reference_coordinates`, {
       method: "POST",
@@ -100,10 +117,17 @@ export async function loadPadReferences(snapshot: DirectorySnapshot) {
       cache: "no-store",
       signal: AbortSignal.timeout(8_000),
     });
-    if (!response.ok) return snapshot;
+    if (!response.ok) return { snapshot, verified: false };
     const references = normalizePadReferencePayload(await response.json(), snapshot.snapshotId, snapshot.sourceRevision);
-    return references ? attachPadReferences(snapshot, references) : snapshot;
+    if (!references) return { snapshot, verified: false };
+    const attached = attachPadReferencesResult(snapshot, references);
+    return { snapshot: attached.snapshot, verified: attached.accepted };
   } catch {
-    return snapshot;
+    return { snapshot, verified: false };
   }
+}
+
+/** Backward-compatible display helper; persistence callers need the result above. */
+export async function loadPadReferences(snapshot: DirectorySnapshot) {
+  return (await loadPadReferencesResult(snapshot)).snapshot;
 }

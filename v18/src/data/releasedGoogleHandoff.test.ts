@@ -3,18 +3,20 @@ import type { PadSummary } from "./types";
 import {
   clearReleasedGoogleHandoffCache,
   currentReleasedGoogleHandoff,
+  currentReleasedGoogleHandoffLoad,
+  higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
   releasedGoogleNavigationUrl,
 } from "./releasedGoogleHandoff";
 
-function pad(id: string): PadSummary {
+function pad(id: string, recordRevision = "1"): PadSummary {
   return {
     padId: id,
     canonicalId: id,
     legacyId: null,
     aliases: [],
     recordNumber: null,
-    recordRevision: "1",
+    recordRevision,
     recordType: "pad",
     company: "Ascent",
     padName: "COLOGIE",
@@ -77,13 +79,14 @@ describe("released Google handoff loader", () => {
     const secondRequest = loadReleasedGoogleHandoff(pad(id));
     const [first, second] = await Promise.all([firstRequest, secondRequest]);
 
-    expect(first?.singleUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\//);
+    expect(first.checked).toBe(true);
+    expect(first.plan?.singleUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\//);
     expect(first).toBe(second);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_google_handoff_release");
     expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({ cache: "no-store", method: "POST" });
 
-    expect((await loadReleasedGoogleHandoff(pad(id)))?.singleUrl).toBe(first?.singleUrl);
+    expect((await loadReleasedGoogleHandoff(pad(id))).plan?.singleUrl).toBe(first.plan?.singleUrl);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
@@ -91,32 +94,105 @@ describe("released Google handoff loader", () => {
     const id = "44444444-4444-4444-8444-444444444444";
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(release(id)), { status: 200 }))
-      .mockResolvedValueOnce(new Response("null", { status: 200 }));
+      .mockImplementation(() => Promise.resolve(new Response("null", { status: 200 })));
     vi.stubGlobal("fetch", fetchMock);
 
-    expect((await loadReleasedGoogleHandoff(pad(id)))?.singleUrl).toBeTruthy();
+    expect((await loadReleasedGoogleHandoff(pad(id))).plan?.singleUrl).toBeTruthy();
     clearReleasedGoogleHandoffCache();
-    expect(await loadReleasedGoogleHandoff(pad(id))).toBeNull();
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: true, plan: null });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: true, plan: null });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
 
     vi.stubGlobal("navigator", { onLine: false });
-    expect(await loadReleasedGoogleHandoff(pad(id))).toBeNull();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
   it("never carries a released link to another selected pad or alternate route", async () => {
     const id = "11111111-1111-4111-8111-111111111111";
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(release(id)), { status: 200 })));
-    const plan = await loadReleasedGoogleHandoff(pad(id));
+    const loaded = await loadReleasedGoogleHandoff(pad(id));
+    const plan = currentReleasedGoogleHandoff(loaded, pad(id));
 
-    expect(currentReleasedGoogleHandoff(plan, pad("22222222-2222-4222-8222-222222222222"))).toBeNull();
+    expect(currentReleasedGoogleHandoff(loaded, pad("22222222-2222-4222-8222-222222222222"))).toBeNull();
     expect(releasedGoogleNavigationUrl(plan, "alternate")).toBeNull();
-    expect(releasedGoogleNavigationUrl(currentReleasedGoogleHandoff(plan, pad(id)), "primary")).toBe(plan?.singleUrl);
+    expect(releasedGoogleNavigationUrl(currentReleasedGoogleHandoff(loaded, pad(id)), "primary")).toBe(plan?.singleUrl);
+  });
+
+  it("rejects an old released plan immediately when the same pad advances revision", async () => {
+    const id = "11111111-1111-4111-8111-111111111111";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify(release(id)), { status: 200 })));
+    const loaded = await loadReleasedGoogleHandoff(pad(id, "1"));
+
+    expect(currentReleasedGoogleHandoff(loaded, pad(id, "1"))).not.toBeNull();
+    expect(currentReleasedGoogleHandoff(loaded, pad(id, "2"))).toBeNull();
+    expect(currentReleasedGoogleHandoffLoad(loaded, pad(id, "2"))).toBeNull();
   });
 
   it("fails closed on a missing, mismatched, or malformed release", async () => {
     const id = "33333333-3333-4333-8333-333333333333";
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...release(id), padId: "different-pad" }), { status: 200 })));
-    expect(await loadReleasedGoogleHandoff(pad(id))).toBeNull();
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ...release(id), padId: "different-pad" }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["empty object", {}],
+    ["empty array", []],
+    ["scalar", "malformed"],
+  ])("does not negative-cache a malformed %s response", async (_label, payload) => {
+    const id = "55555555-5555-4555-8555-555555555555";
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify(payload), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
+    expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("higher-priority navigation check state", () => {
+  it("keeps fallbacks closed until both exact online checks finish", () => {
+    expect(higherPriorityNavigationCheckState({
+      online: true,
+      approvedRouteAvailable: false,
+      statusRequestSettled: false,
+      statusChecked: false,
+      releaseRequestSettled: true,
+      releaseChecked: true,
+    })).toBe("checking");
+  });
+
+  it("distinguishes a completed absence from an authority-check failure", () => {
+    expect(higherPriorityNavigationCheckState({
+      online: true,
+      approvedRouteAvailable: false,
+      statusRequestSettled: true,
+      statusChecked: true,
+      releaseRequestSettled: true,
+      releaseChecked: true,
+    })).toBe("checked");
+    expect(higherPriorityNavigationCheckState({
+      online: true,
+      approvedRouteAvailable: false,
+      statusRequestSettled: true,
+      statusChecked: false,
+      releaseRequestSettled: true,
+      releaseChecked: true,
+    })).toBe("unavailable");
+  });
+
+  it("lets a current approved route win immediately and preserves offline fallbacks", () => {
+    const pending = {
+      statusRequestSettled: false,
+      statusChecked: false,
+      releaseRequestSettled: false,
+      releaseChecked: false,
+    };
+    expect(higherPriorityNavigationCheckState({ online: true, approvedRouteAvailable: true, ...pending })).toBe("checked");
+    expect(higherPriorityNavigationCheckState({ online: false, approvedRouteAvailable: false, ...pending })).toBe("checked");
   });
 });

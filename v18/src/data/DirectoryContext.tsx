@@ -1,8 +1,12 @@
 import { createContext, type PropsWithChildren, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { loadDirectorySnapshot, resolveDirectoryFavoriteIds, resolveDirectoryPad } from "./directory";
-import { migrateFavoriteIdentity, readFavoriteIds, saveCompleteSnapshot, setFavorite } from "./offline";
-import { loadPadReferences } from "./padReferences";
+import { migrateFavoriteIdentity, readActiveSnapshot, readFavoriteIds, saveCompleteSnapshot, setFavorite } from "./offline";
+import { loadPadReferencesResult, type PadReferenceLoadResult } from "./padReferences";
+import { clearReleasedGoogleHandoffCache } from "./releasedGoogleHandoff";
+import { clearDriverRouteChoiceCache } from "./routeChoices";
+import { clearCompletedPadStatusCache } from "./status";
 import type { DirectorySnapshot, PadSummary } from "./types";
+import { clearPadWellRowCache } from "./wellRows";
 
 type DirectoryContextValue = {
   snapshot: DirectorySnapshot | null;
@@ -24,6 +28,33 @@ export function directoryNeedsRevalidation(snapshot: DirectorySnapshot | null, n
   return Number.isNaN(verifiedAt) || now - verifiedAt >= directoryFreshnessMs;
 }
 
+export function directoryAuthorityVersionChanged(
+  current: DirectorySnapshot | null,
+  next: DirectorySnapshot,
+) {
+  return !current
+    || current.snapshotId !== next.snapshotId
+    || current.sourceRevision !== next.sourceRevision;
+}
+
+/**
+ * Resolves the complete live directory before publishing it to page effects.
+ * This prevents a GPS-less row from starting route work that is immediately
+ * cancelled and restarted when its exact saved reference arrives.
+ */
+export async function loadDirectoryForDisplay(
+  loadBase: () => Promise<DirectorySnapshot> = loadDirectorySnapshot,
+  loadReferences: (snapshot: DirectorySnapshot) => Promise<PadReferenceLoadResult> = loadPadReferencesResult,
+  online = typeof navigator === "undefined" || navigator.onLine,
+) {
+  const base = await loadBase();
+  if (!online || base.sourceState !== "live_current") return { snapshot: base, persistable: false };
+  const references = await loadReferences(base);
+  return references.verified
+    ? { snapshot: references.snapshot, persistable: true }
+    : { snapshot: { ...references.snapshot, sourceState: "live_stale" as const }, persistable: false };
+}
+
 export function DirectoryProvider({ children }: PropsWithChildren) {
   const [snapshot, setSnapshot] = useState<DirectorySnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,6 +63,7 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
   const snapshotRef = useRef<DirectorySnapshot | null>(null);
   const favoriteIdsRef = useRef<Set<string>>(new Set());
   const favoriteWriteQueue = useRef<Promise<void>>(Promise.resolve());
+  const snapshotWriteQueue = useRef<Promise<void>>(Promise.resolve());
   snapshotRef.current = snapshot;
 
   useEffect(() => {
@@ -54,41 +86,53 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
       }
     };
 
-    const applySnapshot = (nextSnapshot: DirectorySnapshot, favoriteIds?: string[]) => {
+    const applySnapshot = (nextSnapshot: DirectorySnapshot, favoriteIds?: string[], persist = true) => {
       if (cancelled) return;
       snapshotRef.current = nextSnapshot;
       setSnapshot(nextSnapshot);
       setError(null);
       applyFavoriteIds(nextSnapshot, favoriteIds || [...favoriteIdsRef.current]);
-      if (nextSnapshot.sourceState === "live_current" || nextSnapshot.sourceState === "live_stale") saveCompleteSnapshot(nextSnapshot).catch(() => undefined);
-    };
-
-    const enrichMapReferences = (baseSnapshot: DirectorySnapshot) => {
-      if (baseSnapshot.sourceState !== "live_current" || !navigator.onLine) return;
-      loadPadReferences(baseSnapshot).then((enriched) => {
-        if (cancelled || enriched === baseSnapshot) return;
-        if (snapshotRef.current?.snapshotId !== baseSnapshot.snapshotId) return;
-        applySnapshot(enriched);
-      }).catch(() => undefined);
+      if (persist && (nextSnapshot.sourceState === "live_current" || nextSnapshot.sourceState === "live_stale")) {
+        const write = snapshotWriteQueue.current.then(() => saveCompleteSnapshot(nextSnapshot));
+        snapshotWriteQueue.current = write.catch(() => undefined);
+      }
     };
 
     const markLiveDataStale = () => {
       setSnapshot((current) => {
         if (!current || (current.sourceState !== "live_current" && current.sourceState !== "live_stale")) return current;
-        if (navigator.onLine) return { ...current, sourceState: "live_stale" };
-        return { ...current, sourceState: current.sourceState === "live_stale" ? "cached_stale" : "cached_live" };
+        const next = navigator.onLine
+          ? { ...current, sourceState: "live_stale" as const }
+          : { ...current, sourceState: current.sourceState === "live_stale" ? "cached_stale" as const : "cached_live" as const };
+        snapshotRef.current = next;
+        return next;
       });
     };
 
     const refresh = async () => {
       if (refreshInFlight || !navigator.onLine) return;
       refreshInFlight = true;
-      markLiveDataStale();
       try {
-        const nextSnapshot = await loadDirectorySnapshot();
-        applySnapshot(nextSnapshot);
-        enrichMapReferences(nextSnapshot);
+        const nextDirectory = await loadDirectoryForDisplay();
+        if (!nextDirectory.persistable && snapshotRef.current) {
+          markLiveDataStale();
+          if (!cancelled) setError("Latest complete directory check is unavailable. Showing the last checked copy.");
+          return;
+        }
+        // A five-minute freshness read of the same immutable directory must
+        // not discard every completed per-pad check. That made a revisited pad
+        // pay the full status cost again even though its exact record and
+        // destination had not changed. A new snapshot/revision still clears
+        // every dependent cache, and Settings retains its explicit refresh.
+        if (directoryAuthorityVersionChanged(snapshotRef.current, nextDirectory.snapshot)) {
+          clearCompletedPadStatusCache();
+          clearReleasedGoogleHandoffCache();
+          clearDriverRouteChoiceCache();
+          clearPadWellRowCache();
+        }
+        applySnapshot(nextDirectory.snapshot, undefined, nextDirectory.persistable);
       } catch (reason) {
+        markLiveDataStale();
         if (!cancelled) setError(reason instanceof Error ? reason.message : "Directory unavailable");
       } finally {
         refreshInFlight = false;
@@ -96,10 +140,21 @@ export function DirectoryProvider({ children }: PropsWithChildren) {
     };
 
     refreshInFlight = true;
-    loadDirectorySnapshot()
-      .then((nextSnapshot) => {
-        applySnapshot(nextSnapshot);
-        enrichMapReferences(nextSnapshot);
+    // Offline startup may use the last complete device copy immediately. An
+    // online startup never flashes a potentially stale cached destination
+    // before the current directory and its exact references are checked.
+    if (!navigator.onLine) readActiveSnapshot().then((cached) => {
+      if (cancelled || !cached || snapshotRef.current) return;
+      applySnapshot(cached);
+      setLoading(false);
+    }).catch(() => undefined);
+
+    loadDirectoryForDisplay()
+      .then((nextDirectory) => {
+        applySnapshot(nextDirectory.snapshot, undefined, nextDirectory.persistable);
+        if (!nextDirectory.persistable && !cancelled) {
+          setError("Latest complete directory check is unavailable. Pads without a checked GPS reference remain unavailable until retry.");
+        }
       })
       .catch((reason) => !cancelled && setError(reason instanceof Error ? reason.message : "Directory unavailable"))
       .finally(() => {

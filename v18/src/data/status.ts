@@ -20,6 +20,57 @@ function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
 }
 
+/**
+ * A successful HTTP response is not enough to make a status reusable. Require
+ * the complete public decision surface before normalization, so a partial 200
+ * cannot become a session-long held/unavailable answer and hide a later valid
+ * route response.
+ */
+export function statusProjectionHasRequiredShape(value: unknown) {
+  const row = object(value);
+  const route = object(row.route);
+  const graph = object(row.graph);
+  const google = object(row.google);
+  const destination = object(row.destination);
+  const routeState = route.state ?? row.route_state;
+  const routeSource = route.source ?? row.route_source;
+  const graphState = graph.state ?? row.graph_state;
+  const googleState = google.publicState ?? row.public_google_state;
+  const destinationAvailable = destination.available ?? row.destination_available;
+
+  if (!isEnumValue(routeState, routeStates)
+      || !isEnumValue(routeSource, routeSources)
+      || !isEnumValue(graphState, graphStates)
+      || !isEnumValue(googleState, googleStates)
+      || typeof destinationAvailable !== "boolean") {
+    return false;
+  }
+
+  const destinationRole = nullableText(destination.role ?? row.destination_role);
+  const parsedDestination = destinationAvailable
+    && (destinationRole === "driver_entrance" || destinationRole === "saved_pad_destination")
+    ? parseCoordinatePair(
+      destination.latitude ?? row.destination_latitude,
+      destination.longitude ?? row.destination_longitude,
+      destinationRole,
+    )
+    : null;
+  if (destinationAvailable && parsedDestination?.ok !== true) return false;
+
+  if (routeState === "ready") {
+    if ((routeSource !== "exact_graph" && routeSource !== "exact_graph_handoff")
+        || !graphStateSupportsRoute(routeSource, graphState)) {
+      return false;
+    }
+    if (routeSource === "exact_graph_handoff"
+        && (parsedDestination?.ok !== true || parsedDestination.value.role !== "saved_pad_destination")) {
+      return false;
+    }
+  }
+
+  return googleState !== "ready" || routeState === "ready";
+}
+
 function nullableText(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
@@ -30,6 +81,10 @@ function finiteNumber(value: unknown) {
 
 function safeEnum<T extends string>(value: unknown, allowed: Set<T>, fallback: T): T {
   return typeof value === "string" && allowed.has(value as T) ? (value as T) : fallback;
+}
+
+function isEnumValue<T extends string>(value: unknown, allowed: Set<T>): value is T {
+  return typeof value === "string" && allowed.has(value as T);
 }
 
 function trustedNamedSavedDestination(pad: PadSummary) {
@@ -226,7 +281,10 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   return {
     ...base,
     dataState: "live",
-    loadProvenance: "live_response",
+    // Preserve the fail-closed held rendering for a claimed-ready response
+    // whose steps/geometry do not validate, but do not let that malformed
+    // decision become a completed authority check or enter either cache.
+    loadProvenance: claimedRouteState === "ready" && !exactResponseReady ? "fallback" : "live_response",
     recordRevision: String(row.recordRevision ?? row.record_revision ?? base.recordRevision),
     route: {
       state: safeRouteState,
@@ -308,13 +366,19 @@ function liveStatusKey(pad: LiveStatusPadKey, sourceState?: DirectorySourceState
 }
 
 export function completedPadStatusIsReusable(status: DriverPadStatus) {
-  return status.loadProvenance === "live_response"
-    && (Boolean(status.namedApproaches?.length)
-      || status.route.state === "ready"
-        && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
-        && graphStateSupportsRoute(status.route.source, status.graph.state)
-        && status.routeSteps.length > 0
-        && status.route.geometry !== null);
+  // A normalized live response is a completed check for this exact directory
+  // revision even when its honest answer is held or not published. Settings
+  // clears this session cache when the owner requests a fresh authority check.
+  return status.loadProvenance === "live_response";
+}
+
+function completedPadStatusProvesReady(status: DriverPadStatus) {
+  return Boolean(status.namedApproaches?.length)
+    || status.route.state === "ready"
+      && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
+      && graphStateSupportsRoute(status.route.source, status.graph.state)
+      && status.routeSteps.length > 0
+      && status.route.geometry !== null;
 }
 
 /**
@@ -327,7 +391,7 @@ export function hasCompletedReadyPadStatus(
 ) {
   if (!deviceIsOnline()) return false;
   const status = completedLiveStatusCache.get(liveStatusKey(pad, sourceState));
-  return Boolean(status && completedPadStatusIsReusable(status));
+  return Boolean(status && completedPadStatusIsReusable(status) && completedPadStatusProvesReady(status));
 }
 
 export function clearCompletedPadStatusCache() {
@@ -360,6 +424,7 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     if (returnedPadId !== pad.canonicalId) return null;
     const returnedRecordRevision = nullableText(row.recordRevision ?? row.record_revision);
     if (returnedRecordRevision !== pad.recordRevision) return null;
+    if (!statusProjectionHasRequiredShape(row)) return null;
     let status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : null;
     if (!status) return null;
     try {
@@ -486,10 +551,11 @@ export async function loadPadStatus(pad: PadSummary, sourceState?: DirectorySour
   const cacheGeneration = completedLiveStatusCacheGeneration;
   const live = await loadLivePadStatus(pad, sourceState);
   if (live) {
-    if (cacheGeneration === completedLiveStatusCacheGeneration && completedPadStatusIsReusable(live)) {
+    const reusable = completedPadStatusIsReusable(live);
+    if (cacheGeneration === completedLiveStatusCacheGeneration && reusable) {
       completedLiveStatusCache.set(key, live);
     }
-    void savePadDirectionsOffline(pad, live);
+    if (reusable) void savePadDirectionsOffline(pad, live);
     return live;
   }
   return await readPadDirectionsOffline(pad) || {

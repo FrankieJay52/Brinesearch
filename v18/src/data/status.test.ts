@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { clearCompletedPadStatusCache, completedPadStatusIsReusable, hasCompletedReadyPadStatus, loadPadStatus } from "./status";
+import { clearCompletedPadStatusCache, completedPadStatusIsReusable, hasCompletedReadyPadStatus, loadPadStatus, statusProjectionHasRequiredShape } from "./status";
 import type { DriverRouteStep, PadSummary } from "./types";
 
 function pad(overrides: Partial<PadSummary> = {}): PadSummary {
@@ -255,6 +255,96 @@ afterEach(() => {
 });
 
 describe("public driver status boundary", () => {
+  it("does not session-cache a partial 200 response and retries the next exact request", async () => {
+    expect(statusProjectionHasRequiredShape({ padId: "11111111-1111-4111-8111-111111111111", recordRevision: "fixture-r1" })).toBe(false);
+    expect(statusProjectionHasRequiredShape(exactReadyStatusRow())).toBe(true);
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope({
+        padId: "11111111-1111-4111-8111-111111111111",
+        recordRevision: "fixture-r1",
+      })))
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope({
+        ...exactReadyStatusRow(),
+        google: { publicState: "not_published" },
+      })));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const partial = await loadPadStatus(pad());
+    const recovered = await loadPadStatus(pad());
+
+    expect(partial.loadProvenance).toBe("fallback");
+    expect(recovered.loadProvenance).toBe("live_response");
+    expect(recovered.route.state).toBe("ready");
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("requires valid status discriminators and complete available destinations", () => {
+    const nestedHeld = {
+      route: { state: "held", source: "legacy_written" },
+      graph: { state: "held" },
+      google: { publicState: "not_published" },
+      destination: { available: false },
+    };
+    const flatWritten = {
+      route_state: "written_only",
+      route_source: "reviewed_written",
+      graph_state: "active_current",
+      public_google_state: "not_published",
+      destination_available: false,
+    };
+    expect(statusProjectionHasRequiredShape(nestedHeld)).toBe(true);
+    expect(statusProjectionHasRequiredShape(flatWritten)).toBe(true);
+
+    const invalidMutations = [
+      { ...nestedHeld, route: { ...nestedHeld.route, state: "unknown" } },
+      { ...nestedHeld, route: { ...nestedHeld.route, source: null } },
+      { ...nestedHeld, graph: { state: "unknown" } },
+      { ...nestedHeld, google: { publicState: "unknown" } },
+      { ...nestedHeld, destination: { available: true } },
+      { ...nestedHeld, destination: { available: true, role: "reference", latitude: 40.1, longitude: -80.9 } },
+      { ...nestedHeld, destination: { available: true, role: "driver_entrance", latitude: 40.1 } },
+      { ...nestedHeld, destination: { available: true, role: "saved_pad_destination", longitude: -80.9 } },
+      { ...nestedHeld, destination: { available: true, role: "driver_entrance", latitude: 0, longitude: 0 } },
+      { ...nestedHeld, destination: { available: true, role: "driver_entrance", latitude: 39, longitude: -100 } },
+    ];
+    for (const mutation of invalidMutations) expect(statusProjectionHasRequiredShape(mutation)).toBe(false);
+
+    expect(statusProjectionHasRequiredShape({
+      ...nestedHeld,
+      destination: { available: true, role: "driver_entrance", latitude: 40.1, longitude: -80.9 },
+    })).toBe(true);
+    expect(statusProjectionHasRequiredShape({
+      ...nestedHeld,
+      destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
+    })).toBe(true);
+  });
+
+  it("does not cache an invalid enum or an incomplete claimed-ready route", async () => {
+    const valid = {
+      ...exactReadyStatusRow(),
+      google: { publicState: "not_published" },
+    };
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope({
+        ...valid,
+        route: { ...valid.route, state: "unknown" },
+      })))
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(valid)))
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope({
+        ...valid,
+        route: { state: "ready", source: "exact_graph", steps: [], geometry: exactGeometry() },
+      })))
+      .mockResolvedValueOnce(jsonResponse(atomicStatusEnvelope(valid)));
+    vi.stubGlobal("fetch", fetchMock);
+
+    expect((await loadPadStatus(pad())).loadProvenance).toBe("fallback");
+    expect((await loadPadStatus(pad())).loadProvenance).toBe("live_response");
+    clearCompletedPadStatusCache();
+    expect((await loadPadStatus(pad())).loadProvenance).toBe("fallback");
+    expect((await loadPadStatus(pad())).loadProvenance).toBe("live_response");
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
   it("loads named approaches atomically without changing the public Google state", async () => {
     const freeport = namedApproachRow();
     const cadiz = namedApproachRow("via-cadiz", "Via Cadiz", "alternate", 2, 0.02);
@@ -444,7 +534,7 @@ describe("public driver status boundary", () => {
     expect(hasCompletedReadyPadStatus(pad())).toBe(true);
   });
 
-  it("never reuses a held or incomplete route as a completed session check", async () => {
+  it("reuses an honest held response for the exact revision without treating it as ready", async () => {
     const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(jsonResponse(atomicStatusEnvelope({
       ...exactReadyStatusRow(),
       route: { state: "held", source: "exact_graph", safeReason: "Route receipt held." },
@@ -457,9 +547,10 @@ describe("public driver status boundary", () => {
     const second = await loadPadStatus(pad());
     expect(first.route.state).toBe("held");
     expect(second.route.state).toBe("held");
-    expect(completedPadStatusIsReusable(first)).toBe(false);
+    expect(second.loadProvenance).toBe("session_cache");
+    expect(completedPadStatusIsReusable(first)).toBe(true);
     expect(hasCompletedReadyPadStatus(pad())).toBe(false);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("marks a failed online route request unavailable instead of Live", async () => {
@@ -720,8 +811,10 @@ describe("public driver status boundary", () => {
       destination: { available: true, role: "driver_entrance", latitude: 0, longitude: 0 },
     });
     const zeroOrigin = await loadPadStatus(pad());
-    expect(zeroOrigin.destination).toEqual({ available: false, role: null, latitude: null, longitude: null });
+    expect(zeroOrigin.destination).toEqual({ available: false, role: null, latitude: 40.1, longitude: -80.9 });
+    expect(zeroOrigin.loadProvenance).toBe("fallback");
 
+    clearCompletedPadStatusCache();
     publicResponse({
       route: { state: "ready", source: "exact_graph" },
       graph: { state: "active_current" },
@@ -803,6 +896,7 @@ describe("public driver status boundary", () => {
     expect(missingSteps.routeSteps).toEqual([]);
     expect(missingSteps.google).toMatchObject({ publicState: "stale", routeUrl: null });
 
+    clearCompletedPadStatusCache();
     const malformed = exactSteps();
     malformed[1] = { ...malformed[1]!, order: 3 };
     publicResponse({
@@ -829,6 +923,7 @@ describe("public driver status boundary", () => {
     expect(extra.routeSteps).toEqual([]);
     expect(extra.google).toMatchObject({ publicState: "stale", routeUrl: null });
 
+    clearCompletedPadStatusCache();
     const missingOrder = exactGeometry();
     missingOrder.features[1]!.properties.stepOrder = 3;
     publicResponse({

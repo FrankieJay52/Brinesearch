@@ -51,8 +51,8 @@ const unavailableView: GoogleHandoffView = {
 };
 
 function padFromLedger(row: Record<string, string>): PadSummary {
-  const latitude = Number(row.destination_latitude);
-  const longitude = Number(row.destination_longitude);
+  const latitude = Number(row.directory_latitude);
+  const longitude = Number(row.directory_longitude);
   const referenceKinds: Record<string, PadMapReferenceKind> = {
     "saved pad reference": "saved_pad_reference",
     "official pad reference": "official_pad_reference",
@@ -62,14 +62,14 @@ function padFromLedger(row: Record<string, string>): PadSummary {
   return {
     padId: row.record_id,
     canonicalId: row.record_id,
-    legacyId: `ascent--${row.name.toLowerCase().replaceAll(/[^a-z0-9]+/gu, "-")}`,
+    legacyId: row.legacy_id,
     aliases: [],
     recordNumber: null,
     recordRevision: row.record_revision,
     recordType: "pad",
-    company: "Ascent",
+    company: row.company,
     padName: row.name,
-    state: "Ohio",
+    state: row.state,
     county: row.county,
     township: "",
     address: "",
@@ -84,7 +84,7 @@ function padFromLedger(row: Record<string, string>): PadSummary {
     apiNumbers: [],
     propertyNumbers: [],
     safeRoadTerms: [],
-    structuredRoadSequence: "",
+    structuredRoadSequence: row.structured_road_sequence,
     writtenDirections: "",
     verificationStatus: "",
     operatingStatus: "",
@@ -100,24 +100,24 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 236, reviewed_handoff_authority_held: 2 });
+    ]))).toEqual({ "1": 1, "2": 8, "3": 233, reviewed_handoff_authority_held: 5 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
     ]))).toEqual({ saved: 230, "ODNR pad": 12, "ODNR wellhead": 5, missing: 0 });
     expect(ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held").map((row) => row.name).sort())
-      .toEqual(["BILINOVICH", "LAWSON"]);
+      .toEqual(["BEETLE", "BILINOVICH", "DUKE", "LAWSON", "PORTERFIELD GAS UNIT"]);
     expect(ledger.every((row) => row.origin === "phone current location")).toBe(true);
     expect(ledger.filter((row) => row.current_state !== "1").every((row) => row.blocker.length > 0)).toBe(true);
   });
 
-  it("gives all 236 state-3 pads one exact GPS-only Navigate with no route authority", () => {
+  it("gives all 233 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
     const stateThree = ledger.filter((row) => row.current_state === "3");
-    expect(stateThree).toHaveLength(236);
+    expect(stateThree).toHaveLength(233);
     for (const row of stateThree) {
-      const action = buildFixedNavigationAction(unavailableView, padFromLedger(row), null);
+      const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
-      expect(action.title, row.name).toBe("Navigate");
+      expect(action.title, row.name).toBe("GET DIRECTIONS");
       expect(action.detail, row.name).toMatch(/^GPS destination only ·/u);
       expect(action.href, row.name).not.toBeNull();
       const url = new URL(action.href!);
@@ -126,6 +126,27 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       expect(url.searchParams.get("dir_action"), row.name).toBe("navigate");
       expect(url.searchParams.get("destination"), row.name)
         .toBe(`${row.destination_latitude},${row.destination_longitude}`);
+    }
+  });
+
+  it("resolves all five exact-record reviewed handoffs through the real page action builder", () => {
+    const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
+    expect(reviewed).toHaveLength(5);
+    for (const row of reviewed) {
+      const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
+      expect(action.kind, row.name).toBe("reviewed_route");
+      expect(action.title, row.name).toBe("GET DIRECTIONS");
+      expect(action.detail, row.name).toMatch(/^Owner-reviewed route in Google Maps ·/u);
+      const url = new URL(action.href!);
+      expect(url.origin, row.name).toBe("https://www.google.com");
+      expect(url.searchParams.get("origin"), row.name).toBeNull();
+      expect(url.searchParams.get("api"), row.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), row.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), row.name).toBe("navigate");
+      expect(url.searchParams.get("destination")?.split(",").map(Number), row.name)
+        .toEqual([Number(row.destination_latitude), Number(row.destination_longitude)]);
+      expect(url.searchParams.get("waypoints")?.split("|").length, row.name).toBeGreaterThanOrEqual(1);
+      expect(url.searchParams.get("waypoints")?.split("|").length, row.name).toBeLessThanOrEqual(3);
     }
   });
 
@@ -144,7 +165,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     for (const row of namedPads) {
       expect(buildFixedNavigationAction(selectionRequired, padFromLedger(row), null)).toMatchObject({
         kind: "destination_pin",
-        title: "Navigate",
+        title: "GET DIRECTIONS",
         detail: expect.stringMatching(/^GPS destination only ·/u),
         href: expect.stringContaining("dir_action=navigate"),
       });
@@ -160,7 +181,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       "1": ["Reviewed approved route"],
       "2": ["Approved roads then GPS"],
       "3": ["GPS destination only"],
-      reviewed_handoff_authority_held: ["Navigate reviewed route"],
+      reviewed_handoff_authority_held: ["Owner-reviewed route in Google Maps"],
     });
   });
 });
