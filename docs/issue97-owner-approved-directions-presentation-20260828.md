@@ -18,6 +18,8 @@ PORTERFIELD GAS UNIT, PORTERFIELD B, ROCK RIDGE, CROWIE, CASTON, LAKE, THOMAS, T
 
 Both groups may display **Owner-approved directions**. Only the first group may say its named-road identities are exact. Neither group receives graph/public-Google/overlay authority from this presentation receipt.
 
+Each approval is frozen to the complete reviewed contract content: exact pad and legacy identities, record revision, company/county/name, saved structured sequence, trusted destination source and coordinates, action destination, waypoint order, Google URL, driver-facing sequence, and final-leg warning. Any later change fails closed and removes the owner-approved presentation until a new receipt is explicitly reviewed.
+
 ## Driver presentation
 
 - The fixed and map-card action remains one button labelled `GET DIRECTIONS`.
@@ -31,6 +33,8 @@ Both groups may display **Owner-approved directions**. Only the first group may 
 - Cologie remains unchanged.
 - BILINOVICH remains the no-Blaze McCoy → Merry → Penrose → Logan → Turkle route with its separately reviewed ODNR pad-surface action destination.
 - Skull Fork remains Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Its URL, destination, and turn control are unchanged.
+- ROCK RIDGE displays the current official sequence Fairview Rd → Douglass Rd → Pultney Ridge Rd without changing its URL or turn controls.
+- CROWIE explicitly ends named-road authority on Williams Road and labels the remaining movement as an unapproved access / GPS handoff without changing its URL or destination.
 - Existing higher-priority released routes and named approaches continue to outrank static reviewed handoffs.
 
 ## Authority and mutation boundary

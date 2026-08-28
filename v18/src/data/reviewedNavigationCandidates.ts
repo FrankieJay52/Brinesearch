@@ -29,56 +29,58 @@ export interface ReviewedNavigationCoordinate {
   longitude: number;
 }
 
-const ownerApprovedNavigationEvidenceEntries = [
-  ["143f5268-33e4-4598-8101-40220b5cfdc4", "exact_named_road_identities"], // LAWSON
-  ["59061829-1122-4aae-872d-cf5024310373", "exact_named_road_identities"], // BILINOVICH
-  ["0e6f23f1-3bfb-44b0-aa4e-f24dde611880", "exact_named_road_identities"], // BEETLE
-  ["bb351070-6c94-45e5-942f-e155f9e86f7e", "exact_named_road_identities"], // DUKE
-  ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", "exact_named_road_identities"], // BAKOS
-  ["333598ca-37b3-4b44-9411-a490cc3da672", "exact_named_road_identities"], // BANNOCK
-  ["bd2e0e20-8aa8-4e05-a4c0-0af312234853", "exact_named_road_identities"], // GIL
-  ["71c9c874-5514-46a4-8d91-b105c6734799", "exact_named_road_identities"], // GILCHER
-  ["b22c557a-950a-4ed7-a65a-f4730b9bc727", "exact_named_road_identities"], // CIRCLE-OAKS
-  ["166c5d6c-3a8d-4481-b8bf-5d74b7605f0d", "exact_named_road_identities"], // SADLER
-  ["800c877a-6b4f-4a87-a710-b1e00af63c62", "exact_named_road_identities"], // TOWE
-  ["fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2", "exact_named_road_identities"], // DUTTON
-  ["ad5ef012-46f5-46ca-93c7-0f5b492cb201", "exact_named_road_identities"], // KUNGLE B
-  ["c10e2066-d6b7-4117-aea9-137dd1237b3a", "exact_named_road_identities"], // TRUCHAN NW
-  ["ca1560b5-4ea6-4eb7-a82e-de2467937eb2", "exact_named_road_identities"], // MOONSTONE
-  ["9aa065c0-8896-49e2-b02d-d4ca71acefc3", "exact_named_road_identities"], // JEFFCO
-  ["47a0305e-c641-499b-990c-0f7fe83493b8", "exact_named_road_identities"], // KUNGLE A
-  ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", "exact_named_road_identities"], // TRUCHAN NE
-  ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", "exact_named_road_identities"], // LORRAINE
-  ["74032b6e-179d-4672-8720-55ac86cab232", "exact_named_road_identities"], // PANG
-  ["f2f82142-f6d8-4f8d-b440-2ff86f624158", "exact_named_road_identities"], // HASTINGS
-  ["25dc9adf-e09a-4cfa-8900-59492fbad0ec", "exact_named_road_identities"], // WHEELING VALLEY
-  ["83b27fd3-4615-4ea1-ad36-0b05b359f5d2", "exact_named_road_identities"], // ECHO
-  ["475462f4-7e7a-4432-801c-5e513d5e953f", "exact_named_road_identities"], // NORTH STAR
-  ["691fb27b-2b35-471d-81fa-9239f6bd4081", "exact_named_road_identities"], // LODESTAR
-  ["0b7ed9a5-7748-4d92-992a-7f2cecf9dd08", "exact_named_road_identities"], // WINSTON SMITH
-  ["4c73e244-6132-4d40-83fc-3fe5e6e65bf6", "exact_named_road_identities"], // BRAVO
-  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", "exact_named_road_identities"], // PICKENS
-  ["0b7105a0-1b36-4182-8d10-1f2e297c8bab", "validated_google_handoff"], // PORTERFIELD GAS UNIT
-  ["41f0bfc3-7be1-450f-abfc-96dce544547b", "validated_google_handoff"], // PORTERFIELD B
-  ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", "validated_google_handoff"], // ROCK RIDGE
-  ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", "validated_google_handoff"], // CROWIE
-  ["58c94af4-32b1-4f80-a278-a5f73688fa23", "validated_google_handoff"], // CASTON
-  ["ccf7415a-331b-440a-829d-28282a33cde1", "validated_google_handoff"], // LAKE
-  ["1e898176-672d-4174-8878-4aae0aee2128", "validated_google_handoff"], // THOMAS
-  ["6c93d03a-76e8-4c03-b47e-8b7011c81a1a", "validated_google_handoff"], // TROYER
-  ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", "validated_google_handoff"], // MATUSEK
-  ["f80dea77-db11-45f8-b30c-6c6abb85e469", "validated_google_handoff"], // JACKALOPE
-  ["5c4a497e-cf33-48dd-8272-9fd06ebb9e6a", "validated_google_handoff"], // LODGE
-  ["48d810bf-e59f-4314-9efb-8103a818a3bd", "validated_google_handoff"], // ALBATROSS
-  ["8f616827-d7da-4b40-b9c2-49fd5e713822", "validated_google_handoff"], // MALDON
-  ["f2df293f-13a2-401e-96b2-21e71ac63e6a", "validated_google_handoff"], // WITHEY
-  ["06ac93a2-3b46-44fd-9fa6-2fd29201858a", "validated_google_handoff"], // SKULL FORK
-  ["351b72fb-eb48-4355-b6fc-d8e9a867f79c", "validated_google_handoff"], // HOOP
-  ["7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c", "validated_google_handoff"], // RUTH
-  ["3850e94a-826f-4b6b-a54f-d21d482fca46", "validated_google_handoff"], // ATHENA
-] as const satisfies readonly (readonly [string, OwnerApprovedNavigationPresentation["evidence"]])[];
+const ownerApprovedNavigationReceiptEntries = [
+  ["143f5268-33e4-4598-8101-40220b5cfdc4", "exact_named_road_identities", "2f79a77d4b426a89"], // LAWSON
+  ["59061829-1122-4aae-872d-cf5024310373", "exact_named_road_identities", "fe52b13b8786952d"], // BILINOVICH
+  ["0e6f23f1-3bfb-44b0-aa4e-f24dde611880", "exact_named_road_identities", "5226bce429e00602"], // BEETLE
+  ["bb351070-6c94-45e5-942f-e155f9e86f7e", "exact_named_road_identities", "7ae28b658c211473"], // DUKE
+  ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", "exact_named_road_identities", "5e04be98967722ec"], // BAKOS
+  ["333598ca-37b3-4b44-9411-a490cc3da672", "exact_named_road_identities", "ad056a867c8dcf38"], // BANNOCK
+  ["bd2e0e20-8aa8-4e05-a4c0-0af312234853", "exact_named_road_identities", "99e914d4ad67f742"], // GIL
+  ["71c9c874-5514-46a4-8d91-b105c6734799", "exact_named_road_identities", "6ec187b6fa2d4864"], // GILCHER
+  ["b22c557a-950a-4ed7-a65a-f4730b9bc727", "exact_named_road_identities", "3ede02569e2e9522"], // CIRCLE-OAKS
+  ["166c5d6c-3a8d-4481-b8bf-5d74b7605f0d", "exact_named_road_identities", "75402eaffa3e0451"], // SADLER
+  ["800c877a-6b4f-4a87-a710-b1e00af63c62", "exact_named_road_identities", "79242c39fe96570d"], // TOWE
+  ["fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2", "exact_named_road_identities", "0dfa0799f5aaaaf3"], // DUTTON
+  ["ad5ef012-46f5-46ca-93c7-0f5b492cb201", "exact_named_road_identities", "f23bc1287e74c55a"], // KUNGLE B
+  ["c10e2066-d6b7-4117-aea9-137dd1237b3a", "exact_named_road_identities", "c21fd08143e5a2f9"], // TRUCHAN NW
+  ["ca1560b5-4ea6-4eb7-a82e-de2467937eb2", "exact_named_road_identities", "e387f613bd9de8cf"], // MOONSTONE
+  ["9aa065c0-8896-49e2-b02d-d4ca71acefc3", "exact_named_road_identities", "39b6224fb8883dd5"], // JEFFCO
+  ["47a0305e-c641-499b-990c-0f7fe83493b8", "exact_named_road_identities", "d2f5a45e55536664"], // KUNGLE A
+  ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", "exact_named_road_identities", "1971369320635c89"], // TRUCHAN NE
+  ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", "exact_named_road_identities", "c29838bd5dfd3741"], // LORRAINE
+  ["74032b6e-179d-4672-8720-55ac86cab232", "exact_named_road_identities", "c3f4701ffec3ac65"], // PANG
+  ["f2f82142-f6d8-4f8d-b440-2ff86f624158", "exact_named_road_identities", "d93f5a1f65d55d63"], // HASTINGS
+  ["25dc9adf-e09a-4cfa-8900-59492fbad0ec", "exact_named_road_identities", "a38e7b5d8af398c5"], // WHEELING VALLEY
+  ["83b27fd3-4615-4ea1-ad36-0b05b359f5d2", "exact_named_road_identities", "62b8a765bc667f1f"], // ECHO
+  ["475462f4-7e7a-4432-801c-5e513d5e953f", "exact_named_road_identities", "36cb79e4853d7290"], // NORTH STAR
+  ["691fb27b-2b35-471d-81fa-9239f6bd4081", "exact_named_road_identities", "96e1bb037b953a31"], // LODESTAR
+  ["0b7ed9a5-7748-4d92-992a-7f2cecf9dd08", "exact_named_road_identities", "6577e418dbac20e4"], // WINSTON SMITH
+  ["4c73e244-6132-4d40-83fc-3fe5e6e65bf6", "exact_named_road_identities", "23e0287b45f6ff57"], // BRAVO
+  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", "exact_named_road_identities", "80d1d23b209f87cd"], // PICKENS
+  ["0b7105a0-1b36-4182-8d10-1f2e297c8bab", "validated_google_handoff", "4675fb363ebe71b6"], // PORTERFIELD GAS UNIT
+  ["41f0bfc3-7be1-450f-abfc-96dce544547b", "validated_google_handoff", "e0d0cf0742dd637b"], // PORTERFIELD B
+  ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", "validated_google_handoff", "9dfaaa8c5c191624"], // ROCK RIDGE
+  ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", "validated_google_handoff", "3574a472d9401038"], // CROWIE
+  ["58c94af4-32b1-4f80-a278-a5f73688fa23", "validated_google_handoff", "c9fa4f5b9f653949"], // CASTON
+  ["ccf7415a-331b-440a-829d-28282a33cde1", "validated_google_handoff", "2c390b9f4396ed43"], // LAKE
+  ["1e898176-672d-4174-8878-4aae0aee2128", "validated_google_handoff", "550a7ab9fc186ab3"], // THOMAS
+  ["6c93d03a-76e8-4c03-b47e-8b7011c81a1a", "validated_google_handoff", "b3f46307476f1b6f"], // TROYER
+  ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", "validated_google_handoff", "f336c7fff9bb3859"], // MATUSEK
+  ["f80dea77-db11-45f8-b30c-6c6abb85e469", "validated_google_handoff", "5ef4b0d8f542dfe4"], // JACKALOPE
+  ["5c4a497e-cf33-48dd-8272-9fd06ebb9e6a", "validated_google_handoff", "802f04a80b73ff0a"], // LODGE
+  ["48d810bf-e59f-4314-9efb-8103a818a3bd", "validated_google_handoff", "a1620982bbc43f72"], // ALBATROSS
+  ["8f616827-d7da-4b40-b9c2-49fd5e713822", "validated_google_handoff", "e6c398ec022ccff4"], // MALDON
+  ["f2df293f-13a2-401e-96b2-21e71ac63e6a", "validated_google_handoff", "197c6bd9b7e58f7b"], // WITHEY
+  ["06ac93a2-3b46-44fd-9fa6-2fd29201858a", "validated_google_handoff", "ca76998eb8de6826"], // SKULL FORK
+  ["351b72fb-eb48-4355-b6fc-d8e9a867f79c", "validated_google_handoff", "449f9f41c74f863f"], // HOOP
+  ["7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c", "validated_google_handoff", "d3f8b184674630da"], // RUTH
+  ["3850e94a-826f-4b6b-a54f-d21d482fca46", "validated_google_handoff", "8864af288dea9f58"], // ATHENA
+] as const satisfies readonly (readonly [string, OwnerApprovedNavigationPresentation["evidence"], string])[];
 
-const ownerApprovedNavigationEvidenceByPadId = new Map<string, OwnerApprovedNavigationPresentation["evidence"]>(ownerApprovedNavigationEvidenceEntries);
+const ownerApprovedNavigationReceiptByPadId = new Map(ownerApprovedNavigationReceiptEntries.map(
+  ([padId, evidence, contentFingerprint]) => [padId, { evidence, contentFingerprint }] as const,
+));
 
 export function reviewedNavigationSequenceItems(candidate: Pick<ReviewedNavigationCandidate, "reviewedRoadSequence">) {
   return (candidate.reviewedRoadSequence || "")
@@ -1613,7 +1615,7 @@ export function reviewedNavigationCandidateForPad(
     contract.waypoints,
   )) return null;
 
-  const ownerApprovalEvidence = ownerApprovedNavigationEvidenceByPadId.get(contract.padId);
+  const ownerApproval = ownerApprovalPresentationForReceipt(contract);
 
   return {
     padId: contract.padId,
@@ -1622,10 +1624,93 @@ export function reviewedNavigationCandidateForPad(
     routeUrl: contract.routeUrl,
     reviewedRoadSequence: contract.reviewedRoadSequence,
     finalLegNotice: contract.finalLegNotice,
-    ownerApproval: ownerApprovalEvidence ? {
-      kind: "owner_approved_directions",
-      evidence: ownerApprovalEvidence,
-      approvedAt: "2026-08-28",
-    } : undefined,
+    ownerApproval,
   };
+}
+
+export type OwnerApprovalReceiptInput = Pick<ReviewedNavigationContract,
+  | "padId"
+  | "canonicalId"
+  | "legacyId"
+  | "recordRevision"
+  | "company"
+  | "padName"
+  | "state"
+  | "county"
+  | "structuredRoadSequence"
+  | "title"
+  | "detail"
+  | "routeUrl"
+  | "reviewedRoadSequence"
+  | "finalLegNotice"
+  | "trustedDestination"
+  | "routeDestination"
+  | "waypoints"
+  | "routeDestinationOverride"
+>;
+
+/**
+ * A stable, fail-closed content fingerprint. This is not a cryptographic
+ * authorization primitive; it is an independent frozen receipt that prevents
+ * a later route or wording edit from silently inheriting the owner's approval.
+ */
+export function ownerApprovalContentFingerprint(contract: OwnerApprovalReceiptInput) {
+  const canonical = JSON.stringify({
+    padId: contract.padId,
+    canonicalId: contract.canonicalId,
+    legacyId: contract.legacyId,
+    recordRevision: contract.recordRevision,
+    company: contract.company,
+    padName: contract.padName,
+    state: contract.state,
+    county: contract.county,
+    structuredRoadSequence: contract.structuredRoadSequence,
+    title: contract.title,
+    detail: contract.detail,
+    routeUrl: contract.routeUrl,
+    reviewedRoadSequence: contract.reviewedRoadSequence || "",
+    finalLegNotice: contract.finalLegNotice || "",
+    trustedDestination: contract.trustedDestination,
+    routeDestination: contract.routeDestination,
+    waypoints: contract.waypoints,
+    routeDestinationOverride: contract.routeDestinationOverride || "",
+  });
+  let first = 0x811c9dc5;
+  let second = 0x9e3779b9;
+  for (let index = 0; index < canonical.length; index += 1) {
+    const code = canonical.charCodeAt(index);
+    first = Math.imul(first ^ code, 0x01000193);
+    second = Math.imul(second ^ code, 0x5bd1e995);
+  }
+  return `${(first >>> 0).toString(16).padStart(8, "0")}${(second >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+export function ownerApprovalPresentationForReceipt(
+  contract: OwnerApprovalReceiptInput,
+): OwnerApprovedNavigationPresentation | undefined {
+  const receipt = ownerApprovedNavigationReceiptByPadId.get(contract.padId);
+  if (!receipt || receipt.contentFingerprint !== ownerApprovalContentFingerprint(contract)) return undefined;
+  return {
+    kind: "owner_approved_directions",
+    evidence: receipt.evidence,
+    approvedAt: "2026-08-28",
+  };
+}
+
+export function ownerApprovalReceiptInputForAudit(padId: string): OwnerApprovalReceiptInput | null {
+  return reviewedNavigationContracts.find((contract) => contract.padId === padId) || null;
+}
+
+export function ownerApprovalReceiptRowsForAudit() {
+  return ownerApprovedNavigationReceiptEntries.map(([padId, evidence, contentFingerprint]) => {
+    const contract = reviewedNavigationContracts.find((candidate) => candidate.padId === padId);
+    const currentContentFingerprint = contract ? ownerApprovalContentFingerprint(contract) : null;
+    return {
+      padId,
+      evidence,
+      contentFingerprint,
+      currentContentFingerprint,
+      matchesCurrentContent: contentFingerprint === currentContentFingerprint,
+    };
+  });
 }
