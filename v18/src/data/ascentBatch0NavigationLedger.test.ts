@@ -100,20 +100,20 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 233, reviewed_handoff_authority_held: 5 });
+    ]))).toEqual({ "1": 1, "2": 8, "3": 227, reviewed_handoff_authority_held: 11 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
     ]))).toEqual({ saved: 230, "ODNR pad": 12, "ODNR wellhead": 5, missing: 0 });
     expect(ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held").map((row) => row.name).sort())
-      .toEqual(["BEETLE", "BILINOVICH", "DUKE", "LAWSON", "PORTERFIELD GAS UNIT"]);
+      .toEqual(["BEETLE", "BILINOVICH", "CASTON", "CROWIE", "DUKE", "GIL", "GILCHER", "LAKE", "LAWSON", "PORTERFIELD GAS UNIT", "THOMAS"]);
     expect(ledger.every((row) => row.origin === "phone current location")).toBe(true);
     expect(ledger.filter((row) => row.current_state !== "1").every((row) => row.blocker.length > 0)).toBe(true);
   });
 
-  it("gives all 233 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
+  it("gives all 227 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
     const stateThree = ledger.filter((row) => row.current_state === "3");
-    expect(stateThree).toHaveLength(233);
+    expect(stateThree).toHaveLength(227);
     for (const row of stateThree) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -129,9 +129,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("resolves all five exact-record reviewed handoffs through the real page action builder", () => {
+  it("resolves all eleven exact-record reviewed handoffs through the real page action builder", () => {
     const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
-    expect(reviewed).toHaveLength(5);
+    expect(reviewed).toHaveLength(11);
     for (const row of reviewed) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("reviewed_route");

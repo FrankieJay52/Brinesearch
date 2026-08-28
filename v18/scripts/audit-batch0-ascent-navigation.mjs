@@ -155,6 +155,108 @@ const explicitStates = new Map([
       longitude: -81.30282620,
     },
   }],
+  ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "CROWIE exact-record Vineyard and Williams Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+      legacyId: "ascent--crowie",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "CROWIE",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "Exit 215 → US-40 → Vineyard Rd → Williams Rd → OR → Exit 213 → US-40",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.0979, longitude: -80.9384 },
+    },
+  }],
+  ["58c94af4-32b1-4f80-a278-a5f73688fa23", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "CASTON exact-record McCoy, Jasper, and Caston Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "58c94af4-32b1-4f80-a278-a5f73688fa23",
+      legacyId: "ascent--caston",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "CASTON",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 → Mc Coy Rd → Jasper Rd → Caston Rd → OR → OH-513 → US-22 → Mc Coy Rd → Jasper Rd → Caston Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.130458, longitude: -81.328059 },
+    },
+  }],
+  ["bd2e0e20-8aa8-4e05-a4c0-0af312234853", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "GIL exact-record McCoy, Merry, Penrose, and Logan Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+      legacyId: "ascent--gil",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "GIL",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 / Mccoy Rd → Mccoy Rd → Merry Rd → Penrose Rd → Logan Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.09387, longitude: -81.29646 },
+    },
+  }],
+  ["71c9c874-5514-46a4-8d91-b105c6734799", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "GILCHER exact-record McCoy, Merry, and Penrose Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "71c9c874-5514-46a4-8d91-b105c6734799",
+      legacyId: "ascent--gilcher",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "GILCHER",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 → Mc Coy Rd → Merry Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Merry Rd → Penrose Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.100079, longitude: -81.295657 },
+    },
+  }],
+  ["ccf7415a-331b-440a-829d-28282a33cde1", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "LAKE exact-record McCoy, Tyson Mill, and Pennyroyal Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "ccf7415a-331b-440a-829d-28282a33cde1",
+      legacyId: "ascent--lake",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "LAKE",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.14776, longitude: -81.295527 },
+    },
+  }],
+  ["1e898176-672d-4174-8878-4aae0aee2128", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "THOMAS exact-record OH-513 and Tyson Mill Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "1e898176-672d-4174-8878-4aae0aee2128",
+      legacyId: "ascent--thomas",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "THOMAS",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "I-70 → Exit 193 → OH-513 → Tyson Mill Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.096986, longitude: -81.307667 },
+    },
+  }],
   ["0b675c3f-2c04-4901-955d-8629e7dba05e", {
     state: "3",
     blocker: "The West Grove lease-end receipt does not approve route geometry or a Google handoff; use the saved GPS destination only.",
@@ -518,9 +620,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 227 GPS-only / 11 reviewed-held
 - Production writes zero
-- LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: \`reviewed_handoff_authority_held\`
+- BEETLE + BILINOVICH + CASTON + CROWIE + DUKE + GIL + GILCHER + LAKE + LAWSON + PORTERFIELD GAS UNIT + THOMAS: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -553,7 +655,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The owner completed phone/field validation of the exact DUKE and PORTERFIELD links on 2026-08-27; that visual proof does not promote graph or public-Google authority.
+- BEETLE, BILINOVICH, CASTON, CROWIE, DUKE, GIL, GILCHER, LAKE, LAWSON, PORTERFIELD GAS UNIT, and THOMAS remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE and PORTERFIELD links have owner phone/field validation; the six batch-2 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -686,8 +788,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 233
-    && stateCounts.reviewed_handoff_authority_held === 5,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 227
+    && stateCounts.reviewed_handoff_authority_held === 11,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

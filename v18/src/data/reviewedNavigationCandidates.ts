@@ -116,6 +116,39 @@ const PORTERFIELD_WAYPOINTS = [
   { latitude: 40.088246, longitude: -80.944086 },
   { latitude: 40.090469, longitude: -80.928294 },
 ] as const;
+const CROWIE_ROUTE_DESTINATION = { latitude: 40.0979, longitude: -80.9384 } as const;
+const CROWIE_WAYPOINTS = [
+  { latitude: 40.073689, longitude: -80.945041 },
+  { latitude: 40.088246, longitude: -80.944086 },
+] as const;
+const CASTON_ROUTE_DESTINATION = { latitude: 40.130458, longitude: -81.328059 } as const;
+const CASTON_WAYPOINTS = [
+  { latitude: 40.123106982, longitude: -81.353948693 },
+  { latitude: 40.113698669772, longitude: -81.314757942078 },
+  { latitude: 40.127876178092, longitude: -81.316090497685 },
+] as const;
+const GIL_ROUTE_DESTINATION = { latitude: 40.09387, longitude: -81.29646 } as const;
+const GIL_WAYPOINTS = [
+  { latitude: 40.123106982, longitude: -81.353948693 },
+  { latitude: 40.095922776519, longitude: -81.284173854530 },
+  { latitude: 40.099552104984, longitude: -81.297815548031 },
+] as const;
+const GILCHER_ROUTE_DESTINATION = { latitude: 40.100079, longitude: -81.295657 } as const;
+const GILCHER_WAYPOINTS = [
+  { latitude: 40.123106982, longitude: -81.353948693 },
+  { latitude: 40.105015636324, longitude: -81.279619885553 },
+  { latitude: 40.095922776519, longitude: -81.284173854530 },
+] as const;
+const LAKE_ROUTE_DESTINATION = { latitude: 40.14776, longitude: -81.295527 } as const;
+const LAKE_WAYPOINTS = [
+  { latitude: 40.123106982, longitude: -81.353948693 },
+  { latitude: 40.111840810550, longitude: -81.300972387724 },
+  { latitude: 40.134573026404, longitude: -81.287284993921 },
+] as const;
+const THOMAS_ROUTE_DESTINATION = { latitude: 40.096986, longitude: -81.307667 } as const;
+const THOMAS_WAYPOINTS = [
+  { latitude: 40.087850494651, longitude: -81.320561551360 },
+] as const;
 
 // Existing phone-validated handoffs are intentionally byte-for-byte stable.
 // Building them from JavaScript numbers can drop reviewed trailing zeroes even
@@ -125,6 +158,12 @@ export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?
 export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
 export const DUKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DUKE_ROUTE_DESTINATION, DUKE_WAYPOINTS);
 export const PORTERFIELD_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_ROUTE_DESTINATION, PORTERFIELD_WAYPOINTS);
+export const CROWIE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CROWIE_ROUTE_DESTINATION, CROWIE_WAYPOINTS);
+export const CASTON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CASTON_ROUTE_DESTINATION, CASTON_WAYPOINTS);
+export const GIL_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GIL_ROUTE_DESTINATION, GIL_WAYPOINTS);
+export const GILCHER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GILCHER_ROUTE_DESTINATION, GILCHER_WAYPOINTS);
+export const LAKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LAKE_ROUTE_DESTINATION, LAKE_WAYPOINTS);
+export const THOMAS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(THOMAS_ROUTE_DESTINATION, THOMAS_WAYPOINTS);
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -141,6 +180,7 @@ interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
     source: PadDestinationSource;
   };
   routeDestination: ReviewedNavigationCoordinate;
+  routeDestinationOverride?: "bilinovich_reviewed_odnr_pad_surface";
   waypoints: readonly ReviewedNavigationCoordinate[];
 }
 
@@ -187,6 +227,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
       source: "saved_pad_gps",
     },
     routeDestination: BILINOVICH_ROUTE_DESTINATION,
+    routeDestinationOverride: "bilinovich_reviewed_odnr_pad_surface",
     waypoints: BILINOVICH_WAYPOINTS,
   },
   {
@@ -263,6 +304,144 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     routeDestination: PORTERFIELD_ROUTE_DESTINATION,
     waypoints: PORTERFIELD_WAYPOINTS,
   },
+  {
+    padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+    canonicalId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+    legacyId: "ascent--crowie",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "CROWIE",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "Exit 215 → US-40 → Vineyard Rd → Williams Rd → OR → Exit 213 → US-40",
+    title: "Navigate reviewed route",
+    detail: "US-40 → Vineyard Rd → Williams Rd → verified entrance",
+    routeUrl: CROWIE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-40 → Vineyard Rd / CR-56 → Williams Rd → verified driver entrance",
+    finalLegNotice: "The reviewed handoff follows US-40 and Vineyard Road, continues onto Williams Road, and ends at CROWIE's exact verified driver entrance. Exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.0979,
+      longitude: -80.9384,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: CROWIE_ROUTE_DESTINATION,
+    waypoints: CROWIE_WAYPOINTS,
+  },
+  {
+    padId: "58c94af4-32b1-4f80-a278-a5f73688fa23",
+    canonicalId: "58c94af4-32b1-4f80-a278-a5f73688fa23",
+    legacyId: "ascent--caston",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "CASTON",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Jasper Rd → Caston Rd → OR → OH-513 → US-22 → Mc Coy Rd → Jasper Rd → Caston Rd",
+    title: "Navigate reviewed route",
+    detail: "McCoy → Jasper → Caston → saved GPS",
+    routeUrl: CASTON_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 E → McCoy Rd / CR-82 → Jasper Rd / CR-93 → Caston Rd → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows McCoy Road, Jasper Road, and Caston Road to CASTON's exact saved GPS. The saved point is not relabeled as a verified entrance; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.130458,
+      longitude: -81.328059,
+      source: "saved_pad_gps",
+    },
+    routeDestination: CASTON_ROUTE_DESTINATION,
+    waypoints: CASTON_WAYPOINTS,
+  },
+  {
+    padId: "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+    canonicalId: "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+    legacyId: "ascent--gil",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "GIL",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 / Mccoy Rd → Mccoy Rd → Merry Rd → Penrose Rd → Logan Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "McCoy → Merry → Penrose → Logan → saved GPS",
+    routeUrl: GIL_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows McCoy, Merry, Penrose, and Logan roads to GIL's exact saved GPS. The final saved point remains GPS destination evidence, not approved lease geometry.",
+    trustedDestination: {
+      latitude: 40.09387,
+      longitude: -81.29646,
+      source: "saved_pad_gps",
+    },
+    routeDestination: GIL_ROUTE_DESTINATION,
+    waypoints: GIL_WAYPOINTS,
+  },
+  {
+    padId: "71c9c874-5514-46a4-8d91-b105c6734799",
+    canonicalId: "71c9c874-5514-46a4-8d91-b105c6734799",
+    legacyId: "ascent--gilcher",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "GILCHER",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Merry Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Merry Rd → Penrose Rd",
+    title: "Navigate reviewed route",
+    detail: "McCoy → Merry → Penrose → saved GPS",
+    routeUrl: GILCHER_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows McCoy, Merry, and Penrose roads to GILCHER's exact saved GPS. The saved point is not relabeled as a verified entrance; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.100079,
+      longitude: -81.295657,
+      source: "saved_pad_gps",
+    },
+    routeDestination: GILCHER_ROUTE_DESTINATION,
+    waypoints: GILCHER_WAYPOINTS,
+  },
+  {
+    padId: "ccf7415a-331b-440a-829d-28282a33cde1",
+    canonicalId: "ccf7415a-331b-440a-829d-28282a33cde1",
+    legacyId: "ascent--lake",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "LAKE",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd",
+    title: "Navigate reviewed route",
+    detail: "McCoy → Tyson Mill → Pennyroyal → saved GPS",
+    routeUrl: LAKE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 E → McCoy Rd / CR-82 → Tyson Mill Rd → Pennyroyal Rd → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows McCoy, Tyson Mill, and Pennyroyal roads, then ends at LAKE's exact saved GPS. Google's final unnamed turn is not approved lease geometry.",
+    trustedDestination: {
+      latitude: 40.14776,
+      longitude: -81.295527,
+      source: "saved_pad_gps",
+    },
+    routeDestination: LAKE_ROUTE_DESTINATION,
+    waypoints: LAKE_WAYPOINTS,
+  },
+  {
+    padId: "1e898176-672d-4174-8878-4aae0aee2128",
+    canonicalId: "1e898176-672d-4174-8878-4aae0aee2128",
+    legacyId: "ascent--thomas",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "THOMAS",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 → Exit 193 → OH-513 → Tyson Mill Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-513 → Tyson Mill → saved GPS",
+    routeUrl: THOMAS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "I-70 → Exit 193 → OH-513 N → Tyson Mill Rd → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows OH-513 to Tyson Mill Road and ends at THOMAS's exact saved GPS. Google's final unnamed turn remains an unapproved GPS handoff, not approved lease geometry.",
+    trustedDestination: {
+      latitude: 40.096986,
+      longitude: -81.307667,
+      source: "saved_pad_gps",
+    },
+    routeDestination: THOMAS_ROUTE_DESTINATION,
+    waypoints: THOMAS_WAYPOINTS,
+  },
 ] as const;
 
 const bilinovichUnsafeBlazeContract = {
@@ -329,6 +508,15 @@ export function reviewedNavigationCandidateForPad(
     || destination.source !== contract.trustedDestination.source
     || Math.abs(destination.latitude - contract.trustedDestination.latitude) > 1e-9
     || Math.abs(destination.longitude - contract.trustedDestination.longitude) > 1e-9) return null;
+
+  const routeDestinationMatchesTrusted = Math.abs(
+    contract.routeDestination.latitude - contract.trustedDestination.latitude,
+  ) <= 1e-9 && Math.abs(
+    contract.routeDestination.longitude - contract.trustedDestination.longitude,
+  ) <= 1e-9;
+  const isExactBilinovichPadSurfaceOverride = contract.padId === "59061829-1122-4aae-872d-cf5024310373"
+    && contract.routeDestinationOverride === "bilinovich_reviewed_odnr_pad_surface";
+  if (!routeDestinationMatchesTrusted && !isExactBilinovichPadSurfaceOverride) return null;
 
   if (!reviewedNavigationUrlMatchesContract(
     contract.routeUrl,
