@@ -219,6 +219,10 @@ function git(...args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
 }
 
+function normalizedNewlines(value) {
+  return value.replace(/\r\n?/gu, "\n");
+}
+
 function tryGit(...args) {
   try {
     return execFileSync("git", args, {
@@ -599,8 +603,10 @@ async function main() {
     await writeFile(outputCsv, csvText, "utf8");
     await writeFile(outputMarkdown, markdownText, "utf8");
   } else if (process.argv.includes("--check")) {
-    assert(await readFile(outputCsv, "utf8") === csvText, "Checked-in Batch 0 CSV is stale");
-    assert(await readFile(outputMarkdown, "utf8") === markdownText, "Checked-in Batch 0 Markdown is stale");
+    assert(normalizedNewlines(await readFile(outputCsv, "utf8")) === normalizedNewlines(csvText),
+      "Checked-in Batch 0 CSV is stale");
+    assert(normalizedNewlines(await readFile(outputMarkdown, "utf8")) === normalizedNewlines(markdownText),
+      "Checked-in Batch 0 Markdown is stale");
   }
   console.log(JSON.stringify({
     ...provenance,
