@@ -449,6 +449,51 @@
   overflow-wrap: anywhere;
 }
 
+.reviewed-route-fallback {
+  display: grid;
+  gap: 10px;
+}
+
+.reviewed-route-fallback-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.reviewed-route-fallback-heading > strong {
+  font-size: .82rem;
+}
+
+.reviewed-route-sequence-text,
+.reviewed-route-boundary {
+  margin: 0;
+  color: var(--muted-strong);
+  font-size: .78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.reviewed-route-sequence-text {
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.reviewed-route-boundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: color-mix(in srgb, var(--amber) 72%, var(--text));
+}
+
+.reviewed-route-boundary svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 2px;
+}
+
 .pad-fixed-navigation .navigate-action.is-unavailable {
   color: var(--muted);
   border-color: var(--line-soft);

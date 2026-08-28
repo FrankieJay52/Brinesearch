@@ -154,7 +154,7 @@ describe("map viewer authority boundary", () => {
 
   it("labels a released core plus GPS handoff without implying an end-to-end Google route", () => {
     expect(pageSource).toContain('? "Approved core + GPS"');
-    expect(pageSource).toContain('? "Approved roads then GPS"');
+    expect(pageSource).toContain('? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"');
     expect(pageSource).toContain(': "Reviewed approved route"');
     expect(pageSource).toContain('currentSelectedStatus?.route.source === "exact_graph_handoff"');
     expect(pageSource).toContain('"Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately."');
@@ -162,6 +162,8 @@ describe("map viewer authority boundary", () => {
 
   it("provides an explicit full-screen exit and pad-detail connection", () => {
     expect(pageSource).toContain('className="map-view-exit"');
+    expect(pageSource).toContain('{!fullscreen && <button type="button" aria-pressed="false"');
+    expect(pageSource).not.toContain('{fullscreen ? "Map" : "Full screen"}');
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
@@ -178,6 +180,7 @@ describe("map viewer authority boundary", () => {
     const referenceWarning = pageSource.indexOf('selectedCoordinate?.role !== "driver_entrance"', sequenceDisclosure);
 
     expect(pageSource).toContain('className="map-selection-header"');
+    expect(pageSource).toContain('<details className="map-route-status">');
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
     expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
     expect(pageSource).not.toContain('eligibleReviewedNavigation?.reviewedRoadSequence');
@@ -197,6 +200,14 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toMatch(/\.map-selection-card\s*\{[^}]*max-height:\s*min\(64dvh,\s*560px\);/s);
     expect(appCss).toMatch(/\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*48px;/s);
     expect(appCss).toMatch(/\.map-saved-road-sequence summary\s*\{[^}]*display:\s*flex;/s);
+    expect(appCss).toMatch(/\.map-coordinate-reference\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+    expect(appCss).toContain("bottom: calc(var(--nav-height) + max(10px, env(safe-area-inset-bottom)) + 12px);");
+    expect(appCss).toMatch(/\.map-selection-card, \.map-cluster-chooser\s*\{[^}]*bottom:\s*calc\(var\(--nav-height\) \+ max\(10px, env\(safe-area-inset-bottom\)\) \+ 12px\);/s);
+    expect(appCss).toMatch(/\.map-coordinate-reference > a\s*\{[^}]*min-height:\s*44px;/s);
+    expect(appCss).toMatch(/\.map-route-status > summary\s*\{[^}]*min-height:\s*44px;/s);
+    expect(appCss).toMatch(/\.map-control-stack\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+    expect(appCss).toMatch(/\.map-view-toolbar\s*\{[^}]*max-width:\s*100%;/s);
+    expect(appCss).not.toMatch(/@media \(min-width:\s*1100px\)[\s\S]*?\.map-selection-card, \.map-cluster-chooser\s*\{[^}]*bottom:/s);
     expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card\s*\{[^}]*max-height:\s*min\(54dvh,\s*470px\);[^}]*padding:\s*13px;/s);
     expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*44px;/s);
   });
@@ -233,7 +244,10 @@ describe("map viewer authority boundary", () => {
   });
 
   it("withdraws a revision-bound unsafe route from the map without hiding its GPS destination", () => {
-    expect(pageSource).toContain("selectedReviewedNavigationSafetyHold");
+    const safetyAlert = pageSource.indexOf('selectedReviewedNavigationSafetyHold && <div className="inline-warning map-route-safety-alert" role="alert">');
+    const routeStatus = pageSource.indexOf('<details className="map-route-status">');
+    expect(safetyAlert).toBeGreaterThanOrEqual(0);
+    expect(routeStatus).toBeGreaterThan(safetyAlert);
     expect(pageSource).toContain("GPS destination only until corrected");
     expect(pageSource).toContain("selectedGpsNavigationUrl && selectedGpsDestination");
   });
