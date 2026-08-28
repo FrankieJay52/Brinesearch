@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `e857766d161e26a1d56b0f6c48b3a8d0b9d1f068`
-- Candidate implementation HEAD: `5c7966ac5a3c6934ebfca19a161316b80483dc06`
-- Candidate content SHA-256: `79c60c19c0f8e1e034b1838a4257cd9015a356c418dd3dc3c305d6c8a19c3529`
+- Candidate implementation HEAD: `8f8ce41147c24416073251730354985bb03e6edf`
+- Candidate content SHA-256: `f7bb08cf7deade38e3dbb6a3c307b76ce4ad2b16985d4c9f96448f1f8fabaecb`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
