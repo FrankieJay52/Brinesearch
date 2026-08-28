@@ -175,6 +175,21 @@ describe("higher-priority navigation check state", () => {
     })).toBe("checking");
   });
 
+  it.each([
+    [{ releaseRequestSettled: false, releaseChecked: false }, "checking"],
+    [{ releaseRequestSettled: true, releaseChecked: false }, "unavailable"],
+  ] as const)("keeps the fallback closed when the release-side check resolves as %s", (release, expectedState) => {
+    const state = higherPriorityNavigationCheckState({
+      online: true,
+      approvedRouteAvailable: false,
+      statusRequestSettled: true,
+      statusChecked: true,
+      ...release,
+    });
+    expect(state).toBe(expectedState);
+    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBeNull();
+  });
+
   it("distinguishes a completed absence from an authority-check failure", () => {
     expect(higherPriorityNavigationCheckState({
       online: true,
