@@ -352,6 +352,31 @@ async function githubPullRequestBaseSha() {
   }
 }
 
+export function netlifyMainRefreshRequired({ netlify, commitRef, headSha }) {
+  if (netlify !== "true") return false;
+  assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
+  assert(commitRef === headSha,
+    `Netlify commit ${commitRef || "missing"} does not match current HEAD ${headSha}`);
+  return true;
+}
+
+function refreshNetlifyOriginMain(headSha) {
+  if (!netlifyMainRefreshRequired({
+    netlify: process.env.NETLIFY,
+    commitRef: process.env.COMMIT_REF,
+    headSha,
+  })) return;
+  execFileSync("git", [
+    "fetch",
+    "--no-tags",
+    "origin",
+    "+refs/heads/main:refs/remotes/origin/main",
+  ], {
+    cwd: repositoryRoot,
+    stdio: "ignore",
+  });
+}
+
 export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBaseSha }) {
   assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
   assert(/^[0-9a-f]{40}$/u.test(originMainSha), "Current origin/main SHA is invalid");
@@ -519,13 +544,14 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 }
 
 async function main() {
+  const headSha = git("rev-parse", "HEAD");
+  refreshNetlifyOriginMain(headSha);
   const originMainSha = tryGit("rev-parse", "origin/main");
   const checking = process.argv.includes("--check");
   let provenance;
   if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
     if (originMainSha) {
-      const headSha = git("rev-parse", "HEAD");
       const checkoutMode = frozenProvenanceCheckoutMode({
         headSha,
         originMainSha,
