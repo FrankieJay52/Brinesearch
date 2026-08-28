@@ -423,7 +423,7 @@ export function MapPage() {
   });
   const eligibleReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null;
   const selectedReviewedNavigation = higherPriorityNavigationState === "checked" ? eligibleReviewedNavigation : null;
-  const selectedRoadSequence = eligibleReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
+  const selectedRoadSequence = selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
       ? "Approved roads then GPS"

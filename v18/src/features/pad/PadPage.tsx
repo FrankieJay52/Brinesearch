@@ -465,7 +465,12 @@ export function PadPage() {
     releaseChecked: currentReleasedHandoffLoadResult?.checked === true,
   });
   const reviewedNavigationCandidate = reviewedNavigationCandidateForPad(pad);
-  const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null;
+  const activeReviewedNavigationCandidate = higherPriorityNavigationState === "checked"
+    && selectedRouteIsPrimary
+    && !googleHandoff.available
+    && !namedSelectionRequired
+    ? reviewedNavigationCandidate
+    : null;
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
   const hasReviewedRouteFallback = !reviewedNavigationSafetyHold && Boolean(activeReviewedNavigationCandidate?.reviewedRoadSequence) && displayedRouteSteps.length === 0;
   const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
