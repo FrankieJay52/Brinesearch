@@ -23,6 +23,11 @@ const reviewedPadIds = [
   "333598ca-37b3-4b44-9411-a490cc3da672",
   "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
   "800c877a-6b4f-4a87-a710-b1e00af63c62",
+  "fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2",
+  "ad5ef012-46f5-46ca-93c7-0f5b492cb201",
+  "c10e2066-d6b7-4117-aea9-137dd1237b3a",
+  "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
+  "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
   "143f5268-33e4-4598-8101-40220b5cfdc4",
   "59061829-1122-4aae-872d-cf5024310373",
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
@@ -70,7 +75,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all twenty-eight reviewed ledger states require every exact record and destination field", () => {
+test("all thirty-three reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -101,6 +106,21 @@ test("BAKOS audit receipt exposes a reviewed handoff without promoting route aut
   const receipt = explicitReceiptForPad("d7898e8c-1bb6-48f8-b5e0-87bc1898420e");
   assert.match(receipt, /US-250 and Holly View Drive reviewed handoff/u);
   assert.doesNotMatch(receipt, /GPS fallback|approved public|public Google/u);
+});
+
+test("batch-7 audit receipts expose exact reviewed handoffs without promoting route authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2", "Dutton Drive"],
+    ["ad5ef012-46f5-46ca-93c7-0f5b492cb201", "Potts Road"],
+    ["c10e2066-d6b7-4117-aea9-137dd1237b3a", "Fairpoint-Shepherdstown"],
+    ["ca1560b5-4ea6-4eb7-a82e-de2467937eb2", "Lew Martin Road"],
+    ["9aa065c0-8896-49e2-b02d-d4ca71acefc3", "Beech Road"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad, "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
+  }
 });
 
 test("BILINOVICH keeps its saved lease reference separate from its ODNR action destination", () => {

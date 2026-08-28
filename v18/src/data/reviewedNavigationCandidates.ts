@@ -190,6 +190,28 @@ const TOWE_WAYPOINTS = [
   { latitude: 40.36026193640823, longitude: -81.218134577079 },
   { latitude: 40.379819440170614, longitude: -81.20908591279908 },
 ] as const;
+const DUTTON_ROUTE_DESTINATION = { latitude: 40.150027, longitude: -81.017133 } as const;
+const DUTTON_WAYPOINTS = [
+  { latitude: 40.143135410968, longitude: -81.033512001895 },
+] as const;
+const KUNGLE_B_ROUTE_DESTINATION = { latitude: 39.88678, longitude: -80.87008 } as const;
+const KUNGLE_B_WAYPOINTS = [
+  { latitude: 39.886820116283, longitude: -80.869735364419 },
+] as const;
+const TRUCHAN_NW_ROUTE_DESTINATION = { latitude: 40.147814, longitude: -80.935886 } as const;
+const TRUCHAN_NW_WAYPOINTS = [
+  { latitude: 40.151952334248, longitude: -80.961064815011 },
+  { latitude: 40.15863093394, longitude: -80.943718975075 },
+] as const;
+const MOONSTONE_ROUTE_DESTINATION = { latitude: 39.83664, longitude: -81.379628 } as const;
+const MOONSTONE_WAYPOINTS = [
+  { latitude: 39.829803091222, longitude: -81.379580538853 },
+] as const;
+const JEFFCO_ROUTE_DESTINATION = { latitude: 40.292482, longitude: -80.896856 } as const;
+const JEFFCO_WAYPOINTS = [
+  { latitude: 40.3144086, longitude: -80.8963895 },
+  { latitude: 40.2968376, longitude: -80.9022309 },
+] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
   { latitude: 40.0817058, longitude: -81.2127365 },
@@ -252,6 +274,11 @@ export const TROYER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TROYER_ROUT
 export const CIRCLE_OAKS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CIRCLE_OAKS_ROUTE_DESTINATION, CIRCLE_OAKS_WAYPOINTS);
 export const SADLER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SADLER_ROUTE_DESTINATION, SADLER_WAYPOINTS);
 export const TOWE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TOWE_ROUTE_DESTINATION, TOWE_WAYPOINTS);
+export const DUTTON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DUTTON_ROUTE_DESTINATION, DUTTON_WAYPOINTS);
+export const KUNGLE_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(KUNGLE_B_ROUTE_DESTINATION, KUNGLE_B_WAYPOINTS);
+export const TRUCHAN_NW_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TRUCHAN_NW_ROUTE_DESTINATION, TRUCHAN_NW_WAYPOINTS);
+export const MOONSTONE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MOONSTONE_ROUTE_DESTINATION, MOONSTONE_WAYPOINTS);
+export const JEFFCO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(JEFFCO_ROUTE_DESTINATION, JEFFCO_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -722,6 +749,121 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: TOWE_ROUTE_DESTINATION,
     waypoints: TOWE_WAYPOINTS,
+  },
+  {
+    padId: "fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2",
+    canonicalId: "fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2",
+    legacyId: "ascent--dutton",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "DUTTON",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Dutton Dr → OR → OH-9 → OH-149 → OH-331 → Dutton Dr → OR → OH-331 → Dutton Dr",
+    title: "Navigate reviewed route",
+    detail: "OH-331 → Dutton Dr / TR-1586 → unapproved GPS handoff",
+    routeUrl: DUTTON_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-331 → Dutton Dr / TR-1586 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside DUTTON's exact Dutton Drive / TR-1586 identity after its verified OH-331 junction and accepts the reviewed state-road approaches without backtracking. Movement from the last exact public-road geometry to DUTTON's saved pad GPS remains an unapproved access/GPS handoff; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.150027,
+      longitude: -81.017133,
+      source: "saved_pad_gps",
+    },
+    routeDestination: DUTTON_ROUTE_DESTINATION,
+    waypoints: DUTTON_WAYPOINTS,
+  },
+  {
+    padId: "ad5ef012-46f5-46ca-93c7-0f5b492cb201",
+    canonicalId: "ad5ef012-46f5-46ca-93c7-0f5b492cb201",
+    legacyId: "ascent--kungle-b",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "KUNGLE B",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "OH-2 → OH-872W → OH-7S → OH-148W → Potts Rd → OR → OH-556E → Clover Ridge Rd → OH-148E → Potts Rd → OR → OH-9 → OH-148E → Potts Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-148 → Potts Rd / TR-506 → saved GPS",
+    routeUrl: KUNGLE_B_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-148 → Potts Rd / TR-506 → unapproved entrance/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside KUNGLE B's exact Potts Road / TR-506 identity after its verified OH-148 junction and accepts either state-road approach direction without backtracking. The final short movement reaches the exact saved pad GPS but remains an unapproved entrance/GPS handoff; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.88678,
+      longitude: -80.87008,
+      source: "saved_pad_gps",
+    },
+    routeDestination: KUNGLE_B_ROUTE_DESTINATION,
+    waypoints: KUNGLE_B_WAYPOINTS,
+  },
+  {
+    padId: "c10e2066-d6b7-4117-aea9-137dd1237b3a",
+    canonicalId: "c10e2066-d6b7-4117-aea9-137dd1237b3a",
+    legacyId: "ascent--truchan-nw",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "TRUCHAN NW",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → OR → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-9 → Shepherdstown → Fairpoint-Shepherdstown → saved GPS",
+    routeUrl: TRUCHAN_NW_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → unapproved entrance/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping points sit inside TRUCHAN NW's exact Shepherdstown Road / CR-64 and Fairpoint-Shepherdstown Road / TR-216 identities after their verified junctions. Google currently spells the terminal road Shepardstown; that renderer spelling is not promoted to a separate road identity. The final saved-GPS movement remains an unapproved entrance/GPS handoff, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.147814,
+      longitude: -80.935886,
+      source: "saved_pad_gps",
+    },
+    routeDestination: TRUCHAN_NW_ROUTE_DESTINATION,
+    waypoints: TRUCHAN_NW_WAYPOINTS,
+  },
+  {
+    padId: "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
+    canonicalId: "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
+    legacyId: "ascent--moonstone",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "MOONSTONE",
+    state: "Ohio",
+    county: "Noble",
+    structuredRoadSequence: "OH-147 → OH-513 → OH-146 → Lew Marten Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-146 → Lew Martin Rd / TR-228 → saved GPS",
+    routeUrl: MOONSTONE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-146 → Lew Martin Rd / TR-228 → unapproved entrance/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside MOONSTONE's exact Lew Martin Road / TR-228 identity after its verified OH-146 junction and accepts either state-road approach direction without backtracking. The record spells the road Lew Marten; the exact official identity spells it Lew Martin. The terminal Pad occurrence and final saved-GPS movement remain held and unapproved; exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.83664,
+      longitude: -81.379628,
+      source: "saved_pad_gps",
+    },
+    routeDestination: MOONSTONE_ROUTE_DESTINATION,
+    waypoints: MOONSTONE_WAYPOINTS,
+  },
+  {
+    padId: "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
+    canonicalId: "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
+    legacyId: "ascent--jeffco",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "JEFFCO",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "OH-151 → Rose Valley Rd → Beech Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-151 → Rose Valley Rd / CR-14 → Beech Rd / TR-64 → unapproved GPS handoff",
+    routeUrl: JEFFCO_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-151 → Rose Valley Rd / CR-14 → Beech Rd / TR-64 → unapproved GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping points sit inside JEFFCO's exact Rose Valley Road / CR-14 and Beech Road / TR-64 identities after their verified junctions. Google reaches the exact saved pad GPS after about 0.4 mile on Beech Road from either OH-151 direction without backtracking. The terminal Pad occurrence and saved-GPS handoff remain unapproved; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.292482,
+      longitude: -80.896856,
+      source: "saved_pad_gps",
+    },
+    routeDestination: JEFFCO_ROUTE_DESTINATION,
+    waypoints: JEFFCO_WAYPOINTS,
   },
   {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",

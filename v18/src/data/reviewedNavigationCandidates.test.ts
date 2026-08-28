@@ -12,12 +12,16 @@ import {
   CIRCLE_OAKS_REVIEWED_GOOGLE_URL,
   CROWIE_REVIEWED_GOOGLE_URL,
   DUKE_REVIEWED_GOOGLE_URL,
+  DUTTON_REVIEWED_GOOGLE_URL,
   GILCHER_REVIEWED_GOOGLE_URL,
   GIL_REVIEWED_GOOGLE_URL,
   HOOP_REVIEWED_GOOGLE_URL,
+  JEFFCO_REVIEWED_GOOGLE_URL,
+  KUNGLE_B_REVIEWED_GOOGLE_URL,
   LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   MALDON_REVIEWED_GOOGLE_URL,
+  MOONSTONE_REVIEWED_GOOGLE_URL,
   PICKENS_REVIEWED_GOOGLE_URL,
   PORTERFIELD_B_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
@@ -27,6 +31,7 @@ import {
   SKULL_FORK_REVIEWED_GOOGLE_URL,
   THOMAS_REVIEWED_GOOGLE_URL,
   TOWE_REVIEWED_GOOGLE_URL,
+  TRUCHAN_NW_REVIEWED_GOOGLE_URL,
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
@@ -270,6 +275,81 @@ function towe(): PadSummary {
   };
 }
 
+function dutton(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2",
+    canonicalId: "fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2",
+    legacyId: "ascent--dutton",
+    recordRevision: "1787459253071652",
+    padName: "DUTTON",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Dutton Dr → OR → OH-9 → OH-149 → OH-331 → Dutton Dr → OR → OH-331 → Dutton Dr",
+    coordinate: null,
+    mapReference: { latitude: 40.150027, longitude: -81.017133, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function kungleB(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "ad5ef012-46f5-46ca-93c7-0f5b492cb201",
+    canonicalId: "ad5ef012-46f5-46ca-93c7-0f5b492cb201",
+    legacyId: "ascent--kungle-b",
+    recordRevision: "1786258360881449",
+    padName: "KUNGLE B",
+    county: "Belmont",
+    structuredRoadSequence: "OH-2 → OH-872W → OH-7S → OH-148W → Potts Rd → OR → OH-556E → Clover Ridge Rd → OH-148E → Potts Rd → OR → OH-9 → OH-148E → Potts Rd",
+    coordinate: null,
+    mapReference: { latitude: 39.88678, longitude: -80.87008, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function truchanNw(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "c10e2066-d6b7-4117-aea9-137dd1237b3a",
+    canonicalId: "c10e2066-d6b7-4117-aea9-137dd1237b3a",
+    legacyId: "ascent--truchan-nw",
+    recordRevision: "1786258360881449",
+    padName: "TRUCHAN NW",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → OR → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.147814, longitude: -80.935886, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function moonstone(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
+    canonicalId: "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
+    legacyId: "ascent--moonstone",
+    recordRevision: "1786265812046205",
+    padName: "MOONSTONE",
+    county: "Noble",
+    structuredRoadSequence: "OH-147 → OH-513 → OH-146 → Lew Marten Rd → Pad",
+    coordinate: null,
+    mapReference: { latitude: 39.83664, longitude: -81.379628, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function jeffco(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
+    canonicalId: "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
+    legacyId: "ascent--jeffco",
+    recordRevision: "1786265812046205",
+    padName: "JEFFCO",
+    county: "Harrison",
+    structuredRoadSequence: "OH-151 → Rose Valley Rd → Beech Rd → Pad",
+    coordinate: null,
+    mapReference: { latitude: 40.292482, longitude: -80.896856, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
 function batch6ReviewedRouteFixtures() {
   return [
     {
@@ -313,6 +393,62 @@ function batch6ReviewedRouteFixtures() {
       ],
       reviewedSequence: "Google-selected state-road approach → US-250 → Willis Run Rd / TR-213 → Oak Hill Rd / TR-212 → verified driver entrance",
       notice: /accept either state-road approach direction without backtracking/u,
+    },
+  ] as const;
+}
+
+function batch7ReviewedRouteFixtures() {
+  return [
+    {
+      name: "DUTTON",
+      pad: dutton(),
+      routeUrl: DUTTON_REVIEWED_GOOGLE_URL,
+      destination: "40.150027,-81.017133",
+      waypoints: ["40.143135410968,-81.033512001895"],
+      reviewedSequence: "Google-selected state-road approach → OH-331 → Dutton Dr / TR-1586 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /not relabeled as a verified entrance/u,
+    },
+    {
+      name: "KUNGLE B",
+      pad: kungleB(),
+      routeUrl: KUNGLE_B_REVIEWED_GOOGLE_URL,
+      destination: "39.88678,-80.87008",
+      waypoints: ["39.886820116283,-80.869735364419"],
+      reviewedSequence: "Google-selected state-road approach → OH-148 → Potts Rd / TR-506 → unapproved entrance/GPS handoff → saved pad GPS",
+      notice: /accepts either state-road approach direction without backtracking/u,
+    },
+    {
+      name: "TRUCHAN NW",
+      pad: truchanNw(),
+      routeUrl: TRUCHAN_NW_REVIEWED_GOOGLE_URL,
+      destination: "40.147814,-80.935886",
+      waypoints: [
+        "40.151952334248,-80.961064815011",
+        "40.15863093394,-80.943718975075",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → unapproved entrance/GPS handoff → saved pad GPS",
+      notice: /Google currently spells the terminal road Shepardstown/u,
+    },
+    {
+      name: "MOONSTONE",
+      pad: moonstone(),
+      routeUrl: MOONSTONE_REVIEWED_GOOGLE_URL,
+      destination: "39.83664,-81.379628",
+      waypoints: ["39.829803091222,-81.379580538853"],
+      reviewedSequence: "Google-selected state-road approach → OH-146 → Lew Martin Rd / TR-228 → unapproved entrance/GPS handoff → saved pad GPS",
+      notice: /record spells the road Lew Marten/u,
+    },
+    {
+      name: "JEFFCO",
+      pad: jeffco(),
+      routeUrl: JEFFCO_REVIEWED_GOOGLE_URL,
+      destination: "40.292482,-80.896856",
+      waypoints: [
+        "40.3144086,-80.8963895",
+        "40.2968376,-80.9022309",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-151 → Rose Valley Rd / CR-14 → Beech Rd / TR-64 → unapproved GPS handoff → saved pad GPS",
+      notice: /saved-GPS handoff remain unapproved/u,
     },
   ] as const;
 }
@@ -1126,6 +1262,61 @@ describe("reviewed navigation candidates", () => {
           mapReference: null,
         }), fixture.name).toBeNull();
       }
+    }
+  });
+
+  it("returns the batch-7 reviewed routes only for their exact records and ordered controls", () => {
+    for (const fixture of batch7ReviewedRouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.stringMatching(fixture.notice),
+      });
+      const url = new URL(candidate!.routeUrl);
+      expect(url.origin, fixture.name).toBe("https://www.google.com");
+      expect(url.pathname, fixture.name).toBe("/maps/dir/");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails the batch-7 reviewed routes closed on every record or destination drift", () => {
+    for (const fixture of batch7ReviewedRouteFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", fixture.pad.county === "Belmont" ? "Harrison" : "Belmont"],
+        ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
+      }
+
+      expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude - 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+        mapReference: null,
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+      }), fixture.name).toBeNull();
     }
   });
 
