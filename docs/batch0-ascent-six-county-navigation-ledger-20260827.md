@@ -1,13 +1,41 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `e857766d161e26a1d56b0f6c48b3a8d0b9d1f068`
-- Candidate implementation HEAD: `6869a91fb5d9a4dd2b4886672a88158c6f420f89`
-- Candidate content SHA-256: `140df36a92c706acf5e223565e76c0eb4fda3f50acae4f030574b09d104e95ba`
+- Candidate implementation HEAD: `e2d94b31b9734f0dc4cc0fc2a65f8f8efc97a26e`
+- Candidate content SHA-256: `72e515d585e8ff9ca4050e47ffc53f9207b17ace406f72df1cc703d23fa9c171`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
 - LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: `reviewed_handoff_authority_held`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `68f1d076-fe03-4519-a5cd-c68f8a28b06c` and source revision `8`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
+
+## Candidate implementation files
+
+- `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
+- `docs/issue97-duke-reviewed-handoff-20260827.md`
+- `docs/issue97-porterfield-reviewed-handoff-20260827.md`
+- `v18/package.json`
+- `v18/scripts/audit-batch0-ascent-navigation.mjs`
+- `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
+- `v18/src/data/DirectoryContext.test.ts`
+- `v18/src/data/DirectoryContext.tsx`
+- `v18/src/data/ascentBatch0NavigationLedger.test.ts`
+- `v18/src/data/padReferences.test.ts`
+- `v18/src/data/padReferences.ts`
+- `v18/src/data/releasedGoogleHandoff.test.ts`
+- `v18/src/data/releasedGoogleHandoff.ts`
+- `v18/src/data/reviewedNavigationCandidates.test.ts`
+- `v18/src/data/reviewedNavigationCandidates.ts`
+- `v18/src/data/status.test.ts`
+- `v18/src/data/status.ts`
+- `v18/src/features/map/MapApprovedRouteLink.test.ts`
+- `v18/src/features/map/MapApprovedRouteLink.tsx`
+- `v18/src/features/map/MapPage.test.ts`
+- `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/pad/PadPage.test.ts`
+- `v18/src/features/pad/PadPage.tsx`
+- `v18/src/features/settings/SettingsPage.test.ts`
+- `v18/src/features/settings/SettingsPage.tsx`
 
 ## Counts
 
