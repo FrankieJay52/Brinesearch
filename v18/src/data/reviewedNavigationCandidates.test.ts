@@ -665,10 +665,13 @@ describe("reviewed navigation candidates", () => {
     expect(url.pathname).toBe("/maps/dir/");
     expect(url.searchParams.get("origin")).toBeNull();
     expect(url.searchParams.get("destination")).toBe("40.182544,-80.977135");
-    expect(url.searchParams.get("waypoints")?.split("|")).toEqual(["40.18626,-80.97647"]);
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual(["40.1868067,-80.9781928"]);
     expect(url.searchParams.get("travelmode")).toBe("driving");
     expect(url.searchParams.get("dir_action")).toBe("navigate");
     expect(candidate!.reviewedRoadSequence).not.toContain("→ approved access");
+    expect(candidate!.reviewedRoadSequence).not.toContain("Georgetown");
+    expect(candidate!.routeUrl).not.toContain("40.18626%2C-80.97647");
+    expect(candidate!.routeUrl).not.toContain("40.185875%2C-80.97798");
   });
 
   it.each([
