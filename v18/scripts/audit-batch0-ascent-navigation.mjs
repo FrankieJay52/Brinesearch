@@ -168,6 +168,74 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.292482, longitude: -80.896856 },
     },
   }],
+  ["47a0305e-c641-499b-990c-0f7fe83493b8", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "KUNGLE A exact-record OH-148 and Potts Road reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "47a0305e-c641-499b-990c-0f7fe83493b8",
+      legacyId: "ascent--kungle-a",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "KUNGLE A",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "OH-2 → OH-872 → OH-7 → OH-148 → Potts Rd → OR → OH-556 → Clover Ridge Rd → OH-148 → Potts Rd → OR → OH-147 → OH-148 → Potts Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 39.88507, longitude: -80.88258 },
+    },
+  }],
+  ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "TRUCHAN NE exact-record OH-9, Shepherdstown, Fairpoint-Shepherdstown, and Sloans Run reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+      legacyId: "ascent--truchan-ne",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "TRUCHAN NE",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → OR → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.146637, longitude: -80.931651 },
+    },
+  }],
+  ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "MATUSEK exact-record OH-9, Shepherdstown, Fairpoint-Shepherdstown, and Sloans Run reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+      legacyId: "ascent--matusek",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "MATUSEK",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → OH-9 / Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → See Dunn Rd → Lease Road → OR → Dunn Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.146555, longitude: -80.922785 },
+    },
+  }],
+  ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "LORRAINE exact-record US-250, Crescent Road / CR-5, and Barton-Blaine Road / CR-10 reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+      legacyId: "ascent--lorraine",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "LORRAINE",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "US-250 → CR-5 / Crescent Rd → CR-10 → CR10 Barton Blaine Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.09955, longitude: -80.840213 },
+    },
+  }],
   ["e2b32e85-9e93-4388-8215-9d8167cbbeb8", {
     state: "1",
     blocker: "",
@@ -993,9 +1061,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 205 GPS-only / 33 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 201 GPS-only / 37 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + GIL + GILCHER + HOOP + JEFFCO + KUNGLE B + LAKE + LAWSON + MALDON + MOONSTONE + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TRUCHAN NW + TROYER + WITHEY: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + GIL + GILCHER + HOOP + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LORRAINE + MALDON + MATUSEK + MOONSTONE + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -1028,7 +1096,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, GIL, GILCHER, HOOP, JEFFCO, KUNGLE B, LAKE, LAWSON, MALDON, MOONSTONE, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TRUCHAN NW, TROYER, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, GIL, GILCHER, HOOP, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LORRAINE, MALDON, MATUSEK, MOONSTONE, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1161,8 +1229,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 205
-    && stateCounts.reviewed_handoff_authority_held === 33,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 201
+    && stateCounts.reviewed_handoff_authority_held === 37,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

@@ -17,10 +17,13 @@ import {
   GIL_REVIEWED_GOOGLE_URL,
   HOOP_REVIEWED_GOOGLE_URL,
   JEFFCO_REVIEWED_GOOGLE_URL,
+  KUNGLE_A_REVIEWED_GOOGLE_URL,
   KUNGLE_B_REVIEWED_GOOGLE_URL,
   LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
+  LORRAINE_REVIEWED_GOOGLE_URL,
   MALDON_REVIEWED_GOOGLE_URL,
+  MATUSEK_REVIEWED_GOOGLE_URL,
   MOONSTONE_REVIEWED_GOOGLE_URL,
   PICKENS_REVIEWED_GOOGLE_URL,
   PORTERFIELD_B_REVIEWED_GOOGLE_URL,
@@ -32,6 +35,7 @@ import {
   THOMAS_REVIEWED_GOOGLE_URL,
   TOWE_REVIEWED_GOOGLE_URL,
   TRUCHAN_NW_REVIEWED_GOOGLE_URL,
+  TRUCHAN_NE_REVIEWED_GOOGLE_URL,
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
@@ -350,6 +354,81 @@ function jeffco(): PadSummary {
   };
 }
 
+function kungleA(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "47a0305e-c641-499b-990c-0f7fe83493b8",
+    canonicalId: "47a0305e-c641-499b-990c-0f7fe83493b8",
+    legacyId: "ascent--kungle-a",
+    recordRevision: "1787459253071652",
+    padName: "KUNGLE A",
+    county: "Belmont",
+    structuredRoadSequence: "OH-2 → OH-872 → OH-7 → OH-148 → Potts Rd → OR → OH-556 → Clover Ridge Rd → OH-148 → Potts Rd → OR → OH-147 → OH-148 → Potts Rd",
+    coordinate: null,
+    mapReference: { latitude: 39.88507, longitude: -80.88258, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function truchanNe(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+    canonicalId: "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+    legacyId: "ascent--truchan-ne",
+    recordRevision: "1786258360881449",
+    padName: "TRUCHAN NE",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → OR → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.146637, longitude: -80.931651, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function matusek(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+    canonicalId: "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+    legacyId: "ascent--matusek",
+    recordRevision: "1786258360881449",
+    padName: "MATUSEK",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → OH-9 / Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → See Dunn Rd → Lease Road → OR → Dunn Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.146555, longitude: -80.922785, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function lorraine(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+    canonicalId: "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+    legacyId: "ascent--lorraine",
+    recordRevision: "1786265812046205",
+    padName: "LORRAINE",
+    county: "Belmont",
+    structuredRoadSequence: "US-250 → CR-5 / Crescent Rd → CR-10 → CR10 Barton Blaine Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.09955, longitude: -80.840213, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function vannelle(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "ce5d219e-1d2c-47c8-b921-3f2abfe45c5d",
+    canonicalId: "ce5d219e-1d2c-47c8-b921-3f2abfe45c5d",
+    legacyId: "ascent--vannelle",
+    recordRevision: "1786258360881449",
+    padName: "VANNELLE",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Pad → OR → OH-9 → Shepherdstown Rd → Pad → OR → OH-149 → OH-9 → Shepherdstown Rd → Pad",
+    coordinate: null,
+    mapReference: { latitude: 40.14744, longitude: -80.961696, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
 function batch6ReviewedRouteFixtures() {
   return [
     {
@@ -449,6 +528,59 @@ function batch7ReviewedRouteFixtures() {
       ],
       reviewedSequence: "Google-selected state-road approach → OH-151 → Rose Valley Rd / CR-14 → Beech Rd / TR-64 → unapproved GPS handoff → saved pad GPS",
       notice: /saved-GPS handoff remain unapproved/u,
+    },
+  ] as const;
+}
+
+function batch8ReviewedRouteFixtures() {
+  return [
+    {
+      name: "KUNGLE A",
+      pad: kungleA(),
+      routeUrl: KUNGLE_A_REVIEWED_GOOGLE_URL,
+      destination: "39.88507,-80.88258",
+      waypoints: ["39.886820116283,-80.869735364419"],
+      reviewedSequence: "Google-selected state-road approach → OH-148 → Potts Rd / TR-506 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /exact public-road geometry ends before the saved pad GPS/iu,
+    },
+    {
+      name: "TRUCHAN NE",
+      pad: truchanNe(),
+      routeUrl: TRUCHAN_NE_REVIEWED_GOOGLE_URL,
+      destination: "40.146637,-80.931651",
+      waypoints: [
+        "40.151952334248,-80.961064815011",
+        "40.15863093394,-80.943718975075",
+        "40.146780343386,-80.934175287918",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /inside the exact Sloans Run Road/u,
+    },
+    {
+      name: "MATUSEK",
+      pad: matusek(),
+      routeUrl: MATUSEK_REVIEWED_GOOGLE_URL,
+      destination: "40.146555,-80.922785",
+      waypoints: [
+        "40.151952334248,-80.961064815011",
+        "40.15863093394,-80.943718975075",
+        "40.146780343386,-80.934175287918",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /renderer label is not promoted to exact public-road identity/u,
+    },
+    {
+      name: "LORRAINE",
+      pad: lorraine(),
+      routeUrl: LORRAINE_REVIEWED_GOOGLE_URL,
+      destination: "40.09955,-80.840213",
+      waypoints: [
+        "40.149707596819,-80.842549734013",
+        "40.116658061827,-80.859991873154",
+        "40.101497884455,-80.841503024754",
+      ],
+      reviewedSequence: "Google-selected state-road approach → US-250 → CR-5 / Crescent Rd → shared CR-5 / CR-10 pavement → CR-10 / Barton-Blaine Rd → unapproved access/GPS handoff → saved pad GPS",
+      notice: /keeps the route on CR-10 \/ Barton-Blaine Road/u,
     },
   ] as const;
 }
@@ -829,13 +961,33 @@ describe("reviewed navigation candidates", () => {
     const waypoints = [{ latitude: 40.21, longitude: -80.91 }];
     const valid = buildReviewedNavigationUrl(destination, waypoints);
     expect(reviewedNavigationUrlMatchesContract(valid, destination, waypoints)).toBe(true);
-    expect(reviewedNavigationUrlMatchesContract(`${valid}&destination=40.3%2C-80.8`, destination, waypoints)).toBe(false);
+    const wrongDestination = new URL(valid);
+    wrongDestination.searchParams.set("destination", "40.3,-80.8");
+    expect(reviewedNavigationUrlMatchesContract(wrongDestination.toString(), destination, waypoints)).toBe(false);
     expect(reviewedNavigationUrlMatchesContract(`${valid}&api=1`, destination, waypoints)).toBe(false);
     expect(reviewedNavigationUrlMatchesContract(`${valid}&origin=Cadiz%2C%20OH`, destination, waypoints)).toBe(false);
     expect(reviewedNavigationUrlMatchesContract(`${valid}&unexpected=1`, destination, waypoints)).toBe(false);
     expect(reviewedNavigationUrlMatchesContract(valid.replace("&waypoints=40.21%2C-80.91", ""), destination, waypoints)).toBe(false);
-    const fourWaypoints = `${valid}&waypoints=40.21%2C-80.91%7C40.22%2C-80.92%7C40.23%2C-80.93%7C40.24%2C-80.94`;
-    expect(reviewedNavigationUrlMatchesContract(fourWaypoints, destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(valid.replace("https://", "http://"), destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(valid.replace("www.google.com", "maps.google.com"), destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(`${valid}#unsafe`, destination, waypoints)).toBe(false);
+
+    const orderedWaypoints = [
+      { latitude: 40.21, longitude: -80.91 },
+      { latitude: 40.22, longitude: -80.92 },
+      { latitude: 40.23, longitude: -80.93 },
+    ];
+    const ordered = buildReviewedNavigationUrl(destination, orderedWaypoints);
+    const reversed = new URL(ordered);
+    reversed.searchParams.set("waypoints", [...orderedWaypoints].reverse().map(({ latitude, longitude }) => `${latitude},${longitude}`).join("|"));
+    expect(reviewedNavigationUrlMatchesContract(reversed.toString(), destination, orderedWaypoints)).toBe(false);
+    const truncated = new URL(ordered);
+    truncated.searchParams.set("waypoints", orderedWaypoints.slice(0, 2).map(({ latitude, longitude }) => `${latitude},${longitude}`).join("|"));
+    expect(reviewedNavigationUrlMatchesContract(truncated.toString(), destination, orderedWaypoints)).toBe(false);
+    const fourWaypoints = new URL(ordered);
+    fourWaypoints.searchParams.set("waypoints", [...orderedWaypoints, { latitude: 40.24, longitude: -80.94 }]
+      .map(({ latitude, longitude }) => `${latitude},${longitude}`).join("|"));
+    expect(reviewedNavigationUrlMatchesContract(fourWaypoints.toString(), destination, orderedWaypoints)).toBe(false);
   });
 
   it("withdraws the unsafe BILINOVICH Blaze handoff and binds the safety hold to the exact stale record", () => {
@@ -1318,6 +1470,76 @@ describe("reviewed navigation candidates", () => {
         mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
       }), fixture.name).toBeNull();
     }
+  });
+
+  it("returns the batch-8 reviewed routes only for their exact records and ordered controls", () => {
+    for (const fixture of batch8ReviewedRouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.stringMatching(fixture.notice),
+      });
+      expect(candidate!.detail, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate!.reviewedRoadSequence, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate!.finalLegNotice, fixture.name).toMatch(/unapproved/iu);
+      const url = new URL(candidate!.routeUrl);
+      expect(url.origin, fixture.name).toBe("https://www.google.com");
+      expect(url.pathname, fixture.name).toBe("/maps/dir/");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails the batch-8 reviewed routes closed on every record or destination drift", () => {
+    for (const fixture of batch8ReviewedRouteFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", "Harrison"],
+        ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
+      }
+
+      expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, latitude: exact.mapReference!.latitude + 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude - 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+        mapReference: null,
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+      }), fixture.name).toBeNull();
+    }
+  });
+
+  it("keeps VANNELLE on GPS-only navigation after the shared-corridor control backtracked", () => {
+    expect(reviewedNavigationCandidateForPad(vannelle())).toBeNull();
   });
 
   it("returns the new shared-corridor routes only for their exact records and ordered controls", () => {
