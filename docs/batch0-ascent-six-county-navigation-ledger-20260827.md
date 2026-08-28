@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `6f0b792a9521adeaac9f4477772eacfa874466b7`
-- Candidate implementation HEAD: `e70b2a510ccc592f281ea5a54dd34e27a7c11bc0`
-- Candidate content SHA-256: `e8bbbca2230a57a2576c3290ac4caae8609328127d835eb6d1072550db4837b0`
+- Base origin/main SHA: `e4c50cda244ed13f76e3f9939c5be86ac4f199f4`
+- Candidate implementation HEAD: `0d0ed58357bb92c781585e62c3cecdbc9ad2de17`
+- Candidate content SHA-256: `daced9795d04b2a228d6001704542d2971376d1ba0ebe0f41527d58d81562264`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 approved / 8 core+GPS / 218 GPS-only / 20 reviewed-held
 - Production writes zero
@@ -11,9 +11,11 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `v18/src/features/pad/PadPage.test.ts`
-- `v18/src/features/pad/PadPage.tsx`
-- `v18/src/features/pad/PadPageLayout.css`
+- `docs/issue97-ascent-corridor-backtrace-summary-20260828.json`
+- `ops/issue97-computer-rollout/sql/48-ascent-corridor-backtrace-export.sql`
+- `v18/package.json`
+- `v18/scripts/audit-ascent-corridor-backtrace.mjs`
+- `v18/scripts/audit-ascent-corridor-backtrace.test.mjs`
 
 ## Counts
 
