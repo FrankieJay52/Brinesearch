@@ -5,6 +5,7 @@ import { useTheme, type ThemePreference } from "@/app/ThemeProvider";
 import { usePreferences } from "@/app/PreferencesProvider";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useOwnerAccess } from "@/data/OwnerAccessContext";
+import { ownerGoogleVerifyStorageEvent, ownerGoogleVerifySummary, type OwnerGoogleVerifySummary } from "@/data/ownerGoogleVerifyDrafts";
 import { clearReleasedGoogleHandoffCache } from "@/data/releasedGoogleHandoff";
 import { clearDriverRouteChoiceCache } from "@/data/routeChoices";
 import { clearCompletedPadStatusCache } from "@/data/status";
@@ -94,6 +95,7 @@ export function SettingsPage() {
   const [updateCheck, setUpdateCheck] = useState("Ready to check");
   const [routeCheckStatus, setRouteCheckStatus] = useState("");
   const [online, setOnline] = useState(() => navigator.onLine);
+  const [ownerDraftSummary, setOwnerDraftSummary] = useState<OwnerGoogleVerifySummary>({ draftCount: 0, lastDraft: null });
 
   async function checkForUpdate() {
     setUpdateCheck("Checking…");
@@ -121,6 +123,21 @@ export function SettingsPage() {
       window.removeEventListener("offline", refresh);
     };
   }, []);
+
+  useEffect(() => {
+    if (access.state !== "owner") {
+      setOwnerDraftSummary({ draftCount: 0, lastDraft: null });
+      return;
+    }
+    const refresh = () => setOwnerDraftSummary(ownerGoogleVerifySummary());
+    refresh();
+    window.addEventListener(ownerGoogleVerifyStorageEvent, refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener(ownerGoogleVerifyStorageEvent, refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, [access.state]);
 
   const permission = permissionCopy[locationPermission];
   const latestDirectoryTime = snapshot?.lastVerifiedAt || snapshot?.fetchedAt || snapshot?.generatedAt;
@@ -185,6 +202,11 @@ export function SettingsPage() {
           <span><strong>Approved Routes Map</strong><small>Full-screen viewer with exact approved roads, pad search, and per-pad inbound-route focus.</small></span>
           <Link to="/?view=roads" className="settings-row-action">Open viewer</Link>
         </div>
+        {access.state === "owner" && <div className="settings-info-row settings-owner-verify-row">
+          <span className="settings-state-icon"><Icon name="google"/></span>
+          <span><strong>Owner Google route verifier</strong><small>Local drafts only · {ownerDraftSummary.draftCount} saved on this device · Last pad verified: {ownerDraftSummary.lastDraft ? `${ownerDraftSummary.lastDraft.pad.padName} · ${formatDate(ownerDraftSummary.lastDraft.savedAt)}` : "none"}</small></span>
+          <Link to={ownerDraftSummary.lastDraft ? `/settings/verify-route/${encodeURIComponent(ownerDraftSummary.lastDraft.pad.padId)}` : "/?view=roads"} className="settings-row-action">Verify route on Google</Link>
+        </div>}
         <div className="settings-info-row settings-locked-row">
           <span className="settings-state-icon"><Icon name="route"/></span>
           <span><strong>Approved route roads only</strong><small>Company overlays show only the exact released subset; held, stale, legacy-only, unpublished, or guessed roads stay hidden.</small></span>
@@ -230,7 +252,7 @@ export function SettingsPage() {
 
     <aside className={`settings-owner-note${access.state === "owner" ? " is-owner" : ""}`}>
       <Icon name="control"/>
-      <div><strong>{access.state === "owner" ? "Owner road tools" : "Owner road workspace"}</strong><p>{access.state === "owner" ? "Inspect and highlight exact road identities in V18. Editing and publication remain unavailable in this read-only release." : "Sign-in and owner tools stay inside V18 so driver navigation never drops into an older app."}</p></div>
+      <div><strong>{access.state === "owner" ? "Owner road tools" : "Owner road workspace"}</strong><p>{access.state === "owner" ? "Inspect exact road identities and save local Google verification drafts. Drafts never publish, rebuild the graph, or change driver Navigate." : "Sign-in and owner tools stay inside V18 so driver navigation never drops into an older app."}</p></div>
       {access.state === "owner" ? <span className="settings-owner-actions"><Link to="/?view=roads">Map viewer</Link><Link to="/settings/approved-routes">Road Manager</Link><Link to="/sign-in?next=/settings">Owner account</Link></span> : <span className="settings-owner-actions"><Link to="/?view=roads">Approved Routes Map</Link><Link to="/control-center">Control Center</Link><Link to="/sign-in?next=/settings/approved-routes">Sign in</Link></span>}
     </aside>
   </section>;

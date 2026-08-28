@@ -121,6 +121,25 @@
   text-underline-offset: 3px;
 }
 
+.pad-owner-google-verify {
+  width: fit-content;
+  min-height: 48px;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 13px;
+  border: 1px solid color-mix(in srgb, var(--teal) 45%, var(--line));
+  border-radius: 13px;
+  color: var(--teal-bright);
+  background: color-mix(in srgb, var(--teal) 8%, var(--surface));
+  text-decoration: none;
+}
+
+.pad-owner-google-verify svg { width: 1.1rem; height: 1.1rem; }
+.pad-owner-google-verify > span { display: grid; gap: 2px; }
+.pad-owner-google-verify small { color: var(--muted); font-size: .62rem; }
+
 .pad-gps-inline {
   min-width: 0;
   display: flex;

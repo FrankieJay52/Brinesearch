@@ -5,6 +5,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useNetworkState } from "@/app/useNetworkState";
 import { useDirectory } from "@/data/DirectoryContext";
+import { useOwnerAccess } from "@/data/OwnerAccessContext";
 import { saveRecent } from "@/data/offline";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
@@ -25,6 +26,7 @@ import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummar
 import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
 import { PadMapPreview } from "./PadMapPreview";
+import { ownerGoogleVerifyDestination } from "@/features/owner-google-verify/ownerGoogleVerifyModel";
 import "./PadPageLayout.css";
 
 function StatusColumn({ icon, label, children, detail }: { icon: "route" | "graph" | "google"; label: string; children: ReactNode; detail: string }) {
@@ -432,6 +434,7 @@ export function PadPage() {
   const navigate = useNavigate();
   const online = useNetworkState();
   const { findPad, favorites, toggleFavorite, loading, snapshot } = useDirectory();
+  const { access } = useOwnerAccess();
   const pad = findPad(decodeURIComponent(padId));
   const [resolvedStatus, setStatus] = useState<DriverPadStatus | null>(null);
   const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffLoad | undefined>(undefined);
@@ -498,6 +501,7 @@ export function PadPage() {
   const offlineCacheMiss = !online && !hasSavedReviewedStatus;
 
   const favorite = favorites.has(pad.padId);
+  const ownerVerifyDestination = ownerGoogleVerifyDestination(pad);
   const identifierGroups = buildPadIdentifierGroups(pad);
   const selectedNamedApproach = currentNamedApproaches.length === 1
     ? currentNamedApproaches[0]
@@ -570,7 +574,7 @@ export function PadPage() {
     <section className="pad-header-block" aria-labelledby="pad-detail-title">
       <div className="pad-header-primary">
         <section className="pad-hero">
-          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><PadGpsActions pad={pad}/><div className="pad-header-actions" role="group" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" aria-label={`Share ${pad.padName}`} onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div></div>
+          <div><span className="eyebrow">{pad.recordType === "disposal" ? "DISPOSAL" : "FIELD PAD"}</span><h1 id="pad-detail-title">{pad.padName}</h1><p className="pad-company">{pad.company}</p><PadGpsActions pad={pad}/><div className="pad-header-actions" role="group" aria-label="Pad actions"><button type="button" className={`pad-header-action ${favorite ? "is-favorite" : ""}`} aria-label={favorite ? `Remove ${pad.padName} from saved locations` : `Save ${pad.padName}`} aria-pressed={favorite} onClick={() => toggleFavorite(pad.padId)}><Icon name="saved"/>{favorite ? "Saved" : "Save"}</button><button type="button" className="pad-header-action" aria-label={`Share ${pad.padName}`} onClick={() => navigator.share?.({ title: `${pad.padName} · BrineSearch`, url: location.href }).catch(() => undefined)}><Icon name="share"/>Share</button></div>{access.state === "owner" && ownerVerifyDestination && <Link className="pad-owner-google-verify" to={`/settings/verify-route/${encodeURIComponent(pad.padId)}`}><Icon name="google"/><span><strong>Verify route on Google</strong><small>Owner draft only · Navigate unchanged</small></span></Link>}</div>
         </section>
         <div className="pad-header-map-slot">
           <PadMapPreview pad={pad} status={displayedMapStatus} routeGeometry={displayedRouteGeometry}/>

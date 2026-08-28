@@ -62,6 +62,11 @@ export default defineConfig(({ command, isPreview }) => {
         cleanupOutdatedCaches: true,
         navigateFallback: `${base}index.html`,
         globPatterns: ["**/*.{js,mjs,wasm,css,html,svg,png,webp,woff2}"],
+        globIgnores: [
+          "**/owner-google-verify-google-runtime-*.js",
+          "**/OwnerGoogleVerifyMapPage-*.js",
+          "**/OwnerGoogleVerifyMapPage-*.css",
+        ],
       },
       devOptions: { enabled: false },
     }),
@@ -80,6 +85,7 @@ export default defineConfig(({ command, isPreview }) => {
     rollupOptions: {
       output: {
         manualChunks(id) {
+          if (id.includes("googleMapsLoader")) return "owner-google-verify-google-runtime";
           if (id.includes("maplibre-gl")) return "maplibre";
           if (id.includes("pad-fallback-data.json")) return "directory-fallback";
           if (id.includes("react-router") || id.includes("react-dom") || id.includes("/react/")) return "react-vendor";

@@ -1,7 +1,8 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Brand } from "@/components/Brand";
 import { Icon, type IconName } from "@/components/Icon";
+import { LoadingState } from "@/components/LoadingState";
 import { DirectoryProvider, useDirectory } from "@/data/DirectoryContext";
 import { CompanyRoadsProvider } from "@/data/CompanyRoadsContext";
 import { OwnerAccessProvider } from "@/data/OwnerAccessContext";
@@ -18,6 +19,8 @@ import { OwnerApprovedRoutesPage } from "@/features/owner-roads/OwnerApprovedRou
 import { OwnerSignInPage } from "@/features/auth/OwnerSignInPage";
 import { useAppUpdate } from "./useAppUpdate";
 
+const OwnerGoogleVerifyMapPage = lazy(() => import("@/features/owner-google-verify/OwnerGoogleVerifyMapPage").then((module) => ({ default: module.OwnerGoogleVerifyMapPage })));
+
 const navigation: { to: string; label: string; icon: IconName }[] = [
   { to: "/", label: "Map", icon: "map" },
   { to: "/search", label: "Search", icon: "search" },
@@ -26,7 +29,9 @@ const navigation: { to: string; label: string; icon: IconName }[] = [
 ];
 
 function AppHeader() {
+  const location = useLocation();
   const { snapshot } = useDirectory();
+  if (location.pathname.startsWith("/settings/verify-route/")) return null;
   return (
     <header className="app-header">
       <Brand />
@@ -43,6 +48,7 @@ function AppHeader() {
 function BottomNavigation() {
   const location = useLocation();
   const hidden = location.pathname.startsWith("/pad/")
+    || location.pathname.startsWith("/settings/verify-route/")
     || location.pathname === "/sign-in"
     || location.pathname === "/search";
   if (hidden) return null;
@@ -67,7 +73,9 @@ function RouteScrollReset() {
 }
 
 function UpdateNotice() {
+  const location = useLocation();
   const update = useAppUpdate();
+  if (location.pathname.startsWith("/settings/verify-route/")) return null;
   if (!update.updateAvailable && !update.offlineReady) return null;
   return <aside className="update-notice" role="status">
     <Icon name={update.updateAvailable ? "update" : "offline"}/>
@@ -93,6 +101,7 @@ function AppRoutes() {
         <Route path="/more" element={<MorePage/>}/>
         <Route path="/settings" element={<SettingsPage/>}/>
         <Route path="/settings/approved-routes" element={<OwnerApprovedRoutesPage/>}/>
+        <Route path="/settings/verify-route/:padId" element={<Suspense fallback={<LoadingState message="Loading owner verification map…"/>}><OwnerGoogleVerifyMapPage/></Suspense>}/>
         <Route path="/control-center" element={<ControlCenterPage/>}/>
         <Route path="/sign-in" element={<OwnerSignInPage/>}/>
         <Route path="/field-updates" element={<FieldUpdatesPage/>}/>

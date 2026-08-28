@@ -711,6 +711,10 @@ export function MapPage() {
         return;
       }
       if (target.rows.length === 1) {
+        if (viewerModeRef.current === "roads") {
+          navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);
+          return;
+        }
         focusPad(target.rows[0]);
         return;
       }
@@ -747,7 +751,7 @@ export function MapPage() {
       map.remove();
       mapRef.current = null;
     };
-  }, [focusPad, loading]);
+  }, [focusPad, loading, navigate]);
 
   useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [companyRoads.overlay, selectedId, viewerMode]);
   useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedId]);
@@ -826,7 +830,7 @@ export function MapPage() {
     {locationChoices ? <aside className="map-cluster-chooser" role="dialog" aria-modal="false" aria-labelledby="map-cluster-title">
       <header><div><span className="selection-kicker">SAME EXACT POINT</span><h2 id="map-cluster-title">Choose one of {locationChoices.length}</h2></div><button className="selection-close" onClick={() => setLocationChoices(null)} aria-label="Close location chooser"><Icon name="close"/></button></header>
       <p>These records share the same stored coordinate. Select the exact pad or disposal you want to review.</p>
-      <div className="map-cluster-list">{locationChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => focusPad(row)}>
+      <div className="map-cluster-list">{locationChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => roadMode ? navigate(`/pad/${encodeURIComponent(row.padId)}`) : focusPad(row)}>
         <span><small>{row.recordType === "disposal" ? "DISPOSAL" : row.company || "FIELD PAD"}</small><strong>{row.padName}</strong><span>{[row.county, row.state].filter(Boolean).join(", ") || "Location not listed"}</span></span><b>Select</b>
       </button>)}</div>
     </aside> : selected ? <article className="map-selection-card">

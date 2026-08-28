@@ -169,6 +169,9 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
+    expect(pageSource).toContain('if (viewerModeRef.current === "roads") {');
+    expect(pageSource).toContain('navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);');
+    expect(pageSource).toContain('onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details');
   });
 
   it("keeps the selected-pad driver card compact without dropping route context", () => {
