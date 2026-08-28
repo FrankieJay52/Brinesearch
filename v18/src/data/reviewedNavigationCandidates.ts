@@ -291,6 +291,10 @@ const WITHEY_ROUTE_DESTINATION = { latitude: 39.962005, longitude: -81.216813 } 
 const WITHEY_WAYPOINTS = [
   { latitude: 39.967149, longitude: -81.2055552 },
 ] as const;
+// Frozen owner-confirmed driver rule: this existing control preserves
+// Cadiz Road / US-22 -> Repik Lane / TR-9876 -> the exact trusted pin.
+// A named public road followed to the pin is sufficient for this reviewed
+// handoff; it does not create pad-deck or lease geometry or route authority.
 const SKULL_FORK_ROUTE_DESTINATION = { latitude: 40.159734, longitude: -81.260675 } as const;
 const SKULL_FORK_WAYPOINTS = [
   { latitude: 40.167610, longitude: -81.259685 },
@@ -1326,7 +1330,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     detail: "Repik Ln → verified entrance",
     routeUrl: SKULL_FORK_REVIEWED_GOOGLE_URL,
     reviewedRoadSequence: "Google-selected approach → Repik Ln → verified driver entrance",
-    finalLegNotice: "The reviewed local shaping point preserves Repik Lane to SKULL FORK's exact verified driver entrance. Google's upstream route remains origin-dependent; exact graph and public Google authority remain separate.",
+    finalLegNotice: "Owner-confirmed live navigation preserves Cadiz Road / US-22 → Repik Lane / TR-9876 → SKULL FORK's exact trusted pin. That named-road-to-pin handoff is sufficient for the driver; it does not invent a pad-deck point, name or approve lease geometry, or create graph/public-Google authority. Google's upstream route remains origin-dependent.",
     trustedDestination: {
       latitude: 40.159734,
       longitude: -81.260675,

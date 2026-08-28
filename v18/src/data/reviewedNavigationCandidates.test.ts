@@ -1614,6 +1614,12 @@ describe("reviewed navigation candidates", () => {
       expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
       expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
       expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+
+      if (fixture.name === "SKULL FORK") {
+        expect(candidate!.finalLegNotice).toMatch(/Cadiz Road \/ US-22 → Repik Lane \/ TR-9876 → SKULL FORK's exact trusted pin/u);
+        expect(candidate!.finalLegNotice).toMatch(/does not invent a pad-deck point/u);
+        expect(candidate!.routeUrl).toBe(SKULL_FORK_REVIEWED_GOOGLE_URL);
+      }
     }
   });
 

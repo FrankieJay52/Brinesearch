@@ -177,6 +177,13 @@ test("batch-10 audit receipt exposes WINSTON SMITH's exact reviewed handoff with
   assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
 });
 
+test("SKULL FORK ledger receipt freezes the named-road-to-pin driver rule without route promotion", () => {
+  const receipt = explicitReceiptForPad("06ac93a2-3b46-44fd-9fa6-2fd29201858a");
+  assert.match(receipt, /Cadiz Road \/ US-22 → Repik Lane \/ TR-9876 → exact trusted pin/u);
+  assert.match(receipt, /named-road-to-pin handoff is sufficient/u);
+  assert.doesNotMatch(receipt, /approved (?:lease|pad-deck|public)|public Google|graph approved/iu);
+});
+
 test("BILINOVICH keeps its saved lease reference separate from its ODNR action destination", () => {
   const padId = "59061829-1122-4aae-872d-cf5024310373";
   const binding = reviewedBindingForPad(padId);
