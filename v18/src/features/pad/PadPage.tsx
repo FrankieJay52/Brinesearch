@@ -50,18 +50,86 @@ function displayWrittenDirections(value: string) {
 
 export function ReviewedWrittenDirections({ value }: { value: string }) {
   const lines = displayWrittenDirections(value).split("\n").map((line) => line.trim()).filter(Boolean);
-  const sequenceHeading = lines.findIndex((line) => /^road sequence reference:?$/i.test(line));
-  const stepsHeading = lines.findIndex((line) => /^step-by-step directions:?$/i.test(line));
-  const sequence = sequenceHeading >= 0 && sequenceHeading + 1 < lines.length ? lines[sequenceHeading + 1] : null;
-  const numbered = lines
-    .filter((line, index) => index > stepsHeading && /^\d+\.\s+/.test(line))
-    .map((line) => line.replace(/^\d+\.\s+/, ""));
+  const blocks: Array<
+    | { kind: "sequence"; sourceIndex: number; value: string }
+    | { kind: "steps"; sourceIndex: number; steps: Array<{ number: number; instruction: string }> }
+    | { kind: "notes"; sourceIndex: number; values: string[] }
+  > = [];
+  let hasStructuredContent = false;
+  let index = 0;
+  while (index < lines.length) {
+    if (/^road sequence reference:?$/i.test(lines[index]) && index + 1 < lines.length) {
+      blocks.push({ kind: "sequence", sourceIndex: index, value: lines[index + 1] });
+      hasStructuredContent = true;
+      index += 2;
+      continue;
+    }
+    if (/^step-by-step directions:?$/i.test(lines[index])) {
+      hasStructuredContent = true;
+      index += 1;
+      continue;
+    }
+    const numberedMatch = lines[index].match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      const sourceIndex = index;
+      const steps: Array<{ number: number; instruction: string }> = [];
+      while (index < lines.length) {
+        const match = lines[index].match(/^(\d+)\.\s+(.+)$/);
+        if (!match) break;
+        steps.push({ number: Number.parseInt(match[1], 10), instruction: match[2] });
+        index += 1;
+      }
+      blocks.push({ kind: "steps", sourceIndex, steps });
+      hasStructuredContent = true;
+      continue;
+    }
+    const sourceIndex = index;
+    const values: string[] = [];
+    while (index < lines.length
+      && !/^road sequence reference:?$/i.test(lines[index])
+      && !/^step-by-step directions:?$/i.test(lines[index])
+      && !/^\d+\.\s+/.test(lines[index])) {
+      values.push(lines[index]);
+      index += 1;
+    }
+    if (values.length > 0) blocks.push({ kind: "notes", sourceIndex, values });
+  }
 
-  if (!sequence && numbered.length === 0) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
+  if (!hasStructuredContent) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
   return <div className="reviewed-written-directions">
-    {sequence && <div className="reviewed-route-sequence"><small>ROAD SEQUENCE</small><p>{sequence}</p></div>}
-    {numbered.length > 0 && <ol aria-label="Owner-reviewed written driving directions">{numbered.map((instruction, index) => <li key={`${index + 1}-${instruction}`}><span>{index + 1}</span><p>{instruction}</p></li>)}</ol>}
+    {blocks.map((block) => block.kind === "sequence"
+      ? <div className="reviewed-route-sequence" key={`sequence-${block.sourceIndex}`}><small>ROAD SEQUENCE</small><p>{block.value}</p></div>
+      : block.kind === "steps"
+        ? <ol aria-label="Saved written driving directions" start={block.steps[0]?.number || 1} key={`steps-${block.sourceIndex}`}>{block.steps.map((step) => <li key={`${step.number}-${step.instruction}`}><span>{step.number}</span><p>{step.instruction}</p></li>)}</ol>
+        : <div className="saved-direction-notes" aria-label="Additional saved direction notes" key={`notes-${block.sourceIndex}`}>{block.values.map((note, noteIndex) => <p key={`${noteIndex}-${note}`}>{note}</p>)}</div>)}
   </div>;
+}
+
+export function shouldShowSavedWrittenDirections({
+  hasSafetyHold,
+  namedSelectionRequired,
+  displayedRouteStepCount,
+  hasWrittenDirections,
+}: {
+  hasSafetyHold: boolean;
+  namedSelectionRequired: boolean;
+  displayedRouteStepCount: number;
+  hasWrittenDirections: boolean;
+}) {
+  return !hasSafetyHold && !namedSelectionRequired && displayedRouteStepCount === 0 && hasWrittenDirections;
+}
+
+export function savedDirectionsNeedReviewedRouteWarning(candidate: Pick<ReviewedNavigationCandidate, "padId"> | null) {
+  return candidate !== null;
+}
+
+export function SavedFieldDirections({ value, mayDifferFromReviewedRoute = false }: { value: string; mayDifferFromReviewedRoute?: boolean }) {
+  return <section className="saved-field-directions" aria-labelledby="saved-field-directions-title">
+    <header><div><strong id="saved-field-directions-title">Saved field directions</strong><small>Original road wording and mileage</small></div><span>Not an approved route</span></header>
+    {mayDifferFromReviewedRoute && <p className="saved-directions-mismatch" role="note">Reference only: these older saved directions may not match the reviewed Google handoff shown above.</p>}
+    <ReviewedWrittenDirections value={value}/>
+    <p className="saved-directions-boundary">Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.</p>
+  </section>;
 }
 
 export interface GoogleHandoffView {
@@ -482,6 +550,12 @@ export function PadPage() {
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
   const hasReviewedRouteFallback = !reviewedNavigationSafetyHold && Boolean(activeReviewedNavigationCandidate?.reviewedRoadSequence) && displayedRouteSteps.length === 0;
   const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
+  const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({
+    hasSafetyHold: Boolean(reviewedNavigationSafetyHold),
+    namedSelectionRequired,
+    displayedRouteStepCount: displayedRouteSteps.length,
+    hasWrittenDirections: Boolean(status.route.writtenDirections),
+  });
 
   return <article className="pad-page has-fixed-navigation">
     <header className="pad-topbar"><button className="icon-button" onClick={() => navigate(-1)} aria-label="Go back"><Icon name="back"/></button><span>Pad details</span><span className="pad-topbar-spacer" aria-hidden="true"/></header>
@@ -530,15 +604,14 @@ export function PadPage() {
         : displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
         : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. Until then, only GPS destination navigation is available.</p>
         : hasReviewedRouteFallback && activeReviewedNavigationCandidate ? <ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>
-        : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are available below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
+        : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && !status.route.writtenDirections && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions are shown below. They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.</p></div>
         : <p className="card-empty">No reviewed field directions are on file. GPS-only navigation remains destination utility and is not an approved route.</p>}
       {displayedRouteSteps.length > 0 && (selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved"
         ? <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining GPS-only final leg is a destination handoff, not approved road geometry.</div>
         : status.route.source === "exact_graph_handoff" ? <div className="inline-warning" role="note"><Icon name="location"/>The approved public-road line ends at the exact handoff. The remaining lease access to the saved pad GPS is shown as a separate destination, not as an approved public road.</div>
         : null)}
+      {hasSavedWrittenDirections && <SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>}
     </section>
-
-    {!reviewedNavigationSafetyHold && status.route.writtenDirections && <details className="detail-card"><summary><span><strong>Reviewed written directions</strong><small>Owner-reviewed wording · display guidance</small></span><span>⌄</span></summary><ReviewedWrittenDirections value={status.route.writtenDirections}/></details>}
 
     <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>
       <div className="pad-readiness-content">

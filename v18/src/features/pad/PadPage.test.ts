@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
 import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections } from "./PadPage";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -122,7 +122,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain('const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
     expect(padPage).toContain('hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"');
     expect(padPage).toContain("Legacy saved directions");
-    expect(padPage).toContain("{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}");
+    expect(padPage).toContain("{pad.structuredRoadSequence && !status.route.writtenDirections && <p>{pad.structuredRoadSequence}</p>}");
   });
 
   it("lets the driver choose only independently approved exact route variants", () => {
@@ -232,7 +232,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(reviewedNavigationSafetyHoldForPad(pad)).toMatchObject({ detail: "Do not use Blaze Road · corrected route pending" });
     expect(padPage).toContain("reviewedNavigationSafetyHoldForPad(pad)");
     expect(padPage).toContain("BILINOVICH navigation is GPS destination only");
-    expect(padPage).toContain("!reviewedNavigationSafetyHold && status.route.writtenDirections");
+    expect(padPage).toContain("hasSafetyHold: Boolean(reviewedNavigationSafetyHold)");
 
     const approvedView = buildGoogleHandoffView(statusWithGoogle("https://www.google.com/maps/dir/?api=1&destination=40.1%2C-81.1"), true, true);
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
@@ -398,15 +398,46 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("formats reviewed prose legibly without creating structured route steps", () => {
-    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Turn right onto Blaze Road.\n3. Continue onto Logan Road.";
+    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nDO NOT ENTER from the east gate.\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Continue 0.6 miles and turn right onto Blaze Road.\n3. Continue onto Logan Road.";
     const html = renderToStaticMarkup(createElement(ReviewedWrittenDirections, { value: directions }));
 
     expect(html).toContain("ROAD SEQUENCE");
     expect(html).toContain("US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad");
     expect(html.match(/<li>/g)).toHaveLength(3);
-    expect(html).toContain("Turn right onto Blaze Road.");
-    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/>");
+    expect(html).toContain("Continue 0.6 miles and turn right onto Blaze Road.");
+    expect(html).toContain("0.6 miles");
+    expect(html).toContain("DO NOT ENTER from the east gate.");
+    expect(html).toContain("Additional saved direction notes");
+    expect(html).toContain("Saved written driving directions");
+    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeLessThan(html.indexOf("<ol"));
+    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!}");
     expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
+  });
+
+  it("keeps saved prose below exact routes and unresolved safety choices", () => {
+    const base = { hasSafetyHold: false, namedSelectionRequired: false, displayedRouteStepCount: 0, hasWrittenDirections: true };
+    expect(shouldShowSavedWrittenDirections(base)).toBe(true);
+    expect(shouldShowSavedWrittenDirections({ ...base, displayedRouteStepCount: 1 })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, hasSafetyHold: true })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, namedSelectionRequired: true })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, hasWrittenDirections: false })).toBe(false);
+  });
+
+  it("warns when older saved mileage may differ from a corrected reviewed handoff", () => {
+    const value = "Step-by-step directions:\n1. Continue 1.1 miles to the pad.";
+    const ordinary = renderToStaticMarkup(createElement(SavedFieldDirections, { value }));
+    const alongsideReviewed = renderToStaticMarkup(createElement(SavedFieldDirections, { value, mayDifferFromReviewedRoute: true }));
+
+    expect(ordinary).not.toContain("may not match the reviewed Google handoff");
+    expect(alongsideReviewed).toContain("Reference only");
+    expect(alongsideReviewed).toContain("may not match the reviewed Google handoff");
+    expect(alongsideReviewed).toContain("Not an approved route");
+  });
+
+  it("warns for an active reviewed candidate even when it has no display road sequence", () => {
+    expect(savedDirectionsNeedReviewedRouteWarning(null)).toBe(false);
+    expect(savedDirectionsNeedReviewedRouteWarning({ padId: "lawson-reviewed-candidate-without-display-sequence" })).toBe(true);
+    expect(padPage).toContain("savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)");
   });
 
   it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
@@ -673,10 +704,14 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
-  it("keeps reviewed written directions below the fallback without opening the long text by default", () => {
-    expect(padPage).toContain('{!reviewedNavigationSafetyHold && status.route.writtenDirections && <details className="detail-card">');
-    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/></details>");
-    expect(padPage).toContain("Reviewed written directions");
+  it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {
+    expect(padPage).toContain("const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({");
+    expect(padPage).toContain('<section className="saved-field-directions"');
+    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
+    expect(padPage).toContain("Saved field directions");
+    expect(padPage).toContain("Not an approved route");
+    expect(padPage).toContain("Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.");
+    expect(padPage).not.toContain('status.route.writtenDirections && <details className="detail-card"');
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions\s*\{/);
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions li p\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
   });
