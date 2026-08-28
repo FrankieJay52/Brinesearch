@@ -42,6 +42,14 @@ Springdale Hill Road, and Lamborn Road. The router's final network snap was
 0.75 metres from the exact saved DUKE coordinate; the URL itself retains the
 exact saved coordinate and does not substitute a nearby destination.
 
+## Phone and field validation
+
+On 2026-08-27, the owner followed this exact link on the phone and confirmed
+that it was perfect. A separate Google Maps desktop review showed one
+continuous route with no backtracking, skipped named road, wrong-side approach,
+or unsafe shortcut. That closes the visual-QA gate for this exact URL and exact
+record revision.
+
 Google URL:
 
 `https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.214409%2C-80.891316&waypoints=40.2376772526251%2C-80.9645933421097%7C40.2344651449313%2C-80.9216048043883%7C40.2438460898288%2C-80.9156965297937`
@@ -50,7 +58,7 @@ Google URL:
 
 - The action is labelled as an owner-reviewed Google route, not a public Google
   publication or exact graph release.
-- Google visual QA is still required before this candidate is deployed.
+- Google visual QA passed for this exact URL and record revision on 2026-08-27.
 - Public Google remains at the existing COLOGIE baseline.
 - Cutover remains off.
 - No route, graph, pad, direction, or coordinate data was written.

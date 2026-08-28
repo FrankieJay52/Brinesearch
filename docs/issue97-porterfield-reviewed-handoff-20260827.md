@@ -41,6 +41,14 @@ US-40, Vineyard Road, and the unnamed final access in that order, without a
 forced state-road backtrack. The final snap finished 8.1 metres (about 26 feet)
 from the exact saved destination.
 
+## Phone and field validation
+
+On 2026-08-27, the owner followed this exact link on the phone and confirmed
+that it was perfect. A separate Google Maps desktop review showed the intended
+US-40 west approach, Vineyard Road corridor, and final access without
+backtracking, a wrong-side approach, a skipped waypoint, or an unsafe shortcut.
+That closes the visual-QA gate for this exact URL and exact record revision.
+
 Google URL:
 
 `https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.090431%2C-80.928503&waypoints=40.073689%2C-80.945041%7C40.088246%2C-80.944086%7C40.090469%2C-80.928294`
@@ -51,7 +59,7 @@ Google URL:
   exact graph release.
 - The saved coordinate remains a pad reference, not a claimed public-road
   entrance.
-- Google visual QA is still required before this candidate is deployed.
+- Google visual QA passed for this exact URL and record revision on 2026-08-27.
 - Public Google remains at the existing COLOGIE baseline.
 - Cutover remains off.
 - No route, graph, pad, direction, or coordinate data was written.

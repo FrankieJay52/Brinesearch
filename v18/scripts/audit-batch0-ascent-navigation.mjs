@@ -498,7 +498,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. DUKE and PORTERFIELD remain pre-deployment candidates until their exact Google links receive recorded phone/visual QA.
+- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The owner completed phone/field validation of the exact DUKE and PORTERFIELD links on 2026-08-27; that visual proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.

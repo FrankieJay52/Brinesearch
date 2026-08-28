@@ -1,8 +1,8 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `e857766d161e26a1d56b0f6c48b3a8d0b9d1f068`
 - Candidate implementation HEAD: `8f8ce41147c24416073251730354985bb03e6edf`
-- Candidate content SHA-256: `f7bb08cf7deade38e3dbb6a3c307b76ce4ad2b16985d4c9f96448f1f8fabaecb`
-- Uncommitted non-generated changes: **no**
+- Candidate content SHA-256: `af6f641aaac0c490e6ec4ebf26216de6c82eedac8a6f5ca605e377374ee2f212`
+- Uncommitted non-generated changes: **yes**
 - 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
 - LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: `reviewed_handoff_authority_held`
@@ -67,7 +67,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain `reviewed_handoff_authority_held` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. DUKE and PORTERFIELD remain pre-deployment candidates until their exact Google links receive recorded phone/visual QA.
+- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain `reviewed_handoff_authority_held` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The owner completed phone/field validation of the exact DUKE and PORTERFIELD links on 2026-08-27; that visual proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
 - The generated CSV SHA-256 is `a17eed1ebe33ba346c87260a235a72f38c9a3928710577c825050b0e92cbb352`.
