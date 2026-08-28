@@ -11,7 +11,8 @@ describe("map approved route link", () => {
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(html).toContain(">GET DIRECTIONS<");
-    expect(html).toContain("Reviewed approved route");
+    expect(html).toContain("Navigate the reviewed approved route to COLOGIE in Google Maps");
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("reviewed reviewed");
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
@@ -28,8 +29,9 @@ describe("map approved route link", () => {
     }));
 
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Via Freeport · Approved roads then GPS");
+    expect(html).not.toContain("Via Freeport · Approved roads then GPS");
     expect(html).toContain("using only its reviewed BrineSearch controls");
+    expect(html).not.toContain("<small");
     expect(html.match(/<a\b/g)).toHaveLength(1);
   });
 
@@ -41,9 +43,9 @@ describe("map approved route link", () => {
     expect(html).toContain(`href="${pinUrl.replaceAll("&", "&amp;")}"`);
     expect(html).toContain(">GET DIRECTIONS<");
     expect(html).toContain("GPS destination only");
-    expect(html).toContain("GPS destination only · Saved pad GPS");
     expect(html).toContain("saved pad gps");
     expect(html).toContain("not an approved route");
+    expect(html).not.toContain("<small");
   });
 
   it("labels an owner-reviewed candidate without claiming public or graph approval", () => {
@@ -51,8 +53,9 @@ describe("map approved route link", () => {
     const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, { routeUrl, padName: "BILINOVICH" }));
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
-    expect(html).toContain("Owner-reviewed route in Google Maps · Owner-reviewed Google directions");
+    expect(html).toContain("Owner-reviewed Google directions");
     expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("Google ready");
   });
@@ -66,9 +69,9 @@ describe("map approved route link", () => {
     }));
 
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Owner-reviewed route in Google Maps · Reviewed road core");
     expect(html).toContain("Reviewed road core → saved GPS · graph status separate");
     expect(html).toContain("exact graph and public Google authority remain separate");
     expect(html).not.toContain("Approved route");
+    expect(html).not.toContain("<small");
   });
 });

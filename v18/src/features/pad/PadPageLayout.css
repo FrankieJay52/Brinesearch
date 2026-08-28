@@ -449,6 +449,57 @@
   overflow-wrap: anywhere;
 }
 
+.reviewed-route-fallback {
+  display: grid;
+  gap: 10px;
+}
+
+.reviewed-route-fallback-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.reviewed-route-fallback-heading > strong {
+  font-size: .82rem;
+}
+
+.reviewed-sequence-step-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.reviewed-sequence-step-list li {
+  display: grid;
+  grid-template-columns: 27px minmax(0, 1fr);
+  gap: 11px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.reviewed-sequence-step-list li:first-child { border-top: 0; }
+
+.reviewed-sequence-step-list li > span {
+  width: 27px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #06131c;
+  background: var(--teal);
+  font-size: .67rem;
+  font-weight: 900;
+}
+
+.reviewed-sequence-step-list p {
+  margin: 3px 0 0;
+  color: var(--muted-strong);
+  font-size: .78rem;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .pad-fixed-navigation .navigate-action.is-unavailable {
   color: var(--muted);
   border-color: var(--line-soft);

@@ -143,7 +143,8 @@ describe("V18 pad legacy route fallback", () => {
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad} higherPriorityCheckState={higherPriorityNavigationState}/>");
     expect(padPage.match(/<FixedNavigateAction\b/g)).toHaveLength(1);
-    expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
+    expect(padPage).toContain('<span><strong>{action.title}</strong></span>');
+    expect(padPage).not.toContain('<small>{action.detail}</small>');
     expect(padPage).toContain('"Approved roads then GPS" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
@@ -187,7 +188,7 @@ describe("V18 pad legacy route fallback", () => {
     });
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Via Freeport · approved roads then GPS");
+    expect(html).not.toContain("<small");
   });
 
   it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
@@ -199,7 +200,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(availableHtml.match(/<a\b/g)).toHaveLength(1);
     expect(availableHtml).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(availableHtml).toContain(">GET DIRECTIONS<");
-    expect(availableHtml).toContain("Reviewed approved route");
+    expect(availableHtml).toContain("Navigate the reviewed approved route");
+    expect(availableHtml).not.toContain("<small");
     expect(availableHtml).toContain('data-navigation-kind="approved_route"');
     expect(availableHtml).toContain('class="pad-fixed-navigation"');
     expect(availableHtml).not.toMatch(/route [1-9] of/i);
@@ -208,7 +210,8 @@ describe("V18 pad legacy route fallback", () => {
     const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
     expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
-    expect(missingHtml).toContain("GPS destination only · Verified driver entrance · not an approved route");
+    expect(missingHtml).toContain("GPS destination only, not a BrineSearch-approved route");
+    expect(missingHtml).not.toContain("<small");
     expect(missingHtml).toContain("google.com/maps/dir");
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
   });
@@ -263,7 +266,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
     expect(html).toContain('data-navigation-kind="reviewed_route"');
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Owner-reviewed route in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).not.toContain("Owner-reviewed route in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
   });
@@ -280,10 +284,16 @@ describe("V18 pad legacy route fallback", () => {
       href: BEETLE_REVIEWED_GOOGLE_URL,
       detail: "Owner-reviewed route in Google Maps · OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
     });
-    expect(summary).toContain("OH-519 → Sixteen Rd → lease approach → saved pad GPS");
-    expect(summary).toContain("not approved public-road geometry");
+    expect(summary).toContain("OH-519");
+    expect(summary).toContain("Sixteen Rd");
+    expect(summary).toContain("lease approach");
+    expect(summary).toContain("saved pad GPS");
+    expect(summary.match(/<li>/g)).toHaveLength(4);
+    expect(summary).toContain("Owner-reviewed sequence");
+    expect(summary).not.toContain("not approved public-road geometry");
+    expect(summary).not.toContain("Approved route");
     expect(summary).not.toContain("US-250");
-    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed local-road route\"");
+    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed route sequence\"");
     expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
     expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
     expect(padPage).toContain("eligibleReviewedNavigationCandidate");
@@ -442,8 +452,9 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
 
     expect(action).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
-    expect(html).toContain("GPS destination only · ODNR official pad GPS · not an entrance · not an approved route");
+    expect(html).toContain("GPS destination only, not a BrineSearch-approved route");
     expect(html).toContain("ODNR official pad GPS · not an entrance".toLowerCase());
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("disabled");
   });
 

@@ -178,6 +178,7 @@ describe("map viewer authority boundary", () => {
     const referenceWarning = pageSource.indexOf('selectedCoordinate?.role !== "driver_entrance"', sequenceDisclosure);
 
     expect(pageSource).toContain('className="map-selection-header"');
+    expect(pageSource).toContain('<details className="map-route-status">');
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
     expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
     expect(pageSource).not.toContain('eligibleReviewedNavigation?.reviewedRoadSequence');
@@ -197,6 +198,8 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toMatch(/\.map-selection-card\s*\{[^}]*max-height:\s*min\(64dvh,\s*560px\);/s);
     expect(appCss).toMatch(/\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*48px;/s);
     expect(appCss).toMatch(/\.map-saved-road-sequence summary\s*\{[^}]*display:\s*flex;/s);
+    expect(appCss).toMatch(/\.map-coordinate-reference\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
+    expect(appCss).toContain("bottom: calc(var(--nav-height) + max(10px, env(safe-area-inset-bottom)) + 12px);");
     expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card\s*\{[^}]*max-height:\s*min\(54dvh,\s*470px\);[^}]*padding:\s*13px;/s);
     expect(appCss).toMatch(/@media \(max-width:\s*620px\)[\s\S]*?\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*44px;/s);
   });
