@@ -106,6 +106,48 @@ test("known corrupt display and search values are absent while safe siblings rem
   assert.ok(artifact.pads.every((row) => !("written_directions" in row) && !("writtenDirections" in row)));
 });
 
+test("Gray field-sign data is exact without changing its saved route", () => {
+  const row = artifactRow("infinity--gray-well-pad");
+  const source = rawSource.pads[sourceIndex("infinity--gray-well-pad")];
+
+  assert.equal(row.address, "18481 Bugos Lane");
+  assert.equal(row.latitude, 40.046301);
+  assert.equal(row.longitude, -81.39735);
+  assert.deepEqual(row.wellNames, [
+    "Gray W 1HU",
+    "Gray W 3HU",
+    "Gray CW 5HU",
+    "Gray CW 7HU",
+    "Gray CE 9HU",
+    "Gray CE 11HU",
+    "Gray E 13HU",
+    "Gray E 15HU",
+  ]);
+  assert.deepEqual(row.apis, [
+    "34-059-2-4712-00-00",
+    "34-059-2-4713-00-00",
+    "34-059-2-4714-00-00",
+    "34-059-2-4715-00-00",
+    "34-059-2-4759-00-00",
+    "34-059-2-4760-00-00",
+    "34-059-2-4761-00-00",
+    "34-059-2-4762-00-00",
+  ]);
+  assert.deepEqual(row.propertyNumbers, []);
+  assert.equal(
+    row.verificationStatus,
+    "FIELD VERIFIED: current site sign confirms entrance GPS, address, operator, pad identity, and 8 wells/APIs.",
+  );
+  assert.equal(
+    row.structured_road_sequence,
+    "US-22 → Heading South On Fairground Rd → Exit 186 → I-70 → OH-285 → Fairground Rd → County Home Rd → Easton Rd → Slasor Rd → Bugos Rd → Pad",
+  );
+  assert.equal(
+    source.writtenDirections,
+    "DO NOT ENTER FROM US-22 HEADING SOUTH ON FAIRGROUND ROAD!!!! From Exit 186 on I-70 head north on OH-285. Turn right at the stop sign onto Fairground Road. Follow for 0.6 miles and turn right onto County Home Road. Left onto Easton Road after the bridge. Follow Easton for 1.2 miles and turn left onto Slasor Road. Turn Right on Bugos Rd after driving under the interstate. Follow Bugos 1.2 miles to pad entrance on the right.",
+  );
+});
+
 test("the audit rejects a forbidden internal key", () => {
   assert.throws(
     () => auditSanitizedFallback(patchRow(0, { researchNotes: "must not ship" }), rawSource),
