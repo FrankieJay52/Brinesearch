@@ -1,8 +1,8 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `158687893c207e8514f5afdb512de5586228c692`
-- Candidate implementation HEAD: `158687893c207e8514f5afdb512de5586228c692`
-- Candidate content SHA-256: `6c41d89564f09e003d33631b6fef74f76af68724c430a3f754fad0fc1f091822`
-- Uncommitted non-generated changes: **yes**
+- Candidate implementation HEAD: `b75978aad228dfecf151df1e481a8eaed028509a`
+- Candidate content SHA-256: `7869deee13ec0284474f5be025e63d6493c0169777ddb2667f4d2e54fe3c8140`
+- Uncommitted non-generated changes: **no**
 - 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
 - LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: `reviewed_handoff_authority_held`
