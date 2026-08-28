@@ -697,6 +697,16 @@ describe("reviewed navigation candidates", () => {
     })).toBeNull();
   });
 
+  it("never gives Ascent PICKENS's handoff to the distinct EOG PICKENS record", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...pickens(),
+      padId: "75427489-c68e-4f5b-bd57-f52b2c054413",
+      canonicalId: "75427489-c68e-4f5b-bd57-f52b2c054413",
+      legacyId: "eog--pickens",
+      company: "EOG",
+    })).toBeNull();
+  });
+
   it("returns DUKE's exact record-bound Cologie-corridor handoff", () => {
     const candidate = reviewedNavigationCandidateForPad(duke());
     expect(candidate).toMatchObject({
