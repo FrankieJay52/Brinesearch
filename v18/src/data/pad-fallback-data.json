@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "contentSha256": "ca494258c67b74fb9a04df7fd08acffaf0a07f039fb0ce7163f7062120b9c73a"
+    "contentSha256": "bfd3a18383c1b4193f21a74c8bb1c3088c30d3833ac304ea5b6f25b803012c81"
   },
   "pads": [
     {
@@ -31410,31 +31410,35 @@
       "state": "Ohio",
       "county": "Guernsey",
       "township": "Wills",
-      "address": "",
+      "address": "18481 Bugos Lane",
       "latitude": 40.046301,
       "longitude": -81.39735,
       "aliases": [
         "infinity--gray-well-pad"
       ],
       "wellNames": [
-        "Gray-W-1HU",
-        "Gray--W-3HU",
-        "Gray-CW-5HU",
-        "Gray-CW-7HU"
+        "Gray W 1HU",
+        "Gray W 3HU",
+        "Gray CW 5HU",
+        "Gray CW 7HU",
+        "Gray CE 9HU",
+        "Gray CE 11HU",
+        "Gray E 13HU",
+        "Gray E 15HU"
       ],
       "apis": [
-        "34-059-2-4172-00-00",
-        "34-059-2-4173-00-00",
-        "34-059-2-4174-00-00",
-        "34-059-2-4175-00-00"
+        "34-059-2-4712-00-00",
+        "34-059-2-4713-00-00",
+        "34-059-2-4714-00-00",
+        "34-059-2-4715-00-00",
+        "34-059-2-4759-00-00",
+        "34-059-2-4760-00-00",
+        "34-059-2-4761-00-00",
+        "34-059-2-4762-00-00"
       ],
-      "propertyNumbers": [
-        "Gray--W-3HU",
-        "Gray-CW-5HU",
-        "Gray-CW-7HU"
-      ],
+      "propertyNumbers": [],
       "structured_road_sequence": "US-22 → Heading South On Fairground Rd → Exit 186 → I-70 → OH-285 → Fairground Rd → County Home Rd → Easton Rd → Slasor Rd → Bugos Rd → Pad",
-      "verificationStatus": "VERIFIED: Structured steps + lat/long (high confidence)",
+      "verificationStatus": "FIELD VERIFIED: current site sign confirms entrance GPS, address, operator, pad identity, and 8 wells/APIs.",
       "operatingStatus": ""
     },
     {
