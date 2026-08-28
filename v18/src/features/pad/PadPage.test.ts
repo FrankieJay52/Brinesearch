@@ -398,7 +398,7 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("formats reviewed prose legibly without creating structured route steps", () => {
-    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Continue 0.6 miles and turn right onto Blaze Road.\n3. Continue onto Logan Road.\nDO NOT ENTER from the east gate.";
+    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nDO NOT ENTER from the east gate.\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Continue 0.6 miles and turn right onto Blaze Road.\n3. Continue onto Logan Road.";
     const html = renderToStaticMarkup(createElement(ReviewedWrittenDirections, { value: directions }));
 
     expect(html).toContain("ROAD SEQUENCE");
@@ -409,6 +409,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain("DO NOT ENTER from the east gate.");
     expect(html).toContain("Additional saved direction notes");
     expect(html).toContain("Saved written driving directions");
+    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeLessThan(html.indexOf("<ol"));
     expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!}");
     expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
   });

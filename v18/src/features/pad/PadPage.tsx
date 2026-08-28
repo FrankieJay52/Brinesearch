@@ -50,26 +50,58 @@ function displayWrittenDirections(value: string) {
 
 export function ReviewedWrittenDirections({ value }: { value: string }) {
   const lines = displayWrittenDirections(value).split("\n").map((line) => line.trim()).filter(Boolean);
-  const sequenceHeading = lines.findIndex((line) => /^road sequence reference:?$/i.test(line));
-  const stepsHeading = lines.findIndex((line) => /^step-by-step directions:?$/i.test(line));
-  const sequence = sequenceHeading >= 0 && sequenceHeading + 1 < lines.length ? lines[sequenceHeading + 1] : null;
-  const numberedLineIndexes = lines
-    .map((line, index) => ({ line, index }))
-    .filter(({ line, index }) => index > stepsHeading && /^\d+\.\s+/.test(line));
-  const numbered = numberedLineIndexes.map(({ line }) => line.replace(/^\d+\.\s+/, ""));
-  const consumedIndexes = new Set([
-    sequenceHeading,
-    sequence ? sequenceHeading + 1 : -1,
-    stepsHeading,
-    ...numberedLineIndexes.map(({ index }) => index),
-  ]);
-  const notes = lines.filter((_line, index) => !consumedIndexes.has(index));
+  const blocks: Array<
+    | { kind: "sequence"; sourceIndex: number; value: string }
+    | { kind: "steps"; sourceIndex: number; steps: Array<{ number: number; instruction: string }> }
+    | { kind: "notes"; sourceIndex: number; values: string[] }
+  > = [];
+  let hasStructuredContent = false;
+  let index = 0;
+  while (index < lines.length) {
+    if (/^road sequence reference:?$/i.test(lines[index]) && index + 1 < lines.length) {
+      blocks.push({ kind: "sequence", sourceIndex: index, value: lines[index + 1] });
+      hasStructuredContent = true;
+      index += 2;
+      continue;
+    }
+    if (/^step-by-step directions:?$/i.test(lines[index])) {
+      hasStructuredContent = true;
+      index += 1;
+      continue;
+    }
+    const numberedMatch = lines[index].match(/^(\d+)\.\s+(.+)$/);
+    if (numberedMatch) {
+      const sourceIndex = index;
+      const steps: Array<{ number: number; instruction: string }> = [];
+      while (index < lines.length) {
+        const match = lines[index].match(/^(\d+)\.\s+(.+)$/);
+        if (!match) break;
+        steps.push({ number: Number.parseInt(match[1], 10), instruction: match[2] });
+        index += 1;
+      }
+      blocks.push({ kind: "steps", sourceIndex, steps });
+      hasStructuredContent = true;
+      continue;
+    }
+    const sourceIndex = index;
+    const values: string[] = [];
+    while (index < lines.length
+      && !/^road sequence reference:?$/i.test(lines[index])
+      && !/^step-by-step directions:?$/i.test(lines[index])
+      && !/^\d+\.\s+/.test(lines[index])) {
+      values.push(lines[index]);
+      index += 1;
+    }
+    if (values.length > 0) blocks.push({ kind: "notes", sourceIndex, values });
+  }
 
-  if (!sequence && numbered.length === 0) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
+  if (!hasStructuredContent) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
   return <div className="reviewed-written-directions">
-    {sequence && <div className="reviewed-route-sequence"><small>ROAD SEQUENCE</small><p>{sequence}</p></div>}
-    {numbered.length > 0 && <ol aria-label="Saved written driving directions">{numbered.map((instruction, index) => <li key={`${index + 1}-${instruction}`}><span>{index + 1}</span><p>{instruction}</p></li>)}</ol>}
-    {notes.length > 0 && <div className="saved-direction-notes" aria-label="Additional saved direction notes">{notes.map((note, index) => <p key={`${index}-${note}`}>{note}</p>)}</div>}
+    {blocks.map((block) => block.kind === "sequence"
+      ? <div className="reviewed-route-sequence" key={`sequence-${block.sourceIndex}`}><small>ROAD SEQUENCE</small><p>{block.value}</p></div>
+      : block.kind === "steps"
+        ? <ol aria-label="Saved written driving directions" start={block.steps[0]?.number || 1} key={`steps-${block.sourceIndex}`}>{block.steps.map((step) => <li key={`${step.number}-${step.instruction}`}><span>{step.number}</span><p>{step.instruction}</p></li>)}</ol>
+        : <div className="saved-direction-notes" aria-label="Additional saved direction notes" key={`notes-${block.sourceIndex}`}>{block.values.map((note, noteIndex) => <p key={`${noteIndex}-${note}`}>{note}</p>)}</div>)}
   </div>;
 }
 
