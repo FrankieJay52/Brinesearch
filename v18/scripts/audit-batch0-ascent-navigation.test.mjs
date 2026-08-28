@@ -4,6 +4,7 @@ import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
+  hostedBuildArtifact,
   parseMarkdownProvenance,
   markdownSummary,
   reviewedActionDestinationForPad,
@@ -103,6 +104,13 @@ test("candidate content digest is deterministic and changes with implementation 
   assert.equal(first, reordered);
   assert.notEqual(first, changed);
   assert.match(first, /^[a-f0-9]{64}$/u);
+});
+
+test("frozen CI provenance ignores only Netlify's build workspace", () => {
+  assert.equal(hostedBuildArtifact(".netlify/build-state.json"), true);
+  assert.equal(hostedBuildArtifact(".netlify\\plugins\\manifest.json"), true);
+  assert.equal(hostedBuildArtifact("v18/src/untracked-route.ts"), false);
+  assert.equal(hostedBuildArtifact("docs/untracked-evidence.md"), false);
 });
 
 test("durable summary identifies candidate content without claiming it is on main", () => {

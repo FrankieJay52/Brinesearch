@@ -8,6 +8,10 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "../..");
 const outputCsv = path.join(repositoryRoot, "docs", "batch0-ascent-six-county-navigation-ledger-20260827.csv");
 const outputMarkdown = path.join(repositoryRoot, "docs", "batch0-ascent-six-county-navigation-ledger-20260827.md");
+const generatedAuditPaths = new Set([
+  "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
+  "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
+]);
 const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Noble"];
 
 const explicitStates = new Map([
@@ -207,6 +211,11 @@ export function candidateContentDigest(entries) {
   return digest.digest("hex");
 }
 
+export function hostedBuildArtifact(relativePath) {
+  const normalized = String(relativePath).replaceAll("\\", "/");
+  return normalized === ".netlify" || normalized.startsWith(".netlify/");
+}
+
 function countBy(rows, field) {
   return rows.reduce((counts, row) => {
     const value = row[field];
@@ -252,10 +261,6 @@ function gitPaths(...args) {
 }
 
 async function implementationProvenance(baseMainSha, frozen = null) {
-  const generated = new Set([
-    "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
-    "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
-  ]);
   const implementationSha = frozen?.implementationSha || git(
       "log",
       "-1",
@@ -267,15 +272,26 @@ async function implementationProvenance(baseMainSha, frozen = null) {
       ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
     );
   const changedFromBase = frozen?.implementationPaths || gitPaths("diff", "--name-only", baseMainSha, "--", ".");
-  const untracked = gitPaths("ls-files", "--others", "--exclude-standard");
+  // Netlify creates its own untracked .netlify working files before this audit
+  // runs. They are not candidate source, and must not make a frozen, committed
+  // report depend on the build provider. Every other untracked path remains in
+  // the fingerprint so genuine implementation work cannot be omitted.
+  const allUntracked = gitPaths("ls-files", "--others", "--exclude-standard");
+  const untracked = frozen
+    ? allUntracked.filter((value) => !hostedBuildArtifact(value))
+    : allUntracked;
   const implementationPaths = [...new Set([...changedFromBase, ...untracked])]
-    .filter((value) => !generated.has(value))
+    .filter((value) => !generatedAuditPaths.has(value))
     .sort();
-  const dirtyPaths = [...new Set([
+  const changedWorkingPaths = [...new Set([
     ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
     ...gitPaths("diff", "--cached", "--name-only", "HEAD", "--", "."),
     ...untracked,
-  ])].filter((value) => !generated.has(value));
+  ])].filter((value) => !generatedAuditPaths.has(value));
+  const frozenPaths = new Set(implementationPaths);
+  const dirtyPaths = frozen
+    ? changedWorkingPaths.filter((value) => frozenPaths.has(value))
+    : changedWorkingPaths;
   const dirty = new Set(dirtyPaths);
   const entries = [];
   for (const relativePath of implementationPaths) {
@@ -487,20 +503,31 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 
 async function main() {
   const originMainSha = tryGit("rev-parse", "origin/main");
+  const checking = process.argv.includes("--check");
   let provenance;
-  if (originMainSha) {
-    const mergeBase = git("merge-base", "HEAD", "origin/main");
-    assert(mergeBase === originMainSha, `Batch 0 branch must start at current origin/main (${originMainSha}); merge base is ${mergeBase}`);
-    provenance = await implementationProvenance(originMainSha);
-  } else {
-    assert(process.argv.includes("--check"), "origin/main is required when generating the Batch 0 ledger");
+  if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
+    if (originMainSha) {
+      const mergeBase = git("merge-base", "HEAD", "origin/main");
+      assert(mergeBase === frozen.baseMainSha,
+        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main merge base ${mergeBase}`);
+      const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
+        .filter((value) => !generatedAuditPaths.has(value))
+        .sort();
+      assert(JSON.stringify(currentPaths) === JSON.stringify([...frozen.implementationPaths].sort()),
+        "Saved Batch 0 implementation file list is stale");
+    }
     const githubBase = await githubPullRequestBaseSha();
     assert(!githubBase || githubBase === frozen.baseMainSha,
       `Saved Batch 0 base ${frozen.baseMainSha} does not match the pull-request base ${githubBase}`);
     provenance = await implementationProvenance(frozen.baseMainSha, frozen);
     assert(provenance.candidateContentSha256 === frozen.candidateContentSha256,
       `Saved Batch 0 candidate content fingerprint is stale (${provenance.candidateContentSha256} != ${frozen.candidateContentSha256})`);
+  } else {
+    assert(originMainSha, "origin/main is required when generating the Batch 0 ledger");
+    const mergeBase = git("merge-base", "HEAD", "origin/main");
+    assert(mergeBase === originMainSha, `Batch 0 branch must start at current origin/main (${originMainSha}); merge base is ${mergeBase}`);
+    provenance = await implementationProvenance(originMainSha);
   }
   const configuration = await publicConfiguration();
   const { snapshot, rows: directoryRows } = await directory(configuration);
@@ -602,11 +629,15 @@ async function main() {
   if (process.argv.includes("--write")) {
     await writeFile(outputCsv, csvText, "utf8");
     await writeFile(outputMarkdown, markdownText, "utf8");
-  } else if (process.argv.includes("--check")) {
-    assert(normalizedNewlines(await readFile(outputCsv, "utf8")) === normalizedNewlines(csvText),
-      "Checked-in Batch 0 CSV is stale");
-    assert(normalizedNewlines(await readFile(outputMarkdown, "utf8")) === normalizedNewlines(markdownText),
-      "Checked-in Batch 0 Markdown is stale");
+  } else if (checking) {
+    const savedCsv = normalizedNewlines(await readFile(outputCsv, "utf8"));
+    const renderedCsv = normalizedNewlines(csvText);
+    const savedMarkdown = normalizedNewlines(await readFile(outputMarkdown, "utf8"));
+    const renderedMarkdown = normalizedNewlines(markdownText);
+    assert(savedCsv === renderedCsv,
+      `Checked-in Batch 0 CSV is stale (${createHash("sha256").update(savedCsv).digest("hex")} != ${createHash("sha256").update(renderedCsv).digest("hex")})`);
+    assert(savedMarkdown === renderedMarkdown,
+      `Checked-in Batch 0 Markdown is stale (${createHash("sha256").update(savedMarkdown).digest("hex")} != ${createHash("sha256").update(renderedMarkdown).digest("hex")})`);
   }
   console.log(JSON.stringify({
     ...provenance,
