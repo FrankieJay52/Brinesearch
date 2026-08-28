@@ -4,7 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
 import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections } from "./PadPage";
+import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -122,7 +122,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain('const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);');
     expect(padPage).toContain('hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"');
     expect(padPage).toContain("Legacy saved directions");
-    expect(padPage).toContain("{pad.structuredRoadSequence && <p>{pad.structuredRoadSequence}</p>}");
+    expect(padPage).toContain("{pad.structuredRoadSequence && !status.route.writtenDirections && <p>{pad.structuredRoadSequence}</p>}");
   });
 
   it("lets the driver choose only independently approved exact route variants", () => {
@@ -143,7 +143,8 @@ describe("V18 pad legacy route fallback", () => {
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad} higherPriorityCheckState={higherPriorityNavigationState}/>");
     expect(padPage.match(/<FixedNavigateAction\b/g)).toHaveLength(1);
-    expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
+    expect(padPage).toContain('<span><strong>{action.title}</strong></span>');
+    expect(padPage).not.toContain('<small>{action.detail}</small>');
     expect(padPage).toContain('"Approved roads then GPS" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
     expect(padPage).not.toContain("Current public Google route");
@@ -187,7 +188,7 @@ describe("V18 pad legacy route fallback", () => {
     });
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Via Freeport · approved roads then GPS");
+    expect(html).not.toContain("<small");
   });
 
   it("prioritizes the exact approved route and otherwise navigates to the explicitly sourced GPS only", () => {
@@ -199,7 +200,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(availableHtml.match(/<a\b/g)).toHaveLength(1);
     expect(availableHtml).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(availableHtml).toContain(">GET DIRECTIONS<");
-    expect(availableHtml).toContain("Reviewed approved route");
+    expect(availableHtml).toContain("Navigate the reviewed approved route");
+    expect(availableHtml).not.toContain("<small");
     expect(availableHtml).toContain('data-navigation-kind="approved_route"');
     expect(availableHtml).toContain('class="pad-fixed-navigation"');
     expect(availableHtml).not.toMatch(/route [1-9] of/i);
@@ -208,7 +210,8 @@ describe("V18 pad legacy route fallback", () => {
     const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
     expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
-    expect(missingHtml).toContain("GPS destination only · Verified driver entrance · not an approved route");
+    expect(missingHtml).toContain("GPS destination only, not a BrineSearch-approved route");
+    expect(missingHtml).not.toContain("<small");
     expect(missingHtml).toContain("google.com/maps/dir");
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
   });
@@ -229,7 +232,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(reviewedNavigationSafetyHoldForPad(pad)).toMatchObject({ detail: "Do not use Blaze Road · corrected route pending" });
     expect(padPage).toContain("reviewedNavigationSafetyHoldForPad(pad)");
     expect(padPage).toContain("BILINOVICH navigation is GPS destination only");
-    expect(padPage).toContain("!reviewedNavigationSafetyHold && status.route.writtenDirections");
+    expect(padPage).toContain("hasSafetyHold: Boolean(reviewedNavigationSafetyHold)");
 
     const approvedView = buildGoogleHandoffView(statusWithGoogle("https://www.google.com/maps/dir/?api=1&destination=40.1%2C-81.1"), true, true);
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({ kind: "approved_route" });
@@ -263,7 +266,9 @@ describe("V18 pad legacy route fallback", () => {
     expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
     expect(html).toContain('data-navigation-kind="reviewed_route"');
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).toContain("Owner-reviewed route in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
   });
@@ -280,10 +285,18 @@ describe("V18 pad legacy route fallback", () => {
       href: BEETLE_REVIEWED_GOOGLE_URL,
       detail: "Owner-reviewed route in Google Maps · OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
     });
-    expect(summary).toContain("OH-519 → Sixteen Rd → lease approach → saved pad GPS");
+    expect(summary).toContain("OH-519");
+    expect(summary).toContain("Sixteen Rd");
+    expect(summary).toContain("lease approach");
+    expect(summary).toContain("saved pad GPS");
+    expect(summary).toContain('class="reviewed-route-sequence-text"');
     expect(summary).toContain("not approved public-road geometry");
+    expect(summary).not.toContain("<ol");
+    expect(summary).not.toContain("<li");
+    expect(summary).toContain("Owner-reviewed sequence");
+    expect(summary).not.toContain("Approved route");
     expect(summary).not.toContain("US-250");
-    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed local-road route\"");
+    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed route sequence\"");
     expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
     expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
     expect(padPage).toContain("eligibleReviewedNavigationCandidate");
@@ -385,15 +398,46 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("formats reviewed prose legibly without creating structured route steps", () => {
-    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Turn right onto Blaze Road.\n3. Continue onto Logan Road.";
+    const directions = "Road sequence reference:\nUS-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad\n\nDO NOT ENTER from the east gate.\nStep-by-step directions:\n1. Turn onto McCoy Road.\n2. Continue 0.6 miles and turn right onto Blaze Road.\n3. Continue onto Logan Road.";
     const html = renderToStaticMarkup(createElement(ReviewedWrittenDirections, { value: directions }));
 
     expect(html).toContain("ROAD SEQUENCE");
     expect(html).toContain("US-22 E → McCoy Rd → Blaze Rd → Logan Rd → Pad");
     expect(html.match(/<li>/g)).toHaveLength(3);
-    expect(html).toContain("Turn right onto Blaze Road.");
-    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/>");
+    expect(html).toContain("Continue 0.6 miles and turn right onto Blaze Road.");
+    expect(html).toContain("0.6 miles");
+    expect(html).toContain("DO NOT ENTER from the east gate.");
+    expect(html).toContain("Additional saved direction notes");
+    expect(html).toContain("Saved written driving directions");
+    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeLessThan(html.indexOf("<ol"));
+    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!}");
     expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
+  });
+
+  it("keeps saved prose below exact routes and unresolved safety choices", () => {
+    const base = { hasSafetyHold: false, namedSelectionRequired: false, displayedRouteStepCount: 0, hasWrittenDirections: true };
+    expect(shouldShowSavedWrittenDirections(base)).toBe(true);
+    expect(shouldShowSavedWrittenDirections({ ...base, displayedRouteStepCount: 1 })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, hasSafetyHold: true })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, namedSelectionRequired: true })).toBe(false);
+    expect(shouldShowSavedWrittenDirections({ ...base, hasWrittenDirections: false })).toBe(false);
+  });
+
+  it("warns when older saved mileage may differ from a corrected reviewed handoff", () => {
+    const value = "Step-by-step directions:\n1. Continue 1.1 miles to the pad.";
+    const ordinary = renderToStaticMarkup(createElement(SavedFieldDirections, { value }));
+    const alongsideReviewed = renderToStaticMarkup(createElement(SavedFieldDirections, { value, mayDifferFromReviewedRoute: true }));
+
+    expect(ordinary).not.toContain("may not match the reviewed Google handoff");
+    expect(alongsideReviewed).toContain("Reference only");
+    expect(alongsideReviewed).toContain("may not match the reviewed Google handoff");
+    expect(alongsideReviewed).toContain("Not an approved route");
+  });
+
+  it("warns for an active reviewed candidate even when it has no display road sequence", () => {
+    expect(savedDirectionsNeedReviewedRouteWarning(null)).toBe(false);
+    expect(savedDirectionsNeedReviewedRouteWarning({ padId: "lawson-reviewed-candidate-without-display-sequence" })).toBe(true);
+    expect(padPage).toContain("savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)");
   });
 
   it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
@@ -442,8 +486,9 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
 
     expect(action).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
-    expect(html).toContain("GPS destination only · ODNR official pad GPS · not an entrance · not an approved route");
+    expect(html).toContain("GPS destination only, not a BrineSearch-approved route");
     expect(html).toContain("ODNR official pad GPS · not an entrance".toLowerCase());
+    expect(html).not.toContain("<small");
     expect(html).not.toContain("disabled");
   });
 
@@ -659,10 +704,14 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
-  it("keeps reviewed written directions below the fallback without opening the long text by default", () => {
-    expect(padPage).toContain('{!reviewedNavigationSafetyHold && status.route.writtenDirections && <details className="detail-card">');
-    expect(padPage).toContain("<ReviewedWrittenDirections value={status.route.writtenDirections}/></details>");
-    expect(padPage).toContain("Reviewed written directions");
+  it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {
+    expect(padPage).toContain("const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({");
+    expect(padPage).toContain('<section className="saved-field-directions"');
+    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
+    expect(padPage).toContain("Saved field directions");
+    expect(padPage).toContain("Not an approved route");
+    expect(padPage).toContain("Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.");
+    expect(padPage).not.toContain('status.route.writtenDirections && <details className="detail-card"');
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions\s*\{/);
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions li p\s*\{[^}]*overflow-wrap:\s*anywhere;/s);
   });
