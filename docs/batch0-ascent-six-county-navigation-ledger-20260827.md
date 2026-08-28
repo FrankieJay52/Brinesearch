@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `b44f431f0998104e9a5f5ecf010c434465a5a01d`
-- Candidate implementation HEAD: `ff22a8a4e5f2748ad1d779ac55f96e8553ed72d7`
-- Candidate content SHA-256: `c3f83a29f281527145123dd1f39a7d45f5ab9d0b87fb6582de455a9e5104835d`
+- Candidate implementation HEAD: `45573b0d706654de512bfa050c0b6249656d9df2`
+- Candidate content SHA-256: `e54adf0f63a1a6d0d2e290daea8cd2f20d7a35760223f6be95432f4be2e42ddb`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
@@ -62,7 +62,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY display owner-approved directions while retaining the fail-closed technical state `reviewed_handoff_authority_held`: their exact record-bound handoffs remain separate from graph/public-Google authority. That presentation approval does not promote graph geometry or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
-- The generated CSV SHA-256 is `d5eb871f6ef5a27d1b28010b229938d690d5da06bac287e99b97a8280c34386d`.
+- The generated CSV SHA-256 is `e571e4081dc8996ca8648e817e00b9b7585bf2177c6b9750275f7bb7dbfa6136`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with `npm --prefix v18 run audit:batch0-navigation -- --write`. The audit performs one request per page/contract and has no retry path.
