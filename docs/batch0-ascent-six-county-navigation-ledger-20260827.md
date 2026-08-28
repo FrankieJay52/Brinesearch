@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `b44f431f0998104e9a5f5ecf010c434465a5a01d`
-- Candidate implementation HEAD: `76662da8519dd123c8d6e57b84012b9892ec481f`
-- Candidate content SHA-256: `8570b9eeb35c60cfbd30f4c42ca479a6c7f5671168d8a5224687c32a1c9f03be`
+- Base origin/main SHA: `1312aaf0ba987df974fe53bd384c8e689653fb50`
+- Candidate implementation HEAD: `d00f9c862062246a8459ad5c747a6c4be76a6848`
+- Candidate content SHA-256: `3d6b12814471f339380be454cad7510d1a2376ea73def846695b5e040cc97044`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
@@ -11,19 +11,29 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `docs/issue97-owner-approved-directions-presentation-20260828.md`
-- `v18/scripts/audit-batch0-ascent-navigation.mjs`
-- `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
-- `v18/src/data/ascentBatch0NavigationLedger.test.ts`
-- `v18/src/data/reviewedNavigationCandidates.test.ts`
-- `v18/src/data/reviewedNavigationCandidates.ts`
-- `v18/src/features/map/MapApprovedRouteLink.test.ts`
-- `v18/src/features/map/MapApprovedRouteLink.tsx`
+- `netlify.toml`
+- `v18/package.json`
+- `v18/scripts/audit-v18-owner-google-verify-map.mjs`
+- `v18/src/app/App.tsx`
+- `v18/src/data/ownerGoogleVerifyDrafts.test.ts`
+- `v18/src/data/ownerGoogleVerifyDrafts.ts`
+- `v18/src/features/auth/authNavigation.test.ts`
+- `v18/src/features/auth/authNavigation.ts`
 - `v18/src/features/map/MapPage.test.ts`
 - `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.test.ts`
+- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.tsx`
+- `v18/src/features/owner-google-verify/googleMapsLoader.ts`
+- `v18/src/features/owner-google-verify/owner-google-verify.css`
+- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.test.ts`
+- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.ts`
 - `v18/src/features/pad/PadPage.test.ts`
 - `v18/src/features/pad/PadPage.tsx`
 - `v18/src/features/pad/PadPageLayout.css`
+- `v18/src/features/settings/SettingsPage.test.ts`
+- `v18/src/features/settings/SettingsPage.tsx`
+- `v18/src/vite-env.d.ts`
+- `v18/vite.config.ts`
 
 ## Counts
 
