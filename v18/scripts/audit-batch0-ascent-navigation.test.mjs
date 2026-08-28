@@ -64,6 +64,7 @@ const reviewedPadIds = [
   "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
   "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
   "3850e94a-826f-4b6b-a54f-d21d482fca46",
+  "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
 ];
 
 function rowFor(binding) {
@@ -87,9 +88,9 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all forty-five reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 45);
-  assert.equal(new Set(reviewedPadIds).size, 45);
+test("all forty-six reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 46);
+  assert.equal(new Set(reviewedPadIds).size, 46);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -167,6 +168,13 @@ test("batch-9 audit receipts expose exact reviewed handoffs without promoting ro
     assert.match(receipt, /unapproved/iu);
     assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
   }
+});
+
+test("batch-10 audit receipt exposes WINSTON SMITH's exact reviewed handoff without promoting route authority", () => {
+  const receipt = explicitReceiptForPad("0b7ed9a5-7748-4d92-992a-7f2cecf9dd08");
+  assert.match(receipt, /Gurewicz Road \/ TR-303A/u);
+  assert.match(receipt, /unapproved/iu);
+  assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
 });
 
 test("BILINOVICH keeps its saved lease reference separate from its ODNR action destination", () => {
