@@ -6,6 +6,7 @@ import {
   csv,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
+  githubMainRefreshRequired,
   hostedBuildArtifact,
   implementationPathSet,
   netlifyMainRefreshRequired,
@@ -171,6 +172,30 @@ test("Netlify refreshes main only for the exact build commit", () => {
   assert.throws(() => netlifyMainRefreshRequired({
     netlify: "true",
     commitRef: "b".repeat(40),
+    headSha,
+  }), /does not match current HEAD/u);
+});
+
+test("GitHub refreshes main only for the exact build commit", () => {
+  const headSha = "a".repeat(40);
+  assert.equal(githubMainRefreshRequired({
+    githubActions: undefined,
+    githubSha: undefined,
+    headSha,
+  }), false);
+  assert.equal(githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: headSha,
+    headSha,
+  }), true);
+  assert.throws(() => githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: "b".repeat(40),
+    headSha,
+  }), /does not match current HEAD/u);
+  assert.throws(() => githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: undefined,
     headSha,
   }), /does not match current HEAD/u);
 });
