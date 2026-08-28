@@ -23,6 +23,12 @@ const reviewedPadIds = [
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
   "bb351070-6c94-45e5-942f-e155f9e86f7e",
   "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+  "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+  "58c94af4-32b1-4f80-a278-a5f73688fa23",
+  "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+  "71c9c874-5514-46a4-8d91-b105c6734799",
+  "ccf7415a-331b-440a-829d-28282a33cde1",
+  "1e898176-672d-4174-8878-4aae0aee2128",
 ];
 
 function rowFor(binding) {
@@ -46,7 +52,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all five reviewed ledger states require every exact record and destination field", () => {
+test("all eleven reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -62,7 +68,12 @@ test("all five reviewed ledger states require every exact record and destination
       );
     }
     assert.equal(reviewedBindingMatches(row, { ...destination, gpsSource: "ODNR pad" }, binding), false);
-    assert.equal(reviewedBindingMatches(row, { ...destination, coordinateRole: "verified driver entrance" }, binding), false);
+    assert.equal(reviewedBindingMatches(row, {
+      ...destination,
+      coordinateRole: destination.coordinateRole === "verified driver entrance"
+        ? "saved pad reference"
+        : "verified driver entrance",
+    }, binding), false);
     assert.equal(reviewedBindingMatches(row, { ...destination, latitude: destination.latitude + 0.000001 }, binding), false);
     assert.equal(reviewedBindingMatches(row, { ...destination, longitude: destination.longitude - 0.000001 }, binding), false);
   }

@@ -3,9 +3,15 @@ import type { PadSummary } from "./types";
 import {
   BEETLE_REVIEWED_GOOGLE_URL,
   BILINOVICH_REVIEWED_GOOGLE_URL,
+  CASTON_REVIEWED_GOOGLE_URL,
+  CROWIE_REVIEWED_GOOGLE_URL,
   DUKE_REVIEWED_GOOGLE_URL,
+  GILCHER_REVIEWED_GOOGLE_URL,
+  GIL_REVIEWED_GOOGLE_URL,
+  LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
+  THOMAS_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
@@ -110,6 +116,131 @@ function porterfield(): PadSummary {
     structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → OR → OH-331 → US-40 → Vineyard Rd",
     mapReference: { latitude: 40.090431, longitude: -80.928503, role: "reference", kind: "saved_pad_reference" },
   };
+}
+
+function batch2RouteFixtures() {
+  const savedPad = (
+    padId: string,
+    legacyId: string,
+    recordRevision: string,
+    padName: string,
+    structuredRoadSequence: string,
+    latitude: number,
+    longitude: number,
+  ): PadSummary => ({
+    ...bilinovich(),
+    padId,
+    canonicalId: padId,
+    legacyId,
+    recordRevision,
+    padName,
+    county: "Guernsey",
+    structuredRoadSequence,
+    coordinate: null,
+    mapReference: { latitude, longitude, role: "reference", kind: "saved_pad_reference" },
+  });
+
+  return [
+    {
+      name: "CROWIE",
+      pad: {
+        ...bilinovich(),
+        padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+        canonicalId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
+        legacyId: "ascent--crowie",
+        recordRevision: "1786265812046205",
+        padName: "CROWIE",
+        county: "Belmont",
+        structuredRoadSequence: "Exit 215 → US-40 → Vineyard Rd → Williams Rd → OR → Exit 213 → US-40",
+        coordinate: { latitude: 40.0979, longitude: -80.9384, role: "driver_entrance" },
+        mapReference: null,
+      } satisfies PadSummary,
+      routeUrl: CROWIE_REVIEWED_GOOGLE_URL,
+      destination: "40.0979,-80.9384",
+      waypoints: ["40.073689,-80.945041", "40.088246,-80.944086"],
+      reviewedSequence: "US-40 → Vineyard Rd / CR-56 → Williams Rd → verified driver entrance",
+    },
+    {
+      name: "CASTON",
+      pad: savedPad(
+        "58c94af4-32b1-4f80-a278-a5f73688fa23",
+        "ascent--caston",
+        "1786258360881449",
+        "CASTON",
+        "US-22 → Mc Coy Rd → Jasper Rd → Caston Rd → OR → OH-513 → US-22 → Mc Coy Rd → Jasper Rd → Caston Rd",
+        40.130458,
+        -81.328059,
+      ),
+      routeUrl: CASTON_REVIEWED_GOOGLE_URL,
+      destination: "40.130458,-81.328059",
+      waypoints: ["40.123106982,-81.353948693", "40.113698669772,-81.314757942078", "40.127876178092,-81.316090497685"],
+      reviewedSequence: "US-22 E → McCoy Rd / CR-82 → Jasper Rd / CR-93 → Caston Rd → saved pad GPS",
+    },
+    {
+      name: "GIL",
+      pad: savedPad(
+        "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
+        "ascent--gil",
+        "1786258360881449",
+        "GIL",
+        "US-22 / Mccoy Rd → Mccoy Rd → Merry Rd → Penrose Rd → Logan Rd → Lease Road",
+        40.09387,
+        -81.29646,
+      ),
+      routeUrl: GIL_REVIEWED_GOOGLE_URL,
+      destination: "40.09387,-81.29646",
+      waypoints: ["40.123106982,-81.353948693", "40.095922776519,-81.28417385453", "40.099552104984,-81.297815548031"],
+      reviewedSequence: "US-22 → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → saved pad GPS",
+    },
+    {
+      name: "GILCHER",
+      pad: savedPad(
+        "71c9c874-5514-46a4-8d91-b105c6734799",
+        "ascent--gilcher",
+        "1786258360881449",
+        "GILCHER",
+        "US-22 → Mc Coy Rd → Merry Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Merry Rd → Penrose Rd",
+        40.100079,
+        -81.295657,
+      ),
+      routeUrl: GILCHER_REVIEWED_GOOGLE_URL,
+      destination: "40.100079,-81.295657",
+      waypoints: ["40.123106982,-81.353948693", "40.105015636324,-81.279619885553", "40.095922776519,-81.28417385453"],
+      reviewedSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → saved pad GPS",
+    },
+    {
+      name: "LAKE",
+      pad: savedPad(
+        "ccf7415a-331b-440a-829d-28282a33cde1",
+        "ascent--lake",
+        "1786258360881449",
+        "LAKE",
+        "US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Pennyroyal Rd",
+        40.14776,
+        -81.295527,
+      ),
+      routeUrl: LAKE_REVIEWED_GOOGLE_URL,
+      destination: "40.14776,-81.295527",
+      waypoints: ["40.123106982,-81.353948693", "40.11184081055,-81.300972387724", "40.134573026404,-81.287284993921"],
+      reviewedSequence: "US-22 E → McCoy Rd / CR-82 → Tyson Mill Rd → Pennyroyal Rd → saved pad GPS",
+    },
+    {
+      name: "THOMAS",
+      pad: savedPad(
+        "1e898176-672d-4174-8878-4aae0aee2128",
+        "ascent--thomas",
+        "1786265812046205",
+        "THOMAS",
+        "I-70 → Exit 193 → OH-513 → Tyson Mill Rd → Lease Road",
+        40.096986,
+        -81.307667,
+      ),
+      routeUrl: THOMAS_REVIEWED_GOOGLE_URL,
+      destination: "40.096986,-81.307667",
+      waypoints: ["40.087850494651,-81.32056155136"],
+      reviewedSequence: "I-70 → Exit 193 → OH-513 N → Tyson Mill Rd → saved pad GPS",
+    },
+  ] as const;
 }
 
 describe("reviewed navigation candidates", () => {
@@ -405,5 +536,79 @@ describe("reviewed navigation candidates", () => {
     expect(sameNameOtherCounty.padName).toBe("DUKE");
     expect(reviewedNavigationCandidateForPad(sameNameOtherCompany)).toBeNull();
     expect(reviewedNavigationCandidateForPad(sameNameOtherCounty)).toBeNull();
+  });
+
+  it("returns each phone-validated batch-2 route only for its exact record and trusted destination", () => {
+    for (const fixture of batch2RouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.any(String),
+      });
+
+      const url = new URL(candidate!.routeUrl);
+      expect(url.protocol, fixture.name).toBe("https:");
+      expect(url.hostname, fixture.name).toBe("www.google.com");
+      expect(url.pathname, fixture.name).toBe("/maps/dir/");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails every batch-2 route closed on identity, revision, sequence, coordinate, or source drift", () => {
+    for (const fixture of batch2RouteFixtures()) {
+      const changedIdentity = [
+        { ...fixture.pad, padId: "11111111-1111-4111-8111-111111111111" },
+        { ...fixture.pad, canonicalId: "11111111-1111-4111-8111-111111111111" },
+        { ...fixture.pad, legacyId: "ascent--other" },
+        { ...fixture.pad, recordRevision: "changed" },
+        { ...fixture.pad, company: "Other" },
+        { ...fixture.pad, padName: `${fixture.name} EAST` },
+        { ...fixture.pad, state: "West Virginia" },
+        { ...fixture.pad, county: fixture.pad.county === "Belmont" ? "Guernsey" : "Belmont" },
+        { ...fixture.pad, structuredRoadSequence: `${fixture.pad.structuredRoadSequence} → changed` },
+      ];
+      for (const changed of changedIdentity) {
+        expect(reviewedNavigationCandidateForPad(changed), fixture.name).toBeNull();
+      }
+
+      if (fixture.pad.coordinate) {
+        expect(reviewedNavigationCandidateForPad({ ...fixture.pad, coordinate: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...fixture.pad,
+          coordinate: { ...fixture.pad.coordinate, latitude: fixture.pad.coordinate.latitude + 0.001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...fixture.pad,
+          coordinate: { ...fixture.pad.coordinate, role: "saved_pad_destination" },
+        }), fixture.name).toBeNull();
+      } else {
+        expect(reviewedNavigationCandidateForPad({ ...fixture.pad, mapReference: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...fixture.pad,
+          mapReference: { ...fixture.pad.mapReference!, longitude: fixture.pad.mapReference!.longitude + 0.001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...fixture.pad,
+          mapReference: { ...fixture.pad.mapReference!, kind: "official_pad_reference" },
+        }), fixture.name).toBeNull();
+      }
+    }
+  });
+
+  it("never cross-binds a batch-2 same-name pad from another company or county", () => {
+    for (const fixture of batch2RouteFixtures()) {
+      expect(reviewedNavigationCandidateForPad({ ...fixture.pad, company: "Other" }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...fixture.pad,
+        county: fixture.pad.county === "Belmont" ? "Guernsey" : "Belmont",
+      }), fixture.name).toBeNull();
+    }
   });
 });
