@@ -162,6 +162,15 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('"Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately."');
   });
 
+  it("uses the atomic destination and a dashed teal owner-access leg without relabeling it as ODOT", () => {
+    expect(pageSource).toContain('currentSelectedStatus.route.source === "owner_verified_access"');
+    expect(pageSource).toContain("selectedDestinationRef.current = statusDestination");
+    expect(pageSource).toContain("routeLineGroups(geometry)");
+    expect(pageSource).toContain("lines.ownerVerifiedAccess");
+    expect(pageSource).toContain("[11, 8]");
+    expect(pageSource).toContain("ownerVerifiedAccessLabel");
+  });
+
   it("provides an explicit full-screen exit and pad-detail connection", () => {
     expect(pageSource).toContain('className="map-view-exit"');
     expect(pageSource).toContain('{!fullscreen && <button type="button" aria-pressed="false"');

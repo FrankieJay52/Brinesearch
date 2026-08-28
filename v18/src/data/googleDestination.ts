@@ -1,5 +1,5 @@
 import { parseCoordinatePair } from "./coordinates";
-import type { PadSummary } from "./types";
+import type { DriverPadStatus, PadSummary } from "./types";
 
 export type PadDestinationSource =
   | "verified_driver_entrance"
@@ -70,6 +70,14 @@ export function padDestinationPinUrl(pad: PadSummary) {
   const destination = trustedPadDestination(pad);
   if (!destination) return null;
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(googleCoordinate(destination))}`;
+}
+
+export function statusDestinationPinUrl(destination: DriverPadStatus["destination"]) {
+  if (!destination.available || !destination.role) return null;
+  const parsed = parseCoordinatePair(destination.latitude, destination.longitude, destination.role);
+  if (!parsed.ok) return null;
+  const point = `${parsed.value.latitude},${parsed.value.longitude}`;
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(point)}`;
 }
 
 /**

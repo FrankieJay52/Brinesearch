@@ -9,7 +9,7 @@ export type DirectorySourceState =
 export type CoordinateRole = "driver_entrance" | "saved_pad_destination" | "legacy_saved" | "reference";
 
 export type RouteState = "ready" | "written_only" | "held" | "stale" | "unavailable";
-export type RouteSource = "exact_graph" | "exact_graph_handoff" | "reviewed_written" | "legacy_written" | "destination_only" | "none";
+export type RouteSource = "exact_graph" | "exact_graph_handoff" | "owner_verified_access" | "reviewed_written" | "legacy_written" | "destination_only" | "none";
 export type GraphState = "active_current" | "verified_release" | "stale" | "held" | "unavailable";
 export type PublicGoogleState = "ready" | "held" | "not_published" | "stale" | "unavailable";
 
@@ -96,11 +96,53 @@ export interface DriverRouteGeometry {
   type: "FeatureCollection";
   features: Array<{
     type: "Feature";
-    properties: { stepOrder: number };
+    properties: {
+      stepOrder: number;
+      authority?: "exact_graph" | "owner_verified_access";
+      label?: string;
+    };
     geometry:
       | { type: "LineString"; coordinates: [number, number][] }
       | { type: "MultiLineString"; coordinates: [number, number][][] };
   }>;
+}
+
+export interface DriverOwnerVerifiedAccessRoute {
+  releaseId: string;
+  releaseVersion: "v18-owner-access-route-v1";
+  routeRevision: number;
+  publicCoreStepCount: 6;
+  steps: DriverRouteStep[];
+  geometry: DriverRouteGeometry;
+  ingress: {
+    role: "exact_public_route_ingress";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  privateAccessStart: {
+    role: "owner_verified_private_access_start";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  destination: {
+    role: "saved_pad_destination";
+    label: string;
+    latitude: number;
+    longitude: number;
+  };
+  finalLegMode: "owner_verified_private_access_to_saved_pad";
+  handoff: {
+    originMode: "current_location_to_route_ingress";
+    handoffMode: "owner_verified_controls_v1";
+    waypoints: Array<{ latitude: number; longitude: number }>;
+  };
+  lastVerifiedAt: string;
+  statusRevision: string;
+  releaseDigest: string;
+  publishedAt: string;
+  navigationUrl: string;
 }
 
 export interface DriverRouteChoice {

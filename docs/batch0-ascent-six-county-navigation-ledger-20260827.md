@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `0d4e5979d55888eeacf6eef36782622762e3fe5d`
-- Candidate implementation HEAD: `af42422c470f4b1b04fad50860849a7e4b303afc`
-- Candidate content SHA-256: `e1e45df6c8170107db29fe072eb6a00fc4f927fda0e2849a3928aa86b950b500`
+- Base origin/main SHA: `7d60be2c3d0e85580e495b40ab067cbb7f869e9f`
+- Candidate implementation HEAD: `334083e99fc8ea90beed7aa43fdffa8220398730`
+- Candidate content SHA-256: `f3d1a0e781eb4d981b379619edb5614909b5054ec50f48478115dc7fc0cf2c84`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
@@ -11,9 +11,23 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `v18/scripts/audit-v18-owner-google-verify-map.mjs`
-- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.test.ts`
-- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.ts`
+- `supabase/migrations/20260828220318_v18_timberwolf_owner_verified_access_route.sql`
+- `v18/src/data/googleDestination.ts`
+- `v18/src/data/googleRoute.test.ts`
+- `v18/src/data/googleRoute.ts`
+- `v18/src/data/offlineRouteModel.test.ts`
+- `v18/src/data/ownerVerifiedAccessFixture.ts`
+- `v18/src/data/routeLineGroups.test.ts`
+- `v18/src/data/routeLineGroups.ts`
+- `v18/src/data/status.test.ts`
+- `v18/src/data/status.ts`
+- `v18/src/data/timberwolfOwnerAccessRouteMigration.test.ts`
+- `v18/src/data/types.ts`
+- `v18/src/features/map/MapPage.test.ts`
+- `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/pad/PadMapPreview.tsx`
+- `v18/src/features/pad/PadPage.test.ts`
+- `v18/src/features/pad/PadPage.tsx`
 
 ## Counts
 

@@ -465,6 +465,25 @@ describe("V18 pad legacy route fallback", () => {
     });
   });
 
+  it("labels owner-verified private access separately while keeping its current-location Google action", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.692699%2C-81.146851&waypoints=40.3244839%2C-81.1447655%7C40.6897462%2C-81.1622541%7C40.6987115%2C-81.1490346%7C40.6980889%2C-81.1482753";
+    const status = statusWithGoogle(routeUrl);
+    status.route.source = "owner_verified_access";
+    status.graph.state = "verified_release";
+    status.destination = { available: true, role: "saved_pad_destination", latitude: 40.692699, longitude: -81.146851 };
+
+    const view = buildGoogleHandoffView(status, true, true);
+    expect(view).toMatchObject({ available: true, mode: "owner_verified_access", routeUrl });
+    expect(buildFixedNavigationAction(view, mappedPad())).toMatchObject({
+      kind: "owner_verified_access",
+      detail: "Exact public roads · owner-verified lease access",
+      ariaLabel: expect.stringContaining("all four frozen controls"),
+    });
+    expect(padPage).toContain("ownerVerifiedAccessLabel");
+    expect(padMapPreview).toContain("ownerVerifiedAccessLabel");
+    expect(padMapPreview).toContain("[11, 8]");
+  });
+
   it("shows a strictly restored frozen handoff immediately while the online refresh runs", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.240883%2C-80.913963&waypoints=40.2%2C-80.95";
     const status = statusWithGoogle(routeUrl);
@@ -707,6 +726,7 @@ describe("V18 pad legacy route fallback", () => {
   });
 
   it("labels exact numbered road instructions as one approved route", () => {
+    expect(padPage).toContain('status.route.source === "owner_verified_access" ? "Exact roads and owner-verified lease access"');
     expect(padPage).toContain('status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route"');
     expect(padPage).toContain("The remaining lease access to the saved pad GPS is shown as a separate destination");
     expect(padPage).toContain("The remaining GPS-only final leg is a destination handoff, not approved road geometry.");

@@ -14,7 +14,7 @@ import { LoadingState } from "@/components/LoadingState";
 import { StatusBadge } from "@/components/StatusBadge";
 import { useDirectory } from "@/data/DirectoryContext";
 import { useCompanyRoads } from "@/data/CompanyRoadsContext";
-import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
+import { padDestinationNavigationUrl, padDestinationPinUrl, statusDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import {
@@ -31,6 +31,8 @@ import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
+import { ownerVerifiedAccessLabel } from "@/data/googleRoute";
+import { routeLineGroups } from "@/data/routeLineGroups";
 import {
   coincidentLocationsNeedChooser,
   emptyMapCoordinateNotice,
@@ -197,10 +199,8 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean, isolateSelecte
 }
 
 function routeLines(geometry: DriverRouteGeometry | null) {
-  if (!geometry) return [];
-  return geometry.features.flatMap((feature) => feature.geometry.type === "LineString"
-    ? [feature.geometry.coordinates]
-    : feature.geometry.coordinates);
+  const groups = routeLineGroups(geometry);
+  return [...groups.exact, ...groups.ownerVerifiedAccess];
 }
 
 function pointColor(row: PadSummary, coordinate = mapDisplayCoordinate(row)) {
@@ -255,11 +255,12 @@ function drawRoute(
   map: MapLibreMap,
   geometry: DriverRouteGeometry | null,
 ) {
-  const lines = routeLines(geometry);
-  if (!lines.length) return;
-  const stroke = (color: string, width: number) => {
+  const lines = routeLineGroups(geometry);
+  if (!lines.exact.length && !lines.ownerVerifiedAccess.length) return;
+  const stroke = (routeLines: [number, number][][], color: string, width: number, dash: number[] = []) => {
+    if (!routeLines.length) return;
     context.beginPath();
-    for (const line of lines) {
+    for (const line of routeLines) {
       line.forEach((coordinate, index) => {
         const point = map.project(coordinate);
         if (index === 0) context.moveTo(point.x, point.y);
@@ -270,10 +271,14 @@ function drawRoute(
     context.lineWidth = width;
     context.lineCap = "round";
     context.lineJoin = "round";
+    context.setLineDash(dash);
     context.stroke();
   };
-  stroke("rgba(7, 19, 31, .88)", 9);
-  stroke("#52e4bd", 5);
+  stroke(lines.exact, "rgba(7, 19, 31, .88)", 9);
+  stroke(lines.exact, "#52e4bd", 5);
+  stroke(lines.ownerVerifiedAccess, "rgba(7, 19, 31, .88)", 9, [11, 8]);
+  stroke(lines.ownerVerifiedAccess, "#52e4bd", 5, [11, 8]);
+  context.setLineDash([]);
 }
 
 function drawPadOverlay(
@@ -282,6 +287,7 @@ function drawPadOverlay(
   rows: PadSummary[],
   geometry: DriverRouteGeometry | null,
   selectedId: string | null,
+  selectedDestination: { latitude: number; longitude: number; role: "driver_entrance" | "saved_pad_destination" } | null,
 ) {
   const width = map.getContainer().clientWidth;
   const height = map.getContainer().clientHeight;
@@ -299,7 +305,9 @@ function drawPadOverlay(
   drawRoute(context, map, geometry);
 
   const safeRows = rows.flatMap((row) => {
-    const coordinate = mapDisplayCoordinate(row);
+    const coordinate = row.padId === selectedId && selectedDestination
+      ? selectedDestination
+      : mapDisplayCoordinate(row);
     return coordinate ? [{ row, coordinate }] : [];
   });
   const projected = safeRows.map(({ row, coordinate }) => {
@@ -345,6 +353,7 @@ export function MapPage() {
   const mapRef = useRef<MapLibreMap | null>(null);
   const visibleRowsRef = useRef(snapshot?.rows || []);
   const selectedRouteRef = useRef<DriverRouteGeometry | null>(null);
+  const selectedDestinationRef = useRef<{ latitude: number; longitude: number; role: "driver_entrance" | "saved_pad_destination" } | null>(null);
   const companyRoadRowsRef = useRef<CompanyRoadOverlayRow[]>([]);
   const selectedIdRef = useRef<string | null>(null);
   const hitTargetsRef = useRef<PadHitTarget[]>([]);
@@ -372,8 +381,8 @@ export function MapPage() {
     [mapSearch, mapSearchOrigin, mapSearchReady, snapshot],
   );
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
-  const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
-  const selectedPinUrl = selected ? padDestinationPinUrl(selected) : null;
+  const directorySelectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
+  const directorySelectedPinUrl = selected ? padDestinationPinUrl(selected) : null;
   const selectedGpsNavigationUrl = selected ? padDestinationNavigationUrl(selected) : null;
   const selectedGpsDestination = selected ? trustedPadDestination(selected) : null;
   const selectedReviewedNavigationCandidate = selected ? reviewedNavigationCandidateForPad(selected) : null;
@@ -381,6 +390,20 @@ export function MapPage() {
   const currentSelectedStatus = selected
     && selectedStatus?.padId === selected.padId
     && selectedStatus.recordRevision === selected.recordRevision ? selectedStatus : null;
+  const statusDestination = currentSelectedStatus?.destination.available
+    && currentSelectedStatus.destination.latitude !== null
+    && currentSelectedStatus.destination.longitude !== null
+    && currentSelectedStatus.destination.role
+    ? {
+      latitude: currentSelectedStatus.destination.latitude,
+      longitude: currentSelectedStatus.destination.longitude,
+      role: currentSelectedStatus.destination.role,
+    }
+    : null;
+  const selectedCoordinate = statusDestination || directorySelectedCoordinate;
+  const selectedPinUrl = statusDestination
+    ? statusDestinationPinUrl(currentSelectedStatus!.destination)
+    : directorySelectedPinUrl;
   const selectedRecordKey = selected ? `${selected.padId}:${selected.recordRevision}` : null;
   const currentRouteChoices = routeChoicesRecordKey === selectedRecordKey ? routeChoices : [];
   const currentNamedApproaches = currentSelectedStatus?.namedApproaches || [];
@@ -399,7 +422,7 @@ export function MapPage() {
   const currentReleasedHandoffPlan = currentReleasedGoogleHandoff(releasedHandoff, selected);
   const liveApprovedNavigationUrl = !currentNamedApproaches.length && selectedRouteIsPrimary
     && currentSelectedStatus?.route.state === "ready"
-    && (currentSelectedStatus.route.source === "exact_graph" || currentSelectedStatus.route.source === "exact_graph_handoff")
+    && (currentSelectedStatus.route.source === "exact_graph" || currentSelectedStatus.route.source === "exact_graph_handoff" || currentSelectedStatus.route.source === "owner_verified_access")
     && graphStateSupportsRoute(currentSelectedStatus.route.source, currentSelectedStatus.graph.state)
     && currentSelectedStatus.google.publicState === "ready"
     ? currentSelectedStatus.google.routeUrl
@@ -432,6 +455,8 @@ export function MapPage() {
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
       ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
       : "Reviewed approved route"
+    : liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "owner_verified_access"
+      ? "Exact public roads, then owner-verified private lease access"
     : liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "exact_graph_handoff"
       ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
       : "Reviewed approved route";
@@ -445,6 +470,8 @@ export function MapPage() {
       ? `${selectedNamedApproach.approachLabel} core + GPS`
       : `${selectedNamedApproach.approachLabel} ready`
     : namedSelectionRequired ? "Choose approach"
+    : currentSelectedStatus?.route.source === "owner_verified_access" && selectedGoogleState === "ready"
+      ? "Owner-verified access ready"
     : currentSelectedStatus?.route.source === "exact_graph_handoff" && selectedGoogleState === "ready"
       ? "Approved core + GPS"
       : selectedGoogleState ? `Google ${selectedGoogleState.replaceAll("_", " ")}` : "";
@@ -456,6 +483,7 @@ export function MapPage() {
     : currentSelectedStatus?.route.geometry || null;
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedRouteGeometry;
+  selectedDestinationRef.current = statusDestination;
   companyRoadRowsRef.current = companyRoads.overlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
@@ -599,7 +627,7 @@ export function MapPage() {
       if (!padOverlay.current || !mapHost.current) return;
       let result: ReturnType<typeof drawPadOverlay>;
       try {
-        result = drawPadOverlay(map, padOverlay.current, visibleRowsRef.current, selectedRouteRef.current, selectedIdRef.current);
+        result = drawPadOverlay(map, padOverlay.current, visibleRowsRef.current, selectedRouteRef.current, selectedIdRef.current, selectedDestinationRef.current);
       } catch {
         hitTargetsRef.current = [];
         setMapRenderState("error");
@@ -842,7 +870,7 @@ export function MapPage() {
       {currentNamedApproaches.length > 1 && <div className="map-route-choice" aria-label="Choose reviewed named approach">{currentNamedApproaches.map((approach) => <button key={approach.approachKey} type="button" className={approach.approachKey === selectedNamedApproach?.approachKey ? "is-selected" : ""} aria-pressed={approach.approachKey === selectedNamedApproach?.approachKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedNamedApproachKey(approach.approachKey); }}><strong>{approach.approachLabel}</strong><small>{approach.steps.length} exact steps{approach.finalLegMode === "google_to_saved_gps_unapproved" ? " · GPS-only final leg" : ""}</small></button>)}</div>}
       {!currentNamedApproaches.length && currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
       {selectedCoordinate && <div className="map-coordinate-reference">
-        <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
+        <span><strong>{statusDestination ? "Saved pad destination" : mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
         {higherPriorityNavigationState === "checking" ? <small className="map-google-link-state">Checking for the highest-priority reviewed route…</small>
@@ -856,9 +884,9 @@ export function MapPage() {
       {selectedReviewedNavigationSafetyHold && <div className="inline-warning map-route-safety-alert" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>}
       <details className="map-route-status"><summary><strong>Route status</strong><span>View</span></summary><div className="map-route-status-content">
         <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? selectedReviewedNavigation.ownerApproval ? "Owner-approved directions" : "Reviewed directions" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label={selectedReviewedNavigation.ownerApproval ? "Owner-approved directions" : "Reviewed directions"}/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
-        {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach to use approved roads. GPS destination-only navigation remains available; no approved route line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no graph route line, public-Google release, or approved-road overlay was created.` : "No approved inbound route is public · no route line inferred."}</p>}
+        {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach to use approved roads. GPS destination-only navigation remains available; no approved route line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "owner_verified_access" ? `Exact public-road core highlighted in teal; final teal dashed leg: ${ownerVerifiedAccessLabel}.` : currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no graph route line, public-Google release, or approved-road overlay was created.` : "No approved inbound route is public · no route line inferred."}</p>}
         {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? selectedReviewedNavigation.ownerApproval ? "Owner-approved route sequence" : "Reviewed route sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
-        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Owner-reviewed Google directions are available for this exact pad. The map point remains a saved GPS reference, not a verified public-road entrance or approved graph endpoint." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses exact approved roads to its reviewed handoff. This GPS destination is the separate unapproved final leg.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Owner-reviewed Google directions are available for this exact pad. The map point remains a saved GPS reference, not a verified public-road entrance or approved graph endpoint." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses exact approved roads to its reviewed handoff. This GPS destination is the separate unapproved final leg.` : currentSelectedStatus?.route.source === "owner_verified_access" ? ownerVerifiedAccessLabel : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
     </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
