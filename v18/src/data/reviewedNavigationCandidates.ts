@@ -149,6 +149,41 @@ const THOMAS_ROUTE_DESTINATION = { latitude: 40.096986, longitude: -81.307667 } 
 const THOMAS_WAYPOINTS = [
   { latitude: 40.087850494651, longitude: -81.320561551360 },
 ] as const;
+const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
+const ALBATROSS_WAYPOINTS = [
+  { latitude: 40.0817058, longitude: -81.2127365 },
+] as const;
+const MALDON_ROUTE_DESTINATION = { latitude: 40.010241, longitude: -81.197285 } as const;
+const MALDON_WAYPOINTS = [
+  { latitude: 40.0068106, longitude: -81.1762346 },
+  { latitude: 40.0106308, longitude: -81.1957784 },
+] as const;
+const WITHEY_ROUTE_DESTINATION = { latitude: 39.962005, longitude: -81.216813 } as const;
+const WITHEY_WAYPOINTS = [
+  { latitude: 39.967149, longitude: -81.2055552 },
+] as const;
+const SKULL_FORK_ROUTE_DESTINATION = { latitude: 40.159734, longitude: -81.260675 } as const;
+const SKULL_FORK_WAYPOINTS = [
+  { latitude: 40.167610, longitude: -81.259685 },
+] as const;
+const HOOP_ROUTE_DESTINATION = { latitude: 40.166384, longitude: -81.325728 } as const;
+const HOOP_WAYPOINTS = [
+  { latitude: 40.053083897672, longitude: -81.551936547892 },
+  { latitude: 40.1495834623593, longitude: -81.3150932898081 },
+  { latitude: 40.1536867643988, longitude: -81.3127475000983 },
+] as const;
+const BRAVO_ROUTE_DESTINATION = { latitude: 40.178556, longitude: -81.015064 } as const;
+const BRAVO_WAYPOINTS = [
+  { latitude: 40.1849138, longitude: -80.9958138 },
+] as const;
+const RUTH_ROUTE_DESTINATION = { latitude: 40.173626, longitude: -80.879115 } as const;
+const RUTH_WAYPOINTS = [
+  { latitude: 40.1771191, longitude: -80.8806516 },
+] as const;
+const ATHENA_ROUTE_DESTINATION = { latitude: 40.278613, longitude: -80.765988 } as const;
+const ATHENA_WAYPOINTS = [
+  { latitude: 40.2799914, longitude: -80.7619003 },
+] as const;
 
 // Existing phone-validated handoffs are intentionally byte-for-byte stable.
 // Building them from JavaScript numbers can drop reviewed trailing zeroes even
@@ -164,6 +199,14 @@ export const GIL_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GIL_ROUTE_DEST
 export const GILCHER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GILCHER_ROUTE_DESTINATION, GILCHER_WAYPOINTS);
 export const LAKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LAKE_ROUTE_DESTINATION, LAKE_WAYPOINTS);
 export const THOMAS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(THOMAS_ROUTE_DESTINATION, THOMAS_WAYPOINTS);
+export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
+export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
+export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
+export const SKULL_FORK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SKULL_FORK_ROUTE_DESTINATION, SKULL_FORK_WAYPOINTS);
+export const HOOP_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(HOOP_ROUTE_DESTINATION, HOOP_WAYPOINTS);
+export const BRAVO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BRAVO_ROUTE_DESTINATION, BRAVO_WAYPOINTS);
+export const RUTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RUTH_ROUTE_DESTINATION, RUTH_WAYPOINTS);
+export const ATHENA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ATHENA_ROUTE_DESTINATION, ATHENA_WAYPOINTS);
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -441,6 +484,190 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: THOMAS_ROUTE_DESTINATION,
     waypoints: THOMAS_WAYPOINTS,
+  },
+  {
+    padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
+    canonicalId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
+    legacyId: "ascent--albatross",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "ALBATROSS",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Brooks Rd",
+    title: "Navigate reviewed route",
+    detail: "Brooks Rd → unapproved GPS handoff",
+    routeUrl: ALBATROSS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → OH-800 near Brooks Rd → Brooks Rd → unapproved GPS handoff to saved pad GPS",
+    finalLegNotice: "The reviewed local approach reaches Brooks Road. Movement from the last reviewed named road to ALBATROSS's exact saved GPS remains an unapproved GPS handoff. The saved point is not relabeled as a verified entrance; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.079353,
+      longitude: -81.224381,
+      source: "saved_pad_gps",
+    },
+    routeDestination: ALBATROSS_ROUTE_DESTINATION,
+    waypoints: ALBATROSS_WAYPOINTS,
+  },
+  {
+    padId: "8f616827-d7da-4b40-b9c2-49fd5e713822",
+    canonicalId: "8f616827-d7da-4b40-b9c2-49fd5e713822",
+    legacyId: "ascent--maldon",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "MALDON",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Shannon Rd → Lowe Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "Shannon → Lowe → unapproved GPS handoff",
+    routeUrl: MALDON_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → Shannon Rd → Lowe Rd → unapproved GPS handoff to saved pad GPS",
+    finalLegNotice: "The reviewed local approach follows Shannon Road and Lowe Road. Movement from the last reviewed named road to MALDON's exact saved GPS remains an unapproved GPS handoff. The saved point is not relabeled as a verified entrance; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.010241,
+      longitude: -81.197285,
+      source: "saved_pad_gps",
+    },
+    routeDestination: MALDON_ROUTE_DESTINATION,
+    waypoints: MALDON_WAYPOINTS,
+  },
+  {
+    padId: "f2df293f-13a2-401e-96b2-21e71ac63e6a",
+    canonicalId: "f2df293f-13a2-401e-96b2-21e71ac63e6a",
+    legacyId: "ascent--withey",
+    recordRevision: "1786246617744175",
+    company: "Ascent",
+    padName: "WITHEY",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "Exit 202 → I-70 → OH-800 → Gobblers Knob Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "Gobblers Knob Rd → verified entrance",
+    routeUrl: WITHEY_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → Gobblers Knob Rd → verified driver entrance",
+    finalLegNotice: "The reviewed local approach follows Gobblers Knob Road to WITHEY's exact verified driver entrance. Google's upstream route remains origin-dependent; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.962005,
+      longitude: -81.216813,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: WITHEY_ROUTE_DESTINATION,
+    waypoints: WITHEY_WAYPOINTS,
+  },
+  {
+    padId: "06ac93a2-3b46-44fd-9fa6-2fd29201858a",
+    canonicalId: "06ac93a2-3b46-44fd-9fa6-2fd29201858a",
+    legacyId: "ascent--skull-fork",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "SKULL FORK",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 → Exit 202 → OH-800 → US-22 → Repik Ln → Pad",
+    title: "Navigate reviewed route",
+    detail: "Repik Ln → verified entrance",
+    routeUrl: SKULL_FORK_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → Repik Ln → verified driver entrance",
+    finalLegNotice: "The reviewed local shaping point preserves Repik Lane to SKULL FORK's exact verified driver entrance. Google's upstream route remains origin-dependent; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.159734,
+      longitude: -81.260675,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: SKULL_FORK_ROUTE_DESTINATION,
+    waypoints: SKULL_FORK_WAYPOINTS,
+  },
+  {
+    padId: "351b72fb-eb48-4355-b6fc-d8e9a867f79c",
+    canonicalId: "351b72fb-eb48-4355-b6fc-d8e9a867f79c",
+    legacyId: "ascent--hoop",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "HOOP",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-77 → US-22 → Titus Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "US-22 E → Titus Rd → unapproved GPS/lease handoff",
+    routeUrl: HOOP_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach to reviewed US-22 anchor → US-22 E → Titus Rd → unapproved GPS/lease handoff to saved pad GPS",
+    finalLegNotice: "Three ordered shaping points preserve the reviewed US-22 east approach and turn onto Titus Road without the Pennyroyal Road shortcut. The reviewed named-road approach ends on Titus Road. Google may display Hoop Lane during the remaining movement to HOOP's exact saved GPS, but that label is not promoted to reviewed road authority. The entire post-Titus movement remains an unapproved GPS/lease handoff, not approved public-road geometry.",
+    trustedDestination: {
+      latitude: 40.166384,
+      longitude: -81.325728,
+      source: "saved_pad_gps",
+    },
+    routeDestination: HOOP_ROUTE_DESTINATION,
+    waypoints: HOOP_WAYPOINTS,
+  },
+  {
+    padId: "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
+    canonicalId: "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
+    legacyId: "ascent--bravo",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "BRAVO",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "OH-519 → Hite Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "Hite Rd (Google: Crazy Rd) → unapproved GPS handoff",
+    routeUrl: BRAVO_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → Hite Rd (displayed by Google as Crazy Rd) → unapproved GPS/lease handoff to saved pad GPS",
+    finalLegNotice: "The stored reviewed sequence names Hite Road; Google displays the shaped segment as Crazy Road. Google's label is not treated as a new or approved road identity. The final short unnamed movement to BRAVO's exact saved GPS remains an unapproved GPS/lease handoff.",
+    trustedDestination: {
+      latitude: 40.178556,
+      longitude: -81.015064,
+      source: "saved_pad_gps",
+    },
+    routeDestination: BRAVO_ROUTE_DESTINATION,
+    waypoints: BRAVO_WAYPOINTS,
+  },
+  {
+    padId: "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
+    canonicalId: "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
+    legacyId: "ascent--ruth",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "RUTH",
+    state: "Ohio",
+    county: "Jefferson",
+    structuredRoadSequence: "US-250 E → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "US-250 → unapproved entrance turn → verified entrance",
+    routeUrl: RUTH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → US-250 near entrance → unapproved entrance movement → verified driver entrance",
+    finalLegNotice: "The reviewed shaping point reaches US-250 near RUTH. The final turn and movement to RUTH's exact verified driver entrance remain an unapproved entrance handoff and are not promoted to approved public-road geometry.",
+    trustedDestination: {
+      latitude: 40.173626,
+      longitude: -80.879115,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: RUTH_ROUTE_DESTINATION,
+    waypoints: RUTH_WAYPOINTS,
+  },
+  {
+    padId: "3850e94a-826f-4b6b-a54f-d21d482fca46",
+    canonicalId: "3850e94a-826f-4b6b-a54f-d21d482fca46",
+    legacyId: "ascent--athena",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "ATHENA",
+    state: "Ohio",
+    county: "Jefferson",
+    structuredRoadSequence: "OH-151 → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-151 → unapproved GPS handoff",
+    routeUrl: ATHENA_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → OH-151 near pad → unapproved GPS handoff to saved pad GPS",
+    finalLegNotice: "The reviewed shaping point reaches OH-151 near ATHENA. Movement to ATHENA's exact saved GPS remains an unapproved GPS handoff. The saved point is not relabeled as a verified entrance; exact graph and public Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.278613,
+      longitude: -80.765988,
+      source: "saved_pad_gps",
+    },
+    routeDestination: ATHENA_ROUTE_DESTINATION,
+    waypoints: ATHENA_WAYPOINTS,
   },
 ] as const;
 

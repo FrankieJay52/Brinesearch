@@ -142,6 +142,7 @@ describe("V18 pad legacy route fallback", () => {
 
   it("offers one exact approved-route action and never exposes route chunks as choices", () => {
     expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad} higherPriorityCheckState={higherPriorityNavigationState}/>");
+    expect(padPage.match(/<FixedNavigateAction\b/g)).toHaveLength(1);
     expect(padPage).toContain('<span><strong>{action.title}</strong><small>{action.detail}</small></span>');
     expect(padPage).toContain('"Approved roads then GPS" : "Reviewed approved route"');
     expect(padPage).toContain("Approval begins at its verified ingress.");
