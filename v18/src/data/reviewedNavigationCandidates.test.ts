@@ -1862,6 +1862,10 @@ describe("reviewed navigation candidates", () => {
     });
     expect(candidate!.detail).toMatch(/unapproved/iu);
     expect(candidate!.finalLegNotice).toMatch(/reviewed handoff rather than graph approval/iu);
+    const authorityText = [candidate!.detail, candidate!.reviewedRoadSequence, candidate!.finalLegNotice]
+      .join(" ")
+      .replace(/\bunapproved\b/giu, "");
+    expect(authorityText).not.toMatch(/\bapproved\b|public Google route|graph approved/iu);
 
     const url = new URL(candidate!.routeUrl);
     expect(url.origin).toBe("https://www.google.com");
