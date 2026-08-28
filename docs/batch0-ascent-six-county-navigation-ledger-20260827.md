@@ -1,9 +1,9 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `984ae10056b22fcff97239de401d596c054189b1`
-- Candidate implementation HEAD: `29729a051b791a951bbea9f1385921970b2fbd6d`
-- Candidate content SHA-256: `311e98df19e30ea8415d5cb8b0798ee7f675eb02f51c644e6c4bfccc39bdd75a`
+- Base origin/main SHA: `b44f431f0998104e9a5f5ecf010c434465a5a01d`
+- Candidate implementation HEAD: `ff22a8a4e5f2748ad1d779ac55f96e8553ed72d7`
+- Candidate content SHA-256: `c3f83a29f281527145123dd1f39a7d45f5ab9d0b87fb6582de455a9e5104835d`
 - Uncommitted non-generated changes: **no**
-- 247 / 1 approved / 8 core+GPS / 192 GPS-only / 46 reviewed-held
+- 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
 - ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WINSTON SMITH + WITHEY: `reviewed_handoff_authority_held`
 
@@ -11,24 +11,30 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `docs/issue97-ascent-reviewed-handoff-batch10-20260828.md`
-- `docs/issue97-ascent-reviewed-handoffs-batch3-20260828.md`
+- `docs/issue97-owner-approved-directions-presentation-20260828.md`
 - `v18/scripts/audit-batch0-ascent-navigation.mjs`
 - `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
 - `v18/src/data/ascentBatch0NavigationLedger.test.ts`
 - `v18/src/data/reviewedNavigationCandidates.test.ts`
 - `v18/src/data/reviewedNavigationCandidates.ts`
+- `v18/src/features/map/MapApprovedRouteLink.test.ts`
+- `v18/src/features/map/MapApprovedRouteLink.tsx`
+- `v18/src/features/map/MapPage.test.ts`
+- `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/pad/PadPage.test.ts`
+- `v18/src/features/pad/PadPage.tsx`
+- `v18/src/features/pad/PadPageLayout.css`
 
 ## Counts
 
 - State 1 — Reviewed approved route: **1**
 - State 2 — Approved roads then GPS: **8**
 - State 3 — GPS destination only: **192**
-- Reviewed handoff authority held: **46**
+- Owner-approved directions with graph/public authority held: **46**
 - No trusted GPS: **0**
 - Exactly one navigation action destination: **247**
 
-| County | Pads | State 1 | State 2 | State 3 | Reviewed-held | No GPS |
+| County | Pads | State 1 | State 2 | State 3 | Owner-approved / graph-held | No GPS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Belmont | 77 | 0 | 0 | 58 | 19 | 0 |
 | Guernsey | 44 | 0 | 0 | 31 | 13 | 0 |
@@ -49,13 +55,14 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
+- The owner explicitly approved the 46 exact-record Google direction handoffs on 2026-08-28. Twenty-eight have exact named-road identity evidence; eighteen retain validated Google-handoff evidence while their exact graph-line receipts are completed. This owner-approved presentation does not create graph geometry, a public-Google release, or an approved-road overlay.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY remain `reviewed_handoff_authority_held` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY display owner-approved directions while retaining the fail-closed technical state `reviewed_handoff_authority_held`: their exact record-bound handoffs remain separate from graph/public-Google authority. That presentation approval does not promote graph geometry or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
-- The generated CSV SHA-256 is `b71ab7a92184641343b694662bc0b662fddadd510b7800bc09490ed7b2e80fb7`.
+- The generated CSV SHA-256 is `d5eb871f6ef5a27d1b28010b229938d690d5da06bac287e99b97a8280c34386d`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with `npm --prefix v18 run audit:batch0-navigation -- --write`. The audit performs one request per page/contract and has no retry path.
