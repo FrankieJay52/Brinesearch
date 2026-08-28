@@ -387,6 +387,12 @@ export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBas
   return "candidate-branch";
 }
 
+export function frozenProvenanceNeedsBaseHistory(checkoutMode) {
+  assert(checkoutMode === "candidate-branch" || checkoutMode === "merged-main",
+    `Unsupported frozen provenance checkout mode ${checkoutMode}`);
+  return checkoutMode === "candidate-branch";
+}
+
 async function publicConfiguration() {
   const source = await readFile(path.join(repositoryRoot, "v18", "src", "data", "directory.ts"), "utf8");
   const supabaseUrl = /VITE_SUPABASE_URL\s*\|\|\s*"([^"]+)"/u.exec(source)?.[1];
@@ -557,16 +563,16 @@ async function main() {
         originMainSha,
         frozenBaseSha: frozen.baseMainSha,
       });
-      const mergeBase = checkoutMode === "merged-main"
-        ? git("merge-base", "HEAD", frozen.baseMainSha)
-        : git("merge-base", "HEAD", "origin/main");
-      assert(mergeBase === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match ${checkoutMode} merge base ${mergeBase}`);
-      const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
-        .filter((value) => !generatedAuditPaths.has(value))
-        .sort();
-      assert(JSON.stringify(currentPaths) === JSON.stringify([...frozen.implementationPaths].sort()),
-        "Saved Batch 0 implementation file list is stale");
+      if (frozenProvenanceNeedsBaseHistory(checkoutMode)) {
+        const mergeBase = git("merge-base", "HEAD", "origin/main");
+        assert(mergeBase === frozen.baseMainSha,
+          `Saved Batch 0 base ${frozen.baseMainSha} does not match candidate-branch merge base ${mergeBase}`);
+        const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
+          .filter((value) => !generatedAuditPaths.has(value))
+          .sort();
+        assert(JSON.stringify(currentPaths) === JSON.stringify([...frozen.implementationPaths].sort()),
+          "Saved Batch 0 implementation file list is stale");
+      }
     }
     const githubBase = await githubPullRequestBaseSha();
     assert(!githubBase || githubBase === frozen.baseMainSha,

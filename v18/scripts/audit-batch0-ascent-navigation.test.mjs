@@ -5,6 +5,7 @@ import {
   candidateContentDigest,
   csv,
   frozenProvenanceCheckoutMode,
+  frozenProvenanceNeedsBaseHistory,
   hostedBuildArtifact,
   implementationPathSet,
   netlifyMainRefreshRequired,
@@ -147,6 +148,12 @@ test("frozen provenance accepts the exact merged main but rejects branch base dr
     originMainSha: "d".repeat(40),
     frozenBaseSha,
   }), /does not match current origin\/main/u);
+});
+
+test("only candidate branches require the frozen base commit history", () => {
+  assert.equal(frozenProvenanceNeedsBaseHistory("candidate-branch"), true);
+  assert.equal(frozenProvenanceNeedsBaseHistory("merged-main"), false);
+  assert.throws(() => frozenProvenanceNeedsBaseHistory("unknown"), /Unsupported frozen provenance checkout mode/u);
 });
 
 test("Netlify refreshes main only for the exact build commit", () => {
