@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "artifactKind": "ascent_corridor_backtrace_read_only_summary",
+  "capturedAt": "2026-08-28T09:48:37.314035Z",
+  "scope": {
+    "snapshotId": "68f1d076-fe03-4519-a5cd-c68f8a28b06c",
+    "sourceRevision": 8,
+    "directoryContentSha256": "122661792297cd6e9e831caa9ce44fe14a32a25b72cb4245a86fd61f603c34b3",
+    "company": "Ascent",
+    "state": "Ohio",
+    "counties": [
+      "Belmont",
+      "Guernsey",
+      "Harrison",
+      "Jefferson",
+      "Monroe",
+      "Noble"
+    ]
+  },
+  "counts": {
+    "pads": 247,
+    "padsWithActiveRoutePrep": 223,
+    "padsWithoutActiveRoutePrep": 24,
+    "activeRoutePreps": 330,
+    "activeSteps": 1652,
+    "occurrenceReceipts": 1518,
+    "resolvedOccurrenceReceipts": 204,
+    "heldOccurrenceReceipts": 1314,
+    "geometryReceipts": 38,
+    "resolvedGeometryReceipts": 26,
+    "transitionReceipts": 99,
+    "resolvedTransitionReceipts": 70,
+    "publicGoogleRows": 1,
+    "cutoverActive": false
+  },
+  "limitations": {
+    "rawEvidenceOnly": true,
+    "candidateEligibilityDerived": false,
+    "wholeRoadIdentityProvesSharedSegment": false,
+    "distanceProvesConnectivity": false,
+    "routeOrderProvenByThisSummary": false,
+    "databaseQueryExecutedInCi": false
+  },
+  "authorityEffect": {
+    "reviewedHandoffGranted": false,
+    "graphRouteApproved": false,
+    "publicGooglePublicationChanged": false,
+    "cutoverChanged": false,
+    "productionWrites": 0
+  }
+}

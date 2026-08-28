@@ -85,16 +85,10 @@ with current_snapshot as materialized (
       as left_exact_current_membership_count,
     coalesce(membership.right_exact_current_membership_count,0)
       as right_exact_current_membership_count,
-    (
-      transition.status='resolved'
-      and junction.verification_status='verified'
-      and build.status='active'
-      and build.id=transition.graph_build_id
-      and build.id=junction.build_id
-      and private_verification.brinesearch_issue97_graph_build_release_current(build.id)
-      and coalesce(membership.left_exact_current_membership_count,0)>0
-      and coalesce(membership.right_exact_current_membership_count,0)>0
-    ) as transition_graph_membership_gate_current
+    -- These are raw lookup results only. Do not collapse them into a route or
+    -- candidate eligibility flag: that would also need complete occurrence,
+    -- geometry, anchor, digest, route-order, and release bindings.
+    true as raw_evidence_only
   from private_verification.brinesearch_route_transition_receipts_issue97 transition
   join route_scope route on route.id=transition.route_prep_id
   left join public.brinesearch_road_junctions junction
@@ -199,7 +193,7 @@ with current_snapshot as materialized (
         'rightMembershipCount',transition.right_membership_count,
         'leftExactCurrentMembershipCount',transition.left_exact_current_membership_count,
         'rightExactCurrentMembershipCount',transition.right_exact_current_membership_count,
-        'transitionGraphMembershipGateCurrent',transition.transition_graph_membership_gate_current,
+        'rawEvidenceOnly',transition.raw_evidence_only,
         'receiptDigest',transition.receipt_digest
       )) order by transition.boundary_index)
       from transition_rows transition where transition.route_prep_id=route.id
@@ -239,6 +233,13 @@ select pg_catalog.jsonb_build_object(
     'publicGooglePublicationChanged',false,
     'cutoverChanged',false,
     'productionWrites',0
+  ),
+  'limitations',pg_catalog.jsonb_build_object(
+    'rawEvidenceOnly',true,
+    'candidateEligibilityDerived',false,
+    'wholeRoadIdentityProvesSharedSegment',false,
+    'distanceProvesConnectivity',false,
+    'routeOrderProvenByThisExport',false
   )
 ) as ascent_corridor_backtrace_evidence
 from current_snapshot snapshot;

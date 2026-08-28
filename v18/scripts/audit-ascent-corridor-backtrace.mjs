@@ -12,7 +12,7 @@ export const corridorSqlPath = path.join(
   "sql",
   "48-ascent-corridor-backtrace-export.sql",
 );
-export const expectedCorridorSqlSha256 = "ec49cc8f089e11f58ae338bf66f14eff181e7ccbd68f7bc13a31c32ad84e596a";
+export const expectedCorridorSqlSha256 = "5ef2d066e0ba4d0553c35b39ff221e5585f34c5d81bfb1af37abfe38ba09ae99";
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -37,10 +37,12 @@ function sqlWithoutComments(sql) {
 
 function psqlMetaCommands(sql) {
   return sql
-    .replace(/\/\*[\s\S]*?\*\//gu, "")
+    .replace(/\/\*[\s\S]*?\*\//gu, " ")
+    .replace(/--[^\r\n]*/gu, " ")
+    .replace(/'(?:''|[^'])*'/gu, "''")
     .split(/\r?\n/gu)
-    .map((line) => line.replace(/--.*$/u, "").trim().toLowerCase())
-    .filter((line) => line.startsWith("\\"));
+    .map((line) => line.trim().toLowerCase())
+    .filter((line) => line.includes("\\"));
 }
 
 export function lintCorridorExportSql(sql) {
@@ -99,6 +101,8 @@ export function lintCorridorExportSql(sql) {
       `Corridor export contains guessed connectivity method ${guessedConnectivity}`,
     );
   }
+  assert(!/\b(?:group\s+by|partition\s+by)\b/u.test(code),
+    "Raw corridor evidence must not infer shared pavement from whole-road grouping");
 
   const allowedQualifiedFunctions = new Set([
     "pg_catalog.jsonb_agg",
@@ -136,15 +140,13 @@ export function lintCorridorExportSql(sql) {
       && code.includes("member_identity.active")
       && code.includes("brinesearch_issue97_dataset_scope_current"),
   "Corridor export must prove exact current identity and canonical-road memberships");
-  const exactCurrentGate = "transition.status='' and junction.verification_status=''"
-    + " and build.status='' and build.id=transition.graph_build_id"
-    + " and build.id=junction.build_id"
-    + " and private_verification.brinesearch_issue97_graph_build_release_current(build.id)"
-    + " and coalesce(membership.left_exact_current_membership_count,0)>0"
-    + " and coalesce(membership.right_exact_current_membership_count,0)>0"
-    + " ) as transition_graph_membership_gate_current";
-  assert(code.includes(exactCurrentGate),
-  "Corridor export must derive the current graph-membership research gate");
+  assert(code.includes("true as raw_evidence_only")
+      && surface.includes("'rawevidenceonly',transition.raw_evidence_only"),
+  "Corridor export must label every transition as raw evidence only");
+  assert(!code.includes("transition_graph_membership_gate_current")
+      && !code.includes("candidate_eligible")
+      && !code.includes("route_eligible"),
+  "Corridor export must not derive route or candidate eligibility");
   assert(!code.includes("road_name_at_junction"),
     "Corridor export must not match route numbers through local junction names");
   assert(!code.includes("step_geometry") && !code.includes("junction.geom"),
@@ -156,6 +158,11 @@ export function lintCorridorExportSql(sql) {
     + "'reviewedhandoffgranted',false,'graphrouteapproved',false,"
     + "'publicgooglepublicationchanged',false,'cutoverchanged',false,'productionwrites',0)";
   assert(surface.includes(zeroAuthorityEffect), "Missing exact zero-authority effect object");
+  const exactLimitations = "'limitations',pg_catalog.jsonb_build_object("
+    + "'rawevidenceonly',true,'candidateeligibilityderived',false,"
+    + "'wholeroadidentityprovessharedsegment',false,'distanceprovesconnectivity',false,"
+    + "'routeorderprovenbythisexport',false)";
+  assert(surface.includes(exactLimitations), "Missing exact raw-evidence limitations object");
 
   return {
     sourceReadOnlyContract: true,
@@ -164,6 +171,7 @@ export function lintCorridorExportSql(sql) {
     exactCurrentMembershipEvidenceReported: true,
     releaseCurrentReported: true,
     guessedConnectivity: false,
+    candidateEligibilityDerived: false,
     authorityGranted: false,
   };
 }

@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import test from "node:test";
 import {
   auditCorridorExportSql as auditCanonicalCorridorExportSql,
@@ -7,9 +8,15 @@ import {
   corridorSqlSha256,
   corridorSqlPath,
   expectedCorridorSqlSha256,
+  repositoryRoot,
 } from "./audit-ascent-corridor-backtrace.mjs";
 
 const source = (await readFile(corridorSqlPath, "utf8")).replace(/\r\n?/gu, "\n");
+const summary = JSON.parse(await readFile(path.join(
+  repositoryRoot,
+  "docs",
+  "issue97-ascent-corridor-backtrace-summary-20260828.json",
+), "utf8"));
 
 test("corridor export is canonical reviewed raw evidence with zero authority effect", () => {
   assert.equal(corridorSqlSha256(source), expectedCorridorSqlSha256);
@@ -21,6 +28,7 @@ test("corridor export is canonical reviewed raw evidence with zero authority eff
     exactCurrentMembershipEvidenceReported: true,
     releaseCurrentReported: true,
     guessedConnectivity: false,
+    candidateEligibilityDerived: false,
     authorityGranted: false,
   });
 });
@@ -108,6 +116,57 @@ test("rejects missing psql error-stop and weakened timeouts or search path", () 
   );
 });
 
+test("rejects whole-road grouping as proof of shared pavement", () => {
+  assert.throws(
+    () => auditCorridorExportSql(source.replace(
+      "rollback;",
+      "select identity_id,canonical_road_id,count(distinct pad_id) from private_verification.brinesearch_route_occurrence_receipts_issue97 group by identity_id,canonical_road_id;\nrollback;",
+    )),
+    /whole-road grouping/u,
+  );
+});
+
+test("checked-in production summary is explicit, internally complete, and non-authoritative", () => {
+  assert.equal(summary.schemaVersion, 1);
+  assert.equal(summary.artifactKind, "ascent_corridor_backtrace_read_only_summary");
+  assert.equal(summary.scope.snapshotId, "68f1d076-fe03-4519-a5cd-c68f8a28b06c");
+  assert.equal(summary.scope.sourceRevision, 8);
+  assert.match(summary.scope.directoryContentSha256, /^[0-9a-f]{64}$/u);
+  assert.equal(summary.counts.pads, 247);
+  assert.equal(
+    summary.counts.padsWithActiveRoutePrep + summary.counts.padsWithoutActiveRoutePrep,
+    summary.counts.pads,
+  );
+  assert.ok(summary.counts.heldOccurrenceReceipts > summary.counts.resolvedOccurrenceReceipts);
+  assert.equal(summary.counts.publicGoogleRows, 1);
+  assert.equal(summary.counts.cutoverActive, false);
+  assert.deepEqual(summary.limitations, {
+    rawEvidenceOnly: true,
+    candidateEligibilityDerived: false,
+    wholeRoadIdentityProvesSharedSegment: false,
+    distanceProvesConnectivity: false,
+    routeOrderProvenByThisSummary: false,
+    databaseQueryExecutedInCi: false,
+  });
+  assert.deepEqual(summary.authorityEffect, {
+    reviewedHandoffGranted: false,
+    graphRouteApproved: false,
+    publicGooglePublicationChanged: false,
+    cutoverChanged: false,
+    productionWrites: 0,
+  });
+});
+
+test("rejects inline psql execution commands even when the payload is quoted", () => {
+  assert.throws(
+    () => auditCorridorExportSql(source.replace(
+      "rollback;",
+      "select 'rollback; update public.pads set pad_name=''bad'';' \\gexec\nrollback;",
+    )),
+    /required psql safety commands/u,
+  );
+});
+
 test("rejects removal of either exact junction membership proof", () => {
   assert.throws(
     () => auditCorridorExportSql(source.replaceAll(
@@ -163,17 +222,20 @@ test("rejects stale or inactive identity membership proof", () => {
   );
 });
 
-test("rejects removal of the resolved current transition gate", () => {
+test("rejects promotion of raw transition evidence into an eligibility gate", () => {
   assert.throws(
-    () => auditCorridorExportSql(source.replace("transition.status='resolved'", "true")),
-    /current graph-membership research gate/u,
+    () => auditCorridorExportSql(source.replace(
+      "true as raw_evidence_only",
+      "true as candidate_eligible",
+    )),
+    /raw evidence only|candidate eligibility/u,
   );
   assert.throws(
     () => auditCorridorExportSql(source.replace(
-      "build.id=transition.graph_build_id",
-      "build.id is not null",
+      "'candidateEligibilityDerived',false",
+      "'candidateEligibilityDerived',true",
     )),
-    /current graph-membership research gate/u,
+    /raw-evidence limitations/u,
   );
 });
 
@@ -243,8 +305,8 @@ test("canonical digest rejects semantic OR-true, literal-true, and executable-de
       "and (member.road_id=transition.right_road_id or true)",
     ),
     source.replace(
-      "'transitionGraphMembershipGateCurrent',transition.transition_graph_membership_gate_current",
-      "'transitionGraphMembershipGateCurrent',true",
+      "'rawEvidenceOnly',transition.raw_evidence_only",
+      "'rawEvidenceOnly',false",
     ),
     authorityWithExecutableDecoy,
   ];
