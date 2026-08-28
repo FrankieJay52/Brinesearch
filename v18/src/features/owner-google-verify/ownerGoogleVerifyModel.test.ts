@@ -125,12 +125,21 @@ describe("owner Google verify point limit", () => {
 });
 
 describe("owner Google verify saved destination", () => {
-  it("accepts only an explicit saved pad destination or saved pad reference", () => {
+  it("accepts an explicit saved pad destination, verified driver entrance, or saved pad reference", () => {
     expect(ownerGoogleVerifyDestination(pad({
       coordinate: { latitude: 40.25403, longitude: -80.913577, role: "saved_pad_destination" },
     }))).toEqual({
       latitude: 40.25403,
       longitude: -80.913577,
+      source: "saved_pad_gps",
+      label: "Saved pad GPS",
+    });
+
+    expect(ownerGoogleVerifyDestination(pad({
+      coordinate: { latitude: 40.186964, longitude: -80.968365, role: "driver_entrance" },
+    }))).toEqual({
+      latitude: 40.186964,
+      longitude: -80.968365,
       source: "saved_pad_gps",
       label: "Saved pad GPS",
     });
@@ -145,10 +154,7 @@ describe("owner Google verify saved destination", () => {
     });
   });
 
-  it("rejects driver entrances, official references, legacy saved points, zero sentinels, and missing GPS", () => {
-    expect(ownerGoogleVerifyDestination(pad({
-      coordinate: { latitude: 40.25403, longitude: -80.913577, role: "driver_entrance" },
-    }))).toBeNull();
+  it("rejects official references, legacy saved points, zero sentinels, and missing GPS", () => {
     expect(ownerGoogleVerifyDestination(pad({
       coordinate: { latitude: 40.25403, longitude: -80.913577, role: "legacy_saved" },
     }))).toBeNull();

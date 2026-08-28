@@ -49,7 +49,8 @@ function usablePoint(latitude: number, longitude: number) {
 export function ownerGoogleVerifyDestination(pad: PadSummary): OwnerGoogleVerifyDestination | null {
   if (pad.coordinate
     && usablePoint(pad.coordinate.latitude, pad.coordinate.longitude)
-    && pad.coordinate.role === "saved_pad_destination") {
+    && (pad.coordinate.role === "saved_pad_destination"
+      || pad.coordinate.role === "driver_entrance")) {
     return {
       latitude: pad.coordinate.latitude,
       longitude: pad.coordinate.longitude,

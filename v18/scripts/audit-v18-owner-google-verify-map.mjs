@@ -35,7 +35,8 @@ requireText(component, "origin: googlePoint(origin)", "phone origin route input"
 requireText(component, "destination: googlePoint(destination)", "locked saved GPS destination input");
 requireText(component, "intermediates: [anchor, ...turnPins]", "ordered anchor and turn pins");
 requireText(model, "maximumOwnerGoogleVerifyTurnPins = 5", "five-turn-pin maximum");
-requireText(model, 'pad.coordinate.role === "saved_pad_destination"', "saved destination-only coordinate gate");
+requireText(model, 'pad.coordinate.role === "saved_pad_destination"', "saved destination coordinate gate");
+requireText(model, 'pad.coordinate.role === "driver_entrance"', "verified driver-entrance coordinate gate");
 requireText(model, 'pad.mapReference.kind === "saved_pad_reference"', "record-bound saved reference gate");
 requireText(component, "Draft only — driver Navigate unchanged.", "draft-only banner");
 requireText(drafts, 'authority: "draft_only"', "draft-only export authority");
