@@ -1,5 +1,5 @@
-import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
-import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet } from "./googleRoute";
+import type { DirectorySourceState, DriverOwnerVerifiedAccessRoute, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet, buildOwnerVerifiedAccessRoute } from "./googleRoute";
 import { parseCoordinatePair } from "./coordinates";
 import { trustedPadDestination } from "./googleDestination";
 import { deviceIsOnline, readPadDirectionsOffline, savePadDirectionsOffline } from "./offlineRoutes";
@@ -9,12 +9,13 @@ const publishableKey =
   import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_5_sw9B-bcSdWgDzp4Z3pnQ_b-tutvtd";
 
 const routeStates = new Set<DriverPadStatus["route"]["state"]>(["ready", "written_only", "held", "stale", "unavailable"]);
-const routeSources = new Set<DriverPadStatus["route"]["source"]>(["exact_graph", "exact_graph_handoff", "reviewed_written", "legacy_written", "destination_only", "none"]);
+const routeSources = new Set<DriverPadStatus["route"]["source"]>(["exact_graph", "exact_graph_handoff", "owner_verified_access", "reviewed_written", "legacy_written", "destination_only", "none"]);
 const graphStates = new Set<DriverPadStatus["graph"]["state"]>(["active_current", "verified_release", "stale", "held", "unavailable"]);
 const googleStates = new Set<DriverPadStatus["google"]["publicState"]>(["ready", "held", "not_published", "stale", "unavailable"]);
 const maxPublicRouteSteps = 500;
 const maxPublicRouteLinePoints = 20_000;
 const maxPublicRoutePoints = 50_000;
+const ownerAccessSafeReason = "Public-road core is exact ODOT graph geometry; final dashed leg is owner-verified private lease access.";
 
 function object(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
@@ -58,11 +59,11 @@ export function statusProjectionHasRequiredShape(value: unknown) {
   if (destinationAvailable && parsedDestination?.ok !== true) return false;
 
   if (routeState === "ready") {
-    if ((routeSource !== "exact_graph" && routeSource !== "exact_graph_handoff")
+    if ((routeSource !== "exact_graph" && routeSource !== "exact_graph_handoff" && routeSource !== "owner_verified_access")
         || !graphStateSupportsRoute(routeSource, graphState)) {
       return false;
     }
-    if (routeSource === "exact_graph_handoff"
+    if ((routeSource === "exact_graph_handoff" || routeSource === "owner_verified_access")
         && (parsedDestination?.ok !== true || parsedDestination.value.role !== "saved_pad_destination")) {
       return false;
     }
@@ -103,7 +104,7 @@ export function graphStateSupportsRoute(
   state: DriverPadStatus["graph"]["state"],
 ) {
   return source === "exact_graph" && state === "active_current"
-    || source === "exact_graph_handoff" && state === "verified_release";
+    || (source === "exact_graph_handoff" || source === "owner_verified_access") && state === "verified_release";
 }
 
 function statusDataState(sourceState: DirectorySourceState | undefined, canonical: boolean): DriverPadStatus["dataState"] {
@@ -233,7 +234,12 @@ export function normalizeDriverRouteProjection(stepsValue: unknown, geometryValu
   return steps && geometry && geometryMatchesSteps(steps, geometry) ? { steps, geometry } : null;
 }
 
-function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceState?: DirectorySourceState): DriverPadStatus {
+function normalizeStatus(
+  row: Record<string, unknown>,
+  pad: PadSummary,
+  sourceState?: DirectorySourceState,
+  ownerAccessRoute: DriverOwnerVerifiedAccessRoute | null = null,
+): DriverPadStatus {
   const base = fallbackStatus(pad, sourceState);
   const route = object(row.route);
   const graph = object(row.graph);
@@ -263,11 +269,16 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
     && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
     && graphAuthorityReady
     ? normalizeDriverRouteProjection(rawSteps, route.geometry ?? row.route_geometry)
+    : claimedRouteState === "ready"
+      && safeRouteSource === "owner_verified_access"
+      && graphAuthorityReady
+      && ownerAccessRoute
+      ? { steps: ownerAccessRoute.steps, geometry: ownerAccessRoute.geometry }
     : null;
-  const handoffDestinationReady = safeRouteSource !== "exact_graph_handoff"
+  const handoffDestinationReady = safeRouteSource !== "exact_graph_handoff" && safeRouteSource !== "owner_verified_access"
     || parsedDestination?.ok === true && parsedDestination.value.role === "saved_pad_destination";
   const exactResponseReady = claimedRouteState === "ready"
-    && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
+    && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff" || safeRouteSource === "owner_verified_access")
     && graphAuthorityReady
     && exactProjection !== null
     && handoffDestinationReady;
@@ -375,7 +386,7 @@ export function completedPadStatusIsReusable(status: DriverPadStatus) {
 function completedPadStatusProvesReady(status: DriverPadStatus) {
   return Boolean(status.namedApproaches?.length)
     || status.route.state === "ready"
-      && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
+      && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff" || status.route.source === "owner_verified_access")
       && graphStateSupportsRoute(status.route.source, status.graph.state)
       && status.routeSteps.length > 0
       && status.route.geometry !== null;
@@ -400,10 +411,54 @@ export function clearCompletedPadStatusCache() {
   liveStatusRequests.clear();
 }
 
+function ownerAccessReleaseMatchesAtomicStatus(
+  release: DriverOwnerVerifiedAccessRoute,
+  rawRelease: Record<string, unknown>,
+  row: Record<string, unknown>,
+  pad: PadSummary,
+) {
+  const route = object(row.route);
+  const graph = object(row.graph);
+  const google = object(row.google);
+  const destination = object(row.destination);
+  const explicitSavedDestination = pad.coordinate?.role === "saved_pad_destination"
+    ? parseCoordinatePair(pad.coordinate.latitude, pad.coordinate.longitude, "saved_pad_destination")
+    : null;
+  const statusRevision = nullableText(row.statusRevision ?? row.status_revision);
+  const rawRouteSteps = route.steps ?? row.route_steps;
+  const rawRouteGeometry = route.geometry ?? row.route_geometry;
+  const rawReleaseDestination = object(rawRelease.destination);
+  const destinationLatitude = finiteNumber(destination.latitude ?? row.destination_latitude);
+  const destinationLongitude = finiteNumber(destination.longitude ?? row.destination_longitude);
+
+  return route.state === "ready"
+    && route.source === "owner_verified_access"
+    && graph.state === "verified_release"
+    && google.publicState === "ready"
+    && nullableText(google.routeUrl ?? row.public_google_route_url) === null
+    && nullableText(route.safeReason ?? row.route_safe_reason) === ownerAccessSafeReason
+    && nullableText(route.lastVerifiedAt ?? row.route_last_verified_at) === release.lastVerifiedAt
+    && statusRevision === release.statusRevision
+    && destination.available === true
+    && destination.role === "saved_pad_destination"
+    && destinationLatitude === release.destination.latitude
+    && destinationLongitude === release.destination.longitude
+    && finiteNumber(rawReleaseDestination.latitude) === destinationLatitude
+    && finiteNumber(rawReleaseDestination.longitude) === destinationLongitude
+    && JSON.stringify(rawRelease.steps) === JSON.stringify(rawRouteSteps)
+    && JSON.stringify(rawRelease.geometry) === JSON.stringify(rawRouteGeometry)
+    // ODNR pad/wellhead references are deliberately different authority
+    // roles. Only an explicit saved-pad destination may constrain this
+    // owner-receipted destination.
+    && (explicitSavedDestination?.ok !== true
+      || explicitSavedDestination.value.latitude === release.destination.latitude
+        && explicitSavedDestination.value.longitude === release.destination.longitude);
+}
+
 async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySourceState): Promise<DriverPadStatus | null> {
   if (!pad.canonicalId) return null;
   try {
-    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status_with_named_approaches`;
+    const url = `${supabaseUrl}/rest/v1/rpc/brinesearch_v18_driver_pad_status_with_owner_access`;
     const response = await fetch(url, {
       method: "POST",
       headers: { apikey: publishableKey, Accept: "application/json", "Content-Type": "application/json" },
@@ -425,8 +480,37 @@ async function fetchLivePadStatus(pad: PadSummary, sourceState?: DirectorySource
     const returnedRecordRevision = nullableText(row.recordRevision ?? row.record_revision);
     if (returnedRecordRevision !== pad.recordRevision) return null;
     if (!statusProjectionHasRequiredShape(row)) return null;
-    let status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState) : null;
+    const rawRoute = object(row.route);
+    const rawOwnerAccess = envelope.ownerVerifiedAccessRoute ?? envelope.owner_verified_access_route;
+    let ownerAccessRoute: DriverOwnerVerifiedAccessRoute | null = null;
+    if (rawRoute.source === "owner_verified_access") {
+      try {
+        ownerAccessRoute = buildOwnerVerifiedAccessRoute(rawOwnerAccess);
+        if (!ownerAccessReleaseMatchesAtomicStatus(ownerAccessRoute, object(rawOwnerAccess), row, pad)) {
+          throw new Error("Owner-verified access release does not match the atomic status projection");
+        }
+      } catch {
+        return normalizeStatus(row, pad, sourceState);
+      }
+    } else if (rawOwnerAccess !== null && rawOwnerAccess !== undefined) {
+      return null;
+    }
+    let status = Object.keys(row).length ? normalizeStatus(row, pad, sourceState, ownerAccessRoute) : null;
     if (!status) return null;
+    if (ownerAccessRoute) {
+      if (status.route.state !== "ready" || status.google.publicState !== "ready") {
+        return normalizeStatus(row, pad, sourceState);
+      }
+      return {
+        ...status,
+        namedApproaches: [],
+        google: {
+          publicState: "ready",
+          routeUrl: ownerAccessRoute.navigationUrl,
+          safeReason: "Current-location navigation uses all four frozen controls before the saved pad destination.",
+        },
+      };
+    }
     try {
       const rawNamedApproaches = envelope.namedApproaches ?? envelope.named_approaches ?? [];
       const namedApproaches = buildNamedApproachReleaseSet(rawNamedApproaches);

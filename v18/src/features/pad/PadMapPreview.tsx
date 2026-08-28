@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { AttributionControl, LngLatBounds, Map as MapLibreMap, Marker, type StyleSpecification } from "maplibre-gl";
+import { ownerVerifiedAccessLabel } from "@/data/googleRoute";
 import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
+import { routeLineGroups } from "@/data/routeLineGroups";
 import type { DriverPadStatus, DriverRouteGeometry, PadSummary } from "@/data/types";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
@@ -54,13 +56,6 @@ function framePadMap(map: MapLibreMap, points: MapPoint[], expanded: boolean) {
   map.fitBounds(bounds, padMapFrameOptions(expanded));
 }
 
-function routeLines(geometry: DriverRouteGeometry | null): MapPoint[][] {
-  if (!geometry) return [];
-  return geometry.features.flatMap((feature) => feature.geometry.type === "LineString"
-    ? [feature.geometry.coordinates]
-    : feature.geometry.coordinates);
-}
-
 /**
  * Draws the reviewed geometry above the basemap canvas. Keeping this small
  * overlay independent of the tile/style worker means the exact line remains
@@ -81,11 +76,12 @@ function drawApprovedRouteOverlay(map: MapLibreMap, canvas: HTMLCanvasElement | 
   if (!context) return 0;
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, width, height);
-  const lines = routeLines(geometry);
-  if (!lines.length) return 0;
-  const stroke = (color: string, lineWidth: number) => {
+  const lines = routeLineGroups(geometry);
+  if (!lines.exact.length && !lines.ownerVerifiedAccess.length) return 0;
+  const stroke = (routeLines: MapPoint[][], color: string, lineWidth: number, dash: number[] = []) => {
+    if (!routeLines.length) return;
     context.beginPath();
-    for (const line of lines) {
+    for (const line of routeLines) {
       line.forEach((coordinate, index) => {
         const point = map.project(coordinate);
         if (index === 0) context.moveTo(point.x, point.y);
@@ -96,11 +92,15 @@ function drawApprovedRouteOverlay(map: MapLibreMap, canvas: HTMLCanvasElement | 
     context.lineWidth = lineWidth;
     context.lineCap = "round";
     context.lineJoin = "round";
+    context.setLineDash(dash);
     context.stroke();
   };
-  stroke("rgba(7, 19, 31, .88)", 8);
-  stroke("#52e4bd", 5);
-  return lines.length;
+  stroke(lines.exact, "rgba(7, 19, 31, .88)", 8);
+  stroke(lines.exact, "#52e4bd", 5);
+  stroke(lines.ownerVerifiedAccess, "rgba(7, 19, 31, .88)", 8, [11, 8]);
+  stroke(lines.ownerVerifiedAccess, "#52e4bd", 5, [11, 8]);
+  context.setLineDash([]);
+  return lines.exact.length + lines.ownerVerifiedAccess.length;
 }
 
 export function PadMapPreview({ pad, status, routeGeometry = status.route.geometry }: { pad: PadSummary; status: DriverPadStatus; routeGeometry?: DriverRouteGeometry | null }) {
@@ -261,7 +261,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     data-status-route-features={status.route.geometry?.features.length || 0}
     data-route-steps={status.routeSteps.length}
   >
-    <div className="pad-map-preview" aria-label={`Map preview and approved route for ${pad.padName}`}>
+    <div className="pad-map-preview" aria-label={`Map preview and ${status.route.source === "owner_verified_access" ? "owner-verified access route" : "approved route"} for ${pad.padName}`}>
       <div className="pad-map-renderer" ref={host}/>
       <canvas className="pad-map-route-overlay" ref={routeOverlay} aria-hidden="true"/>
     </div>
@@ -271,7 +271,9 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
         {expanded ? <><span aria-hidden="true">×</span> Shrink map</> : <><span aria-hidden="true">↗</span> Expand</>}
       </button>
     </div>
-    {status.destination.role === "saved_pad_destination"
+    {status.route.source === "owner_verified_access"
+      ? <div className="pad-map-warning" role="note">{ownerVerifiedAccessLabel}</div>
+      : status.destination.role === "saved_pad_destination"
       ? <div className="pad-map-warning" role="note">Saved pad GPS. The approved road core ends at its handoff; lease access is destination-only.</div>
       : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. GPS destination only; Google chooses the roads. Not a BrineSearch-approved route.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}

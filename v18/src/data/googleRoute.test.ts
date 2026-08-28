@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet, buildReleasedGoogleHandoffPlan } from "./googleRoute";
+import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet, buildOwnerVerifiedAccessRoute, buildReleasedGoogleHandoffPlan, ownerVerifiedAccessLabel } from "./googleRoute";
+import { ownerVerifiedAccessFixture } from "./ownerVerifiedAccessFixture";
 
 const padId = "e2b32e85-9e93-4388-8215-9d8167cbbeb8";
 const shape = (sequence: number, latitude: number, longitude: number, role?: string) => ({
@@ -12,6 +13,62 @@ const shape = (sequence: number, latitude: number, longitude: number, role?: str
   occurrence_id: `occurrence-${sequence}`,
   source_segment_keys: [`segment-${sequence}`],
   source_digest: "a".repeat(32),
+});
+
+describe("owner-verified access Google handoff", () => {
+  it("keeps all four frozen controls between current location and the separate pad destination", () => {
+    const release = ownerVerifiedAccessFixture();
+    const route = buildOwnerVerifiedAccessRoute(release);
+    const url = new URL(route.navigationUrl);
+
+    expect(route.steps).toHaveLength(7);
+    expect(route.geometry.features).toHaveLength(7);
+    expect(route.geometry.features.slice(0, 6).every((feature) => feature.properties.authority === "exact_graph")).toBe(true);
+    expect(route.geometry.features[6].properties).toEqual({
+      stepOrder: 7,
+      authority: "owner_verified_access",
+      label: ownerVerifiedAccessLabel,
+    });
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual(release.handoff.waypoints.map(
+      (point) => `${point.latitude},${point.longitude}`,
+    ));
+    expect(url.searchParams.get("destination")).toBe(`${release.destination.latitude},${release.destination.longitude}`);
+  });
+
+  it("does not cap, thin, reorder, or append unsupported owner controls", () => {
+    const threeControls = ownerVerifiedAccessFixture();
+    threeControls.handoff.waypoints.pop();
+    expect(() => buildOwnerVerifiedAccessRoute(threeControls)).toThrow(/exactly four frozen controls/i);
+
+    const fiveControls = ownerVerifiedAccessFixture();
+    fiveControls.handoff.waypoints.push({ ...fiveControls.handoff.waypoints[3] });
+    expect(() => buildOwnerVerifiedAccessRoute(fiveControls)).toThrow(/exactly four frozen controls/i);
+
+    const reordered = ownerVerifiedAccessFixture();
+    [reordered.handoff.waypoints[1], reordered.handoff.waypoints[2]] = [
+      reordered.handoff.waypoints[2],
+      reordered.handoff.waypoints[1],
+    ];
+    expect(() => buildOwnerVerifiedAccessRoute(reordered)).toThrow(/not ordered on the exact public core/i);
+  });
+
+  it("fails closed on authority, label, endpoint, or release-shape drift", () => {
+    const wrongAuthority = ownerVerifiedAccessFixture();
+    wrongAuthority.geometry.features[6].properties.authority = "exact_graph";
+    expect(() => buildOwnerVerifiedAccessRoute(wrongAuthority)).toThrow(/authority or label/i);
+
+    const wrongLabel = ownerVerifiedAccessFixture();
+    wrongLabel.geometry.features[6].properties.label = "Lease road";
+    expect(() => buildOwnerVerifiedAccessRoute(wrongLabel)).toThrow(/authority or label/i);
+
+    const driftingDestination = ownerVerifiedAccessFixture();
+    driftingDestination.destination.latitude += 0.0000001;
+    expect(() => buildOwnerVerifiedAccessRoute(driftingDestination)).toThrow(/do not exactly match/i);
+
+    expect(() => buildOwnerVerifiedAccessRoute({ ...ownerVerifiedAccessFixture(), internalNote: "must not leak" })).toThrow(/unsupported data/i);
+  });
 });
 
 function row(points: Record<string, unknown>[]) {

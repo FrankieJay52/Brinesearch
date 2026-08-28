@@ -1,9 +1,11 @@
 import { isInsideCoordinateServiceArea } from "./coordinates";
-import type { DriverNamedApproach, DriverRouteGeometry, DriverRouteStep } from "./types";
+import type { DriverNamedApproach, DriverOwnerVerifiedAccessRoute, DriverRouteGeometry, DriverRouteStep } from "./types";
 
 const maxWaypoints = 3;
 const maxUrlLength = 2048;
 const pointKinds = new Set(["junction", "shared_entry", "shared_exit", "shape", "pad_destination"]);
+
+export const ownerVerifiedAccessLabel = "Owner-verified lease access — not ODOT road geometry";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -41,6 +43,13 @@ const namedApproachKeys = [
 const namedStepKinds = new Set<DriverRouteStep["kind"]>(["turn", "continue", "name_change", "shared_begin", "shared_end"]);
 const namedRevisionPattern = /^[0-9a-f]{32,64}$/;
 const namedApproachKeyPattern = /^[a-z0-9][a-z0-9_-]{0,63}$/;
+const ownerAccessReleaseKeys = [
+  "releaseId", "releaseVersion", "routeRevision", "publicCoreStepCount",
+  "steps", "geometry", "ingress", "privateAccessStart", "destination",
+  "finalLegMode", "handoff", "lastVerifiedAt", "statusRevision",
+  "releaseDigest", "publishedAt",
+];
+const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function record(value: unknown, message: string): UnknownRecord {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error(message);
@@ -106,6 +115,10 @@ function sameRouteCoordinate(left: RouteCoordinate, right: RouteCoordinate) {
   // serialization difference; it is never used to select a road.
   return Math.abs(left[0] - right[0]) <= 0.000001
     && Math.abs(left[1] - right[1]) <= 0.000001;
+}
+
+function sameExactRouteCoordinate(left: RouteCoordinate, right: RouteCoordinate) {
+  return left[0] === right[0] && left[1] === right[1];
 }
 
 function namedTimestamp(value: unknown, field: string) {
@@ -244,6 +257,100 @@ function namedGeometry(value: unknown, steps: DriverRouteStep[]): NamedGeometryP
   }
   if (vertices.length > 50_000) throw new Error("Named approach geometry exceeds the public point limit");
   return { geometry: { type: "FeatureCollection", features }, milestones, vertices };
+}
+
+interface OwnerAccessGeometryProjection {
+  geometry: DriverRouteGeometry;
+  milestones: RouteCoordinate[];
+  publicCoreVertices: RouteCoordinate[];
+}
+
+function ownerAccessGeometry(value: unknown, steps: DriverRouteStep[]): OwnerAccessGeometryProjection {
+  const collection = record(value, "Owner-verified access geometry is invalid");
+  if (!onlyKeys(collection, ["type", "features"])
+      || collection.type !== "FeatureCollection"
+      || !Array.isArray(collection.features)
+      || collection.features.length !== 7
+      || steps.length !== 7) {
+    throw new Error("Owner-verified access geometry must contain exactly seven ordered features and steps");
+  }
+
+  const features: DriverRouteGeometry["features"] = [];
+  const milestones: RouteCoordinate[] = [];
+  const publicCoreVertices: RouteCoordinate[] = [];
+  let priorEnd: RouteCoordinate | null = null;
+  let pointCount = 0;
+  for (const [featureIndex, rawFeature] of collection.features.entries()) {
+    const feature = record(rawFeature, `Owner-verified access feature ${featureIndex + 1} is invalid`);
+    const properties = record(feature.properties, `Owner-verified access feature ${featureIndex + 1} properties are invalid`);
+    const geometry = record(feature.geometry, `Owner-verified access feature ${featureIndex + 1} geometry is invalid`);
+    const authority = featureIndex < 6 ? "exact_graph" : "owner_verified_access";
+    if (!onlyKeys(feature, ["type", "properties", "geometry"])
+        || feature.type !== "Feature"
+        || !onlyKeys(properties, ["stepOrder", "authority", "label"])
+        || properties.stepOrder !== featureIndex + 1
+        || properties.authority !== authority
+        || typeof properties.label !== "string"
+        || !properties.label.trim()
+        || properties.label.length > 100
+        || featureIndex === 6 && properties.label !== ownerVerifiedAccessLabel
+        || (geometry.type !== "LineString" && geometry.type !== "MultiLineString")) {
+      throw new Error("Owner-verified access feature authority or label is invalid");
+    }
+
+    const rawLines = geometry.type === "LineString" ? [geometry.coordinates] : geometry.coordinates;
+    if (!Array.isArray(rawLines) || !rawLines.length) throw new Error("Owner-verified access geometry contains an empty line");
+    const lines: RouteCoordinate[][] = [];
+    let featurePriorEnd: RouteCoordinate | null = null;
+    for (const [lineIndex, rawLine] of rawLines.entries()) {
+      if (!Array.isArray(rawLine) || rawLine.length < 2 || rawLine.length > 20_000) {
+        throw new Error("Owner-verified access geometry contains an invalid line");
+      }
+      const line = rawLine.map((point, pointIndex) => {
+        if (!Array.isArray(point) || point.some((coordinatePart) => typeof coordinatePart !== "number")) {
+          throw new Error("Owner-verified access coordinates must be exact JSON numbers");
+        }
+        return routeCoordinate(point, `owner feature ${featureIndex + 1} line ${lineIndex + 1} point ${pointIndex + 1}`);
+      });
+      pointCount += line.length;
+      if (pointCount > 50_000) throw new Error("Owner-verified access geometry exceeds the public point limit");
+      if (featurePriorEnd && !sameExactRouteCoordinate(featurePriorEnd, line[0])) {
+        throw new Error("Owner-verified access multipart geometry is not exactly continuous");
+      }
+      featurePriorEnd = line.at(-1)!;
+      lines.push(line);
+    }
+
+    const featureStart = lines[0][0];
+    const featureEnd = lines.at(-1)!.at(-1)!;
+    if (priorEnd && !sameExactRouteCoordinate(priorEnd, featureStart)) {
+      throw new Error("Owner-verified access geometry is not exactly continuous");
+    }
+    if (!milestones.length) milestones.push(featureStart);
+    milestones.push(featureEnd);
+    if (featureIndex < 6) {
+      for (const line of lines) {
+        for (const point of line) {
+          if (!publicCoreVertices.length || !sameExactRouteCoordinate(publicCoreVertices.at(-1)!, point)) {
+            publicCoreVertices.push(point);
+          }
+        }
+      }
+    }
+    priorEnd = featureEnd;
+    features.push({
+      type: "Feature",
+      properties: {
+        stepOrder: featureIndex + 1,
+        authority,
+        label: properties.label,
+      },
+      geometry: geometry.type === "LineString"
+        ? { type: "LineString", coordinates: lines[0] }
+        : { type: "MultiLineString", coordinates: lines },
+    });
+  }
+  return { geometry: { type: "FeatureCollection", features }, milestones, publicCoreVertices };
 }
 
 function exactCoreRouteLines(value: unknown, steps: unknown[], releaseVersion: string) {
@@ -649,6 +756,172 @@ function namedHandoffWaypoints(value: unknown) {
       coordinateText: coordinate(waypoint),
     };
   });
+}
+
+function ownerAccessPoint(
+  value: unknown,
+  field: string,
+  role: DriverOwnerVerifiedAccessRoute["ingress"]["role"]
+    | DriverOwnerVerifiedAccessRoute["privateAccessStart"]["role"]
+    | DriverOwnerVerifiedAccessRoute["destination"]["role"],
+) {
+  const point = record(value, `Owner-verified access ${field} is invalid`);
+  if (!onlyKeys(point, ["role", "label", "latitude", "longitude"])
+      || point.role !== role
+      || typeof point.label !== "string"
+      || typeof point.latitude !== "number"
+      || typeof point.longitude !== "number") {
+    throw new Error(`Owner-verified access ${field} has an unsupported authority shape`);
+  }
+  const coordinateText = coordinate(point);
+  const exactCoordinate = pointCoordinate(point);
+  return {
+    role,
+    label: namedLabel(point.label, `owner access ${field} label`),
+    latitude: exactCoordinate[1],
+    longitude: exactCoordinate[0],
+    coordinate: exactCoordinate,
+    coordinateText,
+  };
+}
+
+function ownerAccessWaypoints(value: unknown) {
+  if (!Array.isArray(value) || value.length !== 4) {
+    throw new Error("Owner-verified Google handoff must contain exactly four frozen controls");
+  }
+  return value.map((rawWaypoint, index) => {
+    const waypoint = record(rawWaypoint, `Owner-verified access waypoint ${index + 1} is invalid`);
+    if (!onlyKeys(waypoint, ["latitude", "longitude"])
+        || typeof waypoint.latitude !== "number"
+        || typeof waypoint.longitude !== "number") {
+      throw new Error("Owner-verified access waypoint exposes unsupported data");
+    }
+    const coordinateText = coordinate(waypoint);
+    const exactCoordinate = pointCoordinate(waypoint);
+    return {
+      latitude: exactCoordinate[1],
+      longitude: exactCoordinate[0],
+      coordinate: exactCoordinate,
+      coordinateText,
+    };
+  });
+}
+
+/**
+ * Validate the immutable public-road core plus owner-verified private-access
+ * release. The four controls are kept intact and the saved pad remains a
+ * separate destination; Google receives no fixed origin, so navigation begins
+ * at the driver's current location.
+ */
+export function buildOwnerVerifiedAccessRoute(value: unknown): DriverOwnerVerifiedAccessRoute {
+  const release = record(value, "Owner-verified access release is invalid");
+  if (!onlyKeys(release, ownerAccessReleaseKeys)) {
+    throw new Error("Owner-verified access release exposes unsupported data");
+  }
+  if (typeof release.releaseId !== "string"
+      || typeof release.routeRevision !== "number"
+      || typeof release.publicCoreStepCount !== "number"
+      || typeof release.statusRevision !== "string"
+      || typeof release.releaseDigest !== "string"
+      || typeof release.lastVerifiedAt !== "string"
+      || typeof release.publishedAt !== "string") {
+    throw new Error("Owner-verified access scalar fields must use the exact public types");
+  }
+  const releaseId = release.releaseId.trim();
+  if (!uuidPattern.test(releaseId)
+      || release.releaseVersion !== "v18-owner-access-route-v1"
+      || release.publicCoreStepCount !== 6
+      || release.finalLegMode !== "owner_verified_private_access_to_saved_pad") {
+    throw new Error("Owner-verified access release identity is invalid");
+  }
+  const routeRevision = revision(release.routeRevision, "owner-verified route revision");
+  const steps = namedSteps(release.steps);
+  if (steps.length !== 7) throw new Error("Owner-verified access release must contain seven ordered step cards");
+  const projection = ownerAccessGeometry(release.geometry, steps);
+  const ingress = ownerAccessPoint(release.ingress, "ingress", "exact_public_route_ingress");
+  const privateAccessStart = ownerAccessPoint(
+    release.privateAccessStart,
+    "private-access start",
+    "owner_verified_private_access_start",
+  );
+  const destination = ownerAccessPoint(release.destination, "destination", "saved_pad_destination");
+  if (!sameExactRouteCoordinate(ingress.coordinate, projection.milestones[0])
+      || !sameExactRouteCoordinate(privateAccessStart.coordinate, projection.milestones[6])
+      || !sameExactRouteCoordinate(destination.coordinate, projection.milestones[7])) {
+    throw new Error("Owner-verified authority points do not exactly match the combined geometry");
+  }
+
+  const handoff = record(release.handoff, "Owner-verified access handoff is invalid");
+  if (!onlyKeys(handoff, ["originMode", "handoffMode", "waypoints"])
+      || handoff.originMode !== "current_location_to_route_ingress"
+      || handoff.handoffMode !== "owner_verified_controls_v1") {
+    throw new Error("Owner-verified access handoff mode is invalid");
+  }
+  const waypoints = ownerAccessWaypoints(handoff.waypoints);
+  if (!sameExactRouteCoordinate(waypoints[0].coordinate, ingress.coordinate)
+      || !sameExactRouteCoordinate(waypoints[3].coordinate, privateAccessStart.coordinate)) {
+    throw new Error("Owner-verified Google controls must begin at ingress and end at private access");
+  }
+  const uniqueControls = new Set(waypoints.map((waypoint) => `${waypoint.longitude},${waypoint.latitude}`));
+  if (uniqueControls.size !== 4
+      || waypoints.some((waypoint) => sameExactRouteCoordinate(waypoint.coordinate, destination.coordinate))) {
+    throw new Error("Owner-verified Google controls must remain four unique controls before the destination");
+  }
+  let nextVertexIndex = 0;
+  for (const waypoint of waypoints) {
+    const vertexIndex = projection.publicCoreVertices.findIndex((vertex, index) => (
+      index >= nextVertexIndex && sameExactRouteCoordinate(vertex, waypoint.coordinate)
+    ));
+    if (vertexIndex < 0) throw new Error("Owner-verified Google controls are not ordered on the exact public core");
+    nextVertexIndex = vertexIndex + 1;
+  }
+
+  const statusRevision = namedRevision(release.statusRevision, "owner access status revision");
+  const releaseDigest = namedReleaseDigest(release.releaseDigest);
+  const lastVerifiedAt = namedTimestamp(release.lastVerifiedAt, "owner access verification time");
+  const publishedAt = namedTimestamp(release.publishedAt, "owner access publication time");
+  const navigationUrl = routeUrl(
+    destination.coordinateText,
+    waypoints.map((waypoint) => waypoint.coordinateText),
+  );
+
+  return {
+    releaseId,
+    releaseVersion: "v18-owner-access-route-v1",
+    routeRevision,
+    publicCoreStepCount: 6,
+    steps,
+    geometry: projection.geometry,
+    ingress: {
+      role: "exact_public_route_ingress",
+      label: ingress.label,
+      latitude: ingress.latitude,
+      longitude: ingress.longitude,
+    },
+    privateAccessStart: {
+      role: "owner_verified_private_access_start",
+      label: privateAccessStart.label,
+      latitude: privateAccessStart.latitude,
+      longitude: privateAccessStart.longitude,
+    },
+    destination: {
+      role: "saved_pad_destination",
+      label: destination.label,
+      latitude: destination.latitude,
+      longitude: destination.longitude,
+    },
+    finalLegMode: "owner_verified_private_access_to_saved_pad",
+    handoff: {
+      originMode: "current_location_to_route_ingress",
+      handoffMode: "owner_verified_controls_v1",
+      waypoints: waypoints.map(({ latitude, longitude }) => ({ latitude, longitude })),
+    },
+    lastVerifiedAt,
+    statusRevision,
+    releaseDigest,
+    publishedAt,
+    navigationUrl,
+  };
 }
 
 function validateNamedWaypointOrder(

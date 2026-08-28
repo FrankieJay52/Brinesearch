@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { clearCompletedPadStatusCache, completedPadStatusIsReusable, hasCompletedReadyPadStatus, loadPadStatus, statusProjectionHasRequiredShape } from "./status";
 import type { DriverRouteStep, PadSummary } from "./types";
+import { ownerVerifiedAccessFixture } from "./ownerVerifiedAccessFixture";
 
 function pad(overrides: Partial<PadSummary> = {}): PadSummary {
   return {
@@ -578,7 +579,7 @@ describe("public driver status boundary", () => {
     expect(status.google.publicState).toBe("ready");
     expect(status.google.routeUrl).toMatch(/^https:\/\/www\.google\.com\/maps\/dir\/\?/);
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_named_approaches");
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("brinesearch_v18_driver_pad_status_with_owner_access");
   });
 
   it("launches one reviewed exact road core with a separately labelled saved GPS destination", async () => {
@@ -1047,6 +1048,118 @@ describe("public driver status boundary", () => {
     expect(status.routeSteps).toEqual([]);
     expect(status.destination).toEqual({ available: false, role: null, latitude: 40.1, longitude: -80.9 });
     expect(status.google.routeUrl).toBeNull();
+  });
+});
+
+describe("owner-verified access status projection", () => {
+  const safeReason = "Public-road core is exact ODOT graph geometry; final dashed leg is owner-verified private lease access.";
+
+  function ownerEnvelope() {
+    const release = ownerVerifiedAccessFixture();
+    return {
+      release,
+      envelope: {
+        status: {
+          padId: "11111111-1111-4111-8111-111111111111",
+          recordRevision: "fixture-r1",
+          statusRevision: release.statusRevision,
+          route: {
+            state: "ready",
+            source: "owner_verified_access",
+            steps: release.steps,
+            geometry: release.geometry,
+            safeReason,
+            lastVerifiedAt: release.lastVerifiedAt,
+            writtenDirections: null,
+          },
+          graph: {
+            state: "verified_release",
+            county: "Harrison",
+            publicSource: "Exact ODOT graph + owner-verified lease receipt",
+            lastVerifiedAt: release.lastVerifiedAt,
+          },
+          google: { publicState: "ready", routeUrl: null, safeReason: "Client-generated frozen handoff." },
+          destination: {
+            available: true,
+            role: "saved_pad_destination",
+            latitude: release.destination.latitude,
+            longitude: release.destination.longitude,
+          },
+        },
+        ownerVerifiedAccessRoute: release,
+        publicGoogleRoute: null,
+        publicGoogleHandoff: null,
+        coreDestinationRelease: null,
+        namedApproaches: [],
+      },
+    };
+  }
+
+  function ownerPad() {
+    return pad({
+      coordinate: null,
+      mapReference: {
+        role: "reference",
+        kind: "official_pad_reference",
+        latitude: 40.692916,
+        longitude: -81.146801,
+      },
+      padName: "TIMBERWOLF",
+      county: "Harrison",
+    });
+  }
+
+  it("accepts the atomic seven-feature projection and builds a four-control current-location URL", async () => {
+    const { envelope, release } = ownerEnvelope();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([envelope])));
+
+    const status = await loadPadStatus(ownerPad());
+    const url = new URL(status.google.routeUrl!);
+
+    expect(status.route).toMatchObject({ state: "ready", source: "owner_verified_access", safeReason });
+    expect(status.graph.state).toBe("verified_release");
+    expect(status.destination).toMatchObject({
+      role: "saved_pad_destination",
+      latitude: release.destination.latitude,
+      longitude: release.destination.longitude,
+    });
+    expect(status.routeSteps).toHaveLength(7);
+    expect(status.route.geometry?.features).toHaveLength(7);
+    expect(status.route.geometry?.features[6].properties.authority).toBe("owner_verified_access");
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")?.split("|")).toHaveLength(4);
+    expect(url.searchParams.get("destination")).toBe(`${release.destination.latitude},${release.destination.longitude}`);
+  });
+
+  it("does not let a different ODNR reference override the owner-receipted destination", async () => {
+    const { envelope, release } = ownerEnvelope();
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse([envelope])));
+
+    const status = await loadPadStatus(ownerPad());
+
+    expect(status.route.state).toBe("ready");
+    expect(status.destination.latitude).toBe(release.destination.latitude);
+    expect(status.destination.longitude).toBe(release.destination.longitude);
+    expect(status.destination.latitude).not.toBe(40.692916);
+  });
+
+  it("fails closed when the release is missing or differs from the promoted status", async () => {
+    const missing = ownerEnvelope();
+    missing.envelope.ownerVerifiedAccessRoute = null as never;
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse([missing.envelope])));
+    const missingStatus = await loadPadStatus(ownerPad());
+    expect(missingStatus.route).toMatchObject({ state: "held", source: "owner_verified_access", geometry: null });
+    expect(missingStatus.routeSteps).toEqual([]);
+    expect(missingStatus.google.routeUrl).toBeNull();
+
+    clearCompletedPadStatusCache();
+    const drifted = ownerEnvelope();
+    drifted.envelope.status.route.geometry = structuredClone(drifted.envelope.status.route.geometry);
+    drifted.envelope.status.route.geometry.features[6].properties.label = "Lease road";
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValueOnce(jsonResponse([drifted.envelope])));
+    const driftedStatus = await loadPadStatus(ownerPad());
+    expect(driftedStatus.route).toMatchObject({ state: "held", source: "owner_verified_access", geometry: null });
+    expect(driftedStatus.google).toMatchObject({ publicState: "stale", routeUrl: null });
   });
 });
 

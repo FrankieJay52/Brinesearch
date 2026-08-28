@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildOfflineRouteRecord, offlineRouteSchema, restoreOfflinePadStatus } from "./offlineRouteModel";
 import type { DriverPadStatus, PadSummary } from "./types";
+import { buildOwnerVerifiedAccessRoute } from "./googleRoute";
+import { ownerVerifiedAccessFixture } from "./ownerVerifiedAccessFixture";
 
 const padId = "11111111-1111-4111-8111-111111111111";
 
@@ -90,6 +92,32 @@ function immutableHandoffStatus(): DriverPadStatus {
   return status;
 }
 
+function ownerAccessStatus(): DriverPadStatus {
+  const release = buildOwnerVerifiedAccessRoute(ownerVerifiedAccessFixture());
+  const status = exactStatus();
+  status.route = {
+    ...status.route,
+    source: "owner_verified_access",
+    geometry: release.geometry,
+    safeReason: "Public-road core is exact ODOT graph geometry; final dashed leg is owner-verified private lease access.",
+    lastVerifiedAt: release.lastVerifiedAt,
+  };
+  status.graph.state = "verified_release";
+  status.routeSteps = release.steps;
+  status.destination = {
+    available: true,
+    role: "saved_pad_destination",
+    latitude: release.destination.latitude,
+    longitude: release.destination.longitude,
+  };
+  status.google = {
+    publicState: "ready",
+    routeUrl: release.navigationUrl,
+    safeReason: "Four frozen controls.",
+  };
+  return status;
+}
+
 function copyRecord<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -104,6 +132,10 @@ describe("V18 offline route SQLite model", () => {
     expect(schema).toContain("ON pads(name)");
     expect(schema).toContain("ON routes(pad_id)");
     expect(schema).toContain("ON route_steps(route_id, step_index)");
+  });
+
+  it("fails closed offline instead of misclassifying owner access as exact graph authority", () => {
+    expect(buildOfflineRouteRecord(pad(), ownerAccessStatus(), "2026-08-28T20:06:00.000Z")).toBeNull();
   });
 
   it("stores only the reviewed exact step and exact API geometry endpoints", () => {
