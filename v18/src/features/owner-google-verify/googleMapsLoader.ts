@@ -14,8 +14,10 @@ export interface GoogleMapsListener {
 
 export interface GoogleMapInstance {
   addListener(eventName: "click", handler: (event: { latLng: GoogleLatLng | null }) => void): GoogleMapsListener;
-  fitBounds(bounds: GoogleLatLngBoundsInstance, padding?: number): void;
+  fitBounds(bounds: GoogleLatLngBoundsInstance, padding?: number | { top: number; right: number; bottom: number; left: number }): void;
+  setCenter(point: GoogleLatLngLiteral): void;
   setMapTypeId(mapTypeId: string): void;
+  setZoom(zoom: number): void;
 }
 
 export interface GoogleCircleInstance {
@@ -26,6 +28,14 @@ export interface GooglePolylineInstance {
   addListener(eventName: "click", handler: () => void): GoogleMapsListener;
   setMap(map: GoogleMapInstance | null): void;
   setOptions(options: Record<string, unknown>): void;
+}
+
+export interface GoogleMarkerInstance {
+  setMap(map: GoogleMapInstance | null): void;
+}
+
+export interface GoogleMarkerClass {
+  new (options: Record<string, unknown>): GoogleMarkerInstance;
 }
 
 export interface GoogleLatLngBoundsInstance {
@@ -66,13 +76,20 @@ export interface GoogleRoutesLibrary {
   Route: GoogleRouteClass;
 }
 
+export interface GoogleMarkerLibrary {
+  Marker: GoogleMarkerClass;
+}
+
 export interface GoogleMapsApi {
   Map: new (element: HTMLElement, options: Record<string, unknown>) => GoogleMapInstance;
   Circle: new (options: Record<string, unknown>) => GoogleCircleInstance;
   Polyline: new (options: Record<string, unknown>) => GooglePolylineInstance;
   LatLngBounds: new () => GoogleLatLngBoundsInstance;
+  ControlPosition: { RIGHT_CENTER: number };
   MapTypeId: { ROADMAP: string; SATELLITE: string };
+  SymbolPath: { CIRCLE: number };
   importLibrary(name: "routes"): Promise<GoogleRoutesLibrary>;
+  importLibrary(name: "marker"): Promise<GoogleMarkerLibrary>;
 }
 
 type GoogleMapsWindow = Window & {

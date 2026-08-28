@@ -96,7 +96,7 @@ describe("owner Google verify map source contracts", () => {
     expect(pageSource).toContain('aria-label="Candidate entrance longitude"');
     expect(pageSource).toContain("Optional owner-entered draft point. It is shown in purple and never replaces the locked saved pad GPS or driver Navigate.");
     expect(pageSource).toContain("candidateEntrance: parsedCandidateEntrance.point");
-    expect(pageSource).toContain("candidateEntrancePoint && { point: candidateEntrancePoint, color: \"#c084fc\", radius: 13 }");
+    expect(pageSource).toContain('candidateEntrancePoint && { point: candidateEntrancePoint, color: "#a855f7", label: "E", title: "Draft entrance candidate"');
 
     const routeStart = pageSource.indexOf("Route.computeRoutes({");
     const routeEnd = pageSource.indexOf("}).then(({ routes }) =>", routeStart);
@@ -106,7 +106,7 @@ describe("owner Google verify map source contracts", () => {
   });
 
   it("keeps results draft-only and uses phone geolocation without a console or Cadiz fallback origin", () => {
-    expect(pageSource).toContain('<div className="owner-draft-banner"><Icon name="control"/><strong>Draft only — driver Navigate unchanged.</strong></div>');
+    expect(pageSource).toContain("<strong>Draft only — driver Navigate unchanged.</strong>");
     expect(pageSource).toContain('setSaveMessage("Draft saved on this device. Driver Navigate is unchanged.");');
     expect(pageSource).toContain("const nextOrigin = { latitude: position.coords.latitude, longitude: position.coords.longitude };");
     expect(pageSource).toContain("origin: googlePoint(origin)");
@@ -116,9 +116,48 @@ describe("owner Google verify map source contracts", () => {
     expect(`${pageSource}\n${loaderSource}`).not.toMatch(/\bconsole\./);
   });
 
-  it("reserves an uncovered Google attribution edge below the map controls", () => {
-    expect(pageCss).toMatch(/\.owner-google-verify-map\s*\{[^}]*inset:\s*0 0 118px;/s);
-    expect(pageCss).toContain("Keep Google's logo, attribution, and legal links inside an uncovered map");
-    expect(pageCss).toMatch(/details\[open\][^{]*\.owner-google-verify-map\s*\{[^}]*bottom:\s*calc\(min\(45dvh, 360px\) \+ 112px\);/s);
+  it("makes workflow and draft tools controlled, mutually exclusive, and collapsed by default", () => {
+    expect(pageSource).toContain("const [workflowOpen, setWorkflowOpen] = useState(false);");
+    expect(pageSource).toContain("const [draftPanelOpen, setDraftPanelOpen] = useState(false);");
+    expect(pageSource).toContain('className="owner-workflow-toggle" aria-expanded={workflowOpen} aria-controls="owner-google-workflow-content"');
+    expect(pageSource).toContain('className="owner-draft-toggle" aria-expanded={draftPanelOpen} aria-controls="owner-google-draft-content"');
+    expect(pageSource).toContain("function toggleWorkflowPanel()");
+    expect(pageSource).toContain("function toggleDraftPanel()");
+    expect(pageSource).toContain("if (activeElement instanceof HTMLElement) activeElement.blur();");
+    expect(pageSource).toMatch(/function toggleWorkflowPanel\(\)[\s\S]*?setDraftPanelOpen\(false\);[\s\S]*?setSelectedSectionId\(""\);/);
+    expect(pageSource).toMatch(/function toggleDraftPanel\(\)[\s\S]*?setWorkflowOpen\(false\);[\s\S]*?setSelectedSectionId\(""\);/);
+    expect(pageSource).toContain('requestPhoneOrigin(); setWorkflowOpen(false);');
+    expect(pageSource).toContain('{workflowOpen && <div id="owner-google-workflow-content"');
+    expect(pageSource).toContain('{draftPanelOpen && <div id="owner-google-draft-content"');
+    expect(pageSource).not.toContain("<details>");
+  });
+
+  it("keeps the map full-height while leaving its bottom attribution edge uncovered", () => {
+    expect(pageCss).toMatch(/\.owner-google-verify-map\s*\{[^}]*inset:\s*0;/s);
+    expect(pageCss).toContain("Google's logo, attribution,");
+    expect(pageCss).toContain("legal links remain uncovered without shrinking the full-height map");
+    expect(pageCss).toMatch(/\.owner-google-draft-panel\s*\{[^}]*bottom:\s*max\(38px,/s);
+    expect(pageCss).not.toContain(":has(");
+    expect(pageCss).not.toContain("details[open]");
+  });
+
+  it("keeps the pad, phone, anchor, and turn pins obvious while preserving visible road context", () => {
+    expect(pageSource).toContain('maps.importLibrary("marker")');
+    expect(pageSource).toContain('label: "YOU", title: "Current phone GPS"');
+    expect(pageSource).toContain('label: "A", title: "Named-road anchor"');
+    expect(pageSource).toContain('label: String(index + 1), title: `Turn pin ${index + 1}`');
+    expect(pageSource).toContain('label: "PAD", title: `${pad.padName} — saved pad GPS`');
+    expect(pageSource).toContain('[anchor, candidateEntrancePoint, clearOverlays, destination, mapState, origin, pad, routeLegs');
+    expect(pageSource).toContain('mapTypeId: maps.MapTypeId.ROADMAP');
+    expect(pageSource).toContain('zoomControlOptions: { position: maps.ControlPosition.RIGHT_CENTER }');
+    expect(pageSource).toContain('aria-label={`Find ${pad.padName} saved pad GPS`}');
+    expect(pageSource).toContain('map.setCenter(googlePoint(destination));');
+    expect(pageSource).toContain('map.setZoom(16);');
+    expect(pageSource).toContain('{ top: 180, right: 24, bottom: 136, left: 24 }');
+    expect(pageSource).toContain('}, [mapState, mapType]);');
+    expect(pageSource).toContain('disabled={mapState !== "ready"} aria-label={`Find ${pad.padName} saved pad GPS`}');
+    expect(pageSource).toMatch(/strokeColor: "#042f2e",[\s\S]*?strokeWeight: 11,[\s\S]*?strokeColor: "#14b8a6",[\s\S]*?strokeWeight: 8,/);
+    expect(pageSource).toMatch(/strokeColor: "#07131f",[\s\S]*?strokeWeight: 14,[\s\S]*?strokeColor: "#2dd4bf",[\s\S]*?strokeWeight: 10,/);
+    expect(pageCss).toContain('.owner-approved-step-status > span { width: 30px; height: 8px; background: #2dd4bf;');
   });
 });

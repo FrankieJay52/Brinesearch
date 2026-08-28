@@ -10,15 +10,12 @@
 
 .owner-google-verify-map {
   position: absolute;
-  inset: 0 0 118px;
+  inset: 0;
   background: #0b2332;
 }
 
-/* Keep Google's logo, attribution, and legal links inside an uncovered map
-   edge even when the local draft controls are expanded. */
-.owner-google-verify-page:has(.owner-google-draft-panel details[open]) .owner-google-verify-map {
-  bottom: calc(min(45dvh, 360px) + 112px);
-}
+/* Local controls stop above the bottom edge so Google's logo, attribution,
+   and legal links remain uncovered without shrinking the full-height map. */
 
 .owner-google-map-state {
   position: absolute;
@@ -68,7 +65,10 @@
 .owner-google-verify-topbar > div > small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .owner-google-verify-topbar > div > small { color: var(--muted); font-size: .65rem; }
 
-.owner-map-type {
+.owner-map-tools { display: flex; align-items: center; gap: 6px; }
+
+.owner-map-type,
+.owner-pad-focus {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
@@ -82,17 +82,77 @@
   cursor: pointer;
 }
 
-.owner-map-type svg { width: 1rem; height: 1rem; color: var(--teal-bright); }
+.owner-map-type svg,
+.owner-pad-focus svg { width: 1rem; height: 1rem; color: var(--teal-bright); }
+.owner-pad-focus { color: #05201d; border-color: var(--teal); background: var(--teal-bright); }
+.owner-pad-focus svg { color: #05201d; }
+.owner-map-type:disabled,
+.owner-pad-focus:disabled { cursor: wait; opacity: .55; }
 
 .owner-google-verify-guide {
   top: calc(max(10px, env(safe-area-inset-top)) + 78px);
   left: max(10px, env(safe-area-inset-left));
   width: min(410px, calc(100% - 20px));
-  max-height: calc(100dvh - 190px);
-  overflow: auto;
-  padding: 12px;
+  overflow: hidden;
   border-radius: 18px;
 }
+
+.owner-workflow-toggle,
+.owner-draft-toggle {
+  width: 100%;
+  min-height: 54px;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.owner-workflow-toggle > span:nth-child(2),
+.owner-draft-toggle > span:nth-child(2) { min-width: 0; display: grid; gap: 2px; }
+.owner-workflow-toggle strong,
+.owner-workflow-toggle small,
+.owner-draft-toggle strong,
+.owner-draft-toggle small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.owner-workflow-toggle small,
+.owner-draft-toggle small { color: var(--muted); font-size: .62rem; }
+.owner-workflow-indicator {
+  width: 11px;
+  height: 11px;
+  margin: 0 5px;
+  border-radius: 50%;
+  background: var(--amber);
+  box-shadow: 0 0 0 5px color-mix(in srgb, var(--amber) 17%, transparent);
+}
+.owner-workflow-indicator.is-success { background: var(--teal-bright); box-shadow: 0 0 0 5px color-mix(in srgb, var(--teal) 17%, transparent); }
+.owner-workflow-indicator.is-off_approved_road { background: #ef4444; box-shadow: 0 0 0 5px color-mix(in srgb, #ef4444 17%, transparent); }
+.owner-panel-toggle-action {
+  min-width: 58px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 8px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--teal-bright);
+  background: var(--surface-raised);
+  font-size: .62rem;
+  font-weight: 850;
+}
+.owner-panel-toggle-action svg { width: .85rem; height: .85rem; }
+.owner-google-workflow-content {
+  max-height: min(54dvh, 430px);
+  overflow: auto;
+  padding: 0 10px 10px;
+  border-top: 1px solid var(--line-soft);
+}
+.owner-google-workflow-content > .owner-verify-outcome { margin-top: 10px; }
 
 .owner-verify-outcome {
   display: grid;
@@ -131,6 +191,7 @@
   background: color-mix(in srgb, var(--teal) 9%, var(--surface-raised));
 }
 .owner-approved-road-status > span { grid-row: 1 / span 2; width: 24px; height: 4px; border-radius: 999px; background: #14b8a6; box-shadow: 0 0 0 3px color-mix(in srgb, #14b8a6 14%, transparent); }
+.owner-approved-step-status > span { width: 30px; height: 8px; background: #2dd4bf; box-shadow: 0 0 0 3px #07131f, 0 0 0 5px color-mix(in srgb, #2dd4bf 20%, transparent); }
 .owner-approved-road-status small { color: var(--muted); font-size: .63rem; line-height: 1.35; }
 .owner-approved-road-status.is-error { border-color: color-mix(in srgb, #ef4444 45%, var(--line-soft)); }
 
@@ -191,17 +252,15 @@
 
 .owner-google-draft-panel {
   left: max(10px, env(safe-area-inset-left));
-  bottom: max(34px, calc(env(safe-area-inset-bottom) + 26px));
+  bottom: max(38px, calc(env(safe-area-inset-bottom) + 30px));
   width: min(520px, calc(100% - 20px));
   overflow: hidden;
   border-radius: 16px;
 }
-.owner-draft-banner { min-height: 40px; display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--teal-bright); font-size: .7rem; }
-.owner-draft-banner svg { width: 1rem; height: 1rem; }
-.owner-google-draft-panel details { border-top: 1px solid var(--line-soft); }
-.owner-google-draft-panel summary { min-height: 42px; display: flex; align-items: center; justify-content: space-between; padding: 0 12px; color: var(--muted-strong); font-size: .7rem; font-weight: 850; cursor: pointer; }
-.owner-google-draft-panel summary span { min-width: 24px; min-height: 24px; display: grid; place-items: center; border-radius: 999px; background: var(--surface-raised); }
-.owner-draft-content { max-height: min(45dvh, 360px); overflow: auto; padding: 0 12px 12px; }
+.owner-draft-toggle > svg { width: 1rem; height: 1rem; color: var(--teal-bright); }
+.owner-draft-toggle > span:nth-child(2) strong { color: var(--teal-bright); font-size: .7rem; }
+.owner-google-draft-panel.is-expanded .owner-draft-toggle { border-bottom: 1px solid var(--line-soft); }
+.owner-draft-content { max-height: min(50dvh, 400px); overflow: auto; overscroll-behavior: contain; padding: 10px 12px 12px; }
 .owner-entrance-candidate { margin: 0 0 9px; padding: 10px; border: 1px solid color-mix(in srgb, #c084fc 35%, var(--line-soft)); border-radius: 12px; background: color-mix(in srgb, #c084fc 7%, var(--surface-raised)); }
 .owner-entrance-candidate legend { padding: 0 5px; color: #d8b4fe; font-size: .7rem; font-weight: 850; }
 .owner-entrance-candidate p { margin: 0 0 9px; color: var(--muted); font-size: .63rem; line-height: 1.4; }
@@ -227,19 +286,26 @@
 .owner-google-verify-gate { min-height: 100dvh; display: grid; place-content: center; justify-items: center; text-align: center; }
 
 @media (max-width: 760px) {
-  .owner-google-verify-topbar { min-height: 58px; }
+  .owner-google-verify-topbar { min-height: 54px; padding: 6px; border-radius: 15px; }
   .owner-google-verify-topbar .eyebrow { font-size: .55rem; }
-  .owner-google-verify-guide { top: calc(max(10px, env(safe-area-inset-top)) + 70px); max-height: min(46dvh, 390px); }
+  .owner-google-verify-guide { top: calc(max(10px, env(safe-area-inset-top)) + 64px); }
+  .owner-google-workflow-content { max-height: min(48dvh, 370px); }
   .owner-google-section-editor { top: auto; right: 10px; bottom: max(132px, calc(env(safe-area-inset-bottom) + 124px)); width: calc(100% - 20px); }
-  .owner-google-draft-panel { bottom: max(28px, calc(env(safe-area-inset-bottom) + 22px)); }
+  .owner-google-draft-panel { bottom: max(36px, calc(env(safe-area-inset-bottom) + 28px)); }
+  .owner-draft-content { max-height: min(48dvh, 380px); }
 }
 
 @media (max-width: 470px) {
   .owner-google-verify-topbar { width: calc(100% - 16px); grid-template-columns: auto minmax(0, 1fr) auto; }
-  .owner-map-type { width: 44px; padding: 0; justify-content: center; font-size: 0; }
-  .owner-google-verify-guide { left: 8px; width: calc(100% - 16px); padding: 9px; }
+  .owner-map-tools { gap: 4px; }
+  .owner-map-type,
+  .owner-pad-focus { width: 40px; min-height: 40px; padding: 0; justify-content: center; font-size: 0; }
+  .owner-google-verify-guide { left: 8px; width: calc(100% - 16px); }
   .owner-google-verify-actions { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .owner-google-section-editor { right: 8px; width: calc(100% - 16px); }
   .owner-google-draft-panel { left: 8px; width: calc(100% - 16px); }
+  .owner-workflow-toggle,
+  .owner-draft-toggle { min-height: 50px; gap: 7px; padding: 6px 8px; }
+  .owner-panel-toggle-action { min-width: 52px; min-height: 34px; padding: 0 6px; }
   .owner-entrance-candidate > div { grid-template-columns: 1fr; }
 }
