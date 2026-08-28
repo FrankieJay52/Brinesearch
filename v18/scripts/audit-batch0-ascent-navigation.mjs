@@ -221,7 +221,22 @@ function git(...args) {
 
 function tryGit(...args) {
   try {
-    return git(...args);
+    return execFileSync("git", args, {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).trim();
+  } catch {
+    return null;
+  }
+}
+
+function gitBlob(relativePath) {
+  try {
+    return execFileSync("git", ["show", `HEAD:${relativePath}`], {
+      cwd: repositoryRoot,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
   } catch {
     return null;
   }
@@ -252,20 +267,25 @@ async function implementationProvenance(baseMainSha, frozen = null) {
   const implementationPaths = [...new Set([...changedFromBase, ...untracked])]
     .filter((value) => !generated.has(value))
     .sort();
-  const entries = [];
-  for (const relativePath of implementationPaths) {
-    try {
-      entries.push({ path: relativePath, content: await readFile(path.join(repositoryRoot, ...relativePath.split("/"))) });
-    } catch (error) {
-      if (error?.code !== "ENOENT") throw error;
-      entries.push({ path: relativePath, content: "<deleted>" });
-    }
-  }
   const dirtyPaths = [...new Set([
     ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
     ...gitPaths("diff", "--cached", "--name-only", "HEAD", "--", "."),
     ...untracked,
   ])].filter((value) => !generated.has(value));
+  const dirty = new Set(dirtyPaths);
+  const entries = [];
+  for (const relativePath of implementationPaths) {
+    try {
+      const committed = dirty.has(relativePath) ? null : gitBlob(relativePath);
+      entries.push({
+        path: relativePath,
+        content: committed || await readFile(path.join(repositoryRoot, ...relativePath.split("/"))),
+      });
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      entries.push({ path: relativePath, content: "<deleted>" });
+    }
+  }
   return {
     baseMainSha,
     implementationSha,
@@ -476,7 +496,7 @@ async function main() {
       `Saved Batch 0 base ${frozen.baseMainSha} does not match the pull-request base ${githubBase}`);
     provenance = await implementationProvenance(frozen.baseMainSha, frozen);
     assert(provenance.candidateContentSha256 === frozen.candidateContentSha256,
-      "Saved Batch 0 candidate content fingerprint is stale");
+      `Saved Batch 0 candidate content fingerprint is stale (${provenance.candidateContentSha256} != ${frozen.candidateContentSha256})`);
   }
   const configuration = await publicConfiguration();
   const { snapshot, rows: directoryRows } = await directory(configuration);
