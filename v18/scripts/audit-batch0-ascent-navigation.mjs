@@ -133,6 +133,40 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.090431, longitude: -80.928503 },
     },
   }],
+  ["41f0bfc3-7be1-450f-abfc-96dce544547b", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "PORTERFIELD B exact-record Vineyard Road reviewed handoff clipped at its own saved GPS",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
+      legacyId: "ascent--porterfield-b",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "PORTERFIELD B",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → Lease Road → OR → OH-331 → US-40 → Vineyard Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.090438, longitude: -80.921210 },
+    },
+  }],
+  ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "ROCK RIDGE exact-record Shannon, Lowe, Fairview, Douglas/Fairview, and Putney Ridge reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
+      legacyId: "ascent--rock-ridge",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "ROCK RIDGE",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Shannon Rd → Lowe Rd → 1st Cross Rd → Fairview Rd → Douglas/fairview Rd → Putney Ridge Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 39.998772, longitude: -81.224825 },
+    },
+  }],
   ["143f5268-33e4-4598-8101-40220b5cfdc4", {
     state: "reviewed_handoff_authority_held",
     blocker: "A record-bound reviewed handoff exists, but approved graph and public-Google authority remain held.",
@@ -272,6 +306,40 @@ const explicitStates = new Map([
       county: "Guernsey",
       structuredRoadSequence: "I-70 → Exit 193 → OH-513 → Tyson Mill Rd → Lease Road",
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.096986, longitude: -81.307667 },
+    },
+  }],
+  ["6c93d03a-76e8-4c03-b47e-8b7011c81a1a", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "TROYER exact-record McCoy, Pennyroyal, Penrose, and Jesse Lane pad-access reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+      legacyId: "ascent--troyer",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "TROYER",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.087025, longitude: -81.259818 },
+    },
+  }],
+  ["b22c557a-950a-4ed7-a65a-f4730b9bc727", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "CIRCLE-OAKS exact-record OH-258, Martha, and Titus Road reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "b22c557a-950a-4ed7-a65a-f4730b9bc727",
+      legacyId: "ascent--circle-oaks",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "CIRCLE-OAKS",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.176413, longitude: -81.348770 },
     },
   }],
   ["48d810bf-e59f-4314-9efb-8103a818a3bd", {
@@ -777,9 +845,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 218 GPS-only / 20 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 214 GPS-only / 24 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PICKENS + PORTERFIELD GAS UNIT + RUTH + SKULL FORK + THOMAS + WITHEY: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SKULL FORK + THOMAS + TROYER + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -812,7 +880,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PICKENS, PORTERFIELD GAS UNIT, RUTH, SKULL FORK, THOMAS, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD links have owner phone/field validation; the six batch-2 and eight batch-3 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SKULL FORK, THOMAS, TROYER, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -945,8 +1013,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 218
-    && stateCounts.reviewed_handoff_authority_held === 20,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 214
+    && stateCounts.reviewed_handoff_authority_held === 24,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

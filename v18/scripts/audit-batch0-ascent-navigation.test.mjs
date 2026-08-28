@@ -25,12 +25,16 @@ const reviewedPadIds = [
   "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
   "bb351070-6c94-45e5-942f-e155f9e86f7e",
   "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+  "41f0bfc3-7be1-450f-abfc-96dce544547b",
+  "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
   "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
   "58c94af4-32b1-4f80-a278-a5f73688fa23",
   "bd2e0e20-8aa8-4e05-a4c0-0af312234853",
   "71c9c874-5514-46a4-8d91-b105c6734799",
   "ccf7415a-331b-440a-829d-28282a33cde1",
   "1e898176-672d-4174-8878-4aae0aee2128",
+  "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+  "b22c557a-950a-4ed7-a65a-f4730b9bc727",
   "48d810bf-e59f-4314-9efb-8103a818a3bd",
   "8f616827-d7da-4b40-b9c2-49fd5e713822",
   "f2df293f-13a2-401e-96b2-21e71ac63e6a",
@@ -62,7 +66,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all twenty reviewed ledger states require every exact record and destination field", () => {
+test("all twenty-four reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);

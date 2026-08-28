@@ -100,20 +100,20 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 218, reviewed_handoff_authority_held: 20 });
+    ]))).toEqual({ "1": 1, "2": 8, "3": 214, reviewed_handoff_authority_held: 24 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
     ]))).toEqual({ saved: 230, "ODNR pad": 12, "ODNR wellhead": 5, missing: 0 });
     expect(ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held").map((row) => row.name).sort())
-      .toEqual(["ALBATROSS", "ATHENA", "BEETLE", "BILINOVICH", "BRAVO", "CASTON", "CROWIE", "DUKE", "GIL", "GILCHER", "HOOP", "LAKE", "LAWSON", "MALDON", "PICKENS", "PORTERFIELD GAS UNIT", "RUTH", "SKULL FORK", "THOMAS", "WITHEY"]);
+      .toEqual(["ALBATROSS", "ATHENA", "BEETLE", "BILINOVICH", "BRAVO", "CASTON", "CIRCLE-OAKS", "CROWIE", "DUKE", "GIL", "GILCHER", "HOOP", "LAKE", "LAWSON", "MALDON", "PICKENS", "PORTERFIELD B", "PORTERFIELD GAS UNIT", "ROCK RIDGE", "RUTH", "SKULL FORK", "THOMAS", "TROYER", "WITHEY"]);
     expect(ledger.every((row) => row.origin === "phone current location")).toBe(true);
     expect(ledger.filter((row) => row.current_state !== "1").every((row) => row.blocker.length > 0)).toBe(true);
   });
 
-  it("gives all 218 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
+  it("gives all 214 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
     const stateThree = ledger.filter((row) => row.current_state === "3");
-    expect(stateThree).toHaveLength(218);
+    expect(stateThree).toHaveLength(214);
     for (const row of stateThree) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -129,9 +129,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("resolves all twenty exact-record reviewed handoffs through the real page action builder", () => {
+  it("resolves all twenty-four exact-record reviewed handoffs through the real page action builder", () => {
     const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
-    expect(reviewed).toHaveLength(20);
+    expect(reviewed).toHaveLength(24);
     for (const row of reviewed) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("reviewed_route");
