@@ -5,6 +5,7 @@ import {
   candidateContentDigest,
   csv,
   hostedBuildArtifact,
+  implementationPathSet,
   parseMarkdownProvenance,
   markdownSummary,
   reviewedActionDestinationForPad,
@@ -111,6 +112,19 @@ test("frozen CI provenance ignores only Netlify's build workspace", () => {
   assert.equal(hostedBuildArtifact(".netlify\\plugins\\manifest.json"), true);
   assert.equal(hostedBuildArtifact("v18/src/untracked-route.ts"), false);
   assert.equal(hostedBuildArtifact("docs/untracked-evidence.md"), false);
+  assert.deepEqual(
+    implementationPathSet(
+      ["v18/src/data/status.ts"],
+      ["v18/src/features/pad/dirty-outside-frozen.tsx"],
+      [".netlify/cache/state.json", "v18/src/untracked-route.ts"],
+      true,
+    ),
+    [
+      "v18/src/data/status.ts",
+      "v18/src/features/pad/dirty-outside-frozen.tsx",
+      "v18/src/untracked-route.ts",
+    ],
+  );
 });
 
 test("durable summary identifies candidate content without claiming it is on main", () => {

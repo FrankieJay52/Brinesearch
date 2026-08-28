@@ -216,6 +216,19 @@ export function hostedBuildArtifact(relativePath) {
   return normalized === ".netlify" || normalized.startsWith(".netlify/");
 }
 
+export function implementationPathSet(changedFromBase, trackedDirty, untracked, frozen) {
+  const candidateUntracked = frozen
+    ? untracked.filter((value) => !hostedBuildArtifact(value))
+    : untracked;
+  return [...new Set([
+    ...changedFromBase,
+    ...candidateUntracked,
+    ...(frozen ? trackedDirty : []),
+  ])]
+    .filter((value) => !generatedAuditPaths.has(value))
+    .sort();
+}
+
 function countBy(rows, field) {
   return rows.reduce((counts, row) => {
     const value = row[field];
@@ -272,26 +285,20 @@ async function implementationProvenance(baseMainSha, frozen = null) {
       ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
     );
   const changedFromBase = frozen?.implementationPaths || gitPaths("diff", "--name-only", baseMainSha, "--", ".");
+  const trackedDirty = [...new Set([
+    ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
+    ...gitPaths("diff", "--cached", "--name-only", "HEAD", "--", "."),
+  ])].filter((value) => !generatedAuditPaths.has(value));
   // Netlify creates its own untracked .netlify working files before this audit
   // runs. They are not candidate source, and must not make a frozen, committed
   // report depend on the build provider. Every other untracked path remains in
   // the fingerprint so genuine implementation work cannot be omitted.
   const allUntracked = gitPaths("ls-files", "--others", "--exclude-standard");
-  const untracked = frozen
+  const candidateUntracked = frozen
     ? allUntracked.filter((value) => !hostedBuildArtifact(value))
     : allUntracked;
-  const implementationPaths = [...new Set([...changedFromBase, ...untracked])]
-    .filter((value) => !generatedAuditPaths.has(value))
-    .sort();
-  const changedWorkingPaths = [...new Set([
-    ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
-    ...gitPaths("diff", "--cached", "--name-only", "HEAD", "--", "."),
-    ...untracked,
-  ])].filter((value) => !generatedAuditPaths.has(value));
-  const frozenPaths = new Set(implementationPaths);
-  const dirtyPaths = frozen
-    ? changedWorkingPaths.filter((value) => frozenPaths.has(value))
-    : changedWorkingPaths;
+  const implementationPaths = implementationPathSet(changedFromBase, trackedDirty, allUntracked, Boolean(frozen));
+  const dirtyPaths = [...new Set([...trackedDirty, ...candidateUntracked])];
   const dirty = new Set(dirtyPaths);
   const entries = [];
   for (const relativePath of implementationPaths) {
@@ -508,6 +515,8 @@ async function main() {
   if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
     if (originMainSha) {
+      assert(originMainSha === frozen.baseMainSha,
+        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main ${originMainSha}`);
       const mergeBase = git("merge-base", "HEAD", "origin/main");
       assert(mergeBase === frozen.baseMainSha,
         `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main merge base ${mergeBase}`);
