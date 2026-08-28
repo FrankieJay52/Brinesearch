@@ -13,18 +13,25 @@ import {
   CROWIE_REVIEWED_GOOGLE_URL,
   DUKE_REVIEWED_GOOGLE_URL,
   DUTTON_REVIEWED_GOOGLE_URL,
+  ECHO_REVIEWED_GOOGLE_URL,
   GILCHER_REVIEWED_GOOGLE_URL,
   GIL_REVIEWED_GOOGLE_URL,
+  HASTINGS_REVIEWED_GOOGLE_URL,
   HOOP_REVIEWED_GOOGLE_URL,
+  JACKALOPE_REVIEWED_GOOGLE_URL,
   JEFFCO_REVIEWED_GOOGLE_URL,
   KUNGLE_A_REVIEWED_GOOGLE_URL,
   KUNGLE_B_REVIEWED_GOOGLE_URL,
   LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
+  LODESTAR_REVIEWED_GOOGLE_URL,
+  LODGE_REVIEWED_GOOGLE_URL,
   LORRAINE_REVIEWED_GOOGLE_URL,
   MALDON_REVIEWED_GOOGLE_URL,
   MATUSEK_REVIEWED_GOOGLE_URL,
   MOONSTONE_REVIEWED_GOOGLE_URL,
+  NORTH_STAR_REVIEWED_GOOGLE_URL,
+  PANG_REVIEWED_GOOGLE_URL,
   PICKENS_REVIEWED_GOOGLE_URL,
   PORTERFIELD_B_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
@@ -38,6 +45,7 @@ import {
   TRUCHAN_NE_REVIEWED_GOOGLE_URL,
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
+  WHEELING_VALLEY_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
@@ -414,6 +422,126 @@ function lorraine(): PadSummary {
   };
 }
 
+function pang(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "74032b6e-179d-4672-8720-55ac86cab232",
+    canonicalId: "74032b6e-179d-4672-8720-55ac86cab232",
+    legacyId: "ascent--pang",
+    recordRevision: "1786258360881449",
+    padName: "PANG",
+    county: "Belmont",
+    structuredRoadSequence: "Main St → OH-9 → Shepherdstown Rd → Access Road → OR → Marietta St → Newell Ave → OH-9 → Shepherdstown Rd → Access Road",
+    coordinate: null,
+    mapReference: { latitude: 40.147178, longitude: -80.948742, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function hastings(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+    canonicalId: "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+    legacyId: "ascent--hastings",
+    recordRevision: "1786265812046205",
+    padName: "HASTINGS",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → OH-149 → Chaney Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 40.163138, longitude: -81.021428, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function wheelingValley(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+    canonicalId: "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+    legacyId: "ascent--wheeling-valley",
+    recordRevision: "1786258360881449",
+    padName: "WHEELING VALLEY",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → OH-9 / N Toward Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → Dunn Rd → Morgan Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.153061, longitude: -80.923517, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function jackalope(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "f80dea77-db11-45f8-b30c-6c6abb85e469",
+    canonicalId: "f80dea77-db11-45f8-b30c-6c6abb85e469",
+    legacyId: "ascent--jackalope",
+    recordRevision: "1786265812046205",
+    padName: "JACKALOPE",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-800 → OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Cox → Pad",
+    coordinate: null,
+    mapReference: { latitude: 40.164159, longitude: -81.356092, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function lodge(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+    canonicalId: "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+    legacyId: "ascent--lodge",
+    recordRevision: "1786265812046205",
+    padName: "LODGE",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Lease Road → OR → Pad",
+    coordinate: null,
+    mapReference: { latitude: 40.164138, longitude: -81.351162, role: "reference", kind: "official_wellhead_reference" },
+  };
+}
+
+function echo(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+    canonicalId: "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+    legacyId: "ascent--echo",
+    recordRevision: "1786265812046205",
+    padName: "ECHO",
+    county: "Harrison",
+    structuredRoadSequence: "OH-519 → Hite Rd → Jokey Hollow Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 40.179321, longitude: -81.026812, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function northStar(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "475462f4-7e7a-4432-801c-5e513d5e953f",
+    canonicalId: "475462f4-7e7a-4432-801c-5e513d5e953f",
+    legacyId: "ascent--north-star",
+    recordRevision: "1786258360881449",
+    padName: "NORTH STAR",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Archer Ridge Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 39.739847, longitude: -81.420197, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function lodestar(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "691fb27b-2b35-471d-81fa-9239f6bd4081",
+    canonicalId: "691fb27b-2b35-471d-81fa-9239f6bd4081",
+    legacyId: "ascent--lodestar",
+    recordRevision: "1786258360881449",
+    padName: "LODESTAR",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 E → Archer Ridge Rd / CR-2 → Hill Rd / TR-307 → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 39.750091, longitude: -81.409571, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
 function vannelle(): PadSummary {
   return {
     ...bilinovich(),
@@ -581,6 +709,105 @@ function batch8ReviewedRouteFixtures() {
       ],
       reviewedSequence: "Google-selected state-road approach → US-250 → CR-5 / Crescent Rd → shared CR-5 / CR-10 pavement → CR-10 / Barton-Blaine Rd → unapproved access/GPS handoff → saved pad GPS",
       notice: /keeps the route on CR-10 \/ Barton-Blaine Road/u,
+    },
+  ] as const;
+}
+
+function batch9ReviewedRouteFixtures() {
+  return [
+    {
+      name: "PANG",
+      pad: pang(),
+      routeUrl: PANG_REVIEWED_GOOGLE_URL,
+      destination: "40.147178,-80.948742",
+      waypoints: ["40.151952334248,-80.961064815011"],
+      reviewedSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /final unnamed access/u,
+    },
+    {
+      name: "HASTINGS",
+      pad: hastings(),
+      routeUrl: HASTINGS_REVIEWED_GOOGLE_URL,
+      destination: "40.163138,-81.021428",
+      waypoints: ["40.160397859316,-81.016701259012"],
+      reviewedSequence: "Google-selected state-road approach → OH-149 → Chaney Rd / TR-386 → unapproved access/GPS handoff → saved pad GPS",
+      notice: /upstream state-highway approach remains origin-dependent/u,
+    },
+    {
+      name: "WHEELING VALLEY",
+      pad: wheelingValley(),
+      routeUrl: WHEELING_VALLEY_REVIEWED_GOOGLE_URL,
+      destination: "40.153061,-80.923517",
+      waypoints: [
+        "40.15863093394,-80.943718975075",
+        "40.147055385412,-80.922842319818",
+        "40.153787436713,-80.924159995223",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → Dunn Rd / TR-424 → Morgan Rd / TR-423 → unapproved GPS handoff → saved pad GPS",
+      notice: /without a skipped road, reversal, or backtrack/u,
+    },
+    {
+      name: "JACKALOPE",
+      pad: jackalope(),
+      routeUrl: JACKALOPE_REVIEWED_GOOGLE_URL,
+      destination: "40.164159,-81.356092",
+      waypoints: [
+        "40.211888715,-81.390778629",
+        "40.204197138,-81.382414119",
+        "40.174296992,-81.360075011",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → Lodge Rd / CR-78 → Cox Rd / TR-8772 → Lodge Rd → unapproved GPS handoff → saved pad GPS",
+      notice: /Titus\/Lodge\/Sligo point junction remains held/u,
+    },
+    {
+      name: "LODGE",
+      pad: lodge(),
+      routeUrl: LODGE_REVIEWED_GOOGLE_URL,
+      destination: "40.164138,-81.351162",
+      waypoints: [
+        "40.211888715,-81.390778629",
+        "40.204197138,-81.382414119",
+        "40.174296992,-81.360075011",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → Lodge Rd / CR-78 → unapproved lease/GPS handoff → official wellhead reference",
+      notice: /official wellhead reference, not a verified driver entrance/u,
+    },
+    {
+      name: "ECHO",
+      pad: echo(),
+      routeUrl: ECHO_REVIEWED_GOOGLE_URL,
+      destination: "40.179321,-81.026812",
+      waypoints: [
+        "40.185661298825,-81.014226704981",
+        "40.164465208939,-81.016699529454",
+        "40.173032633439,-81.025592955042",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-519 / Stumptown Rd → Hite Rd / TR-274 → Jockey Hollow Rd / TR-254 → unapproved lease/GPS handoff → saved pad GPS",
+      notice: /Exact membership disambiguates the source's Jokey spelling/u,
+    },
+    {
+      name: "NORTH STAR",
+      pad: northStar(),
+      routeUrl: NORTH_STAR_REVIEWED_GOOGLE_URL,
+      destination: "39.739847,-81.420197",
+      waypoints: [
+        "39.774007303642,-81.451385717411",
+        "39.755313742543,-81.424376369949",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → unapproved lease/GPS handoff → saved pad GPS",
+      notice: /earlier Hohman\/Town Highway 87 shortcut/u,
+    },
+    {
+      name: "LODESTAR",
+      pad: lodestar(),
+      routeUrl: LODESTAR_REVIEWED_GOOGLE_URL,
+      destination: "39.750091,-81.409571",
+      waypoints: [
+        "39.774007303642,-81.451385717411",
+        "39.754750338267,-81.412456525463",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → unapproved lease/GPS handoff → saved pad GPS",
+      notice: /exact current identity membership independently proves/u,
     },
   ] as const;
 }
@@ -1508,6 +1735,72 @@ describe("reviewed navigation candidates", () => {
         ["padName", `${fixture.name} EAST`],
         ["state", "West Virginia"],
         ["county", "Harrison"],
+        ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
+      }
+
+      expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, latitude: exact.mapReference!.latitude + 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude - 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+        mapReference: null,
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+      }), fixture.name).toBeNull();
+    }
+  });
+
+  it("returns the batch-9 reviewed routes only for their exact records and ordered controls", () => {
+    for (const fixture of batch9ReviewedRouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.stringMatching(fixture.notice),
+      });
+      expect(candidate!.detail, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate!.reviewedRoadSequence, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate!.finalLegNotice, fixture.name).toMatch(/unapproved/iu);
+      const url = new URL(candidate!.routeUrl);
+      expect(url.origin, fixture.name).toBe("https://www.google.com");
+      expect(url.pathname, fixture.name).toBe("/maps/dir/");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails the batch-9 reviewed routes closed on every record or destination drift", () => {
+    for (const fixture of batch9ReviewedRouteFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", exact.county === "Harrison" ? "Belmont" : "Harrison"],
         ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
       ] as const) {
         expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
