@@ -522,7 +522,7 @@ const explicitStates = new Map([
   ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
-    receipt: "ROCK RIDGE exact-record Shannon, Lowe, Fairview, Douglas/Fairview, and Putney Ridge reviewed entrance handoff",
+    receipt: "ROCK RIDGE exact-record Shannon, Lowe, Fairview, Douglass, and Pultney Ridge reviewed entrance handoff",
     navigationLabel: "Owner-reviewed route in Google Maps",
     reviewedBinding: {
       padId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
@@ -578,7 +578,7 @@ const explicitStates = new Map([
   ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
-    receipt: "CROWIE exact-record Vineyard and Williams Road reviewed handoff",
+    receipt: "CROWIE exact-record Vineyard and Williams Road reviewed handoff with an explicit unapproved access / GPS tail",
     navigationLabel: "Owner-reviewed route in Google Maps",
     reviewedBinding: {
       padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
@@ -1214,7 +1214,7 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 192 GPS-only / 46 reviewed-held
+- 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
 - ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WINSTON SMITH + WITHEY: \`reviewed_handoff_authority_held\`
 
@@ -1229,11 +1229,11 @@ ${provenance.implementationPaths.map((value) => `- \`${value}\``).join("\n")}
 - State 1 — Reviewed approved route: **${states["1"] || 0}**
 - State 2 — Approved roads then GPS: **${states["2"] || 0}**
 - State 3 — GPS destination only: **${states["3"] || 0}**
-- Reviewed handoff authority held: **${states.reviewed_handoff_authority_held || 0}**
+- Owner-approved directions with graph/public authority held: **${states.reviewed_handoff_authority_held || 0}**
 - No trusted GPS: **${rows.filter((row) => row.gps_source === "missing").length}**
 - Exactly one navigation action destination: **${rows.filter((row) => row.gps_source !== "missing").length}**
 
-| County | Pads | State 1 | State 2 | State 3 | Reviewed-held | No GPS |
+| County | Pads | State 1 | State 2 | State 3 | Owner-approved / graph-held | No GPS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 ${countyRows}
 
@@ -1249,10 +1249,11 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
+- The owner explicitly approved the 46 exact-record Google direction handoffs on 2026-08-28. Twenty-eight have exact named-road identity evidence; eighteen retain validated Google-handoff evidence while their exact graph-line receipts are completed. This owner-approved presentation does not create graph geometry, a public-Google release, or an approved-road overlay.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY display owner-approved directions while retaining the fail-closed technical state \`reviewed_handoff_authority_held\`: their exact record-bound handoffs remain separate from graph/public-Google authority. That presentation approval does not promote graph geometry or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1349,12 +1350,16 @@ async function main() {
     }
     const actionDestination = explicit?.actionDestination || directoryDestination;
     const currentState = explicit?.state || (actionDestination ? "3" : "unknown");
-    const navigationLabel = explicit?.navigationLabel || {
+    const navigationLabel = currentState === "reviewed_handoff_authority_held"
+      ? "Owner-approved directions in Google Maps"
+      : explicit?.navigationLabel || {
       "1": "Reviewed approved route",
       "2": "Approved roads then GPS",
       "3": "GPS destination only",
     }[currentState] || "";
-    const blocker = explicit ? explicit.blocker : currentState === "3"
+    const blocker = explicit ? currentState === "reviewed_handoff_authority_held"
+      ? explicit.blocker.replace("owner-reviewed", "owner-approved")
+      : explicit.blocker : currentState === "3"
       ? row.structuredRoadSequence
         ? "No state-1/2 clipped-route and mobile-handoff receipt is released; use the trusted GPS destination only."
         : "No reviewed exact public-road sequence is released; use the trusted GPS destination only."

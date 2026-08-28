@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { PadMapReferenceKind, PadSummary } from "./types";
+import { reviewedNavigationCandidateForPad } from "./reviewedNavigationCandidates";
 import { buildFixedNavigationAction, type GoogleHandoffView } from "@/features/pad/PadPage";
 
 const ledgerText = readFileSync(
@@ -132,11 +133,21 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
   it("resolves all forty-six exact-record reviewed handoffs through the real page action builder", () => {
     const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
     expect(reviewed).toHaveLength(46);
+    const evidenceCounts = { exact_named_road_identities: 0, validated_google_handoff: 0 };
     for (const row of reviewed) {
-      const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
+      const pad = padFromLedger(row);
+      const candidate = reviewedNavigationCandidateForPad(pad);
+      expect(candidate?.ownerApproval, row.name).toMatchObject({
+        kind: "owner_approved_directions",
+        approvedAt: "2026-08-28",
+      });
+      evidenceCounts[candidate!.ownerApproval!.evidence] += 1;
+      expect(candidate?.reviewedRoadSequence, row.name).toBeTruthy();
+      expect(candidate?.finalLegNotice, row.name).toBeTruthy();
+      const action = buildFixedNavigationAction(unavailableView, pad);
       expect(action.kind, row.name).toBe("reviewed_route");
       expect(action.title, row.name).toBe("GET DIRECTIONS");
-      expect(action.detail, row.name).toMatch(/^Owner-reviewed route in Google Maps ·/u);
+      expect(action.detail, row.name).toMatch(/^Owner-approved (?:named-road directions|directions) in Google Maps ·/u);
       const url = new URL(action.href!);
       expect(url.origin, row.name).toBe("https://www.google.com");
       expect(url.searchParams.get("origin"), row.name).toBeNull();
@@ -148,6 +159,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       expect(url.searchParams.get("waypoints")?.split("|").length, row.name).toBeGreaterThanOrEqual(1);
       expect(url.searchParams.get("waypoints")?.split("|").length, row.name).toBeLessThanOrEqual(3);
     }
+    expect(evidenceCounts).toEqual({ exact_named_road_identities: 28, validated_google_handoff: 18 });
   });
 
   it("keeps GPS-only Navigate available before the six named approaches are chosen", () => {
@@ -181,7 +193,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       "1": ["Reviewed approved route"],
       "2": ["Approved roads then GPS"],
       "3": ["GPS destination only"],
-      reviewed_handoff_authority_held: ["Owner-reviewed route in Google Maps"],
+      reviewed_handoff_authority_held: ["Owner-approved directions in Google Maps"],
     });
   });
 });
