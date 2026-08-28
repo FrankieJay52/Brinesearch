@@ -1,17 +1,17 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `3e3b9386ba972b85f0108b89306441c3a9dca222`
-- Candidate implementation HEAD: `d802dad8a1bcc6e6752582ce0ba54eb0384fa836`
-- Candidate content SHA-256: `880f2b899ea2c1be9088b5ae46c41ac7a05ba1b33977f727e31987fa8990883d`
+- Base origin/main SHA: `984ae10056b22fcff97239de401d596c054189b1`
+- Candidate implementation HEAD: `e1de2d51d3318c12f53efa02f7980f53d9dd986d`
+- Candidate content SHA-256: `9f7cec6e87f5a073f016257eb97b3e5a9ecf3f33601449d96bba9e69a3bca2d1`
 - Uncommitted non-generated changes: **no**
-- 247 / 1 approved / 8 core+GPS / 193 GPS-only / 45 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 192 GPS-only / 46 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WITHEY: `reviewed_handoff_authority_held`
+- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WINSTON SMITH + WITHEY: `reviewed_handoff_authority_held`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `68f1d076-fe03-4519-a5cd-c68f8a28b06c` and source revision `8`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
 ## Candidate implementation files
 
-- `docs/issue97-ascent-reviewed-handoff-batch9-20260828.md`
+- `docs/issue97-ascent-reviewed-handoff-batch10-20260828.md`
 - `v18/scripts/audit-batch0-ascent-navigation.mjs`
 - `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
 - `v18/src/data/ascentBatch0NavigationLedger.test.ts`
@@ -22,8 +22,8 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 - State 1 — Reviewed approved route: **1**
 - State 2 — Approved roads then GPS: **8**
-- State 3 — GPS destination only: **193**
-- Reviewed handoff authority held: **45**
+- State 3 — GPS destination only: **192**
+- Reviewed handoff authority held: **46**
 - No trusted GPS: **0**
 - Exactly one navigation action destination: **247**
 
@@ -34,7 +34,7 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 | Harrison | 49 | 1 | 8 | 32 | 8 | 0 |
 | Jefferson | 66 | 0 | 0 | 64 | 2 | 0 |
 | Monroe | 1 | 0 | 0 | 1 | 0 | 0 |
-| Noble | 10 | 0 | 0 | 7 | 3 | 0 |
+| Noble | 10 | 0 | 0 | 6 | 4 | 0 |
 
 ## GPS source accounting
 
@@ -48,10 +48,10 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, and WITHEY remain `reviewed_handoff_authority_held` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY remain `reviewed_handoff_authority_held` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
-- The generated CSV SHA-256 is `c74f73ee65b08adbe30b0c2991b0fac4c40f625f12b80a39c98430d941cc63ce`.
+- The generated CSV SHA-256 is `d1f6fb2d91bb128470b2da21463a0b6edcce4e1e51c10a79774d861d0cb28b94`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with `npm --prefix v18 run audit:batch0-navigation -- --write`. The audit performs one request per page/contract and has no retry path.
