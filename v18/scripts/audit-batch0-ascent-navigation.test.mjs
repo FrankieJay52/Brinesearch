@@ -22,6 +22,7 @@ const reviewedPadIds = [
   "143f5268-33e4-4598-8101-40220b5cfdc4",
   "59061829-1122-4aae-872d-cf5024310373",
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+  "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
   "bb351070-6c94-45e5-942f-e155f9e86f7e",
   "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
   "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
@@ -61,7 +62,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all nineteen reviewed ledger states require every exact record and destination field", () => {
+test("all twenty reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -102,6 +103,19 @@ test("HOOP audit receipt stops reviewed authority at Titus Road", () => {
   assert.match(receipt, /US-22 and Titus Road reviewed approach/u);
   assert.match(receipt, /post-Titus GPS\/lease tail unapproved/u);
   assert.doesNotMatch(receipt, /Hoop Lane reviewed/u);
+});
+
+test("PICKENS audit binding preserves its verified entrance and held authority", () => {
+  const padId = "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b";
+  const binding = reviewedBindingForPad(padId);
+  assert.deepEqual(binding.directoryDestination, {
+    gpsSource: "saved",
+    coordinateRole: "verified driver entrance",
+    latitude: 40.182544,
+    longitude: -80.977135,
+  });
+  assert.match(explicitReceiptForPad(padId), /OH-519 turn reviewed handoff/u);
+  assert.doesNotMatch(explicitReceiptForPad(padId), /approved (?:lease|access|public)/iu);
 });
 
 test("audit coordinates reject missing, partial, malformed, and out-of-area pairs", () => {

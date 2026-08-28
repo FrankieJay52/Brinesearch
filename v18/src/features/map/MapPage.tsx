@@ -22,6 +22,7 @@ import {
   currentReleasedGoogleHandoffLoad,
   higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
+  navigationFallbackAfterHigherPriorityCheck,
   releasedGoogleNavigationUrl,
   type ReleasedGoogleHandoffLoad,
 } from "@/data/releasedGoogleHandoff";
@@ -422,8 +423,11 @@ export function MapPage() {
     releaseChecked: !selected || currentReleasedHandoffLoadResult?.checked === true,
   });
   const eligibleReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null;
-  const selectedReviewedNavigation = higherPriorityNavigationState === "checked" ? eligibleReviewedNavigation : null;
-  const selectedRoadSequence = eligibleReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
+  const selectedReviewedNavigation = navigationFallbackAfterHigherPriorityCheck(
+    higherPriorityNavigationState,
+    eligibleReviewedNavigation,
+  );
+  const selectedRoadSequence = selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
       ? "Approved roads then GPS"

@@ -15,6 +15,7 @@ import {
   LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
   MALDON_REVIEWED_GOOGLE_URL,
+  PICKENS_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
   RUTH_REVIEWED_GOOGLE_URL,
   SKULL_FORK_REVIEWED_GOOGLE_URL,
@@ -123,6 +124,21 @@ function porterfield(): PadSummary {
     township: "Richland",
     structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → OR → OH-331 → US-40 → Vineyard Rd",
     mapReference: { latitude: 40.090431, longitude: -80.928503, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function pickens(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+    canonicalId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+    legacyId: "ascent--pickens",
+    recordRevision: "1787615581785257",
+    padName: "PICKENS",
+    county: "Harrison",
+    structuredRoadSequence: "OH-9 south → Turn left onto OH-519 east → Turn right onto Lease Road",
+    coordinate: { latitude: 40.182544, longitude: -80.977135, role: "driver_entrance" },
+    mapReference: null,
   };
 }
 
@@ -631,6 +647,64 @@ describe("reviewed navigation candidates", () => {
     ["different source", { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "official_pad_reference" }],
   ] as const)("fails the BEETLE reviewed handoff closed when its trusted destination is %s", (_label, mapReference) => {
     expect(reviewedNavigationCandidateForPad({ ...beetle(), mapReference })).toBeNull();
+  });
+
+  it("returns PICKENS's owner-reviewed OH-519 turn handoff without promoting the access road", () => {
+    const candidate = reviewedNavigationCandidateForPad(pickens());
+    expect(candidate).toMatchObject({
+      padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+      routeUrl: PICKENS_REVIEWED_GOOGLE_URL,
+      detail: "OH-519 / Stumptown Rd → unapproved access road → verified entrance",
+      reviewedRoadSequence: "Google-selected state-route approach → OH-519 / Stumptown Rd → unapproved access-road handoff → verified driver entrance",
+      finalLegNotice: expect.stringContaining("not approved public-road geometry"),
+    });
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.protocol).toBe("https:");
+    expect(url.hostname).toBe("www.google.com");
+    expect(url.pathname).toBe("/maps/dir/");
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.182544,-80.977135");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual(["40.18626,-80.97647"]);
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(candidate!.reviewedRoadSequence).not.toContain("→ approved access");
+  });
+
+  it.each([
+    ["padId", "not-pickens"],
+    ["canonicalId", "not-pickens"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "PICKENS EAST"],
+    ["state", "West Virginia"],
+    ["county", "Belmont"],
+    ["structuredRoadSequence", "OH-519 → nearest road → PICKENS"],
+  ] as const)("fails the PICKENS reviewed handoff closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...pickens(), [field]: value })).toBeNull();
+  });
+
+  it("fails PICKENS closed when its verified entrance is missing, changed, or relabeled", () => {
+    expect(reviewedNavigationCandidateForPad({ ...pickens(), coordinate: null })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...pickens(),
+      coordinate: { latitude: 40.1826, longitude: -80.977135, role: "driver_entrance" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...pickens(),
+      coordinate: { latitude: 40.182544, longitude: -80.977135, role: "saved_pad_destination" },
+    })).toBeNull();
+  });
+
+  it("never gives Ascent PICKENS's handoff to the distinct EOG PICKENS record", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...pickens(),
+      padId: "75427489-c68e-4f5b-bd57-f52b2c054413",
+      canonicalId: "75427489-c68e-4f5b-bd57-f52b2c054413",
+      legacyId: "eog--pickens",
+      company: "EOG",
+    })).toBeNull();
   });
 
   it("returns DUKE's exact record-bound Cologie-corridor handoff", () => {

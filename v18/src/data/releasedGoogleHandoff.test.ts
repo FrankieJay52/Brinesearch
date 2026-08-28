@@ -6,6 +6,7 @@ import {
   currentReleasedGoogleHandoffLoad,
   higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
+  navigationFallbackAfterHigherPriorityCheck,
   releasedGoogleNavigationUrl,
 } from "./releasedGoogleHandoff";
 
@@ -155,6 +156,14 @@ describe("released Google handoff loader", () => {
 });
 
 describe("higher-priority navigation check state", () => {
+  it.each([
+    ["checking", null],
+    ["unavailable", null],
+    ["checked", "reviewed candidate"],
+  ] as const)("gates the reviewed fallback while the authority state is %s", (state, expected) => {
+    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBe(expected);
+  });
+
   it("keeps fallbacks closed until both exact online checks finish", () => {
     expect(higherPriorityNavigationCheckState({
       online: true,
@@ -164,6 +173,21 @@ describe("higher-priority navigation check state", () => {
       releaseRequestSettled: true,
       releaseChecked: true,
     })).toBe("checking");
+  });
+
+  it.each([
+    [{ releaseRequestSettled: false, releaseChecked: false }, "checking"],
+    [{ releaseRequestSettled: true, releaseChecked: false }, "unavailable"],
+  ] as const)("keeps the fallback closed when the release-side check resolves as %s", (release, expectedState) => {
+    const state = higherPriorityNavigationCheckState({
+      online: true,
+      approvedRouteAvailable: false,
+      statusRequestSettled: true,
+      statusChecked: true,
+      ...release,
+    });
+    expect(state).toBe(expectedState);
+    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBeNull();
   });
 
   it("distinguishes a completed absence from an authority-check failure", () => {

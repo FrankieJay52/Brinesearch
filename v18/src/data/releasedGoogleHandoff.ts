@@ -155,6 +155,14 @@ export function higherPriorityNavigationCheckState({
   return statusChecked && releaseChecked ? "checked" : "unavailable";
 }
 
+/** Keeps every lower-priority fallback closed until the live authority checks complete. */
+export function navigationFallbackAfterHigherPriorityCheck<T>(
+  state: HigherPriorityNavigationCheckState,
+  fallback: T | null,
+) {
+  return state === "checked" ? fallback : null;
+}
+
 export function releasedGoogleNavigationUrl(
   plan: ReleasedGoogleHandoffPlan | null,
   selectedRouteGroup: "primary" | "alternate" = "primary",

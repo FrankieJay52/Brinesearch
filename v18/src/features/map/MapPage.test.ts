@@ -179,10 +179,11 @@ describe("map viewer authority boundary", () => {
 
     expect(pageSource).toContain('className="map-selection-header"');
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
-    expect(pageSource).toContain('eligibleReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
+    expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
+    expect(pageSource).not.toContain('eligibleReviewedNavigation?.reviewedRoadSequence');
     expect(pageSource).toContain("{selectedRoadSequence}");
     expect(pageSource).toContain('selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"');
-    expect(pageSource).toContain('const selectedReviewedNavigation = higherPriorityNavigationState === "checked" ? eligibleReviewedNavigation : null');
+    expect(pageSource).toContain("const selectedReviewedNavigation = navigationFallbackAfterHigherPriorityCheck(");
     expect(pageSource).not.toContain("selectedReviewedNavigationCandidate ? <MapReviewedRouteLink");
     expect(pageSource).toContain("Open pad details");
     expect([pendingAction, failedAction, approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);

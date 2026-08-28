@@ -82,6 +82,23 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.185403, longitude: -80.922718 },
     },
   }],
+  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "PICKENS exact-record OH-519 turn reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+      legacyId: "ascent--pickens",
+      recordRevision: "1787615581785257",
+      company: "Ascent",
+      padName: "PICKENS",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "OH-9 south → Turn left onto OH-519 east → Turn right onto Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.182544, longitude: -80.977135 },
+    },
+  }],
   ["bb351070-6c94-45e5-942f-e155f9e86f7e", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
@@ -760,9 +777,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 219 GPS-only / 19 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 218 GPS-only / 20 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PORTERFIELD GAS UNIT + RUTH + SKULL FORK + THOMAS + WITHEY: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PICKENS + PORTERFIELD GAS UNIT + RUTH + SKULL FORK + THOMAS + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -795,7 +812,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PORTERFIELD GAS UNIT, RUTH, SKULL FORK, THOMAS, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE and PORTERFIELD links have owner phone/field validation; the six batch-2 and eight batch-3 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PICKENS, PORTERFIELD GAS UNIT, RUTH, SKULL FORK, THOMAS, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD links have owner phone/field validation; the six batch-2 and eight batch-3 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -928,8 +945,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 219
-    && stateCounts.reviewed_handoff_authority_held === 19,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 218
+    && stateCounts.reviewed_handoff_authority_held === 20,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

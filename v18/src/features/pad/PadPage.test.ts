@@ -285,7 +285,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(summary).not.toContain("US-250");
     expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed local-road route\"");
     expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
+    expect(padPage).toContain("eligibleReviewedNavigationCandidate");
   });
 
   it("does not let a static reviewed fallback bypass a required named-approach choice", () => {
@@ -328,6 +329,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).not.toContain("google.com/maps/dir");
     expect(padPage).toContain("statusRequestSettled: currentStatusAuthorityCheck !== null");
     expect(padPage).toContain("releaseRequestSettled: currentReleasedHandoffLoadResult !== null");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
   });
 
   it("keeps every fallback disabled when a live authority check fails", () => {
@@ -342,6 +344,7 @@ describe("V18 pad legacy route fallback", () => {
       detail: "Live route check unavailable · no fallback opened",
     });
     expect(html).not.toContain("google.com/maps/dir");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
   });
 
   it("keeps the disabled named-choice state under the universal GET DIRECTIONS label", () => {
@@ -364,7 +367,7 @@ describe("V18 pad legacy route fallback", () => {
       kind: "approved_route",
       href: approvedUrl,
     });
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
     expect(padPage).toContain("detail={activeReviewedNavigationCandidate ?");
     expect(padPage).not.toContain("detail={reviewedNavigationCandidate ?");
   });

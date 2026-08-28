@@ -180,6 +180,10 @@ const RUTH_ROUTE_DESTINATION = { latitude: 40.173626, longitude: -80.879115 } as
 const RUTH_WAYPOINTS = [
   { latitude: 40.1771191, longitude: -80.8806516 },
 ] as const;
+const PICKENS_ROUTE_DESTINATION = { latitude: 40.182544, longitude: -80.977135 } as const;
+const PICKENS_WAYPOINTS = [
+  { latitude: 40.186260, longitude: -80.976470 },
+] as const;
 const ATHENA_ROUTE_DESTINATION = { latitude: 40.278613, longitude: -80.765988 } as const;
 const ATHENA_WAYPOINTS = [
   { latitude: 40.2799914, longitude: -80.7619003 },
@@ -206,6 +210,7 @@ export const SKULL_FORK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SKULL_F
 export const HOOP_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(HOOP_ROUTE_DESTINATION, HOOP_WAYPOINTS);
 export const BRAVO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BRAVO_ROUTE_DESTINATION, BRAVO_WAYPOINTS);
 export const RUTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RUTH_ROUTE_DESTINATION, RUTH_WAYPOINTS);
+export const PICKENS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PICKENS_ROUTE_DESTINATION, PICKENS_WAYPOINTS);
 export const ATHENA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ATHENA_ROUTE_DESTINATION, ATHENA_WAYPOINTS);
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
@@ -645,6 +650,33 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: RUTH_ROUTE_DESTINATION,
     waypoints: RUTH_WAYPOINTS,
+  },
+  {
+    // The owner-supplied field screenshot places this shaping point just
+    // inside the access turn from OH-519 / Stumptown Road. The phone remains
+    // the origin, so Google can approach the same turn from either state-route
+    // direction without forcing a remote fixed anchor.
+    padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+    canonicalId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
+    legacyId: "ascent--pickens",
+    recordRevision: "1787615581785257",
+    company: "Ascent",
+    padName: "PICKENS",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "OH-9 south → Turn left onto OH-519 east → Turn right onto Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-519 / Stumptown Rd → unapproved access road → verified entrance",
+    routeUrl: PICKENS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-route approach → OH-519 / Stumptown Rd → unapproved access-road handoff → verified driver entrance",
+    finalLegNotice: "The owner-reviewed shaping point is just inside PICKENS's turn from OH-519 / Stumptown Road. The access road and remaining movement to the verified driver entrance are not approved public-road geometry; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.182544,
+      longitude: -80.977135,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: PICKENS_ROUTE_DESTINATION,
+    waypoints: PICKENS_WAYPOINTS,
   },
   {
     padId: "3850e94a-826f-4b6b-a54f-d21d482fca46",
