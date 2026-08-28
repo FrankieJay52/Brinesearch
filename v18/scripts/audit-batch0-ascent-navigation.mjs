@@ -257,6 +257,142 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.096986, longitude: -81.307667 },
     },
   }],
+  ["48d810bf-e59f-4314-9efb-8103a818a3bd", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "ALBATROSS exact-record Brooks Road reviewed local approach; final saved-GPS handoff unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
+      legacyId: "ascent--albatross",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "ALBATROSS",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Brooks Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.079353, longitude: -81.224381 },
+    },
+  }],
+  ["8f616827-d7da-4b40-b9c2-49fd5e713822", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "MALDON exact-record Shannon and Lowe Road reviewed local approach; final saved-GPS handoff unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "8f616827-d7da-4b40-b9c2-49fd5e713822",
+      legacyId: "ascent--maldon",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "MALDON",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Shannon Rd → Lowe Rd → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.010241, longitude: -81.197285 },
+    },
+  }],
+  ["f2df293f-13a2-401e-96b2-21e71ac63e6a", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "WITHEY exact-record Gobblers Knob Road reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "f2df293f-13a2-401e-96b2-21e71ac63e6a",
+      legacyId: "ascent--withey",
+      recordRevision: "1786246617744175",
+      company: "Ascent",
+      padName: "WITHEY",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "Exit 202 → I-70 → OH-800 → Gobblers Knob Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 39.962005, longitude: -81.216813 },
+    },
+  }],
+  ["06ac93a2-3b46-44fd-9fa6-2fd29201858a", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "SKULL FORK exact-record Repik Lane reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "06ac93a2-3b46-44fd-9fa6-2fd29201858a",
+      legacyId: "ascent--skull-fork",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "SKULL FORK",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "I-70 → Exit 202 → OH-800 → US-22 → Repik Ln → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.159734, longitude: -81.260675 },
+    },
+  }],
+  ["351b72fb-eb48-4355-b6fc-d8e9a867f79c", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "HOOP exact-record US-22 and Titus Road reviewed approach; post-Titus GPS/lease tail unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "351b72fb-eb48-4355-b6fc-d8e9a867f79c",
+      legacyId: "ascent--hoop",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "HOOP",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "I-77 → US-22 → Titus Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.166384, longitude: -81.325728 },
+    },
+  }],
+  ["4c73e244-6132-4d40-83fc-3fe5e6e65bf6", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "BRAVO exact-record Hite Road reviewed local approach; Google Crazy Road label is display-only and final GPS/lease tail unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
+      legacyId: "ascent--bravo",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "BRAVO",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "OH-519 → Hite Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.178556, longitude: -81.015064 },
+    },
+  }],
+  ["7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "RUTH exact-record US-250 reviewed approach; final entrance movement unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
+      legacyId: "ascent--ruth",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "RUTH",
+      state: "Ohio",
+      county: "Jefferson",
+      structuredRoadSequence: "US-250 E → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.173626, longitude: -80.879115 },
+    },
+  }],
+  ["3850e94a-826f-4b6b-a54f-d21d482fca46", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "ATHENA exact-record OH-151 reviewed local approach; final saved-GPS handoff unapproved",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "3850e94a-826f-4b6b-a54f-d21d482fca46",
+      legacyId: "ascent--athena",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "ATHENA",
+      state: "Ohio",
+      county: "Jefferson",
+      structuredRoadSequence: "OH-151 → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.278613, longitude: -80.765988 },
+    },
+  }],
   ["0b675c3f-2c04-4901-955d-8629e7dba05e", {
     state: "3",
     blocker: "The West Grove lease-end receipt does not approve route geometry or a Google handoff; use the saved GPS destination only.",
@@ -284,6 +420,10 @@ export function reviewedBindingForPad(padId) {
 
 export function reviewedActionDestinationForPad(padId) {
   return explicitStates.get(padId)?.actionDestination || null;
+}
+
+export function explicitReceiptForPad(padId) {
+  return explicitStates.get(padId)?.receipt || null;
 }
 
 export function reviewedBindingMatches(row, directoryDestination, binding) {
@@ -620,9 +760,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 227 GPS-only / 11 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 219 GPS-only / 19 reviewed-held
 - Production writes zero
-- BEETLE + BILINOVICH + CASTON + CROWIE + DUKE + GIL + GILCHER + LAKE + LAWSON + PORTERFIELD GAS UNIT + THOMAS: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PORTERFIELD GAS UNIT + RUTH + SKULL FORK + THOMAS + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -655,7 +795,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- BEETLE, BILINOVICH, CASTON, CROWIE, DUKE, GIL, GILCHER, LAKE, LAWSON, PORTERFIELD GAS UNIT, and THOMAS remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE and PORTERFIELD links have owner phone/field validation; the six batch-2 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PORTERFIELD GAS UNIT, RUTH, SKULL FORK, THOMAS, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE and PORTERFIELD links have owner phone/field validation; the six batch-2 and eight batch-3 links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -788,8 +928,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 227
-    && stateCounts.reviewed_handoff_authority_held === 11,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 219
+    && stateCounts.reviewed_handoff_authority_held === 19,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

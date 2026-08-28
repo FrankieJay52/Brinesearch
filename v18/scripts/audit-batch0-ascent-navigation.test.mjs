@@ -4,6 +4,7 @@ import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
+  explicitReceiptForPad,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
   githubMainRefreshRequired,
@@ -29,6 +30,14 @@ const reviewedPadIds = [
   "71c9c874-5514-46a4-8d91-b105c6734799",
   "ccf7415a-331b-440a-829d-28282a33cde1",
   "1e898176-672d-4174-8878-4aae0aee2128",
+  "48d810bf-e59f-4314-9efb-8103a818a3bd",
+  "8f616827-d7da-4b40-b9c2-49fd5e713822",
+  "f2df293f-13a2-401e-96b2-21e71ac63e6a",
+  "06ac93a2-3b46-44fd-9fa6-2fd29201858a",
+  "351b72fb-eb48-4355-b6fc-d8e9a867f79c",
+  "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
+  "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
+  "3850e94a-826f-4b6b-a54f-d21d482fca46",
 ];
 
 function rowFor(binding) {
@@ -52,7 +61,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all eleven reviewed ledger states require every exact record and destination field", () => {
+test("all nineteen reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -86,6 +95,13 @@ test("BILINOVICH keeps its saved lease reference separate from its ODNR action d
   assert.deepEqual(binding.directoryDestination, { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.08863, longitude: -81.304164 });
   assert.deepEqual(actionDestination, { gpsSource: "ODNR pad", latitude: 40.08738445, longitude: -81.3028262 });
   assert.equal(reviewedBindingMatches(rowFor(binding), actionDestination, binding), false);
+});
+
+test("HOOP audit receipt stops reviewed authority at Titus Road", () => {
+  const receipt = explicitReceiptForPad("351b72fb-eb48-4355-b6fc-d8e9a867f79c");
+  assert.match(receipt, /US-22 and Titus Road reviewed approach/u);
+  assert.match(receipt, /post-Titus GPS\/lease tail unapproved/u);
+  assert.doesNotMatch(receipt, /Hoop Lane reviewed/u);
 });
 
 test("audit coordinates reject missing, partial, malformed, and out-of-area pairs", () => {
