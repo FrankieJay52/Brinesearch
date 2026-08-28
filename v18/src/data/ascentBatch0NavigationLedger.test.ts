@@ -100,20 +100,20 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 201, reviewed_handoff_authority_held: 37 });
+    ]))).toEqual({ "1": 1, "2": 8, "3": 193, reviewed_handoff_authority_held: 45 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
     ]))).toEqual({ saved: 230, "ODNR pad": 12, "ODNR wellhead": 5, missing: 0 });
     expect(ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held").map((row) => row.name).sort())
-      .toEqual(["ALBATROSS", "ATHENA", "BAKOS", "BANNOCK", "BEETLE", "BILINOVICH", "BRAVO", "CASTON", "CIRCLE-OAKS", "CROWIE", "DUKE", "DUTTON", "GIL", "GILCHER", "HOOP", "JEFFCO", "KUNGLE A", "KUNGLE B", "LAKE", "LAWSON", "LORRAINE", "MALDON", "MATUSEK", "MOONSTONE", "PICKENS", "PORTERFIELD B", "PORTERFIELD GAS UNIT", "ROCK RIDGE", "RUTH", "SADLER", "SKULL FORK", "THOMAS", "TOWE", "TROYER", "TRUCHAN NE", "TRUCHAN NW", "WITHEY"]);
+      .toEqual(["ALBATROSS", "ATHENA", "BAKOS", "BANNOCK", "BEETLE", "BILINOVICH", "BRAVO", "CASTON", "CIRCLE-OAKS", "CROWIE", "DUKE", "DUTTON", "ECHO", "GIL", "GILCHER", "HASTINGS", "HOOP", "JACKALOPE", "JEFFCO", "KUNGLE A", "KUNGLE B", "LAKE", "LAWSON", "LODESTAR", "LODGE", "LORRAINE", "MALDON", "MATUSEK", "MOONSTONE", "NORTH STAR", "PANG", "PICKENS", "PORTERFIELD B", "PORTERFIELD GAS UNIT", "ROCK RIDGE", "RUTH", "SADLER", "SKULL FORK", "THOMAS", "TOWE", "TROYER", "TRUCHAN NE", "TRUCHAN NW", "WHEELING VALLEY", "WITHEY"]);
     expect(ledger.every((row) => row.origin === "phone current location")).toBe(true);
     expect(ledger.filter((row) => row.current_state !== "1").every((row) => row.blocker.length > 0)).toBe(true);
   });
 
-  it("gives all 201 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
+  it("gives all 193 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
     const stateThree = ledger.filter((row) => row.current_state === "3");
-    expect(stateThree).toHaveLength(201);
+    expect(stateThree).toHaveLength(193);
     for (const row of stateThree) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -129,9 +129,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("resolves all thirty-seven exact-record reviewed handoffs through the real page action builder", () => {
+  it("resolves all forty-five exact-record reviewed handoffs through the real page action builder", () => {
     const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
-    expect(reviewed).toHaveLength(37);
+    expect(reviewed).toHaveLength(45);
     for (const row of reviewed) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("reviewed_route");

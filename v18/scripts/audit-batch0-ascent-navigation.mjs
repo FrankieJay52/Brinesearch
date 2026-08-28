@@ -236,6 +236,142 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.09955, longitude: -80.840213 },
     },
   }],
+  ["74032b6e-179d-4672-8720-55ac86cab232", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "PANG exact-record OH-9 and Shepherdstown Road / CR-64 reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "74032b6e-179d-4672-8720-55ac86cab232",
+      legacyId: "ascent--pang",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "PANG",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "Main St → OH-9 → Shepherdstown Rd → Access Road → OR → Marietta St → Newell Ave → OH-9 → Shepherdstown Rd → Access Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.147178, longitude: -80.948742 },
+    },
+  }],
+  ["f2f82142-f6d8-4f8d-b440-2ff86f624158", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "HASTINGS exact-record OH-149 and Chaney Road / TR-386 reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+      legacyId: "ascent--hastings",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "HASTINGS",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 213 → OH-331 → OH-149 → Chaney Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.163138, longitude: -81.021428 },
+    },
+  }],
+  ["25dc9adf-e09a-4cfa-8900-59492fbad0ec", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "WHEELING VALLEY exact-record Shepherdstown, Fairpoint-Shepherdstown, Sloans Run, Dunn, and Morgan reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+      legacyId: "ascent--wheeling-valley",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "WHEELING VALLEY",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → OH-9 / N Toward Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → Dunn Rd → Morgan Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.153061, longitude: -80.923517 },
+    },
+  }],
+  ["f80dea77-db11-45f8-b30c-6c6abb85e469", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "JACKALOPE exact-record Martha, Titus, Lodge, and Cox reviewed handoff with unapproved GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "f80dea77-db11-45f8-b30c-6c6abb85e469",
+      legacyId: "ascent--jackalope",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "JACKALOPE",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "OH-800 → OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Cox → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.164159, longitude: -81.356092 },
+    },
+  }],
+  ["5c4a497e-cf33-48dd-8272-9fd06ebb9e6a", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "LODGE exact-record Martha, Titus, and Lodge reviewed handoff with unapproved lease tail to an official wellhead reference",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+      legacyId: "ascent--lodge",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "LODGE",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Lease Road → OR → Pad",
+      directoryDestination: { gpsSource: "ODNR wellhead", coordinateRole: "official wellhead reference", latitude: 40.164138, longitude: -81.351162 },
+    },
+  }],
+  ["83b27fd3-4615-4ea1-ad36-0b05b359f5d2", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "ECHO exact-record OH-519, Hite Road / TR-274, and Jockey Hollow Road / TR-254 reviewed handoff with unapproved lease/GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+      legacyId: "ascent--echo",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "ECHO",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "OH-519 → Hite Rd → Jokey Hollow Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.179321, longitude: -81.026812 },
+    },
+  }],
+  ["475462f4-7e7a-4432-801c-5e513d5e953f", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "NORTH STAR exact-record OH-78 and Archers Ridge Road / CR-2 reviewed handoff with unapproved lease/GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "475462f4-7e7a-4432-801c-5e513d5e953f",
+      legacyId: "ascent--north-star",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "NORTH STAR",
+      state: "Ohio",
+      county: "Noble",
+      structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Archer Ridge Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 39.739847, longitude: -81.420197 },
+    },
+  }],
+  ["691fb27b-2b35-471d-81fa-9239f6bd4081", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "LODESTAR exact-record OH-78, Archers Ridge Road / CR-2, and Hill Road / TR-307 reviewed handoff with unapproved lease/GPS tail",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "691fb27b-2b35-471d-81fa-9239f6bd4081",
+      legacyId: "ascent--lodestar",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "LODESTAR",
+      state: "Ohio",
+      county: "Noble",
+      structuredRoadSequence: "I-77 → Exit 25 → OH-78 E → Archer Ridge Rd / CR-2 → Hill Rd / TR-307 → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 39.750091, longitude: -81.409571 },
+    },
+  }],
   ["e2b32e85-9e93-4388-8215-9d8167cbbeb8", {
     state: "1",
     blocker: "",
@@ -1061,9 +1197,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 201 GPS-only / 37 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 193 GPS-only / 45 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + GIL + GILCHER + HOOP + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LORRAINE + MALDON + MATUSEK + MOONSTONE + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WITHEY: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -1096,7 +1232,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, GIL, GILCHER, HOOP, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LORRAINE, MALDON, MATUSEK, MOONSTONE, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1229,8 +1365,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 201
-    && stateCounts.reviewed_handoff_authority_held === 37,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 193
+    && stateCounts.reviewed_handoff_authority_held === 45,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

@@ -32,6 +32,14 @@ const reviewedPadIds = [
   "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
   "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
   "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+  "74032b6e-179d-4672-8720-55ac86cab232",
+  "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+  "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+  "f80dea77-db11-45f8-b30c-6c6abb85e469",
+  "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+  "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+  "475462f4-7e7a-4432-801c-5e513d5e953f",
+  "691fb27b-2b35-471d-81fa-9239f6bd4081",
   "143f5268-33e4-4598-8101-40220b5cfdc4",
   "59061829-1122-4aae-872d-cf5024310373",
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
@@ -79,7 +87,9 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all thirty-seven reviewed ledger states require every exact record and destination field", () => {
+test("all forty-five reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 45);
+  assert.equal(new Set(reviewedPadIds).size, 45);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -133,6 +143,24 @@ test("batch-8 audit receipts expose exact reviewed handoffs without promoting ro
     ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", "Sloans Run"],
     ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", "Sloans Run"],
     ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", "Barton-Blaine Road"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad, "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
+  }
+});
+
+test("batch-9 audit receipts expose exact reviewed handoffs without promoting route authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["74032b6e-179d-4672-8720-55ac86cab232", "Shepherdstown Road / CR-64"],
+    ["f2f82142-f6d8-4f8d-b440-2ff86f624158", "Chaney Road / TR-386"],
+    ["25dc9adf-e09a-4cfa-8900-59492fbad0ec", "Morgan"],
+    ["f80dea77-db11-45f8-b30c-6c6abb85e469", "Cox"],
+    ["5c4a497e-cf33-48dd-8272-9fd06ebb9e6a", "Lodge"],
+    ["83b27fd3-4615-4ea1-ad36-0b05b359f5d2", "Jockey Hollow Road / TR-254"],
+    ["475462f4-7e7a-4432-801c-5e513d5e953f", "Archers Ridge Road / CR-2"],
+    ["691fb27b-2b35-471d-81fa-9239f6bd4081", "Hill Road / TR-307"],
   ]) {
     const receipt = explicitReceiptForPad(padId);
     assert.match(receipt, new RegExp(expectedRoad, "u"));

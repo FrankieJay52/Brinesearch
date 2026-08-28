@@ -234,6 +234,44 @@ const LORRAINE_WAYPOINTS = [
   { latitude: 40.116658061827, longitude: -80.859991873154 },
   { latitude: 40.101497884455, longitude: -80.841503024754 },
 ] as const;
+const PANG_ROUTE_DESTINATION = { latitude: 40.147178, longitude: -80.948742 } as const;
+const PANG_WAYPOINTS = [
+  { latitude: 40.151952334248, longitude: -80.961064815011 },
+] as const;
+const HASTINGS_ROUTE_DESTINATION = { latitude: 40.163138, longitude: -81.021428 } as const;
+const HASTINGS_WAYPOINTS = [
+  { latitude: 40.160397859316, longitude: -81.016701259012 },
+] as const;
+const WHEELING_VALLEY_ROUTE_DESTINATION = { latitude: 40.153061, longitude: -80.923517 } as const;
+const WHEELING_VALLEY_WAYPOINTS = [
+  { latitude: 40.15863093394, longitude: -80.943718975075 },
+  { latitude: 40.147055385412, longitude: -80.922842319818 },
+  { latitude: 40.153787436713, longitude: -80.924159995223 },
+] as const;
+const JACKALOPE_ROUTE_DESTINATION = { latitude: 40.164159, longitude: -81.356092 } as const;
+const JACKALOPE_WAYPOINTS = [
+  { latitude: 40.211888715, longitude: -81.390778629 },
+  { latitude: 40.204197138, longitude: -81.382414119 },
+  { latitude: 40.174296992, longitude: -81.360075011 },
+] as const;
+const LODGE_ROUTE_DESTINATION = { latitude: 40.164138, longitude: -81.351162 } as const;
+const LODGE_WAYPOINTS = JACKALOPE_WAYPOINTS;
+const ECHO_ROUTE_DESTINATION = { latitude: 40.179321, longitude: -81.026812 } as const;
+const ECHO_WAYPOINTS = [
+  { latitude: 40.185661298825, longitude: -81.014226704981 },
+  { latitude: 40.164465208939, longitude: -81.016699529454 },
+  { latitude: 40.173032633439, longitude: -81.025592955042 },
+] as const;
+const NORTH_STAR_ROUTE_DESTINATION = { latitude: 39.739847, longitude: -81.420197 } as const;
+const NORTH_STAR_WAYPOINTS = [
+  { latitude: 39.774007303642, longitude: -81.451385717411 },
+  { latitude: 39.755313742543, longitude: -81.424376369949 },
+] as const;
+const LODESTAR_ROUTE_DESTINATION = { latitude: 39.750091, longitude: -81.409571 } as const;
+const LODESTAR_WAYPOINTS = [
+  { latitude: 39.774007303642, longitude: -81.451385717411 },
+  { latitude: 39.754750338267, longitude: -81.412456525463 },
+] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
   { latitude: 40.0817058, longitude: -81.2127365 },
@@ -305,6 +343,14 @@ export const KUNGLE_A_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(KUNGLE_A_
 export const TRUCHAN_NE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TRUCHAN_NE_ROUTE_DESTINATION, TRUCHAN_NE_WAYPOINTS);
 export const MATUSEK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MATUSEK_ROUTE_DESTINATION, MATUSEK_WAYPOINTS);
 export const LORRAINE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LORRAINE_ROUTE_DESTINATION, LORRAINE_WAYPOINTS);
+export const PANG_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PANG_ROUTE_DESTINATION, PANG_WAYPOINTS);
+export const HASTINGS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(HASTINGS_ROUTE_DESTINATION, HASTINGS_WAYPOINTS);
+export const WHEELING_VALLEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WHEELING_VALLEY_ROUTE_DESTINATION, WHEELING_VALLEY_WAYPOINTS);
+export const JACKALOPE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(JACKALOPE_ROUTE_DESTINATION, JACKALOPE_WAYPOINTS);
+export const LODGE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LODGE_ROUTE_DESTINATION, LODGE_WAYPOINTS);
+export const ECHO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ECHO_ROUTE_DESTINATION, ECHO_WAYPOINTS);
+export const NORTH_STAR_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(NORTH_STAR_ROUTE_DESTINATION, NORTH_STAR_WAYPOINTS);
+export const LODESTAR_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LODESTAR_ROUTE_DESTINATION, LODESTAR_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -982,6 +1028,190 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: LORRAINE_ROUTE_DESTINATION,
     waypoints: LORRAINE_WAYPOINTS,
+  },
+  {
+    padId: "74032b6e-179d-4672-8720-55ac86cab232",
+    canonicalId: "74032b6e-179d-4672-8720-55ac86cab232",
+    legacyId: "ascent--pang",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "PANG",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "Main St → OH-9 → Shepherdstown Rd → Access Road → OR → Marietta St → Newell Ave → OH-9 → Shepherdstown Rd → Access Road",
+    title: "Navigate reviewed route",
+    detail: "OH-9 → Shepherdstown Rd / CR-64 → unapproved GPS handoff",
+    routeUrl: PANG_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside PANG's exact Shepherdstown Road / CR-64 identity after the current verified OH-9 shared-pavement boundary and accepts either reviewed state-road approach without backtracking. Google continues forward on Shepherdstown Road before turning onto the final unnamed access to PANG's exact saved GPS. That access and saved-GPS movement remain unapproved; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.147178,
+      longitude: -80.948742,
+      source: "saved_pad_gps",
+    },
+    routeDestination: PANG_ROUTE_DESTINATION,
+    waypoints: PANG_WAYPOINTS,
+  },
+  {
+    padId: "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+    canonicalId: "f2f82142-f6d8-4f8d-b440-2ff86f624158",
+    legacyId: "ascent--hastings",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "HASTINGS",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → OH-149 → Chaney Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-149 → Chaney Rd / TR-386 → unapproved GPS handoff",
+    routeUrl: HASTINGS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-149 → Chaney Rd / TR-386 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside HASTINGS's exact Chaney Road / TR-386 identity after its current verified OH-149 junction. Google reaches that turn from both reviewed origins without backtracking; the upstream state-highway approach remains origin-dependent and is not forced to use OH-331. Google may render Crazy Road and Jockey Hollow Road during the terminal movement, but those labels are not promoted to reviewed identities. Movement beyond the exact Chaney Road approach to the saved pad GPS remains an unapproved access/GPS handoff; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.163138,
+      longitude: -81.021428,
+      source: "saved_pad_gps",
+    },
+    routeDestination: HASTINGS_ROUTE_DESTINATION,
+    waypoints: HASTINGS_WAYPOINTS,
+  },
+  {
+    padId: "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+    canonicalId: "25dc9adf-e09a-4cfa-8900-59492fbad0ec",
+    legacyId: "ascent--wheeling-valley",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "WHEELING VALLEY",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → OH-9 / N Toward Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → Dunn Rd → Morgan Rd",
+    title: "Navigate reviewed route",
+    detail: "Shepherdstown → Fairpoint-Shepherdstown → Sloans Run → Dunn → Morgan → unapproved GPS handoff",
+    routeUrl: WHEELING_VALLEY_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → Dunn Rd / TR-424 → Morgan Rd / TR-423 → unapproved GPS handoff → saved pad GPS",
+    finalLegNotice: "The three shaping points preserve WHEELING VALLEY's reviewed Fairpoint-Shepherdstown, Dunn, and Morgan road sequence after exact current junction evidence, while Google retains Shepherdstown and Sloans Run in the ordered path. Both reviewed origins reach the saved coordinate without a skipped road, reversal, or backtrack. Google may render street-address labels at the controls, but those labels are context only. The exact destination remains a saved pad reference, not a verified entrance; the terminal GPS movement remains unapproved, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.153061,
+      longitude: -80.923517,
+      source: "saved_pad_gps",
+    },
+    routeDestination: WHEELING_VALLEY_ROUTE_DESTINATION,
+    waypoints: WHEELING_VALLEY_WAYPOINTS,
+  },
+  {
+    padId: "f80dea77-db11-45f8-b30c-6c6abb85e469",
+    canonicalId: "f80dea77-db11-45f8-b30c-6c6abb85e469",
+    legacyId: "ascent--jackalope",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "JACKALOPE",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-800 → OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Cox → Pad",
+    title: "Navigate reviewed route",
+    detail: "Martha → Titus → Lodge → Cox → Lodge → unapproved GPS handoff",
+    routeUrl: JACKALOPE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → Lodge Rd / CR-78 → Cox Rd / TR-8772 → Lodge Rd → unapproved GPS handoff → saved pad GPS",
+    finalLegNotice: "The three shaping points preserve the exact Martha, Titus, and Lodge road corridor. Live review from Freeport and Cambridge then kept the owner-written right onto Cox Road and immediate left to stay on Lodge Road, crossed the noted one-lane bridge, and reached JACKALOPE's saved GPS on the right without a loop or backtrack. The Titus/Lodge/Sligo point junction remains held, so this is not approved graph geometry. The saved point is not relabeled as a verified entrance; the final GPS movement remains unapproved, and public-Google authority remains separate.",
+    trustedDestination: {
+      latitude: 40.164159,
+      longitude: -81.356092,
+      source: "saved_pad_gps",
+    },
+    routeDestination: JACKALOPE_ROUTE_DESTINATION,
+    waypoints: JACKALOPE_WAYPOINTS,
+  },
+  {
+    padId: "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+    canonicalId: "5c4a497e-cf33-48dd-8272-9fd06ebb9e6a",
+    legacyId: "ascent--lodge",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "LODGE",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Lodge Rd → Lease Road → OR → Pad",
+    title: "Navigate reviewed route",
+    detail: "Martha → Titus → Lodge → unapproved wellhead-GPS handoff",
+    routeUrl: LODGE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → Lodge Rd / CR-78 → unapproved lease/GPS handoff → official wellhead reference",
+    finalLegNotice: "The three shaping points preserve the exact Martha, Titus, and Lodge road corridor through the noted one-lane bridge. Live review from Freeport and Cambridge then followed Lodge Road and turned left on Google's McLaughlin Lane renderer label to the exact official wellhead reference, matching the owner-written lease turn across from JACKALOPE without a loop or backtrack. The renderer label is not promoted to a public-road identity, the Titus/Lodge/Sligo point junction remains held, and the final lease movement remains unapproved. This destination is an official wellhead reference, not a verified driver entrance; graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.164138,
+      longitude: -81.351162,
+      source: "official_wellhead_reference",
+    },
+    routeDestination: LODGE_ROUTE_DESTINATION,
+    waypoints: LODGE_WAYPOINTS,
+  },
+  {
+    padId: "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+    canonicalId: "83b27fd3-4615-4ea1-ad36-0b05b359f5d2",
+    legacyId: "ascent--echo",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "ECHO",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "OH-519 → Hite Rd → Jokey Hollow Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-519 → Hite Rd / TR-274 → Jockey Hollow Rd / TR-254 → unapproved GPS handoff",
+    routeUrl: ECHO_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-519 / Stumptown Rd → Hite Rd / TR-274 → Jockey Hollow Rd / TR-254 → unapproved lease/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping points sit inside ECHO's exact Hite Road / TR-274 and Jockey Hollow Road / TR-254 identities after their current verified junctions. Exact membership disambiguates the source's Jokey spelling from the different Jockey Hollow Run Road identity. Google currently renders Hite Road as Crazy Road; that label is context only. Live review from New Athens and Freeport preserved OH-519 → Hite → Jockey Hollow without a loop or backtrack, then used an unnamed final lease movement to the exact saved GPS. That final movement remains unapproved; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.179321,
+      longitude: -81.026812,
+      source: "saved_pad_gps",
+    },
+    routeDestination: ECHO_ROUTE_DESTINATION,
+    waypoints: ECHO_WAYPOINTS,
+  },
+  {
+    padId: "475462f4-7e7a-4432-801c-5e513d5e953f",
+    canonicalId: "475462f4-7e7a-4432-801c-5e513d5e953f",
+    legacyId: "ascent--north-star",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "NORTH STAR",
+    state: "Ohio",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Archer Ridge Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-78 → Archers Ridge Rd / CR-2 → unapproved GPS handoff",
+    routeUrl: NORTH_STAR_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → unapproved lease/GPS handoff → saved pad GPS",
+    finalLegNotice: "The first shaping point sits inside NORTH STAR's exact Archers Ridge Road / CR-2 identity after its current verified OH-78 junction. The second stays on that same exact identity after the verified Hohman Road departure and before the verified Schockling Road re-entry, preventing Google's earlier Hohman/Town Highway 87 shortcut from satisfying the controls. Live review from Cambridge and Caldwell kept the route continuously on Archers Ridge without that shortcut, a loop, or backtracking. The final short movement to the exact saved GPS remains unapproved; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.739847,
+      longitude: -81.420197,
+      source: "saved_pad_gps",
+    },
+    routeDestination: NORTH_STAR_ROUTE_DESTINATION,
+    waypoints: NORTH_STAR_WAYPOINTS,
+  },
+  {
+    padId: "691fb27b-2b35-471d-81fa-9239f6bd4081",
+    canonicalId: "691fb27b-2b35-471d-81fa-9239f6bd4081",
+    legacyId: "ascent--lodestar",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "LODESTAR",
+    state: "Ohio",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 E → Archer Ridge Rd / CR-2 → Hill Rd / TR-307 → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → unapproved GPS handoff",
+    routeUrl: LODESTAR_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → unapproved lease/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping points sit inside LODESTAR's exact Archers Ridge Road / CR-2 and Hill Road / TR-307 identities after current verified OH-78/CR-2 and CR-2/TR-307 junctions. Live review from Cambridge and Caldwell preserved OH-78 → Archers Ridge → Hill Road without a shortcut, skipped road, loop, or backtrack. The source occurrence parser did not resolve the action-prefixed Hill token, but the exact current identity membership independently proves the road-to-road junction; this remains a reviewed handoff rather than graph approval. The final short movement to the saved GPS remains unapproved; the saved point is not relabeled as a verified entrance, and public-Google authority remains separate.",
+    trustedDestination: {
+      latitude: 39.750091,
+      longitude: -81.409571,
+      source: "saved_pad_gps",
+    },
+    routeDestination: LODESTAR_ROUTE_DESTINATION,
+    waypoints: LODESTAR_WAYPOINTS,
   },
   {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
