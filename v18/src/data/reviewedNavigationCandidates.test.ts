@@ -7,6 +7,7 @@ import {
   BILINOVICH_REVIEWED_GOOGLE_URL,
   BRAVO_REVIEWED_GOOGLE_URL,
   CASTON_REVIEWED_GOOGLE_URL,
+  CIRCLE_OAKS_REVIEWED_GOOGLE_URL,
   CROWIE_REVIEWED_GOOGLE_URL,
   DUKE_REVIEWED_GOOGLE_URL,
   GILCHER_REVIEWED_GOOGLE_URL,
@@ -16,10 +17,13 @@ import {
   LAWSON_REVIEWED_GOOGLE_URL,
   MALDON_REVIEWED_GOOGLE_URL,
   PICKENS_REVIEWED_GOOGLE_URL,
+  PORTERFIELD_B_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
   RUTH_REVIEWED_GOOGLE_URL,
+  ROCK_RIDGE_REVIEWED_GOOGLE_URL,
   SKULL_FORK_REVIEWED_GOOGLE_URL,
   THOMAS_REVIEWED_GOOGLE_URL,
+  TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
@@ -140,6 +144,109 @@ function pickens(): PadSummary {
     coordinate: { latitude: 40.182544, longitude: -80.977135, role: "driver_entrance" },
     mapReference: null,
   };
+}
+
+function troyer(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+    canonicalId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+    legacyId: "ascent--troyer",
+    recordRevision: "1786258360881449",
+    padName: "TROYER",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.087025, longitude: -81.259818, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function circleOaks(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "b22c557a-950a-4ed7-a65a-f4730b9bc727",
+    canonicalId: "b22c557a-950a-4ed7-a65a-f4730b9bc727",
+    legacyId: "ascent--circle-oaks",
+    recordRevision: "1787459253071652",
+    padName: "CIRCLE-OAKS",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Pad",
+    coordinate: { latitude: 40.176413, longitude: -81.348770, role: "driver_entrance" },
+    mapReference: null,
+  };
+}
+
+function porterfieldB(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
+    canonicalId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
+    legacyId: "ascent--porterfield-b",
+    recordRevision: "1786258360881449",
+    padName: "PORTERFIELD B",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → Lease Road → OR → OH-331 → US-40 → Vineyard Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 40.090438, longitude: -80.921210, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function rockRidge(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
+    canonicalId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
+    legacyId: "ascent--rock-ridge",
+    recordRevision: "1786265812046205",
+    padName: "ROCK RIDGE",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Shannon Rd → Lowe Rd → 1st Cross Rd → Fairview Rd → Douglas/fairview Rd → Putney Ridge Rd → Lease Road",
+    coordinate: { latitude: 39.998772, longitude: -81.224825, role: "driver_entrance" },
+    mapReference: null,
+  };
+}
+
+function batch5SharedCorridorFixtures() {
+  return [
+    {
+      name: "CIRCLE-OAKS",
+      pad: circleOaks(),
+      routeUrl: CIRCLE_OAKS_REVIEWED_GOOGLE_URL,
+      destination: "40.176413,-81.34877",
+      waypoints: [
+        "40.211888715,-81.390778629",
+        "40.204197138,-81.382414119",
+      ],
+      reviewedSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → verified driver entrance",
+      notice: /accept either state-road approach direction without backtracking/u,
+    },
+    {
+      name: "PORTERFIELD B",
+      pad: porterfieldB(),
+      routeUrl: PORTERFIELD_B_REVIEWED_GOOGLE_URL,
+      destination: "40.090438,-80.92121",
+      waypoints: [
+        "40.073689,-80.945041",
+        "40.088246,-80.944086",
+        "40.090469,-80.928294",
+      ],
+      reviewedSequence: "Google-selected approach → US-40 W → Vineyard Rd / CR-56 → saved pad GPS",
+      notice: /PORTERFIELD B's own exact destination/u,
+    },
+    {
+      name: "ROCK RIDGE",
+      pad: rockRidge(),
+      routeUrl: ROCK_RIDGE_REVIEWED_GOOGLE_URL,
+      destination: "39.998772,-81.224825",
+      waypoints: [
+        "40.007077099,-81.176502113",
+        "40.007544767,-81.205526285",
+        "39.997476604,-81.217520411",
+      ],
+      reviewedSequence: "Google-selected state-road approach → I-70 Exit 202 → OH-800 S → Shannon Rd → Lowe Rd → Fairview Rd / first cross road → Douglas/Fairview Rd → Putney Ridge Rd → verified driver entrance",
+      notice: /complete reviewed local-road order/u,
+    },
+  ] as const;
 }
 
 function batch2RouteFixtures() {
@@ -801,6 +908,112 @@ describe("reviewed navigation candidates", () => {
     expect(sameNameOtherCounty.padName).toBe("DUKE");
     expect(reviewedNavigationCandidateForPad(sameNameOtherCompany)).toBeNull();
     expect(reviewedNavigationCandidateForPad(sameNameOtherCounty)).toBeNull();
+  });
+
+  it("returns TROYER only for its exact record and preserves the validated local-road order", () => {
+    const candidate = reviewedNavigationCandidateForPad(troyer());
+    expect(candidate).toMatchObject({
+      padId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+      routeUrl: TROYER_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "US-22 E → McCoy Rd / CR-82 → Pennyroyal Rd / CR-95 → Penrose Rd / CR-694 → Jesse Ln / pad access → saved pad GPS",
+      finalLegNotice: expect.stringMatching(/not promoted to approved graph or public-Google authority/u),
+    });
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.087025,-81.259818");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.123106982,-81.353948693",
+      "40.10466556,-81.273528365",
+      "40.083490401,-81.263386973",
+    ]);
+  });
+
+  it("fails TROYER closed on identity, revision, sequence, destination, or source drift", () => {
+    const exact = troyer();
+    for (const [field, value] of [
+      ["padId", "11111111-1111-4111-8111-111111111111"],
+      ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+      ["legacyId", "ascent--other"],
+      ["recordRevision", "changed"],
+      ["company", "Other"],
+      ["padName", "TROYER EAST"],
+      ["state", "West Virginia"],
+      ["county", "Belmont"],
+      ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+    ] as const) {
+      expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), field).toBeNull();
+    }
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, latitude: 40.087026 },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null })).toBeNull();
+  });
+
+  it("returns the new shared-corridor routes only for their exact records and ordered controls", () => {
+    for (const fixture of batch5SharedCorridorFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.stringMatching(fixture.notice),
+      });
+      const url = new URL(candidate!.routeUrl);
+      expect(url.origin, fixture.name).toBe("https://www.google.com");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails the new shared-corridor routes closed on every record or destination drift", () => {
+    for (const fixture of batch5SharedCorridorFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", fixture.pad.county === "Belmont" ? "Guernsey" : "Belmont"],
+        ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
+      }
+
+      if (exact.coordinate) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, coordinate: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          coordinate: { ...exact.coordinate, latitude: exact.coordinate.latitude + 0.000001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          coordinate: null,
+          mapReference: { latitude: exact.coordinate.latitude, longitude: exact.coordinate.longitude, role: "reference", kind: "saved_pad_reference" },
+        }), fixture.name).toBeNull();
+      } else {
+        expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude - 0.000001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+        }), fixture.name).toBeNull();
+      }
+    }
   });
 
   it("returns each phone-validated batch-2 route only for its exact record and trusted destination", () => {

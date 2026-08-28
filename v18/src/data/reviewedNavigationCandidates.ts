@@ -116,6 +116,18 @@ const PORTERFIELD_WAYPOINTS = [
   { latitude: 40.088246, longitude: -80.944086 },
   { latitude: 40.090469, longitude: -80.928294 },
 ] as const;
+const PORTERFIELD_B_ROUTE_DESTINATION = { latitude: 40.090438, longitude: -80.921210 } as const;
+const PORTERFIELD_B_WAYPOINTS = [
+  { latitude: 40.073689, longitude: -80.945041 },
+  { latitude: 40.088246, longitude: -80.944086 },
+  { latitude: 40.090469, longitude: -80.928294 },
+] as const;
+const ROCK_RIDGE_ROUTE_DESTINATION = { latitude: 39.998772, longitude: -81.224825 } as const;
+const ROCK_RIDGE_WAYPOINTS = [
+  { latitude: 40.007077099, longitude: -81.176502113 },
+  { latitude: 40.007544767, longitude: -81.205526285 },
+  { latitude: 39.997476604, longitude: -81.217520411 },
+] as const;
 const CROWIE_ROUTE_DESTINATION = { latitude: 40.0979, longitude: -80.9384 } as const;
 const CROWIE_WAYPOINTS = [
   { latitude: 40.073689, longitude: -80.945041 },
@@ -148,6 +160,17 @@ const LAKE_WAYPOINTS = [
 const THOMAS_ROUTE_DESTINATION = { latitude: 40.096986, longitude: -81.307667 } as const;
 const THOMAS_WAYPOINTS = [
   { latitude: 40.087850494651, longitude: -81.320561551360 },
+] as const;
+const TROYER_ROUTE_DESTINATION = { latitude: 40.087025, longitude: -81.259818 } as const;
+const TROYER_WAYPOINTS = [
+  { latitude: 40.123106982, longitude: -81.353948693 },
+  { latitude: 40.104665560, longitude: -81.273528365 },
+  { latitude: 40.083490401, longitude: -81.263386973 },
+] as const;
+const CIRCLE_OAKS_ROUTE_DESTINATION = { latitude: 40.176413, longitude: -81.348770 } as const;
+const CIRCLE_OAKS_WAYPOINTS = [
+  { latitude: 40.211888715, longitude: -81.390778629 },
+  { latitude: 40.204197138, longitude: -81.382414119 },
 ] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
@@ -197,12 +220,16 @@ export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?
 export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
 export const DUKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DUKE_ROUTE_DESTINATION, DUKE_WAYPOINTS);
 export const PORTERFIELD_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_ROUTE_DESTINATION, PORTERFIELD_WAYPOINTS);
+export const PORTERFIELD_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_B_ROUTE_DESTINATION, PORTERFIELD_B_WAYPOINTS);
+export const ROCK_RIDGE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ROCK_RIDGE_ROUTE_DESTINATION, ROCK_RIDGE_WAYPOINTS);
 export const CROWIE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CROWIE_ROUTE_DESTINATION, CROWIE_WAYPOINTS);
 export const CASTON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CASTON_ROUTE_DESTINATION, CASTON_WAYPOINTS);
 export const GIL_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GIL_ROUTE_DESTINATION, GIL_WAYPOINTS);
 export const GILCHER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GILCHER_ROUTE_DESTINATION, GILCHER_WAYPOINTS);
 export const LAKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LAKE_ROUTE_DESTINATION, LAKE_WAYPOINTS);
 export const THOMAS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(THOMAS_ROUTE_DESTINATION, THOMAS_WAYPOINTS);
+export const TROYER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TROYER_ROUTE_DESTINATION, TROYER_WAYPOINTS);
+export const CIRCLE_OAKS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CIRCLE_OAKS_ROUTE_DESTINATION, CIRCLE_OAKS_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -353,6 +380,52 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     waypoints: PORTERFIELD_WAYPOINTS,
   },
   {
+    padId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
+    canonicalId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
+    legacyId: "ascent--porterfield-b",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "PORTERFIELD B",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → Lease Road → OR → OH-331 → US-40 → Vineyard Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "US-40 → Vineyard Rd → saved GPS",
+    routeUrl: PORTERFIELD_B_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approach → US-40 W → Vineyard Rd / CR-56 → saved pad GPS",
+    finalLegNotice: "The reviewed handoff reuses the proven Vineyard Road turn controls but has PORTERFIELD B's own exact destination. Google remains on Vineyard Road for the final 0.4 mile and clips at the saved GPS; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.090438,
+      longitude: -80.921210,
+      source: "saved_pad_gps",
+    },
+    routeDestination: PORTERFIELD_B_ROUTE_DESTINATION,
+    waypoints: PORTERFIELD_B_WAYPOINTS,
+  },
+  {
+    padId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
+    canonicalId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
+    legacyId: "ascent--rock-ridge",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "ROCK RIDGE",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 202 → OH-800 → Shannon Rd → Lowe Rd → 1st Cross Rd → Fairview Rd → Douglas/fairview Rd → Putney Ridge Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-800 → Shannon → Lowe → Fairview → Putney Ridge → entrance",
+    routeUrl: ROCK_RIDGE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → I-70 Exit 202 → OH-800 S → Shannon Rd → Lowe Rd → Fairview Rd / first cross road → Douglas/Fairview Rd → Putney Ridge Rd → verified driver entrance",
+    finalLegNotice: "The three shaping points sit inside official Shannon, Fairview, and Putney Ridge road identities and preserve the complete reviewed local-road order. The route clips at ROCK RIDGE's exact verified driver entrance; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.998772,
+      longitude: -81.224825,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: ROCK_RIDGE_ROUTE_DESTINATION,
+    waypoints: ROCK_RIDGE_WAYPOINTS,
+  },
+  {
     padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
     canonicalId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
     legacyId: "ascent--crowie",
@@ -489,6 +562,52 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: THOMAS_ROUTE_DESTINATION,
     waypoints: THOMAS_WAYPOINTS,
+  },
+  {
+    padId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+    canonicalId: "6c93d03a-76e8-4c03-b47e-8b7011c81a1a",
+    legacyId: "ascent--troyer",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "TROYER",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd → OR → OH-513 → US-22 → Mc Coy Rd → Pennyroyal Rd → Penrose Rd",
+    title: "Navigate reviewed route",
+    detail: "McCoy → Pennyroyal → Penrose → pad access → saved GPS",
+    routeUrl: TROYER_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 E → McCoy Rd / CR-82 → Pennyroyal Rd / CR-95 → Penrose Rd / CR-694 → Jesse Ln / pad access → saved pad GPS",
+    finalLegNotice: "The reviewed handoff follows McCoy, Pennyroyal, and Penrose roads. Google labels the final short movement Jesse Lane; that pad-access leg ends at TROYER's exact saved GPS and is not promoted to approved graph or public-Google authority.",
+    trustedDestination: {
+      latitude: 40.087025,
+      longitude: -81.259818,
+      source: "saved_pad_gps",
+    },
+    routeDestination: TROYER_ROUTE_DESTINATION,
+    waypoints: TROYER_WAYPOINTS,
+  },
+  {
+    padId: "b22c557a-950a-4ed7-a65a-f4730b9bc727",
+    canonicalId: "b22c557a-950a-4ed7-a65a-f4730b9bc727",
+    legacyId: "ascent--circle-oaks",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "CIRCLE-OAKS",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-342 → OH-258 → Martha Rd → Titus Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-258 → Martha → Titus → verified entrance",
+    routeUrl: CIRCLE_OAKS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-258 → Martha Rd / CR-781 → Titus Rd / CR-878 → verified driver entrance",
+    finalLegNotice: "The two shaping points sit inside official Martha and Titus road identities and accept either state-road approach direction without backtracking. Google briefly labels the first Martha segment Newtown Road; that renderer label is not promoted to a separate road identity. Exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.176413,
+      longitude: -81.348770,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: CIRCLE_OAKS_ROUTE_DESTINATION,
+    waypoints: CIRCLE_OAKS_WAYPOINTS,
   },
   {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
