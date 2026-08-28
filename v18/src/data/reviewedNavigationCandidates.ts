@@ -272,6 +272,12 @@ const LODESTAR_WAYPOINTS = [
   { latitude: 39.774007303642, longitude: -81.451385717411 },
   { latitude: 39.754750338267, longitude: -81.412456525463 },
 ] as const;
+const WINSTON_SMITH_ROUTE_DESTINATION = { latitude: 39.752765, longitude: -81.396584 } as const;
+const WINSTON_SMITH_WAYPOINTS = [
+  { latitude: 39.774007303642, longitude: -81.451385717411 },
+  { latitude: 39.754750338267, longitude: -81.412456525463 },
+  { latitude: 39.747281218039, longitude: -81.405362294553 },
+] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
   { latitude: 40.0817058, longitude: -81.2127365 },
@@ -285,6 +291,10 @@ const WITHEY_ROUTE_DESTINATION = { latitude: 39.962005, longitude: -81.216813 } 
 const WITHEY_WAYPOINTS = [
   { latitude: 39.967149, longitude: -81.2055552 },
 ] as const;
+// Frozen owner-confirmed driver rule: this existing control preserves
+// Cadiz Road / US-22 -> Repik Lane / TR-9876 -> the exact trusted pin.
+// A named public road followed to the pin is sufficient for this reviewed
+// handoff; it does not create pad-deck or lease geometry or route authority.
 const SKULL_FORK_ROUTE_DESTINATION = { latitude: 40.159734, longitude: -81.260675 } as const;
 const SKULL_FORK_WAYPOINTS = [
   { latitude: 40.167610, longitude: -81.259685 },
@@ -351,6 +361,7 @@ export const LODGE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LODGE_ROUTE_
 export const ECHO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ECHO_ROUTE_DESTINATION, ECHO_WAYPOINTS);
 export const NORTH_STAR_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(NORTH_STAR_ROUTE_DESTINATION, NORTH_STAR_WAYPOINTS);
 export const LODESTAR_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LODESTAR_ROUTE_DESTINATION, LODESTAR_WAYPOINTS);
+export const WINSTON_SMITH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WINSTON_SMITH_ROUTE_DESTINATION, WINSTON_SMITH_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -1214,6 +1225,29 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     waypoints: LODESTAR_WAYPOINTS,
   },
   {
+    padId: "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
+    canonicalId: "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
+    legacyId: "ascent--winston-smith",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "WINSTON SMITH",
+    state: "Ohio",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Archer Ridge Rd → Hill Rd → Keep Left Onto Gurewicz Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → Gurewicz Rd / TR-303A → unapproved GPS handoff",
+    routeUrl: WINSTON_SMITH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → Gurewicz Rd / TR-303A → unapproved lease/GPS handoff → saved pad GPS",
+    finalLegNotice: "The three shaping points sit inside WINSTON SMITH's exact Archers Ridge Road / CR-2, Hill Road / TR-307, and Gurewicz Road / TR-303A identities after current verified OH-78/CR-2, CR-2/TR-307, and TR-307/TR-303A junctions. Live review from Cambridge and Caldwell preserved OH-78 → Archers Ridge → Hill → Gurewicz without a shortcut, skipped road, loop, or backtrack. The source occurrence parser did not resolve the action-prefixed Gurewicz token, but the exact current identity membership independently proves the road-to-road junction; this remains a reviewed handoff rather than graph approval. The final movement to the saved GPS remains unapproved; the saved point is not relabeled as a verified entrance, and public-Google authority remains separate.",
+    trustedDestination: {
+      latitude: 39.752765,
+      longitude: -81.396584,
+      source: "saved_pad_gps",
+    },
+    routeDestination: WINSTON_SMITH_ROUTE_DESTINATION,
+    waypoints: WINSTON_SMITH_WAYPOINTS,
+  },
+  {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
     canonicalId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
     legacyId: "ascent--albatross",
@@ -1296,7 +1330,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     detail: "Repik Ln → verified entrance",
     routeUrl: SKULL_FORK_REVIEWED_GOOGLE_URL,
     reviewedRoadSequence: "Google-selected approach → Repik Ln → verified driver entrance",
-    finalLegNotice: "The reviewed local shaping point preserves Repik Lane to SKULL FORK's exact verified driver entrance. Google's upstream route remains origin-dependent; exact graph and public Google authority remain separate.",
+    finalLegNotice: "Owner-confirmed live navigation preserves Cadiz Road / US-22 → Repik Lane / TR-9876 → SKULL FORK's exact trusted pin. That named-road-to-pin handoff is sufficient for the driver; it does not invent a pad-deck point, name or approve lease geometry, or create graph/public-Google authority. Google's upstream route remains origin-dependent.",
     trustedDestination: {
       latitude: 40.159734,
       longitude: -81.260675,

@@ -46,6 +46,7 @@ import {
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   WHEELING_VALLEY_REVIEWED_GOOGLE_URL,
+  WINSTON_SMITH_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
@@ -539,6 +540,21 @@ function lodestar(): PadSummary {
     structuredRoadSequence: "I-77 → Exit 25 → OH-78 E → Archer Ridge Rd / CR-2 → Hill Rd / TR-307 → Lease Road",
     coordinate: null,
     mapReference: { latitude: 39.750091, longitude: -81.409571, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function winstonSmith(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
+    canonicalId: "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
+    legacyId: "ascent--winston-smith",
+    recordRevision: "1786258360881449",
+    padName: "WINSTON SMITH",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Archer Ridge Rd → Hill Rd → Keep Left Onto Gurewicz Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 39.752765, longitude: -81.396584, role: "reference", kind: "saved_pad_reference" },
   };
 }
 
@@ -1598,6 +1614,7 @@ describe("reviewed navigation candidates", () => {
       expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
       expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
       expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+
     }
   });
 
@@ -1662,6 +1679,7 @@ describe("reviewed navigation candidates", () => {
       expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
       expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
       expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+
     }
   });
 
@@ -1835,6 +1853,73 @@ describe("reviewed navigation candidates", () => {
     expect(reviewedNavigationCandidateForPad(vannelle())).toBeNull();
   });
 
+  it("returns WINSTON SMITH only for its exact record and three ordered local-road controls", () => {
+    const exact = winstonSmith();
+    const candidate = reviewedNavigationCandidateForPad(exact);
+    expect(candidate).toMatchObject({
+      padId: exact.padId,
+      routeUrl: WINSTON_SMITH_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "Google-selected state-road approach → OH-78 → Archers Ridge Rd / CR-2 → Hill Rd / TR-307 → Gurewicz Rd / TR-303A → unapproved lease/GPS handoff → saved pad GPS",
+      finalLegNotice: expect.stringMatching(/exact current identity membership independently proves/u),
+    });
+    expect(candidate!.detail).toMatch(/unapproved/iu);
+    expect(candidate!.finalLegNotice).toMatch(/reviewed handoff rather than graph approval/iu);
+    const authorityText = [candidate!.detail, candidate!.reviewedRoadSequence, candidate!.finalLegNotice]
+      .join(" ")
+      .replace(/\bunapproved\b/giu, "");
+    expect(authorityText).not.toMatch(/\bapproved\b|public Google route|graph approved/iu);
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.origin).toBe("https://www.google.com");
+    expect(url.pathname).toBe("/maps/dir/");
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(url.searchParams.get("destination")).toBe("39.752765,-81.396584");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "39.774007303642,-81.451385717411",
+      "39.754750338267,-81.412456525463",
+      "39.747281218039,-81.405362294553",
+    ]);
+  });
+
+  it("fails WINSTON SMITH closed on identity, revision, source, coordinate, or occurrence drift", () => {
+    const exact = winstonSmith();
+    for (const [field, value] of [
+      ["padId", "11111111-1111-4111-8111-111111111111"],
+      ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+      ["legacyId", "ascent--other"],
+      ["recordRevision", "changed"],
+      ["company", "Other"],
+      ["padName", "WINSTON SMITH EAST"],
+      ["state", "West Virginia"],
+      ["county", "Harrison"],
+      ["structuredRoadSequence", "I-77 → OH-78 → Gurewicz Rd → Lease Road"],
+    ] as const) {
+      expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), field).toBeNull();
+    }
+
+    expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, latitude: exact.mapReference!.latitude + 0.000001 },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude - 0.000001 },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      coordinate: { latitude: 39.752765, longitude: -81.396584, role: "driver_entrance" },
+      mapReference: null,
+    })).toBeNull();
+  });
+
   it("returns the new shared-corridor routes only for their exact records and ordered controls", () => {
     for (const fixture of batch5SharedCorridorFixtures()) {
       const candidate = reviewedNavigationCandidateForPad(fixture.pad);
@@ -1991,6 +2076,12 @@ describe("reviewed navigation candidates", () => {
       expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
       expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
       expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+
+      if (fixture.name === "SKULL FORK") {
+        expect(candidate!.finalLegNotice).toMatch(/Cadiz Road \/ US-22 → Repik Lane \/ TR-9876 → SKULL FORK's exact trusted pin/u);
+        expect(candidate!.finalLegNotice).toMatch(/does not invent a pad-deck point/u);
+        expect(candidate!.routeUrl).toBe(SKULL_FORK_REVIEWED_GOOGLE_URL);
+      }
     }
   });
 
