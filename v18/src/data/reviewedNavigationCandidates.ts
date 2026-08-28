@@ -212,6 +212,28 @@ const JEFFCO_WAYPOINTS = [
   { latitude: 40.3144086, longitude: -80.8963895 },
   { latitude: 40.2968376, longitude: -80.9022309 },
 ] as const;
+const KUNGLE_A_ROUTE_DESTINATION = { latitude: 39.88507, longitude: -80.88258 } as const;
+const KUNGLE_A_WAYPOINTS = [
+  { latitude: 39.886820116283, longitude: -80.869735364419 },
+] as const;
+const TRUCHAN_NE_ROUTE_DESTINATION = { latitude: 40.146637, longitude: -80.931651 } as const;
+const TRUCHAN_NE_WAYPOINTS = [
+  { latitude: 40.151952334248, longitude: -80.961064815011 },
+  { latitude: 40.15863093394, longitude: -80.943718975075 },
+  { latitude: 40.146780343386, longitude: -80.934175287918 },
+] as const;
+const MATUSEK_ROUTE_DESTINATION = { latitude: 40.146555, longitude: -80.922785 } as const;
+const MATUSEK_WAYPOINTS = [
+  { latitude: 40.151952334248, longitude: -80.961064815011 },
+  { latitude: 40.15863093394, longitude: -80.943718975075 },
+  { latitude: 40.146780343386, longitude: -80.934175287918 },
+] as const;
+const LORRAINE_ROUTE_DESTINATION = { latitude: 40.09955, longitude: -80.840213 } as const;
+const LORRAINE_WAYPOINTS = [
+  { latitude: 40.149707596819, longitude: -80.842549734013 },
+  { latitude: 40.116658061827, longitude: -80.859991873154 },
+  { latitude: 40.101497884455, longitude: -80.841503024754 },
+] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
   { latitude: 40.0817058, longitude: -81.2127365 },
@@ -279,6 +301,10 @@ export const KUNGLE_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(KUNGLE_B_
 export const TRUCHAN_NW_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TRUCHAN_NW_ROUTE_DESTINATION, TRUCHAN_NW_WAYPOINTS);
 export const MOONSTONE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MOONSTONE_ROUTE_DESTINATION, MOONSTONE_WAYPOINTS);
 export const JEFFCO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(JEFFCO_ROUTE_DESTINATION, JEFFCO_WAYPOINTS);
+export const KUNGLE_A_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(KUNGLE_A_ROUTE_DESTINATION, KUNGLE_A_WAYPOINTS);
+export const TRUCHAN_NE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TRUCHAN_NE_ROUTE_DESTINATION, TRUCHAN_NE_WAYPOINTS);
+export const MATUSEK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MATUSEK_ROUTE_DESTINATION, MATUSEK_WAYPOINTS);
+export const LORRAINE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LORRAINE_ROUTE_DESTINATION, LORRAINE_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -864,6 +890,98 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: JEFFCO_ROUTE_DESTINATION,
     waypoints: JEFFCO_WAYPOINTS,
+  },
+  {
+    padId: "47a0305e-c641-499b-990c-0f7fe83493b8",
+    canonicalId: "47a0305e-c641-499b-990c-0f7fe83493b8",
+    legacyId: "ascent--kungle-a",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "KUNGLE A",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "OH-2 → OH-872 → OH-7 → OH-148 → Potts Rd → OR → OH-556 → Clover Ridge Rd → OH-148 → Potts Rd → OR → OH-147 → OH-148 → Potts Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-148 → Potts Rd / TR-506 → unapproved GPS handoff",
+    routeUrl: KUNGLE_A_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-148 → Potts Rd / TR-506 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The shaping point sits inside KUNGLE A's exact Potts Road / TR-506 identity after its verified OH-148 junction and accepts either state-road approach direction without backtracking. Exact public-road geometry ends before the saved pad GPS; the remaining movement is an unapproved access/GPS handoff. The saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 39.88507,
+      longitude: -80.88258,
+      source: "saved_pad_gps",
+    },
+    routeDestination: KUNGLE_A_ROUTE_DESTINATION,
+    waypoints: KUNGLE_A_WAYPOINTS,
+  },
+  {
+    padId: "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+    canonicalId: "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+    legacyId: "ascent--truchan-ne",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "TRUCHAN NE",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → OR → OH-9 → Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-9 → Shepherdstown → Fairpoint-Shepherdstown → Sloans Run → unapproved GPS handoff",
+    routeUrl: TRUCHAN_NE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The first two shaping points reuse the exact Shepherdstown Road / CR-64 and Fairpoint-Shepherdstown Road / TR-216 corridor receipts; the third sits inside the exact Sloans Run Road / TR-704 identity after its verified Fairpoint-Shepherdstown junction. Google reaches TRUCHAN NE from both reviewed origins without backtracking. Movement beyond the last exact public-road geometry to the saved pad GPS remains an unapproved access/GPS handoff; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.146637,
+      longitude: -80.931651,
+      source: "saved_pad_gps",
+    },
+    routeDestination: TRUCHAN_NE_ROUTE_DESTINATION,
+    waypoints: TRUCHAN_NE_WAYPOINTS,
+  },
+  {
+    padId: "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+    canonicalId: "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+    legacyId: "ascent--matusek",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "MATUSEK",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → OH-9 / Shepherdstown Rd → Fairpoint Shepherdstown Rd → Sloans Run Rd → See Dunn Rd → Lease Road → OR → Dunn Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-9 → Shepherdstown → Fairpoint-Shepherdstown → Sloans Run → unapproved GPS handoff",
+    routeUrl: MATUSEK_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-9 → Shepherdstown Rd / CR-64 → Fairpoint-Shepherdstown Rd / TR-216 → Sloans Run Rd / TR-704 → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The first two shaping points reuse the exact Shepherdstown Road / CR-64 and Fairpoint-Shepherdstown Road / TR-216 corridor receipts; the third sits inside the exact Sloans Run Road / TR-704 identity after its verified Fairpoint-Shepherdstown junction. Google reaches MATUSEK from both reviewed origins without backtracking. Google may render the destination as Dunn Road, but that renderer label is not promoted to exact public-road identity; the post-Sloans movement to the saved pad GPS remains an unapproved access/GPS handoff, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.146555,
+      longitude: -80.922785,
+      source: "saved_pad_gps",
+    },
+    routeDestination: MATUSEK_ROUTE_DESTINATION,
+    waypoints: MATUSEK_WAYPOINTS,
+  },
+  {
+    padId: "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+    canonicalId: "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
+    legacyId: "ascent--lorraine",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "LORRAINE",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "US-250 → CR-5 / Crescent Rd → CR-10 → CR10 Barton Blaine Rd",
+    title: "Navigate reviewed route",
+    detail: "US-250 → Crescent Rd / CR-5 → Barton-Blaine Rd / CR-10 → unapproved GPS handoff",
+    routeUrl: LORRAINE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → US-250 → CR-5 / Crescent Rd → shared CR-5 / CR-10 pavement → CR-10 / Barton-Blaine Rd → unapproved access/GPS handoff → saved pad GPS",
+    finalLegNotice: "The first shaping point sits inside CR-5 after its verified US-250 junction; the second sits inside CR-10 after the verified CR-5/CR-10 shared pavement, and the third keeps the route on CR-10 / Barton-Blaine Road near the final access. Shared pavement is not described as a separate physical turn. Google preserves the reviewed sequence from either US-250 direction without backtracking. Exact CR-10 public-road geometry ends before LORRAINE's saved pad GPS, so the remaining movement is an unapproved access/GPS handoff. The saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.09955,
+      longitude: -80.840213,
+      source: "saved_pad_gps",
+    },
+    routeDestination: LORRAINE_ROUTE_DESTINATION,
+    waypoints: LORRAINE_WAYPOINTS,
   },
   {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",

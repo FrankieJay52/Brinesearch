@@ -28,6 +28,10 @@ const reviewedPadIds = [
   "c10e2066-d6b7-4117-aea9-137dd1237b3a",
   "ca1560b5-4ea6-4eb7-a82e-de2467937eb2",
   "9aa065c0-8896-49e2-b02d-d4ca71acefc3",
+  "47a0305e-c641-499b-990c-0f7fe83493b8",
+  "cd4f6dcc-b603-4155-84b2-30d7ee87bbc7",
+  "d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6",
+  "a35f0ea7-13d7-45dd-8fe2-fe73e4964df2",
   "143f5268-33e4-4598-8101-40220b5cfdc4",
   "59061829-1122-4aae-872d-cf5024310373",
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
@@ -75,7 +79,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all thirty-three reviewed ledger states require every exact record and destination field", () => {
+test("all thirty-seven reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -115,6 +119,20 @@ test("batch-7 audit receipts expose exact reviewed handoffs without promoting ro
     ["c10e2066-d6b7-4117-aea9-137dd1237b3a", "Fairpoint-Shepherdstown"],
     ["ca1560b5-4ea6-4eb7-a82e-de2467937eb2", "Lew Martin Road"],
     ["9aa065c0-8896-49e2-b02d-d4ca71acefc3", "Beech Road"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad, "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /approved public|public Google|graph approved/iu);
+  }
+});
+
+test("batch-8 audit receipts expose exact reviewed handoffs without promoting route authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["47a0305e-c641-499b-990c-0f7fe83493b8", "Potts Road"],
+    ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", "Sloans Run"],
+    ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", "Sloans Run"],
+    ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", "Barton-Blaine Road"],
   ]) {
     const receipt = explicitReceiptForPad(padId);
     assert.match(receipt, new RegExp(expectedRoad, "u"));
