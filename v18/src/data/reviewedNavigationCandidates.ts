@@ -182,7 +182,7 @@ const RUTH_WAYPOINTS = [
 ] as const;
 const PICKENS_ROUTE_DESTINATION = { latitude: 40.182544, longitude: -80.977135 } as const;
 const PICKENS_WAYPOINTS = [
-  { latitude: 40.186260, longitude: -80.976470 },
+  { latitude: 40.1868067, longitude: -80.9781928 },
 ] as const;
 const ATHENA_ROUTE_DESTINATION = { latitude: 40.278613, longitude: -80.765988 } as const;
 const ATHENA_WAYPOINTS = [
@@ -652,10 +652,14 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     waypoints: RUTH_WAYPOINTS,
   },
   {
-    // The owner-supplied field screenshot places this shaping point just
-    // inside the access turn from OH-519 / Stumptown Road. The phone remains
-    // the origin, so Google can approach the same turn from either state-route
-    // direction without forcing a remote fixed anchor.
+    // The corrected owner-supplied field screenshot showed that the former
+    // control was still on OH-519 east of the pad connector and could make an
+    // approach from the other direction pass the turn and double back. This
+    // control is the exact physical junction from the later owner screenshot.
+    // Google currently labels the connector Georgetown Road, but that
+    // renderer label is not promoted to an authoritative driver-facing road
+    // identity. The phone remains the origin,
+    // so Google can approach the same turn from either state-route direction.
     padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     canonicalId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     legacyId: "ascent--pickens",
@@ -669,7 +673,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     detail: "OH-519 / Stumptown Rd → unapproved access road → verified entrance",
     routeUrl: PICKENS_REVIEWED_GOOGLE_URL,
     reviewedRoadSequence: "Google-selected state-route approach → OH-519 / Stumptown Rd → unapproved access-road handoff → verified driver entrance",
-    finalLegNotice: "The owner-reviewed shaping point is just inside PICKENS's turn from OH-519 / Stumptown Road. The access road and remaining movement to the verified driver entrance are not approved public-road geometry; exact graph and public-Google authority remain separate.",
+    finalLegNotice: "The corrected shaping point is the owner-confirmed PICKENS pad-connector turn from OH-519 / Stumptown Road. Google currently labels that connector Georgetown Road, but the label is renderer context only. The access-road movement to the verified driver entrance is not approved public-road geometry; exact graph and public-Google authority remain separate.",
     trustedDestination: {
       latitude: 40.182544,
       longitude: -80.977135,
