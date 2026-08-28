@@ -6,6 +6,7 @@ import {
   currentReleasedGoogleHandoffLoad,
   higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
+  navigationFallbackAfterHigherPriorityCheck,
   releasedGoogleNavigationUrl,
 } from "./releasedGoogleHandoff";
 
@@ -155,6 +156,14 @@ describe("released Google handoff loader", () => {
 });
 
 describe("higher-priority navigation check state", () => {
+  it.each([
+    ["checking", null],
+    ["unavailable", null],
+    ["checked", "reviewed candidate"],
+  ] as const)("gates the reviewed fallback while the authority state is %s", (state, expected) => {
+    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBe(expected);
+  });
+
   it("keeps fallbacks closed until both exact online checks finish", () => {
     expect(higherPriorityNavigationCheckState({
       online: true,
