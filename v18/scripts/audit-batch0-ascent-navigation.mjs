@@ -352,6 +352,16 @@ async function githubPullRequestBaseSha() {
   }
 }
 
+export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBaseSha }) {
+  assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
+  assert(/^[0-9a-f]{40}$/u.test(originMainSha), "Current origin/main SHA is invalid");
+  assert(/^[0-9a-f]{40}$/u.test(frozenBaseSha), "Saved Batch 0 base SHA is invalid");
+  if (headSha === originMainSha) return "merged-main";
+  assert(originMainSha === frozenBaseSha,
+    `Saved Batch 0 base ${frozenBaseSha} does not match current origin/main ${originMainSha}`);
+  return "candidate-branch";
+}
+
 async function publicConfiguration() {
   const source = await readFile(path.join(repositoryRoot, "v18", "src", "data", "directory.ts"), "utf8");
   const supabaseUrl = /VITE_SUPABASE_URL\s*\|\|\s*"([^"]+)"/u.exec(source)?.[1];
@@ -515,11 +525,17 @@ async function main() {
   if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
     if (originMainSha) {
-      assert(originMainSha === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main ${originMainSha}`);
-      const mergeBase = git("merge-base", "HEAD", "origin/main");
+      const headSha = git("rev-parse", "HEAD");
+      const checkoutMode = frozenProvenanceCheckoutMode({
+        headSha,
+        originMainSha,
+        frozenBaseSha: frozen.baseMainSha,
+      });
+      const mergeBase = checkoutMode === "merged-main"
+        ? git("merge-base", "HEAD", frozen.baseMainSha)
+        : git("merge-base", "HEAD", "origin/main");
       assert(mergeBase === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main merge base ${mergeBase}`);
+        `Saved Batch 0 base ${frozen.baseMainSha} does not match ${checkoutMode} merge base ${mergeBase}`);
       const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
         .filter((value) => !generatedAuditPaths.has(value))
         .sort();

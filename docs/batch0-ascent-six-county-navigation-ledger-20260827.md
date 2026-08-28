@@ -1,8 +1,8 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `e857766d161e26a1d56b0f6c48b3a8d0b9d1f068`
-- Candidate implementation HEAD: `0a35f196c6cad20d2202abad2602efa2fe904b6b`
-- Candidate content SHA-256: `43d5d33bcc7949c8148758997cceccd794febefa3ef1fd40e55c76d050563900`
-- Uncommitted non-generated changes: **no**
+- Base origin/main SHA: `158687893c207e8514f5afdb512de5586228c692`
+- Candidate implementation HEAD: `158687893c207e8514f5afdb512de5586228c692`
+- Candidate content SHA-256: `6c41d89564f09e003d33631b6fef74f76af68724c430a3f754fad0fc1f091822`
+- Uncommitted non-generated changes: **yes**
 - 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
 - LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: `reviewed_handoff_authority_held`
@@ -11,31 +11,8 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
-- `docs/issue97-duke-reviewed-handoff-20260827.md`
-- `docs/issue97-porterfield-reviewed-handoff-20260827.md`
-- `v18/package.json`
 - `v18/scripts/audit-batch0-ascent-navigation.mjs`
 - `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
-- `v18/src/data/DirectoryContext.test.ts`
-- `v18/src/data/DirectoryContext.tsx`
-- `v18/src/data/ascentBatch0NavigationLedger.test.ts`
-- `v18/src/data/padReferences.test.ts`
-- `v18/src/data/padReferences.ts`
-- `v18/src/data/releasedGoogleHandoff.test.ts`
-- `v18/src/data/releasedGoogleHandoff.ts`
-- `v18/src/data/reviewedNavigationCandidates.test.ts`
-- `v18/src/data/reviewedNavigationCandidates.ts`
-- `v18/src/data/status.test.ts`
-- `v18/src/data/status.ts`
-- `v18/src/features/map/MapApprovedRouteLink.test.ts`
-- `v18/src/features/map/MapApprovedRouteLink.tsx`
-- `v18/src/features/map/MapPage.test.ts`
-- `v18/src/features/map/MapPage.tsx`
-- `v18/src/features/pad/PadPage.test.ts`
-- `v18/src/features/pad/PadPage.tsx`
-- `v18/src/features/settings/SettingsPage.test.ts`
-- `v18/src/features/settings/SettingsPage.tsx`
 
 ## Counts
 
