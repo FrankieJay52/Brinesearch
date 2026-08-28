@@ -132,6 +132,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("currentSelectedStatus?.route.geometry || null");
     expect(pageSource).toContain("loadDriverRouteChoices(selected)");
     expect(pageSource).toContain("No approved inbound route is public · no route line inferred.");
+    expect(pageSource).not.toContain("selectedReviewedNavigation.ownerApproval.geometry");
+    expect(pageSource).not.toContain("selectedReviewedNavigation.ownerApproval.routeGeometry");
     expect(pageSource).not.toContain("nearest_road");
     expect(pageSource).not.toContain("fuzzy_name");
   });
@@ -185,7 +187,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
     expect(pageSource).not.toContain('eligibleReviewedNavigation?.reviewedRoadSequence');
     expect(pageSource).toContain("{selectedRoadSequence}");
-    expect(pageSource).toContain('selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"');
+    expect(pageSource).toContain('selectedReviewedNavigation.ownerApproval ? "Owner-approved route sequence" : "Reviewed route sequence"');
+    expect(pageSource).toContain('selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"');
     expect(pageSource).toContain("const selectedReviewedNavigation = navigationFallbackAfterHigherPriorityCheck(");
     expect(pageSource).not.toContain("selectedReviewedNavigationCandidate ? <MapReviewedRouteLink");
     expect(pageSource).toContain("Open pad details");
@@ -226,6 +229,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("reviewedNavigationCandidateForPad(selected)");
     expect(pageSource).toContain("reviewedNavigationSafetyHoldForPad(selected)");
     expect(pageSource).toContain("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}");
+    expect(pageSource).toContain("ownerApproval={selectedReviewedNavigation.ownerApproval}");
     expect(pageSource).toContain("statusRequestSettled: !selected || currentStatusAuthorityCheck !== null");
     expect(pageSource).toContain("releaseRequestSettled: !selected || currentReleasedHandoffLoadResult !== null");
     expect(pageSource).toContain("Owner-reviewed Google directions are available for this exact pad.");

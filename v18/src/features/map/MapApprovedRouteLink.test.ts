@@ -56,10 +56,31 @@ describe("map approved route link", () => {
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain("Owner-reviewed Google directions");
-    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("Google ready");
+  });
+
+  it("labels an explicit owner-approved direction handoff without creating route-line authority", () => {
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288";
+    const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, {
+      routeUrl,
+      padName: "BEETLE",
+      detail: "OH-519 → Sixteen Rd → GPS handoff",
+      ownerApproval: {
+        kind: "owner_approved_directions",
+        evidence: "exact_named_road_identities",
+        approvedAt: "2026-08-28",
+      },
+    }));
+
+    expect(html.match(/<a\b/g)).toHaveLength(1);
+    expect(html).toContain("GET DIRECTIONS");
+    expect(html).toContain("owner-approved named-road directions for BEETLE");
+    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
+    expect(html).not.toContain("Google ready");
+    expect(html).not.toContain("<small");
   });
 
   it("renders candidate-specific held-graph wording", () => {
@@ -72,7 +93,7 @@ describe("map approved route link", () => {
 
     expect(html).toContain("GET DIRECTIONS");
     expect(html).toContain("Reviewed road core → saved GPS · graph status separate");
-    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("<small");
   });

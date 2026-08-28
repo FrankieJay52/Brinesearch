@@ -50,6 +50,7 @@ import {
   buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
+  reviewedNavigationSequenceItems,
   reviewedNavigationUrlMatchesContract,
 } from "./reviewedNavigationCandidates";
 
@@ -1251,7 +1252,24 @@ describe("reviewed navigation candidates", () => {
       title: "Navigate reviewed route",
       detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
       routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+      ownerApproval: {
+        kind: "owner_approved_directions",
+        evidence: "exact_named_road_identities",
+        approvedAt: "2026-08-28",
+      },
     });
+    expect(reviewedNavigationSequenceItems(candidate!)).toEqual([
+      "US-22",
+      "McCoy Rd / CR-82",
+      "Merry Rd / TR-967",
+      "Penrose Rd / CR-694",
+      "Logan Rd / CR-964",
+      "Turkle Rd / TR-693",
+      "trusted lease approach",
+      "BILINOVICH pad-surface destination",
+    ]);
+    expect(candidate!.finalLegNotice).toMatch(/no-Blaze directions/u);
+    expect(candidate!.finalLegNotice).toMatch(/private final geometry and entrance remain unapproved/u);
     expect(reviewedNavigationSafetyHoldForPad(corrected)).toBeNull();
 
     const url = new URL(candidate!.routeUrl);
@@ -1305,7 +1323,14 @@ describe("reviewed navigation candidates", () => {
       title: "Navigate reviewed route",
       detail: "Reviewed road core → saved GPS · graph status separate",
       routeUrl: LAWSON_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "US-22 → McCoy Rd → Tyson Mill Rd → Millers Fork Rd → saved LAWSON GPS",
+      ownerApproval: {
+        kind: "owner_approved_directions",
+        evidence: "exact_named_road_identities",
+        approvedAt: "2026-08-28",
+      },
     });
+    expect(candidate!.finalLegNotice).toMatch(/exact US-22, McCoy Road, Tyson Mill Road, and Millers Fork Road identities/u);
 
     const url = new URL(candidate!.routeUrl);
     expect(url.searchParams.get("origin")).toBeNull();
@@ -1352,6 +1377,11 @@ describe("reviewed navigation candidates", () => {
       routeUrl: BEETLE_REVIEWED_GOOGLE_URL,
       reviewedRoadSequence: "OH-519 → Sixteen Rd → lease approach → saved pad GPS",
       finalLegNotice: expect.stringContaining("not approved public-road geometry"),
+      ownerApproval: {
+        kind: "owner_approved_directions",
+        evidence: "exact_named_road_identities",
+        approvedAt: "2026-08-28",
+      },
     });
 
     const url = new URL(candidate!.routeUrl);

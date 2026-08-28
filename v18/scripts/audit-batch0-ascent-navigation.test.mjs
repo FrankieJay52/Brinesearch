@@ -354,6 +354,9 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
+  assert.match(summary, /46 owner-approved handoffs with graph held/u);
+  assert.match(summary, /Twenty-eight have exact named-road identity evidence; eighteen retain validated Google-handoff evidence/u);
+  assert.match(summary, /does not create graph geometry, a public-Google release, or an approved-road overlay/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

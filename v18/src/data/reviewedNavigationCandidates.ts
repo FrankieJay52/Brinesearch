@@ -9,6 +9,13 @@ export interface ReviewedNavigationCandidate {
   routeUrl: string;
   reviewedRoadSequence?: string;
   finalLegNotice?: string;
+  ownerApproval?: OwnerApprovedNavigationPresentation;
+}
+
+export interface OwnerApprovedNavigationPresentation {
+  kind: "owner_approved_directions";
+  evidence: "exact_named_road_identities" | "validated_google_handoff";
+  approvedAt: "2026-08-28";
 }
 
 export interface ReviewedNavigationSafetyHold {
@@ -20,6 +27,64 @@ export interface ReviewedNavigationSafetyHold {
 export interface ReviewedNavigationCoordinate {
   latitude: number;
   longitude: number;
+}
+
+const ownerApprovedNavigationEvidenceEntries = [
+  ["143f5268-33e4-4598-8101-40220b5cfdc4", "exact_named_road_identities"], // LAWSON
+  ["59061829-1122-4aae-872d-cf5024310373", "exact_named_road_identities"], // BILINOVICH
+  ["0e6f23f1-3bfb-44b0-aa4e-f24dde611880", "exact_named_road_identities"], // BEETLE
+  ["bb351070-6c94-45e5-942f-e155f9e86f7e", "exact_named_road_identities"], // DUKE
+  ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", "exact_named_road_identities"], // BAKOS
+  ["333598ca-37b3-4b44-9411-a490cc3da672", "exact_named_road_identities"], // BANNOCK
+  ["bd2e0e20-8aa8-4e05-a4c0-0af312234853", "exact_named_road_identities"], // GIL
+  ["71c9c874-5514-46a4-8d91-b105c6734799", "exact_named_road_identities"], // GILCHER
+  ["b22c557a-950a-4ed7-a65a-f4730b9bc727", "exact_named_road_identities"], // CIRCLE-OAKS
+  ["166c5d6c-3a8d-4481-b8bf-5d74b7605f0d", "exact_named_road_identities"], // SADLER
+  ["800c877a-6b4f-4a87-a710-b1e00af63c62", "exact_named_road_identities"], // TOWE
+  ["fbdb5ee4-38d6-4801-81cc-8ad4abbb24e2", "exact_named_road_identities"], // DUTTON
+  ["ad5ef012-46f5-46ca-93c7-0f5b492cb201", "exact_named_road_identities"], // KUNGLE B
+  ["c10e2066-d6b7-4117-aea9-137dd1237b3a", "exact_named_road_identities"], // TRUCHAN NW
+  ["ca1560b5-4ea6-4eb7-a82e-de2467937eb2", "exact_named_road_identities"], // MOONSTONE
+  ["9aa065c0-8896-49e2-b02d-d4ca71acefc3", "exact_named_road_identities"], // JEFFCO
+  ["47a0305e-c641-499b-990c-0f7fe83493b8", "exact_named_road_identities"], // KUNGLE A
+  ["cd4f6dcc-b603-4155-84b2-30d7ee87bbc7", "exact_named_road_identities"], // TRUCHAN NE
+  ["a35f0ea7-13d7-45dd-8fe2-fe73e4964df2", "exact_named_road_identities"], // LORRAINE
+  ["74032b6e-179d-4672-8720-55ac86cab232", "exact_named_road_identities"], // PANG
+  ["f2f82142-f6d8-4f8d-b440-2ff86f624158", "exact_named_road_identities"], // HASTINGS
+  ["25dc9adf-e09a-4cfa-8900-59492fbad0ec", "exact_named_road_identities"], // WHEELING VALLEY
+  ["83b27fd3-4615-4ea1-ad36-0b05b359f5d2", "exact_named_road_identities"], // ECHO
+  ["475462f4-7e7a-4432-801c-5e513d5e953f", "exact_named_road_identities"], // NORTH STAR
+  ["691fb27b-2b35-471d-81fa-9239f6bd4081", "exact_named_road_identities"], // LODESTAR
+  ["0b7ed9a5-7748-4d92-992a-7f2cecf9dd08", "exact_named_road_identities"], // WINSTON SMITH
+  ["4c73e244-6132-4d40-83fc-3fe5e6e65bf6", "exact_named_road_identities"], // BRAVO
+  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", "exact_named_road_identities"], // PICKENS
+  ["0b7105a0-1b36-4182-8d10-1f2e297c8bab", "validated_google_handoff"], // PORTERFIELD GAS UNIT
+  ["41f0bfc3-7be1-450f-abfc-96dce544547b", "validated_google_handoff"], // PORTERFIELD B
+  ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", "validated_google_handoff"], // ROCK RIDGE
+  ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", "validated_google_handoff"], // CROWIE
+  ["58c94af4-32b1-4f80-a278-a5f73688fa23", "validated_google_handoff"], // CASTON
+  ["ccf7415a-331b-440a-829d-28282a33cde1", "validated_google_handoff"], // LAKE
+  ["1e898176-672d-4174-8878-4aae0aee2128", "validated_google_handoff"], // THOMAS
+  ["6c93d03a-76e8-4c03-b47e-8b7011c81a1a", "validated_google_handoff"], // TROYER
+  ["d6d0a0fd-1cd3-48ae-8e41-90d744b9f8f6", "validated_google_handoff"], // MATUSEK
+  ["f80dea77-db11-45f8-b30c-6c6abb85e469", "validated_google_handoff"], // JACKALOPE
+  ["5c4a497e-cf33-48dd-8272-9fd06ebb9e6a", "validated_google_handoff"], // LODGE
+  ["48d810bf-e59f-4314-9efb-8103a818a3bd", "validated_google_handoff"], // ALBATROSS
+  ["8f616827-d7da-4b40-b9c2-49fd5e713822", "validated_google_handoff"], // MALDON
+  ["f2df293f-13a2-401e-96b2-21e71ac63e6a", "validated_google_handoff"], // WITHEY
+  ["06ac93a2-3b46-44fd-9fa6-2fd29201858a", "validated_google_handoff"], // SKULL FORK
+  ["351b72fb-eb48-4355-b6fc-d8e9a867f79c", "validated_google_handoff"], // HOOP
+  ["7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c", "validated_google_handoff"], // RUTH
+  ["3850e94a-826f-4b6b-a54f-d21d482fca46", "validated_google_handoff"], // ATHENA
+] as const satisfies readonly (readonly [string, OwnerApprovedNavigationPresentation["evidence"]])[];
+
+const ownerApprovedNavigationEvidenceByPadId = new Map<string, OwnerApprovedNavigationPresentation["evidence"]>(ownerApprovedNavigationEvidenceEntries);
+
+export function reviewedNavigationSequenceItems(candidate: Pick<ReviewedNavigationCandidate, "reviewedRoadSequence">) {
+  return (candidate.reviewedRoadSequence || "")
+    .split("→")
+    .map((value) => value.trim())
+    .filter(Boolean);
 }
 
 function reviewedCoordinate(value: ReviewedNavigationCoordinate) {
@@ -405,6 +470,8 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     title: "Navigate reviewed route",
     detail: "Reviewed road core → saved GPS · graph status separate",
     routeUrl: LAWSON_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 → McCoy Rd → Tyson Mill Rd → Millers Fork Rd → saved LAWSON GPS",
+    finalLegNotice: "The owner-approved directions follow the exact US-22, McCoy Road, Tyson Mill Road, and Millers Fork Road identities in order. The saved LAWSON GPS remains a destination reference rather than a verified entrance or approved graph endpoint; no route line or public-Google release is created.",
     trustedDestination: {
       latitude: 40.124991,
       longitude: -81.295913,
@@ -426,6 +493,8 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     title: "Navigate reviewed route",
     detail: "McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
     routeUrl: BILINOVICH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "US-22 → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH pad-surface destination",
+    finalLegNotice: "The owner-approved no-Blaze directions follow McCoy, Merry, Penrose, Logan, and Turkle in order. The action keeps the separately reviewed ODNR pad-surface destination, while the trusted lease approach remains a reference and the private final geometry and entrance remain unapproved; no graph line or public-Google release is created.",
     // The current record's saved reference is the reviewed lease approach.
     // The separately reviewed URL continues to the ODNR pad-surface point.
     trustedDestination: {
@@ -1544,6 +1613,8 @@ export function reviewedNavigationCandidateForPad(
     contract.waypoints,
   )) return null;
 
+  const ownerApprovalEvidence = ownerApprovedNavigationEvidenceByPadId.get(contract.padId);
+
   return {
     padId: contract.padId,
     title: contract.title,
@@ -1551,5 +1622,10 @@ export function reviewedNavigationCandidateForPad(
     routeUrl: contract.routeUrl,
     reviewedRoadSequence: contract.reviewedRoadSequence,
     finalLegNotice: contract.finalLegNotice,
+    ownerApproval: ownerApprovalEvidence ? {
+      kind: "owner_approved_directions",
+      evidence: ownerApprovalEvidence,
+      approvedAt: "2026-08-28",
+    } : undefined,
   };
 }

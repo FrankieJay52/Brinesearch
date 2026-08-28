@@ -1,4 +1,5 @@
 import { Icon } from "@/components/Icon";
+import type { OwnerApprovedNavigationPresentation } from "@/data/reviewedNavigationCandidates";
 
 export function MapApprovedRouteLink({ routeUrl, padName, detail = "Reviewed approved route", approachLabel = null }: { routeUrl: string; padName: string; detail?: string; approachLabel?: string | null }) {
   const title = "GET DIRECTIONS";
@@ -16,8 +17,11 @@ export function MapDestinationPinLink({ pinUrl, padName, sourceLabel = "GPS dest
   </a>;
 }
 
-export function MapReviewedRouteLink({ routeUrl, padName, detail = "Owner-reviewed Google directions" }: { routeUrl: string; padName: string; detail?: string }) {
-  return <a className="map-reviewed-route-link" href={routeUrl} target="_blank" rel="noreferrer" aria-label={`Open the reviewed ${padName} route in Google Maps; ${detail}; exact graph and public Google authority remain separate`}>
+export function MapReviewedRouteLink({ routeUrl, padName, detail = "Owner-reviewed Google directions", ownerApproval }: { routeUrl: string; padName: string; detail?: string; ownerApproval?: OwnerApprovedNavigationPresentation }) {
+  const reviewLabel = ownerApproval
+    ? ownerApproval.evidence === "exact_named_road_identities" ? "owner-approved named-road directions" : "owner-approved directions"
+    : "reviewed route";
+  return <a className="map-reviewed-route-link" href={routeUrl} target="_blank" rel="noreferrer" aria-label={`Open the ${reviewLabel} for ${padName} in Google Maps; ${detail}; graph route lines, public Google release, and approved-road overlays remain separate`}>
     <Icon name="google"/><span><strong>GET DIRECTIONS</strong></span><b>↗</b>
   </a>;
 }

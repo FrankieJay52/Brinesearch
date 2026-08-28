@@ -260,14 +260,14 @@ describe("V18 pad legacy route fallback", () => {
       kind: "reviewed_route",
       href: BILINOVICH_REVIEWED_GOOGLE_URL,
       title: "GET DIRECTIONS",
-      detail: "Owner-reviewed route in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
+      detail: "Owner-approved named-road directions in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS",
     });
     expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
     expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
     expect(html).toContain('data-navigation-kind="reviewed_route"');
     expect(html).toContain("GET DIRECTIONS");
     expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
-    expect(html).toContain("exact graph and public Google authority remain separate");
+    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
@@ -283,20 +283,21 @@ describe("V18 pad legacy route fallback", () => {
     expect(action).toMatchObject({
       kind: "reviewed_route",
       href: BEETLE_REVIEWED_GOOGLE_URL,
-      detail: "Owner-reviewed route in Google Maps · OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
+      detail: "Owner-approved named-road directions in Google Maps · OH-519 → Sixteen Rd → lease approach · GPS-only final leg",
     });
     expect(summary).toContain("OH-519");
     expect(summary).toContain("Sixteen Rd");
     expect(summary).toContain("lease approach");
     expect(summary).toContain("saved pad GPS");
-    expect(summary).toContain('class="reviewed-route-sequence-text"');
+    expect(summary).toContain('aria-label="Owner-approved direction steps"');
     expect(summary).toContain("not approved public-road geometry");
-    expect(summary).not.toContain("<ol");
-    expect(summary).not.toContain("<li");
-    expect(summary).toContain("Owner-reviewed sequence");
+    expect(summary.match(/<ol\b/g)).toHaveLength(1);
+    expect(summary.match(/<li\b/g)).toHaveLength(4);
+    expect(summary).toContain("Owner-approved named-road sequence");
+    expect(summary).toContain("Owner approved");
     expect(summary).not.toContain("Approved route");
     expect(summary).not.toContain("US-250");
-    expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed route sequence\"");
+    expect(padPage).toContain('activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions"');
     expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
     expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
     expect(padPage).toContain("eligibleReviewedNavigationCandidate");
