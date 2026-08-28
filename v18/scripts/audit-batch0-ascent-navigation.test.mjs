@@ -5,6 +5,8 @@ import {
   candidateContentDigest,
   csv,
   frozenProvenanceCheckoutMode,
+  frozenProvenanceNeedsBaseHistory,
+  githubMainRefreshRequired,
   hostedBuildArtifact,
   implementationPathSet,
   netlifyMainRefreshRequired,
@@ -149,6 +151,12 @@ test("frozen provenance accepts the exact merged main but rejects branch base dr
   }), /does not match current origin\/main/u);
 });
 
+test("only candidate branches require the frozen base commit history", () => {
+  assert.equal(frozenProvenanceNeedsBaseHistory("candidate-branch"), true);
+  assert.equal(frozenProvenanceNeedsBaseHistory("merged-main"), false);
+  assert.throws(() => frozenProvenanceNeedsBaseHistory("unknown"), /Unsupported frozen provenance checkout mode/u);
+});
+
 test("Netlify refreshes main only for the exact build commit", () => {
   const headSha = "a".repeat(40);
   assert.equal(netlifyMainRefreshRequired({
@@ -164,6 +172,30 @@ test("Netlify refreshes main only for the exact build commit", () => {
   assert.throws(() => netlifyMainRefreshRequired({
     netlify: "true",
     commitRef: "b".repeat(40),
+    headSha,
+  }), /does not match current HEAD/u);
+});
+
+test("GitHub refreshes main only for the exact build commit", () => {
+  const headSha = "a".repeat(40);
+  assert.equal(githubMainRefreshRequired({
+    githubActions: undefined,
+    githubSha: undefined,
+    headSha,
+  }), false);
+  assert.equal(githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: headSha,
+    headSha,
+  }), true);
+  assert.throws(() => githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: "b".repeat(40),
+    headSha,
+  }), /does not match current HEAD/u);
+  assert.throws(() => githubMainRefreshRequired({
+    githubActions: "true",
+    githubSha: undefined,
     headSha,
   }), /does not match current HEAD/u);
 });

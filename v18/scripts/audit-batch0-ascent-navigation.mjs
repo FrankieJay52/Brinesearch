@@ -360,12 +360,26 @@ export function netlifyMainRefreshRequired({ netlify, commitRef, headSha }) {
   return true;
 }
 
-function refreshNetlifyOriginMain(headSha) {
-  if (!netlifyMainRefreshRequired({
+export function githubMainRefreshRequired({ githubActions, githubSha, headSha }) {
+  if (githubActions !== "true") return false;
+  assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
+  assert(githubSha === headSha,
+    `GitHub commit ${githubSha || "missing"} does not match current HEAD ${headSha}`);
+  return true;
+}
+
+function refreshProviderOriginMain(headSha) {
+  const netlifyRefresh = netlifyMainRefreshRequired({
     netlify: process.env.NETLIFY,
     commitRef: process.env.COMMIT_REF,
     headSha,
-  })) return;
+  });
+  const githubRefresh = githubMainRefreshRequired({
+    githubActions: process.env.GITHUB_ACTIONS,
+    githubSha: process.env.GITHUB_SHA,
+    headSha,
+  });
+  if (!netlifyRefresh && !githubRefresh) return;
   execFileSync("git", [
     "fetch",
     "--no-tags",
@@ -385,6 +399,12 @@ export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBas
   assert(originMainSha === frozenBaseSha,
     `Saved Batch 0 base ${frozenBaseSha} does not match current origin/main ${originMainSha}`);
   return "candidate-branch";
+}
+
+export function frozenProvenanceNeedsBaseHistory(checkoutMode) {
+  assert(checkoutMode === "candidate-branch" || checkoutMode === "merged-main",
+    `Unsupported frozen provenance checkout mode ${checkoutMode}`);
+  return checkoutMode === "candidate-branch";
 }
 
 async function publicConfiguration() {
@@ -545,32 +565,36 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 
 async function main() {
   const headSha = git("rev-parse", "HEAD");
-  refreshNetlifyOriginMain(headSha);
+  refreshProviderOriginMain(headSha);
   const originMainSha = tryGit("rev-parse", "origin/main");
   const checking = process.argv.includes("--check");
   let provenance;
   if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
-    if (originMainSha) {
-      const checkoutMode = frozenProvenanceCheckoutMode({
-        headSha,
-        originMainSha,
-        frozenBaseSha: frozen.baseMainSha,
-      });
-      const mergeBase = checkoutMode === "merged-main"
-        ? git("merge-base", "HEAD", frozen.baseMainSha)
-        : git("merge-base", "HEAD", "origin/main");
-      assert(mergeBase === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match ${checkoutMode} merge base ${mergeBase}`);
+    assert(originMainSha, "origin/main is required when checking the Batch 0 ledger");
+    const checkoutMode = frozenProvenanceCheckoutMode({
+      headSha,
+      originMainSha,
+      frozenBaseSha: frozen.baseMainSha,
+    });
+    const githubBase = await githubPullRequestBaseSha();
+    if (frozenProvenanceNeedsBaseHistory(checkoutMode)) {
+      if (githubBase) {
+        assert(githubBase === frozen.baseMainSha,
+          `Saved Batch 0 base ${frozen.baseMainSha} does not match the pull-request base ${githubBase}`);
+      } else {
+        const mergeBase = git("merge-base", "HEAD", "origin/main");
+        assert(mergeBase === frozen.baseMainSha,
+          `Saved Batch 0 base ${frozen.baseMainSha} does not match candidate-branch merge base ${mergeBase}`);
+      }
       const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
         .filter((value) => !generatedAuditPaths.has(value))
         .sort();
       assert(JSON.stringify(currentPaths) === JSON.stringify([...frozen.implementationPaths].sort()),
         "Saved Batch 0 implementation file list is stale");
     }
-    const githubBase = await githubPullRequestBaseSha();
-    assert(!githubBase || githubBase === frozen.baseMainSha,
-      `Saved Batch 0 base ${frozen.baseMainSha} does not match the pull-request base ${githubBase}`);
+    assert(!githubBase || checkoutMode === "candidate-branch",
+      "A pull-request checkout cannot use merged-main provenance mode");
     provenance = await implementationProvenance(frozen.baseMainSha, frozen);
     assert(provenance.candidateContentSha256 === frozen.candidateContentSha256,
       `Saved Batch 0 candidate content fingerprint is stale (${provenance.candidateContentSha256} != ${frozen.candidateContentSha256})`);
