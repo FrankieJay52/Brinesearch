@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `1312aaf0ba987df974fe53bd384c8e689653fb50`
-- Candidate implementation HEAD: `d00f9c862062246a8459ad5c747a6c4be76a6848`
-- Candidate content SHA-256: `3d6b12814471f339380be454cad7510d1a2376ea73def846695b5e040cc97044`
+- Base origin/main SHA: `0d4e5979d55888eeacf6eef36782622762e3fe5d`
+- Candidate implementation HEAD: `af42422c470f4b1b04fad50860849a7e4b303afc`
+- Candidate content SHA-256: `e1e45df6c8170107db29fe072eb6a00fc4f927fda0e2849a3928aa86b950b500`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
 - Production writes zero
@@ -11,29 +11,9 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `netlify.toml`
-- `v18/package.json`
 - `v18/scripts/audit-v18-owner-google-verify-map.mjs`
-- `v18/src/app/App.tsx`
-- `v18/src/data/ownerGoogleVerifyDrafts.test.ts`
-- `v18/src/data/ownerGoogleVerifyDrafts.ts`
-- `v18/src/features/auth/authNavigation.test.ts`
-- `v18/src/features/auth/authNavigation.ts`
-- `v18/src/features/map/MapPage.test.ts`
-- `v18/src/features/map/MapPage.tsx`
-- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.test.ts`
-- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.tsx`
-- `v18/src/features/owner-google-verify/googleMapsLoader.ts`
-- `v18/src/features/owner-google-verify/owner-google-verify.css`
 - `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.test.ts`
 - `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.ts`
-- `v18/src/features/pad/PadPage.test.ts`
-- `v18/src/features/pad/PadPage.tsx`
-- `v18/src/features/pad/PadPageLayout.css`
-- `v18/src/features/settings/SettingsPage.test.ts`
-- `v18/src/features/settings/SettingsPage.tsx`
-- `v18/src/vite-env.d.ts`
-- `v18/vite.config.ts`
 
 ## Counts
 
