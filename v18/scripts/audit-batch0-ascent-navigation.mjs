@@ -16,9 +16,72 @@ const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Nob
 
 const explicitStates = new Map([
   ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", {
-    state: "3",
-    blocker: "The frozen exact-route receipt has no current public mobile handoff; use the saved GPS destination only.",
-    receipt: "BAKOS frozen route regression plus trusted GPS fallback",
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "BAKOS exact-record US-250 and Holly View Drive reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+      legacyId: "ascent--bakos",
+      recordRevision: "1787615581785257",
+      company: "Ascent",
+      padName: "BAKOS",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "US-250 → Right/west Onto Holly View Dr → OR → Holly View Dr → Pad → OR → US-250 → Left/west Onto Holy View Dr → No St Sign And Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.151125, longitude: -80.852968 },
+    },
+  }],
+  ["333598ca-37b3-4b44-9411-a490cc3da672", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "BANNOCK exact-record OH-331 and Lafferty-Bannock Road reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "333598ca-37b3-4b44-9411-a490cc3da672",
+      legacyId: "ascent--bannock",
+      recordRevision: "1786744183028038",
+      company: "Ascent",
+      padName: "BANNOCK",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Lafferty-bannock Rd → Lease Road → OR → OH-9 → OH-149 → OH-331 → Lafferty-bannock Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.111003, longitude: -81.002932 },
+    },
+  }],
+  ["166c5d6c-3a8d-4481-b8bf-5d74b7605f0d", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "SADLER exact-record US-250 and Jamison Road reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+      legacyId: "ascent--sadler",
+      recordRevision: "1786440150388625",
+      company: "Ascent",
+      padName: "SADLER",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "US-250 → CR-86 / Jamison Rd → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.207568, longitude: -80.935841 },
+    },
+  }],
+  ["800c877a-6b4f-4a87-a710-b1e00af63c62", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
+    receipt: "TOWE exact-record US-250, Willis Run, and Oak Hill Road reviewed entrance handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "800c877a-6b4f-4a87-a710-b1e00af63c62",
+      legacyId: "ascent--towe",
+      recordRevision: "1786159709605865",
+      company: "Ascent",
+      padName: "TOWE",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "Willis Run Rd → Oak Hill Rd → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 40.385998, longitude: -81.212569 },
+    },
   }],
   ["e2b32e85-9e93-4388-8215-9d8167cbbeb8", {
     state: "1",
@@ -845,9 +908,9 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 approved / 8 core+GPS / 214 GPS-only / 24 reviewed-held
+- 247 / 1 approved / 8 core+GPS / 210 GPS-only / 28 reviewed-held
 - Production writes zero
-- ALBATROSS + ATHENA + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SKULL FORK + THOMAS + TROYER + WITHEY: \`reviewed_handoff_authority_held\`
+- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + GIL + GILCHER + HOOP + LAKE + LAWSON + MALDON + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -880,7 +943,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- ALBATROSS, ATHENA, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SKULL FORK, THOMAS, TROYER, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
+- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, GIL, GILCHER, HOOP, LAKE, LAWSON, MALDON, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, and WITHEY remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. The exact DUKE, PICKENS, and PORTERFIELD GAS UNIT links have owner phone/field validation; the other validated links have live Google turn-list validation. That proof does not promote graph or public-Google authority.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1013,8 +1076,8 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 214
-    && stateCounts.reviewed_handoff_authority_held === 24,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 210
+    && stateCounts.reviewed_handoff_authority_held === 28,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

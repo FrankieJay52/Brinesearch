@@ -3,6 +3,8 @@ import type { PadSummary } from "./types";
 import {
   ALBATROSS_REVIEWED_GOOGLE_URL,
   ATHENA_REVIEWED_GOOGLE_URL,
+  BAKOS_REVIEWED_GOOGLE_URL,
+  BANNOCK_REVIEWED_GOOGLE_URL,
   BEETLE_REVIEWED_GOOGLE_URL,
   BILINOVICH_REVIEWED_GOOGLE_URL,
   BRAVO_REVIEWED_GOOGLE_URL,
@@ -21,8 +23,10 @@ import {
   PORTERFIELD_REVIEWED_GOOGLE_URL,
   RUTH_REVIEWED_GOOGLE_URL,
   ROCK_RIDGE_REVIEWED_GOOGLE_URL,
+  SADLER_REVIEWED_GOOGLE_URL,
   SKULL_FORK_REVIEWED_GOOGLE_URL,
   THOMAS_REVIEWED_GOOGLE_URL,
+  TOWE_REVIEWED_GOOGLE_URL,
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
@@ -204,6 +208,113 @@ function rockRidge(): PadSummary {
     coordinate: { latitude: 39.998772, longitude: -81.224825, role: "driver_entrance" },
     mapReference: null,
   };
+}
+
+function bakos(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+    canonicalId: "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+    legacyId: "ascent--bakos",
+    recordRevision: "1787615581785257",
+    padName: "BAKOS",
+    county: "Belmont",
+    structuredRoadSequence: "US-250 → Right/west Onto Holly View Dr → OR → Holly View Dr → Pad → OR → US-250 → Left/west Onto Holy View Dr → No St Sign And Rd",
+    coordinate: null,
+    mapReference: { latitude: 40.151125, longitude: -80.852968, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function bannock(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "333598ca-37b3-4b44-9411-a490cc3da672",
+    canonicalId: "333598ca-37b3-4b44-9411-a490cc3da672",
+    legacyId: "ascent--bannock",
+    recordRevision: "1786744183028038",
+    padName: "BANNOCK",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Lafferty-bannock Rd → Lease Road → OR → OH-9 → OH-149 → OH-331 → Lafferty-bannock Rd",
+    coordinate: { latitude: 40.111003, longitude: -81.002932, role: "driver_entrance" },
+    mapReference: null,
+  };
+}
+
+function sadler(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+    canonicalId: "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+    legacyId: "ascent--sadler",
+    recordRevision: "1786440150388625",
+    padName: "SADLER",
+    county: "Harrison",
+    structuredRoadSequence: "US-250 → CR-86 / Jamison Rd → Pad",
+    coordinate: { latitude: 40.207568, longitude: -80.935841, role: "driver_entrance" },
+    mapReference: null,
+  };
+}
+
+function towe(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "800c877a-6b4f-4a87-a710-b1e00af63c62",
+    canonicalId: "800c877a-6b4f-4a87-a710-b1e00af63c62",
+    legacyId: "ascent--towe",
+    recordRevision: "1786159709605865",
+    padName: "TOWE",
+    county: "Harrison",
+    structuredRoadSequence: "Willis Run Rd → Oak Hill Rd → Pad",
+    coordinate: { latitude: 40.385998, longitude: -81.212569, role: "driver_entrance" },
+    mapReference: null,
+  };
+}
+
+function batch6ReviewedRouteFixtures() {
+  return [
+    {
+      name: "BAKOS",
+      pad: bakos(),
+      routeUrl: BAKOS_REVIEWED_GOOGLE_URL,
+      destination: "40.151125,-80.852968",
+      waypoints: [
+        "40.1516769902779,-80.8451322878882",
+        "40.1510618834494,-80.8504752159943",
+      ],
+      reviewedSequence: "Google-selected state-road approach → US-250 → Holly View Dr / TR-452 → saved pad GPS",
+      notice: /exact current route receipt/u,
+    },
+    {
+      name: "BANNOCK",
+      pad: bannock(),
+      routeUrl: BANNOCK_REVIEWED_GOOGLE_URL,
+      destination: "40.111003,-81.002932",
+      waypoints: ["40.10871301297529,-80.97829303262223"],
+      reviewedSequence: "Google-selected state-road approach → OH-331 → Lafferty-Bannock Rd / CR-10 → unapproved entrance handoff → verified driver entrance",
+      notice: /accepts either OH-331 approach direction without backtracking/u,
+    },
+    {
+      name: "SADLER",
+      pad: sadler(),
+      routeUrl: SADLER_REVIEWED_GOOGLE_URL,
+      destination: "40.207568,-80.935841",
+      waypoints: ["40.218227603057535,-80.94472982304073"],
+      reviewedSequence: "Google-selected state-road approach → US-250 → Jamison Rd / CR-86 → verified driver entrance",
+      notice: /Google currently spells the road Jameson/u,
+    },
+    {
+      name: "TOWE",
+      pad: towe(),
+      routeUrl: TOWE_REVIEWED_GOOGLE_URL,
+      destination: "40.385998,-81.212569",
+      waypoints: [
+        "40.36026193640823,-81.218134577079",
+        "40.379819440170614,-81.20908591279908",
+      ],
+      reviewedSequence: "Google-selected state-road approach → US-250 → Willis Run Rd / TR-213 → Oak Hill Rd / TR-212 → verified driver entrance",
+      notice: /accept either state-road approach direction without backtracking/u,
+    },
+  ] as const;
 }
 
 function batch5SharedCorridorFixtures() {
@@ -952,6 +1063,70 @@ describe("reviewed navigation candidates", () => {
       mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
     })).toBeNull();
     expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null })).toBeNull();
+  });
+
+  it("returns the batch-6 reviewed routes only for their exact records and ordered controls", () => {
+    for (const fixture of batch6ReviewedRouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        routeUrl: fixture.routeUrl,
+        reviewedRoadSequence: fixture.reviewedSequence,
+        finalLegNotice: expect.stringMatching(fixture.notice),
+      });
+      const url = new URL(candidate!.routeUrl);
+      expect(url.origin, fixture.name).toBe("https://www.google.com");
+      expect(url.pathname, fixture.name).toBe("/maps/dir/");
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails the batch-6 reviewed routes closed on every record or destination drift", () => {
+    for (const fixture of batch6ReviewedRouteFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", fixture.pad.county === "Belmont" ? "Harrison" : "Belmont"],
+        ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`).toBeNull();
+      }
+
+      if (exact.coordinate) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, coordinate: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          coordinate: { ...exact.coordinate, longitude: exact.coordinate.longitude - 0.000001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          coordinate: null,
+          mapReference: { latitude: exact.coordinate.latitude, longitude: exact.coordinate.longitude, role: "reference", kind: "saved_pad_reference" },
+        }), fixture.name).toBeNull();
+      } else {
+        expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          mapReference: { ...exact.mapReference!, latitude: exact.mapReference!.latitude + 0.000001 },
+        }), fixture.name).toBeNull();
+        expect(reviewedNavigationCandidateForPad({
+          ...exact,
+          coordinate: { latitude: exact.mapReference!.latitude, longitude: exact.mapReference!.longitude, role: "driver_entrance" },
+          mapReference: null,
+        }), fixture.name).toBeNull();
+      }
+    }
   });
 
   it("returns the new shared-corridor routes only for their exact records and ordered controls", () => {

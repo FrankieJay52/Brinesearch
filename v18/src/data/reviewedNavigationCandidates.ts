@@ -122,6 +122,15 @@ const PORTERFIELD_B_WAYPOINTS = [
   { latitude: 40.088246, longitude: -80.944086 },
   { latitude: 40.090469, longitude: -80.928294 },
 ] as const;
+const BAKOS_ROUTE_DESTINATION = { latitude: 40.151125, longitude: -80.852968 } as const;
+const BAKOS_WAYPOINTS = [
+  { latitude: 40.1516769902779, longitude: -80.8451322878882 },
+  { latitude: 40.1510618834494, longitude: -80.8504752159943 },
+] as const;
+const BANNOCK_ROUTE_DESTINATION = { latitude: 40.111003, longitude: -81.002932 } as const;
+const BANNOCK_WAYPOINTS = [
+  { latitude: 40.10871301297529, longitude: -80.97829303262223 },
+] as const;
 const ROCK_RIDGE_ROUTE_DESTINATION = { latitude: 39.998772, longitude: -81.224825 } as const;
 const ROCK_RIDGE_WAYPOINTS = [
   { latitude: 40.007077099, longitude: -81.176502113 },
@@ -172,6 +181,15 @@ const CIRCLE_OAKS_WAYPOINTS = [
   { latitude: 40.211888715, longitude: -81.390778629 },
   { latitude: 40.204197138, longitude: -81.382414119 },
 ] as const;
+const SADLER_ROUTE_DESTINATION = { latitude: 40.207568, longitude: -80.935841 } as const;
+const SADLER_WAYPOINTS = [
+  { latitude: 40.218227603057535, longitude: -80.94472982304073 },
+] as const;
+const TOWE_ROUTE_DESTINATION = { latitude: 40.385998, longitude: -81.212569 } as const;
+const TOWE_WAYPOINTS = [
+  { latitude: 40.36026193640823, longitude: -81.218134577079 },
+  { latitude: 40.379819440170614, longitude: -81.20908591279908 },
+] as const;
 const ALBATROSS_ROUTE_DESTINATION = { latitude: 40.079353, longitude: -81.224381 } as const;
 const ALBATROSS_WAYPOINTS = [
   { latitude: 40.0817058, longitude: -81.2127365 },
@@ -221,6 +239,8 @@ export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=
 export const DUKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DUKE_ROUTE_DESTINATION, DUKE_WAYPOINTS);
 export const PORTERFIELD_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_ROUTE_DESTINATION, PORTERFIELD_WAYPOINTS);
 export const PORTERFIELD_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_B_ROUTE_DESTINATION, PORTERFIELD_B_WAYPOINTS);
+export const BAKOS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BAKOS_ROUTE_DESTINATION, BAKOS_WAYPOINTS);
+export const BANNOCK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BANNOCK_ROUTE_DESTINATION, BANNOCK_WAYPOINTS);
 export const ROCK_RIDGE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ROCK_RIDGE_ROUTE_DESTINATION, ROCK_RIDGE_WAYPOINTS);
 export const CROWIE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CROWIE_ROUTE_DESTINATION, CROWIE_WAYPOINTS);
 export const CASTON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CASTON_ROUTE_DESTINATION, CASTON_WAYPOINTS);
@@ -230,6 +250,8 @@ export const LAKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LAKE_ROUTE_DE
 export const THOMAS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(THOMAS_ROUTE_DESTINATION, THOMAS_WAYPOINTS);
 export const TROYER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TROYER_ROUTE_DESTINATION, TROYER_WAYPOINTS);
 export const CIRCLE_OAKS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CIRCLE_OAKS_ROUTE_DESTINATION, CIRCLE_OAKS_WAYPOINTS);
+export const SADLER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SADLER_ROUTE_DESTINATION, SADLER_WAYPOINTS);
+export const TOWE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TOWE_ROUTE_DESTINATION, TOWE_WAYPOINTS);
 export const ALBATROSS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALBATROSS_ROUTE_DESTINATION, ALBATROSS_WAYPOINTS);
 export const MALDON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(MALDON_ROUTE_DESTINATION, MALDON_WAYPOINTS);
 export const WITHEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WITHEY_ROUTE_DESTINATION, WITHEY_WAYPOINTS);
@@ -426,6 +448,52 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     waypoints: ROCK_RIDGE_WAYPOINTS,
   },
   {
+    padId: "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+    canonicalId: "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+    legacyId: "ascent--bakos",
+    recordRevision: "1787615581785257",
+    company: "Ascent",
+    padName: "BAKOS",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "US-250 → Right/west Onto Holly View Dr → OR → Holly View Dr → Pad → OR → US-250 → Left/west Onto Holy View Dr → No St Sign And Rd",
+    title: "Navigate reviewed route",
+    detail: "US-250 → Holly View Dr → saved GPS",
+    routeUrl: BAKOS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → US-250 → Holly View Dr / TR-452 → saved pad GPS",
+    finalLegNotice: "The two shaping points come from BAKOS's exact current route receipt and preserve the turn from US-250 onto Holly View Drive. The route ends at BAKOS's exact saved GPS; the saved point is not relabeled as a verified entrance, and exact graph/public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.151125,
+      longitude: -80.852968,
+      source: "saved_pad_gps",
+    },
+    routeDestination: BAKOS_ROUTE_DESTINATION,
+    waypoints: BAKOS_WAYPOINTS,
+  },
+  {
+    padId: "333598ca-37b3-4b44-9411-a490cc3da672",
+    canonicalId: "333598ca-37b3-4b44-9411-a490cc3da672",
+    legacyId: "ascent--bannock",
+    recordRevision: "1786744183028038",
+    company: "Ascent",
+    padName: "BANNOCK",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Lafferty-bannock Rd → Lease Road → OR → OH-9 → OH-149 → OH-331 → Lafferty-bannock Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-331 → Lafferty-Bannock Rd / CR-10 → verified entrance",
+    routeUrl: BANNOCK_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → OH-331 → Lafferty-Bannock Rd / CR-10 → unapproved entrance handoff → verified driver entrance",
+    finalLegNotice: "The shaping point sits inside the exact Lafferty-Bannock Road / CR-10 identity and accepts either OH-331 approach direction without backtracking. Google's final short movement reaches BANNOCK's exact verified driver entrance but remains an unapproved entrance handoff; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.111003,
+      longitude: -81.002932,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: BANNOCK_ROUTE_DESTINATION,
+    waypoints: BANNOCK_WAYPOINTS,
+  },
+  {
     padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
     canonicalId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",
     legacyId: "ascent--crowie",
@@ -608,6 +676,52 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: CIRCLE_OAKS_ROUTE_DESTINATION,
     waypoints: CIRCLE_OAKS_WAYPOINTS,
+  },
+  {
+    padId: "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+    canonicalId: "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+    legacyId: "ascent--sadler",
+    recordRevision: "1786440150388625",
+    company: "Ascent",
+    padName: "SADLER",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "US-250 → CR-86 / Jamison Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "US-250 → Jamison Rd / CR-86 → verified entrance",
+    routeUrl: SADLER_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → US-250 → Jamison Rd / CR-86 → verified driver entrance",
+    finalLegNotice: "The shaping point sits inside the exact Jamison Road / CR-86 identity after its verified junction with US-250. Google currently spells the road Jameson; that renderer spelling is not promoted to a separate road identity. The route clips at SADLER's exact verified driver entrance; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.207568,
+      longitude: -80.935841,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: SADLER_ROUTE_DESTINATION,
+    waypoints: SADLER_WAYPOINTS,
+  },
+  {
+    padId: "800c877a-6b4f-4a87-a710-b1e00af63c62",
+    canonicalId: "800c877a-6b4f-4a87-a710-b1e00af63c62",
+    legacyId: "ascent--towe",
+    recordRevision: "1786159709605865",
+    company: "Ascent",
+    padName: "TOWE",
+    state: "Ohio",
+    county: "Harrison",
+    structuredRoadSequence: "Willis Run Rd → Oak Hill Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "US-250 → Willis Run Rd → Oak Hill Rd → verified entrance",
+    routeUrl: TOWE_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected state-road approach → US-250 → Willis Run Rd / TR-213 → Oak Hill Rd / TR-212 → verified driver entrance",
+    finalLegNotice: "The two shaping points sit inside the exact Willis Run and Oak Hill road identities after their verified junctions. They preserve the owner-reviewed road order from US-250 and accept either state-road approach direction without backtracking. The route clips at TOWE's exact verified driver entrance; exact graph and public-Google authority remain separate.",
+    trustedDestination: {
+      latitude: 40.385998,
+      longitude: -81.212569,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: TOWE_ROUTE_DESTINATION,
+    waypoints: TOWE_WAYPOINTS,
   },
   {
     padId: "48d810bf-e59f-4314-9efb-8103a818a3bd",
