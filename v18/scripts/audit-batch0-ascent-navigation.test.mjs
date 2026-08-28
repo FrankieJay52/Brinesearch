@@ -4,6 +4,7 @@ import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
+  parseMarkdownProvenance,
   markdownSummary,
   reviewedActionDestinationForPad,
   reviewedBindingForPad,
@@ -111,6 +112,7 @@ test("durable summary identifies candidate content without claiming it is on mai
       implementationSha: "b".repeat(40),
       candidateContentSha256: "c".repeat(64),
       uncommittedChanges: true,
+      implementationPaths: ["v18/test.ts"],
     },
     snapshot: { snapshotId: "snapshot", sourceRevision: "revision" },
     rows: [],
@@ -121,4 +123,30 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
+});
+
+test("saved provenance safely carries the exact implementation files into shallow CI", () => {
+  const markdown = markdownSummary({
+    provenance: {
+      baseMainSha: "a".repeat(40),
+      implementationSha: "b".repeat(40),
+      candidateContentSha256: "c".repeat(64),
+      uncommittedChanges: false,
+      implementationPaths: ["v18/src/data/status.ts", "v18/src/features/pad/PadPage.tsx"],
+    },
+    snapshot: { snapshotId: "snapshot", sourceRevision: "8" },
+    rows: [],
+    referenceDigest: "reference",
+    csvDigest: "csv",
+  });
+  assert.deepEqual(parseMarkdownProvenance(markdown), {
+    baseMainSha: "a".repeat(40),
+    implementationSha: "b".repeat(40),
+    candidateContentSha256: "c".repeat(64),
+    implementationPaths: ["v18/src/data/status.ts", "v18/src/features/pad/PadPage.tsx"],
+  });
+  assert.throws(
+    () => parseMarkdownProvenance(markdown.replace("v18/src/data/status.ts", "../secret")),
+    /unsafe path/u,
+  );
 });

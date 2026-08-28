@@ -219,27 +219,35 @@ function git(...args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
 }
 
+function tryGit(...args) {
+  try {
+    return git(...args);
+  } catch {
+    return null;
+  }
+}
+
 function gitPaths(...args) {
   const output = git(...args);
   return output ? output.split(/\r?\n/u).filter(Boolean).map((value) => value.replaceAll("\\", "/")) : [];
 }
 
-async function implementationProvenance(baseMainSha) {
+async function implementationProvenance(baseMainSha, frozen = null) {
   const generated = new Set([
     "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
     "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
   ]);
-  const implementationSha = git(
-    "log",
-    "-1",
-    "--format=%H",
-    "HEAD",
-    "--",
-    ".",
-    ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
-    ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
-  );
-  const changedFromBase = gitPaths("diff", "--name-only", baseMainSha, "--", ".");
+  const implementationSha = frozen?.implementationSha || git(
+      "log",
+      "-1",
+      "--format=%H",
+      "HEAD",
+      "--",
+      ".",
+      ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
+      ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
+    );
+  const changedFromBase = frozen?.implementationPaths || gitPaths("diff", "--name-only", baseMainSha, "--", ".");
   const untracked = gitPaths("ls-files", "--others", "--exclude-standard");
   const implementationPaths = [...new Set([...changedFromBase, ...untracked])]
     .filter((value) => !generated.has(value))
@@ -265,6 +273,36 @@ async function implementationProvenance(baseMainSha) {
     uncommittedChanges: dirtyPaths.length > 0,
     implementationPaths,
   };
+}
+
+export function parseMarkdownProvenance(markdown) {
+  const baseMainSha = /- Base origin\/main SHA: `([0-9a-f]{40})`/u.exec(markdown)?.[1];
+  const implementationSha = /- Candidate implementation HEAD: `([0-9a-f]{40})`/u.exec(markdown)?.[1];
+  const candidateContentSha256 = /- Candidate content SHA-256: `([0-9a-f]{64})`/u.exec(markdown)?.[1];
+  const section = /## Candidate implementation files\s+([\s\S]*?)\s+## Counts/u.exec(markdown)?.[1] || "";
+  const implementationPaths = [...section.matchAll(/^- `([^`]+)`$/gmu)].map((match) => match[1]);
+  assert(baseMainSha && implementationSha && candidateContentSha256, "Saved Batch 0 provenance is incomplete");
+  assert(implementationPaths.length > 0, "Saved Batch 0 implementation file list is empty");
+  assert(new Set(implementationPaths).size === implementationPaths.length, "Saved Batch 0 implementation file list is duplicated");
+  assert(implementationPaths.every((value) => {
+    const normalized = value.replaceAll("\\", "/");
+    return value === normalized
+      && !path.isAbsolute(value)
+      && !normalized.split("/").includes("..")
+      && !normalized.startsWith("/");
+  }), "Saved Batch 0 implementation file list contains an unsafe path");
+  return { baseMainSha, implementationSha, candidateContentSha256, implementationPaths };
+}
+
+async function githubPullRequestBaseSha() {
+  if (!process.env.GITHUB_EVENT_PATH) return null;
+  try {
+    const event = JSON.parse(await readFile(process.env.GITHUB_EVENT_PATH, "utf8"));
+    const value = event?.pull_request?.base?.sha;
+    return typeof value === "string" && /^[0-9a-f]{40}$/u.test(value) ? value : null;
+  } catch {
+    return null;
+  }
 }
 
 async function publicConfiguration() {
@@ -384,6 +422,10 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
+## Candidate implementation files
+
+${provenance.implementationPaths.map((value) => `- \`${value}\``).join("\n")}
+
 ## Counts
 
 - State 1 — Reviewed approved route: **${states["1"] || 0}**
@@ -420,10 +462,22 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 }
 
 async function main() {
-  const mainSha = git("rev-parse", "origin/main");
-  const mergeBase = git("merge-base", "HEAD", "origin/main");
-  assert(mergeBase === mainSha, `Batch 0 branch must start at current origin/main (${mainSha}); merge base is ${mergeBase}`);
-  const provenance = await implementationProvenance(mainSha);
+  const originMainSha = tryGit("rev-parse", "origin/main");
+  let provenance;
+  if (originMainSha) {
+    const mergeBase = git("merge-base", "HEAD", "origin/main");
+    assert(mergeBase === originMainSha, `Batch 0 branch must start at current origin/main (${originMainSha}); merge base is ${mergeBase}`);
+    provenance = await implementationProvenance(originMainSha);
+  } else {
+    assert(process.argv.includes("--check"), "origin/main is required when generating the Batch 0 ledger");
+    const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
+    const githubBase = await githubPullRequestBaseSha();
+    assert(!githubBase || githubBase === frozen.baseMainSha,
+      `Saved Batch 0 base ${frozen.baseMainSha} does not match the pull-request base ${githubBase}`);
+    provenance = await implementationProvenance(frozen.baseMainSha, frozen);
+    assert(provenance.candidateContentSha256 === frozen.candidateContentSha256,
+      "Saved Batch 0 candidate content fingerprint is stale");
+  }
   const configuration = await publicConfiguration();
   const { snapshot, rows: directoryRows } = await directory(configuration);
   assert(snapshot.publicationState === "current", "Directory snapshot is not current");
