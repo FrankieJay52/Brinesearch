@@ -229,7 +229,12 @@ export function buildFixedNavigationAction(
     href: reviewedCandidate.routeUrl,
     title: "GET DIRECTIONS",
     detail: `Owner-reviewed route in Google Maps · ${reviewedCandidate.detail}`,
-    ariaLabel: `Open the owner-reviewed ${pad.padName} route in Google Maps; exact graph and public Google authority remain separate`,
+    ariaLabel: [
+      `Open the owner-reviewed ${pad.padName} route in Google Maps`,
+      reviewedCandidate.detail,
+      reviewedCandidate.finalLegNotice,
+      "exact graph and public Google authority remain separate",
+    ].filter(Boolean).join("; "),
   };
   const destinationUrl = padDestinationNavigationUrl(pad);
   const destination = trustedPadDestination(pad);
@@ -265,11 +270,10 @@ export function FixedNavigateAction({ view, pad, higherPriorityCheckState = "che
 }
 
 export function ReviewedRouteFallback({ candidate, state }: { candidate: ReviewedNavigationCandidate; state: DriverPadStatus["route"]["state"] }) {
-  const segments = candidate.reviewedRoadSequence?.split(/\s+→\s+/u).map((segment) => segment.trim()).filter(Boolean) || [];
   return <div className="reviewed-route-fallback">
     <div className="reviewed-route-fallback-heading"><StatusBadge status={state}/><strong>Owner-reviewed sequence</strong></div>
-    {segments.length > 0 ? <ol className="reviewed-sequence-step-list" aria-label="Owner-reviewed road sequence">{segments.map((segment, index) => <li key={`${index + 1}-${segment}`}><span>{index + 1}</span><p>{segment}</p></li>)}</ol>
-      : <p className="written-directions">No reviewed road sequence is available.</p>}
+    <p className="reviewed-route-sequence-text">{candidate.reviewedRoadSequence || "No reviewed road sequence is available."}</p>
+    {candidate.finalLegNotice && <p className="reviewed-route-boundary"><Icon name="location"/>{candidate.finalLegNotice}</p>}
   </div>;
 }
 

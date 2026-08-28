@@ -266,7 +266,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(reviewedNavigationSafetyHoldForPad(pad)).toBeNull();
     expect(html).toContain('data-navigation-kind="reviewed_route"');
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).not.toContain("Owner-reviewed route in Google Maps · McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).toContain("McCoy → Merry → Penrose → Logan → Turkle → pad GPS");
+    expect(html).toContain("exact graph and public Google authority remain separate");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("GPS destination only");
     expect(html).not.toContain("approved route");
@@ -288,9 +289,11 @@ describe("V18 pad legacy route fallback", () => {
     expect(summary).toContain("Sixteen Rd");
     expect(summary).toContain("lease approach");
     expect(summary).toContain("saved pad GPS");
-    expect(summary.match(/<li>/g)).toHaveLength(4);
+    expect(summary).toContain('class="reviewed-route-sequence-text"');
+    expect(summary).toContain("not approved public-road geometry");
+    expect(summary).not.toContain("<ol");
+    expect(summary).not.toContain("<li");
     expect(summary).toContain("Owner-reviewed sequence");
-    expect(summary).not.toContain("not approved public-road geometry");
     expect(summary).not.toContain("Approved route");
     expect(summary).not.toContain("US-250");
     expect(padPage).toContain("hasReviewedRouteFallback ? \"Reviewed route sequence\"");

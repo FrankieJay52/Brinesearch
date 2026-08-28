@@ -25,12 +25,14 @@ describe("map approved route link", () => {
       routeUrl,
       padName: "SPROULL",
       approachLabel: "Via Freeport",
-      detail: "Approved roads then GPS",
+      detail: "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry",
     }));
 
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).not.toContain("Via Freeport · Approved roads then GPS");
-    expect(html).toContain("using only its reviewed BrineSearch controls");
+    expect(html).not.toContain("Via Freeport · Approved roads");
+    expect(html).toContain("GPS-only final leg");
+    expect(html).toContain("final GPS leg is not approved road geometry");
+    expect(html).toContain("use only its reviewed BrineSearch controls");
     expect(html).not.toContain("<small");
     expect(html.match(/<a\b/g)).toHaveLength(1);
   });

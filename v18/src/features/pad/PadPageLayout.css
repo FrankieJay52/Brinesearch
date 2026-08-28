@@ -464,40 +464,34 @@
   font-size: .82rem;
 }
 
-.reviewed-sequence-step-list {
+.reviewed-route-sequence-text,
+.reviewed-route-boundary {
   margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.reviewed-sequence-step-list li {
-  display: grid;
-  grid-template-columns: 27px minmax(0, 1fr);
-  gap: 11px;
-  padding: 12px 0;
-  border-top: 1px solid var(--line-soft);
-}
-
-.reviewed-sequence-step-list li:first-child { border-top: 0; }
-
-.reviewed-sequence-step-list li > span {
-  width: 27px;
-  height: 27px;
-  display: grid;
-  place-items: center;
-  border-radius: 50%;
-  color: #06131c;
-  background: var(--teal);
-  font-size: .67rem;
-  font-weight: 900;
-}
-
-.reviewed-sequence-step-list p {
-  margin: 3px 0 0;
   color: var(--muted-strong);
   font-size: .78rem;
   line-height: 1.45;
   overflow-wrap: anywhere;
+}
+
+.reviewed-route-sequence-text {
+  padding: 12px;
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
+.reviewed-route-boundary {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  color: color-mix(in srgb, var(--amber) 72%, var(--text));
+}
+
+.reviewed-route-boundary svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  margin-top: 2px;
 }
 
 .pad-fixed-navigation .navigate-action.is-unavailable {

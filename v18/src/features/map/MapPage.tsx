@@ -430,10 +430,10 @@ export function MapPage() {
   const selectedRoadSequence = selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads then GPS"
+      ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
       : "Reviewed approved route"
     : liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "exact_graph_handoff"
-      ? "Approved roads then GPS"
+      ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
       : "Reviewed approved route";
   const selectedGoogleState = currentNamedApproaches.length
     ? selectedNamedApproach ? "ready" : "unavailable"
@@ -771,7 +771,7 @@ export function MapPage() {
       <div className="map-view-toolbar" aria-label="Map view mode">
         <span><Icon name={roadMode ? "route" : "map"}/><strong>{roadMode ? "Approved roads" : fullscreen ? "Full-screen map" : "Map viewer"}</strong></span>
         <div>
-          <button type="button" className={viewerMode === "fullscreen" ? "active" : ""} aria-pressed={viewerMode === "fullscreen"} onClick={() => changeViewerMode("fullscreen")}><Icon name="expand"/>{fullscreen ? "Map" : "Full screen"}</button>
+          {!fullscreen && <button type="button" aria-pressed="false" onClick={() => changeViewerMode("fullscreen")}><Icon name="expand"/>Full screen</button>}
           <button type="button" className={roadMode ? "active" : ""} aria-pressed={roadMode} onClick={() => changeViewerMode("roads")}><Icon name="route"/>Roads</button>
           {fullscreen && <button type="button" className="map-view-exit" onClick={() => changeViewerMode("standard")}><Icon name="close"/>Exit</button>}
         </div>
@@ -849,12 +849,11 @@ export function MapPage() {
            : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable approved-road navigation</small>
            : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
+      {selectedReviewedNavigationSafetyHold && <div className="inline-warning map-route-safety-alert" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>}
       <details className="map-route-status"><summary><strong>Route status</strong><span>View</span></summary><div className="map-route-status-content">
         <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? "Reviewed directions" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label="Reviewed directions"/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
         {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach to use approved roads. GPS destination-only navigation remains available; no approved route line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : "No approved inbound route is public · no route line inferred."}</p>}
-        {selectedReviewedNavigationSafetyHold
-          ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>
-          : selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
+        {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
         {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Owner-reviewed Google directions are available for this exact pad. The map point remains a saved GPS reference, not a verified public-road entrance or approved graph endpoint." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses exact approved roads to its reviewed handoff. This GPS destination is the separate unapproved final leg.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>

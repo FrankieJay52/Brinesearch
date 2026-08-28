@@ -3,7 +3,7 @@ import { Icon } from "@/components/Icon";
 export function MapApprovedRouteLink({ routeUrl, padName, detail = "Reviewed approved route", approachLabel = null }: { routeUrl: string; padName: string; detail?: string; approachLabel?: string | null }) {
   const title = "GET DIRECTIONS";
   const ariaLabel = approachLabel
-    ? `Get directions to ${padName} via ${approachLabel} in Google Maps using only its reviewed BrineSearch controls`
+    ? `Get directions to ${padName} via ${approachLabel} in Google Maps; ${detail}; use only its reviewed BrineSearch controls`
     : `Navigate the ${detail.toLowerCase()} to ${padName} in Google Maps`;
   return <a href={routeUrl} target="_blank" rel="noreferrer" aria-label={ariaLabel}>
     <Icon name="google"/><span><strong>{title}</strong></span><b>↗</b>
