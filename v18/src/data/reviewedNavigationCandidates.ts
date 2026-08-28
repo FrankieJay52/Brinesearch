@@ -78,8 +78,14 @@ const ownerApprovedNavigationReceiptEntries = [
   ["3850e94a-826f-4b6b-a54f-d21d482fca46", "validated_google_handoff", "8864af288dea9f58"], // ATHENA
 ] as const satisfies readonly (readonly [string, OwnerApprovedNavigationPresentation["evidence"], string])[];
 
-const ownerApprovedNavigationReceiptByPadId = new Map(ownerApprovedNavigationReceiptEntries.map(
-  ([padId, evidence, contentFingerprint]) => [padId, { evidence, contentFingerprint }] as const,
+const ownerApprovedNavigationReceiptByPadId = new Map<
+  string,
+  {
+    evidence: OwnerApprovedNavigationPresentation["evidence"];
+    contentFingerprint: string;
+  }
+>(ownerApprovedNavigationReceiptEntries.map(
+  ([padId, evidence, contentFingerprint]) => [padId, { evidence, contentFingerprint }],
 ));
 
 export function reviewedNavigationSequenceItems(candidate: Pick<ReviewedNavigationCandidate, "reviewedRoadSequence">) {
