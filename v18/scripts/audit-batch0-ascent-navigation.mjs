@@ -522,7 +522,7 @@ const explicitStates = new Map([
   ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff reaches the verified entrance; graph and public-Google authority remain held.",
-    receipt: "ROCK RIDGE exact-record Shannon, Lowe, Fairview, Douglas/Fairview, and Putney Ridge reviewed entrance handoff",
+    receipt: "ROCK RIDGE exact-record Shannon, Lowe, Fairview, Douglass, and Pultney Ridge reviewed entrance handoff",
     navigationLabel: "Owner-reviewed route in Google Maps",
     reviewedBinding: {
       padId: "19a4f7ef-4334-4b1c-8443-2c5ccb323d1d",
@@ -578,7 +578,7 @@ const explicitStates = new Map([
   ["fba35b8e-ccc6-406b-b27c-ac9ce4eed29d", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
-    receipt: "CROWIE exact-record Vineyard and Williams Road reviewed handoff",
+    receipt: "CROWIE exact-record Vineyard and Williams Road reviewed handoff with an explicit unapproved access / GPS tail",
     navigationLabel: "Owner-reviewed route in Google Maps",
     reviewedBinding: {
       padId: "fba35b8e-ccc6-406b-b27c-ac9ce4eed29d",

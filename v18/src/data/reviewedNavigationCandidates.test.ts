@@ -866,8 +866,8 @@ function batch5SharedCorridorFixtures() {
         "40.007544767,-81.205526285",
         "39.997476604,-81.217520411",
       ],
-      reviewedSequence: "Google-selected state-road approach → I-70 Exit 202 → OH-800 S → Shannon Rd → Lowe Rd → Fairview Rd / first cross road → Douglas/Fairview Rd → Putney Ridge Rd → verified driver entrance",
-      notice: /complete reviewed local-road order/u,
+      reviewedSequence: "Google-selected state-road approach → I-70 Exit 202 → OH-800 S → Shannon Rd / TR-801 → Lowe Rd / TR-162 → Fairview Rd / CR-114 → Douglass Rd / CR-120 → Pultney Ridge Rd / CR-70 → verified driver entrance",
+      notice: /exact current official identities/u,
     },
   ] as const;
 }
@@ -912,7 +912,8 @@ function batch2RouteFixtures() {
       routeUrl: CROWIE_REVIEWED_GOOGLE_URL,
       destination: "40.0979,-80.9384",
       waypoints: ["40.073689,-80.945041", "40.088246,-80.944086"],
-      reviewedSequence: "US-40 → Vineyard Rd / CR-56 → Williams Rd → verified driver entrance",
+      reviewedSequence: "US-40 → Vineyard Rd / CR-56 → Williams Rd → unapproved access / GPS handoff → verified driver entrance",
+      notice: /remaining movement is explicitly an unapproved access \/ GPS handoff/u,
     },
     {
       name: "CASTON",
