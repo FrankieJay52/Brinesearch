@@ -19,6 +19,10 @@ import {
 } from "./audit-batch0-ascent-navigation.mjs";
 
 const reviewedPadIds = [
+  "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
+  "333598ca-37b3-4b44-9411-a490cc3da672",
+  "166c5d6c-3a8d-4481-b8bf-5d74b7605f0d",
+  "800c877a-6b4f-4a87-a710-b1e00af63c62",
   "143f5268-33e4-4598-8101-40220b5cfdc4",
   "59061829-1122-4aae-872d-cf5024310373",
   "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
@@ -66,7 +70,7 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   assert.equal(csv("ordinary text"), "ordinary text");
 });
 
-test("all twenty-four reviewed ledger states require every exact record and destination field", () => {
+test("all twenty-eight reviewed ledger states require every exact record and destination field", () => {
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -91,6 +95,12 @@ test("all twenty-four reviewed ledger states require every exact record and dest
     assert.equal(reviewedBindingMatches(row, { ...destination, latitude: destination.latitude + 0.000001 }, binding), false);
     assert.equal(reviewedBindingMatches(row, { ...destination, longitude: destination.longitude - 0.000001 }, binding), false);
   }
+});
+
+test("BAKOS audit receipt exposes a reviewed handoff without promoting route authority", () => {
+  const receipt = explicitReceiptForPad("d7898e8c-1bb6-48f8-b5e0-87bc1898420e");
+  assert.match(receipt, /US-250 and Holly View Drive reviewed handoff/u);
+  assert.doesNotMatch(receipt, /GPS fallback|approved public|public Google/u);
 });
 
 test("BILINOVICH keeps its saved lease reference separate from its ODNR action destination", () => {
