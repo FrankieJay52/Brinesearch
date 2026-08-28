@@ -352,6 +352,41 @@ async function githubPullRequestBaseSha() {
   }
 }
 
+export function netlifyMainRefreshRequired({ netlify, commitRef, headSha }) {
+  if (netlify !== "true") return false;
+  assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
+  assert(commitRef === headSha,
+    `Netlify commit ${commitRef || "missing"} does not match current HEAD ${headSha}`);
+  return true;
+}
+
+function refreshNetlifyOriginMain(headSha) {
+  if (!netlifyMainRefreshRequired({
+    netlify: process.env.NETLIFY,
+    commitRef: process.env.COMMIT_REF,
+    headSha,
+  })) return;
+  execFileSync("git", [
+    "fetch",
+    "--no-tags",
+    "origin",
+    "+refs/heads/main:refs/remotes/origin/main",
+  ], {
+    cwd: repositoryRoot,
+    stdio: "ignore",
+  });
+}
+
+export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBaseSha }) {
+  assert(/^[0-9a-f]{40}$/u.test(headSha), "Current HEAD SHA is invalid");
+  assert(/^[0-9a-f]{40}$/u.test(originMainSha), "Current origin/main SHA is invalid");
+  assert(/^[0-9a-f]{40}$/u.test(frozenBaseSha), "Saved Batch 0 base SHA is invalid");
+  if (headSha === originMainSha) return "merged-main";
+  assert(originMainSha === frozenBaseSha,
+    `Saved Batch 0 base ${frozenBaseSha} does not match current origin/main ${originMainSha}`);
+  return "candidate-branch";
+}
+
 async function publicConfiguration() {
   const source = await readFile(path.join(repositoryRoot, "v18", "src", "data", "directory.ts"), "utf8");
   const supabaseUrl = /VITE_SUPABASE_URL\s*\|\|\s*"([^"]+)"/u.exec(source)?.[1];
@@ -509,17 +544,24 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 }
 
 async function main() {
+  const headSha = git("rev-parse", "HEAD");
+  refreshNetlifyOriginMain(headSha);
   const originMainSha = tryGit("rev-parse", "origin/main");
   const checking = process.argv.includes("--check");
   let provenance;
   if (checking) {
     const frozen = parseMarkdownProvenance(await readFile(outputMarkdown, "utf8"));
     if (originMainSha) {
-      assert(originMainSha === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main ${originMainSha}`);
-      const mergeBase = git("merge-base", "HEAD", "origin/main");
+      const checkoutMode = frozenProvenanceCheckoutMode({
+        headSha,
+        originMainSha,
+        frozenBaseSha: frozen.baseMainSha,
+      });
+      const mergeBase = checkoutMode === "merged-main"
+        ? git("merge-base", "HEAD", frozen.baseMainSha)
+        : git("merge-base", "HEAD", "origin/main");
       assert(mergeBase === frozen.baseMainSha,
-        `Saved Batch 0 base ${frozen.baseMainSha} does not match current origin/main merge base ${mergeBase}`);
+        `Saved Batch 0 base ${frozen.baseMainSha} does not match ${checkoutMode} merge base ${mergeBase}`);
       const currentPaths = gitPaths("diff", "--name-only", frozen.baseMainSha, "--", ".")
         .filter((value) => !generatedAuditPaths.has(value))
         .sort();

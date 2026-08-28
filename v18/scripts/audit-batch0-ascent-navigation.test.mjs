@@ -4,8 +4,10 @@ import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
+  frozenProvenanceCheckoutMode,
   hostedBuildArtifact,
   implementationPathSet,
+  netlifyMainRefreshRequired,
   parseMarkdownProvenance,
   markdownSummary,
   reviewedActionDestinationForPad,
@@ -125,6 +127,45 @@ test("frozen CI provenance ignores only Netlify's build workspace", () => {
       "v18/src/untracked-route.ts",
     ],
   );
+});
+
+test("frozen provenance accepts the exact merged main but rejects branch base drift", () => {
+  const frozenBaseSha = "a".repeat(40);
+  const mergedMainSha = "b".repeat(40);
+  assert.equal(frozenProvenanceCheckoutMode({
+    headSha: mergedMainSha,
+    originMainSha: mergedMainSha,
+    frozenBaseSha,
+  }), "merged-main");
+  assert.equal(frozenProvenanceCheckoutMode({
+    headSha: "c".repeat(40),
+    originMainSha: frozenBaseSha,
+    frozenBaseSha,
+  }), "candidate-branch");
+  assert.throws(() => frozenProvenanceCheckoutMode({
+    headSha: "c".repeat(40),
+    originMainSha: "d".repeat(40),
+    frozenBaseSha,
+  }), /does not match current origin\/main/u);
+});
+
+test("Netlify refreshes main only for the exact build commit", () => {
+  const headSha = "a".repeat(40);
+  assert.equal(netlifyMainRefreshRequired({
+    netlify: undefined,
+    commitRef: undefined,
+    headSha,
+  }), false);
+  assert.equal(netlifyMainRefreshRequired({
+    netlify: "true",
+    commitRef: headSha,
+    headSha,
+  }), true);
+  assert.throws(() => netlifyMainRefreshRequired({
+    netlify: "true",
+    commitRef: "b".repeat(40),
+    headSha,
+  }), /does not match current HEAD/u);
 });
 
 test("durable summary identifies candidate content without claiming it is on main", () => {
