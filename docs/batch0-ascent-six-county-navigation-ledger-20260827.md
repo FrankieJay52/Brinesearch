@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `30ede0b09184e82f4c44955fc19cc24922ce3113`
-- Candidate implementation HEAD: `04b0dc19533d0e4f94b110b1a5e3525ffcbc979e`
-- Candidate content SHA-256: `d19dcb609c29d5e549b90d842aa59a804a95b0869d7721c29a45dcaeba6b2153`
+- Base origin/main SHA: `6f0b792a9521adeaac9f4477772eacfa874466b7`
+- Candidate implementation HEAD: `e70b2a510ccc592f281ea5a54dd34e27a7c11bc0`
+- Candidate content SHA-256: `e8bbbca2230a57a2576c3290ac4caae8609328127d835eb6d1072550db4837b0`
 - Uncommitted non-generated changes: **no**
 - 247 / 1 approved / 8 core+GPS / 218 GPS-only / 20 reviewed-held
 - Production writes zero
@@ -11,9 +11,9 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `pad-fallback-data.json`
-- `v18/scripts/sanitize-pad-fallback-data.test.mjs`
-- `v18/src/data/pad-fallback-data.json`
+- `v18/src/features/pad/PadPage.test.ts`
+- `v18/src/features/pad/PadPage.tsx`
+- `v18/src/features/pad/PadPageLayout.css`
 
 ## Counts
 
