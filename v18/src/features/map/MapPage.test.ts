@@ -168,7 +168,9 @@ describe("map viewer authority boundary", () => {
   });
 
   it("keeps the selected-pad driver card compact without dropping route context", () => {
-    const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
+    const pendingAction = pageSource.indexOf("Checking for the highest-priority reviewed route…");
+    const failedAction = pageSource.indexOf("Live route check unavailable · no fallback opened", pendingAction);
+    const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}", failedAction);
     const reviewedAction = pageSource.indexOf("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}", approvedAction);
     const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}", reviewedAction);
     const disabledAction = pageSource.indexOf("No trusted GPS destination", pinAction);
@@ -177,13 +179,15 @@ describe("map viewer authority boundary", () => {
 
     expect(pageSource).toContain('className="map-selection-header"');
     expect(pageSource).toContain('<details className="map-saved-road-sequence">');
-    expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
+    expect(pageSource).toContain('eligibleReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
     expect(pageSource).toContain("{selectedRoadSequence}");
     expect(pageSource).toContain('selectedReviewedNavigation ? "Reviewed route sequence" : "Saved road sequence"');
-    expect(pageSource).toContain("const selectedReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null");
+    expect(pageSource).toContain('const selectedReviewedNavigation = higherPriorityNavigationState === "checked" ? eligibleReviewedNavigation : null');
     expect(pageSource).not.toContain("selectedReviewedNavigationCandidate ? <MapReviewedRouteLink");
     expect(pageSource).toContain("Open pad details");
-    expect([approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
+    expect([pendingAction, failedAction, approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
+    expect(pendingAction).toBeLessThan(failedAction);
+    expect(failedAction).toBeLessThan(approvedAction);
     expect(approvedAction).toBeLessThan(reviewedAction);
     expect(reviewedAction).toBeLessThan(pinAction);
     expect(pinAction).toBeLessThan(disabledAction);
@@ -210,6 +214,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("reviewedNavigationCandidateForPad(selected)");
     expect(pageSource).toContain("reviewedNavigationSafetyHoldForPad(selected)");
     expect(pageSource).toContain("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}");
+    expect(pageSource).toContain("statusRequestSettled: !selected || currentStatusAuthorityCheck !== null");
+    expect(pageSource).toContain("releaseRequestSettled: !selected || currentReleasedHandoffLoadResult !== null");
     expect(pageSource).toContain("Owner-reviewed Google directions are available for this exact pad.");
     expect(pageSource).toContain("padDestinationPinUrl(selected)");
     expect(pageSource).toContain("padDestinationNavigationUrl(selected)");

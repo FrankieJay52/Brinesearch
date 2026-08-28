@@ -10,7 +10,7 @@ describe("map approved route link", () => {
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
-    expect(html).toContain(">Navigate<");
+    expect(html).toContain(">GET DIRECTIONS<");
     expect(html).toContain("Reviewed approved route");
     expect(html).not.toContain("reviewed reviewed");
     expect(html).toContain('target="_blank"');
@@ -27,8 +27,8 @@ describe("map approved route link", () => {
       detail: "Approved roads then GPS",
     }));
 
-    expect(html).toContain("Navigate Via Freeport");
-    expect(html).toContain("Approved roads then GPS");
+    expect(html).toContain("GET DIRECTIONS");
+    expect(html).toContain("Via Freeport · Approved roads then GPS");
     expect(html).toContain("using only its reviewed BrineSearch controls");
     expect(html.match(/<a\b/g)).toHaveLength(1);
   });
@@ -39,7 +39,7 @@ describe("map approved route link", () => {
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${pinUrl.replaceAll("&", "&amp;")}"`);
-    expect(html).toContain(">Navigate<");
+    expect(html).toContain(">GET DIRECTIONS<");
     expect(html).toContain("GPS destination only");
     expect(html).toContain("GPS destination only · Saved pad GPS");
     expect(html).toContain("saved pad gps");
@@ -47,11 +47,11 @@ describe("map approved route link", () => {
   });
 
   it("labels an owner-reviewed candidate without claiming public or graph approval", () => {
-    const routeUrl = "https://www.google.com/maps/dir/?api=1&origin=Saint%20Clairsville%2C%20OH&destination=40.08738445%2C-81.30282620";
+    const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620";
     const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, { routeUrl, padName: "BILINOVICH" }));
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
-    expect(html).toContain("Owner-reviewed Google directions");
+    expect(html).toContain("Owner-reviewed route in Google Maps · Owner-reviewed Google directions");
     expect(html).toContain("exact graph and public Google authority remain separate");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("Google ready");
@@ -62,11 +62,11 @@ describe("map approved route link", () => {
     const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, {
       routeUrl,
       padName: "LAWSON",
-      title: "Navigate reviewed route",
       detail: "Reviewed road core → saved GPS · graph status separate",
     }));
 
-    expect(html).toContain("Navigate reviewed route");
+    expect(html).toContain("GET DIRECTIONS");
+    expect(html).toContain("Owner-reviewed route in Google Maps · Reviewed road core");
     expect(html).toContain("Reviewed road core → saved GPS · graph status separate");
     expect(html).toContain("exact graph and public Google authority remain separate");
     expect(html).not.toContain("Approved route");

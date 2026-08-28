@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
@@ -60,17 +61,90 @@ const explicitStates = new Map([
     blocker: "The approved OH-519 road core ends at the lease handoff; the final leg to the saved pin is GPS-only.",
     receipt: "BANJO frozen OH-519 named approach",
   }],
+  ["0e6f23f1-3bfb-44b0-aa4e-f24dde611880", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "BEETLE exact-record Sixteen Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
+      legacyId: "ascent--beetle",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "BEETLE",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "OH-519 → US-250 → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.185403, longitude: -80.922718 },
+    },
+  }],
+  ["bb351070-6c94-45e5-942f-e155f9e86f7e", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "DUKE exact-record Cologie-corridor reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
+      legacyId: "ascent--duke",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "DUKE",
+      state: "Ohio",
+      county: "Harrison",
+      structuredRoadSequence: "US-250 → Foxes Bottom Rd → Springdale Hill Rd → Lamborn Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.214409, longitude: -80.891316 },
+    },
+  }],
+  ["0b7105a0-1b36-4182-8d10-1f2e297c8bab", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
+    receipt: "PORTERFIELD GAS UNIT exact-record Vineyard Road reviewed handoff",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+      legacyId: "ascent--porterfield-gas-unit",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "PORTERFIELD GAS UNIT",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → OR → OH-331 → US-40 → Vineyard Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.090431, longitude: -80.928503 },
+    },
+  }],
   ["143f5268-33e4-4598-8101-40220b5cfdc4", {
     state: "reviewed_handoff_authority_held",
     blocker: "A record-bound reviewed handoff exists, but approved graph and public-Google authority remain held.",
     receipt: "LAWSON record-bound reviewed handoff",
-    navigationLabel: "Navigate reviewed route",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
+      legacyId: "ascent--lawson",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "LAWSON",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.124991, longitude: -81.295913 },
+    },
   }],
   ["59061829-1122-4aae-872d-cf5024310373", {
     state: "reviewed_handoff_authority_held",
     blocker: "The frozen no-Blaze reviewed handoff works, but approved graph and public-Google authority remain held.",
     receipt: "BILINOVICH frozen PR #174 no-Blaze handoff",
-    navigationLabel: "Navigate reviewed route",
+    navigationLabel: "Owner-reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "59061829-1122-4aae-872d-cf5024310373",
+      legacyId: "ascent--bilinovich",
+      recordRevision: "1787802711836476",
+      company: "Ascent",
+      padName: "BILINOVICH",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.08863, longitude: -81.304164 },
+    },
     actionDestination: {
       gpsSource: "ODNR pad",
       latitude: 40.08738445,
@@ -92,9 +166,45 @@ function object(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : {};
 }
 
-function csv(value) {
-  const text = String(value ?? "");
+export function csv(value) {
+  const raw = String(value ?? "");
+  const text = typeof value === "string" && /^[\s\uFEFF]*[=+\-@]/u.test(value) ? `'${raw}` : raw;
   return /[",\r\n]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
+}
+
+export function reviewedBindingForPad(padId) {
+  return explicitStates.get(padId)?.reviewedBinding || null;
+}
+
+export function reviewedActionDestinationForPad(padId) {
+  return explicitStates.get(padId)?.actionDestination || null;
+}
+
+export function reviewedBindingMatches(row, directoryDestination, binding) {
+  if (!binding || !directoryDestination) return false;
+  return row.padId === binding.padId
+    && row.legacyId === binding.legacyId
+    && String(row.recordRevision) === binding.recordRevision
+    && row.company === binding.company
+    && row.padName === binding.padName
+    && row.state === binding.state
+    && row.county === binding.county
+    && row.structuredRoadSequence === binding.structuredRoadSequence
+    && directoryDestination.gpsSource === binding.directoryDestination.gpsSource
+    && directoryDestination.coordinateRole === binding.directoryDestination.coordinateRole
+    && Math.abs(directoryDestination.latitude - binding.directoryDestination.latitude) <= 1e-9
+    && Math.abs(directoryDestination.longitude - binding.directoryDestination.longitude) <= 1e-9;
+}
+
+export function candidateContentDigest(entries) {
+  const digest = createHash("sha256");
+  for (const entry of [...entries].sort((left, right) => left.path.localeCompare(right.path))) {
+    digest.update(entry.path);
+    digest.update("\0");
+    digest.update(entry.content);
+    digest.update("\0");
+  }
+  return digest.digest("hex");
 }
 
 function countBy(rows, field) {
@@ -107,6 +217,54 @@ function countBy(rows, field) {
 
 function git(...args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
+}
+
+function gitPaths(...args) {
+  const output = git(...args);
+  return output ? output.split(/\r?\n/u).filter(Boolean).map((value) => value.replaceAll("\\", "/")) : [];
+}
+
+async function implementationProvenance(baseMainSha) {
+  const generated = new Set([
+    "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
+    "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
+  ]);
+  const implementationSha = git(
+    "log",
+    "-1",
+    "--format=%H",
+    "HEAD",
+    "--",
+    ".",
+    ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
+    ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
+  );
+  const changedFromBase = gitPaths("diff", "--name-only", baseMainSha, "--", ".");
+  const untracked = gitPaths("ls-files", "--others", "--exclude-standard");
+  const implementationPaths = [...new Set([...changedFromBase, ...untracked])]
+    .filter((value) => !generated.has(value))
+    .sort();
+  const entries = [];
+  for (const relativePath of implementationPaths) {
+    try {
+      entries.push({ path: relativePath, content: await readFile(path.join(repositoryRoot, ...relativePath.split("/"))) });
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      entries.push({ path: relativePath, content: "<deleted>" });
+    }
+  }
+  const dirtyPaths = [...new Set([
+    ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
+    ...gitPaths("diff", "--cached", "--name-only", "HEAD", "--", "."),
+    ...untracked,
+  ])].filter((value) => !generated.has(value));
+  return {
+    baseMainSha,
+    implementationSha,
+    candidateContentSha256: candidateContentDigest(entries),
+    uncommittedChanges: dirtyPaths.length > 0,
+    implementationPaths,
+  };
 }
 
 async function publicConfiguration() {
@@ -163,14 +321,29 @@ async function directory(configuration) {
   return { snapshot, rows };
 }
 
+export function auditCoordinatePair(latitudeRaw, longitudeRaw) {
+  const missing = (value) => value === null || value === undefined
+    || typeof value === "string" && value.trim() === "";
+  if (missing(latitudeRaw) || missing(longitudeRaw)) return null;
+  if ([latitudeRaw, longitudeRaw].some((value) => typeof value === "boolean" || typeof value === "object")) return null;
+  const latitude = Number(latitudeRaw);
+  const longitude = Number(longitudeRaw);
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+  if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+  if (latitude === 0 && longitude === 0) return null;
+  if (latitude < 37 || latitude > 43 || longitude < -84 || longitude > -74) return null;
+  return { latitude, longitude };
+}
+
 function trustedDirectoryDestination(row, references) {
   const entrance = object(row.driverEntrance);
   if (entrance.role === "driver_entrance" && entrance.qualityState === "validated") {
+    const coordinate = auditCoordinatePair(entrance.latitude, entrance.longitude);
+    if (!coordinate) return null;
     return {
       gpsSource: "saved",
       coordinateRole: "verified driver entrance",
-      latitude: Number(entrance.latitude),
-      longitude: Number(entrance.longitude),
+      ...coordinate,
     };
   }
   const reference = references.get(row.padId);
@@ -181,15 +354,16 @@ function trustedDirectoryDestination(row, references) {
     official_wellhead_reference: "ODNR wellhead",
   }[reference.referenceKind];
   assert(source, `Unsupported GPS source for ${row.padId}`);
+  const coordinate = auditCoordinatePair(reference.latitude, reference.longitude);
+  if (!coordinate) return null;
   return {
     gpsSource: source,
     coordinateRole: reference.referenceKind.replaceAll("_", " "),
-    latitude: Number(reference.latitude),
-    longitude: Number(reference.longitude),
+    ...coordinate,
   };
 }
 
-function markdownSummary({ mainSha, snapshot, rows, referenceDigest }) {
+export function markdownSummary({ provenance, snapshot, rows, referenceDigest, csvDigest }) {
   const states = countBy(rows, "current_state");
   const sources = countBy(rows, "gps_source");
   const directorySources = countBy(rows, "directory_gps_source");
@@ -200,12 +374,15 @@ function markdownSummary({ mainSha, snapshot, rows, referenceDigest }) {
     return `| ${county} | ${matching.length} | ${counts["1"] || 0} | ${counts["2"] || 0} | ${counts["3"] || 0} | ${counts.reviewed_handoff_authority_held || 0} | ${noGps} |`;
   }).join("\n");
   return `# Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- SHA \`${mainSha}\`
-- 247 / 1 approved / 8 core+GPS / 236 GPS-only / 2 reviewed-held
+- Base origin/main SHA: \`${provenance.baseMainSha}\`
+- Candidate implementation HEAD: \`${provenance.implementationSha}\`
+- Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
+- Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
+- 247 / 1 approved / 8 core+GPS / 233 GPS-only / 5 reviewed-held
 - Production writes zero
-- LAWSON + BILINOVICH: \`reviewed_handoff_authority_held\`
+- LAWSON + BILINOVICH + BEETLE + DUKE + PORTERFIELD GAS UNIT: \`reviewed_handoff_authority_held\`
 
-This ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\`, source revision \`${snapshot.sourceRevision}\`, on main \`${mainSha}\`.
+This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
 ## Counts
 
@@ -214,7 +391,7 @@ This ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Je
 - State 3 — GPS destination only: **${states["3"] || 0}**
 - Reviewed handoff authority held: **${states.reviewed_handoff_authority_held || 0}**
 - No trusted GPS: **${rows.filter((row) => row.gps_source === "missing").length}**
-- Exactly one trusted destination: **${rows.filter((row) => row.gps_source !== "missing").length}**
+- Exactly one navigation action destination: **${rows.filter((row) => row.gps_source !== "missing").length}**
 
 | County | Pads | State 1 | State 2 | State 3 | Reviewed-held | No GPS |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -232,9 +409,10 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
 - State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
 - State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- LAWSON and BILINOVICH remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs work, but their frozen receipts keep graph/public-Google approval separate or held.
+- LAWSON, BILINOVICH, BEETLE, DUKE, and PORTERFIELD GAS UNIT remain \`reviewed_handoff_authority_held\` rather than being promoted: their exact record-bound reviewed handoffs are separate from graph/public-Google authority. DUKE and PORTERFIELD remain pre-deployment candidates until their exact Google links receive recorded phone/visual QA.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
+- The generated CSV SHA-256 is \`${csvDigest}\`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with \`npm --prefix v18 run audit:batch0-navigation -- --write\`. The audit performs one request per page/contract and has no retry path.
@@ -243,8 +421,9 @@ Regenerate from the current live public contracts with \`npm --prefix v18 run au
 
 async function main() {
   const mainSha = git("rev-parse", "origin/main");
-  const headSha = git("rev-parse", "HEAD");
-  assert(headSha === mainSha, `Batch 0 must start at current origin/main (${mainSha}); HEAD is ${headSha}`);
+  const mergeBase = git("merge-base", "HEAD", "origin/main");
+  assert(mergeBase === mainSha, `Batch 0 branch must start at current origin/main (${mainSha}); merge base is ${mergeBase}`);
+  const provenance = await implementationProvenance(mainSha);
   const configuration = await publicConfiguration();
   const { snapshot, rows: directoryRows } = await directory(configuration);
   assert(snapshot.publicationState === "current", "Directory snapshot is not current");
@@ -266,10 +445,29 @@ async function main() {
   for (const padId of explicitStates.keys()) {
     assert(targets.some((row) => row.padId === padId), `Explicit state receipt target ${padId} is absent`);
   }
+  for (const [padId, explicit] of explicitStates) {
+    if (explicit.state === "reviewed_handoff_authority_held") {
+      assert(explicit.reviewedBinding, `Reviewed handoff ${padId} lacks an exact audit binding`);
+    }
+  }
 
   const ledger = targets.map((row) => {
     const directoryDestination = trustedDirectoryDestination(row, references);
     const explicit = explicitStates.get(row.padId);
+    if (explicit?.state === "reviewed_handoff_authority_held") {
+      assert(
+        reviewedBindingMatches(row, directoryDestination, explicit.reviewedBinding),
+        `Reviewed handoff binding drifted for ${row.padId}`,
+      );
+      if (explicit.actionDestination) {
+        assert(explicit.actionDestination.gpsSource === "ODNR pad", `Reviewed action destination source drifted for ${row.padId}`);
+        assert(
+          explicit.actionDestination.latitude !== directoryDestination.latitude
+            || explicit.actionDestination.longitude !== directoryDestination.longitude,
+          `Reviewed action destination was incorrectly collapsed into the directory destination for ${row.padId}`,
+        );
+      }
+    }
     const actionDestination = explicit?.actionDestination || directoryDestination;
     const currentState = explicit?.state || (actionDestination ? "3" : "unknown");
     const navigationLabel = explicit?.navigationLabel || {
@@ -284,14 +482,20 @@ async function main() {
       : "Trusted GPS destination is missing.";
     return {
       record_id: row.padId,
+      legacy_id: row.legacyId || "",
       name: row.padName,
+      company: row.company,
+      state: row.state,
       county: row.county,
+      structured_road_sequence: row.structuredRoadSequence || "",
       current_state: currentState,
       gps_source: actionDestination?.gpsSource || "missing",
       destination_latitude: actionDestination?.latitude ?? "",
       destination_longitude: actionDestination?.longitude ?? "",
       directory_gps_source: directoryDestination?.gpsSource || "missing",
       directory_coordinate_role: directoryDestination?.coordinateRole || "missing",
+      directory_latitude: directoryDestination?.latitude ?? "",
+      directory_longitude: directoryDestination?.longitude ?? "",
       record_revision: row.recordRevision,
       navigation_label: navigationLabel,
       origin: actionDestination ? "phone current location" : "",
@@ -302,25 +506,30 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 236
-    && stateCounts.reviewed_handoff_authority_held === 2,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 233
+    && stateCounts.reviewed_handoff_authority_held === 5,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 
   const headers = Object.keys(ledger[0]);
   const csvText = `${headers.join(",")}\n${ledger.map((row) => headers.map((header) => csv(row[header])).join(",")).join("\n")}\n`;
+  const csvDigest = createHash("sha256").update(csvText).digest("hex");
   const markdownText = markdownSummary({
-    mainSha,
+    provenance,
     snapshot,
     rows: ledger,
     referenceDigest: referencePayload.contentSha256,
+    csvDigest,
   });
   if (process.argv.includes("--write")) {
     await writeFile(outputCsv, csvText, "utf8");
     await writeFile(outputMarkdown, markdownText, "utf8");
+  } else if (process.argv.includes("--check")) {
+    assert(await readFile(outputCsv, "utf8") === csvText, "Checked-in Batch 0 CSV is stale");
+    assert(await readFile(outputMarkdown, "utf8") === markdownText, "Checked-in Batch 0 Markdown is stale");
   }
   console.log(JSON.stringify({
-    mainSha,
+    ...provenance,
     snapshotId: snapshot.snapshotId,
     sourceRevision: snapshot.sourceRevision,
     targetCount: ledger.length,
@@ -333,4 +542,6 @@ async function main() {
   }, null, 2));
 }
 
-await main();
+const invokedAsScript = process.argv[1]
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invokedAsScript) await main();

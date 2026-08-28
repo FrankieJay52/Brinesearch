@@ -8,13 +8,19 @@ import { useDirectory } from "@/data/DirectoryContext";
 import { saveRecent } from "@/data/offline";
 import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinate, mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
-import { currentReleasedGoogleHandoff, loadReleasedGoogleHandoff } from "@/data/releasedGoogleHandoff";
+import {
+  currentReleasedGoogleHandoff,
+  currentReleasedGoogleHandoffLoad,
+  higherPriorityNavigationCheckState,
+  loadReleasedGoogleHandoff,
+  type HigherPriorityNavigationCheckState,
+  type ReleasedGoogleHandoffLoad,
+} from "@/data/releasedGoogleHandoff";
 import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad, type ReviewedNavigationCandidate } from "@/data/reviewedNavigationCandidates";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
-import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
 import { PadMapPreview } from "./PadMapPreview";
@@ -170,13 +176,28 @@ export function buildFixedNavigationAction(
   view: GoogleHandoffView,
   pad: PadSummary,
   reviewedCandidate: ReviewedNavigationCandidate | null = reviewedNavigationCandidateForPad(pad),
+  higherPriorityCheckState: HigherPriorityNavigationCheckState = "checked",
 ): FixedNavigationAction {
+  if (higherPriorityCheckState === "checking") return {
+    kind: "unavailable",
+    href: null,
+    title: "GET DIRECTIONS",
+    detail: "Checking for the highest-priority reviewed route…",
+    ariaLabel: "Directions are temporarily unavailable while BrineSearch checks for the highest-priority reviewed route",
+  };
+  if (higherPriorityCheckState === "unavailable") return {
+    kind: "unavailable",
+    href: null,
+    title: "GET DIRECTIONS",
+    detail: "Live route check unavailable · no fallback opened",
+    ariaLabel: "Directions are unavailable because BrineSearch could not complete the live route authority check",
+  };
   if (view.available && view.routeUrl) return {
     kind: "approved_route",
     href: view.routeUrl,
-    title: view.approachLabel ? `Navigate ${view.approachLabel}` : "Navigate",
-    detail: view.mode === "named_approach" && view.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads then GPS"
+    title: "GET DIRECTIONS",
+    detail: view.mode === "named_approach" && view.approachLabel
+      ? `${view.approachLabel} · ${view.finalLegMode === "google_to_saved_gps_unapproved" ? "approved roads then GPS" : "reviewed approved route"}`
       : view.mode === "exact_core_destination" ? "Approved roads then GPS" : "Reviewed approved route",
     ariaLabel: view.mode === "named_approach"
       ? `Navigate ${view.approachLabel} in Google Maps using its reviewed approved-road controls${view.finalLegMode === "google_to_saved_gps_unapproved" ? "; final GPS leg is not approved road geometry" : ""}`
@@ -190,14 +211,14 @@ export function buildFixedNavigationAction(
     if (destinationUrl && destination) return {
       kind: "destination_pin",
       href: destinationUrl,
-      title: "Navigate",
+      title: "GET DIRECTIONS",
       detail: `GPS destination only · ${destination.label} · choose an approach for reviewed roads`,
       ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, or choose one reviewed approach for BrineSearch road guidance`,
     };
     return {
       kind: "unavailable",
       href: null,
-      title: "Choose an approach",
+      title: "GET DIRECTIONS",
       detail: view.reason,
       ariaLabel: "Choose one reviewed named approach before navigation",
     };
@@ -205,8 +226,8 @@ export function buildFixedNavigationAction(
   if (view.selectedRouteIsPrimary && reviewedCandidate) return {
     kind: "reviewed_route",
     href: reviewedCandidate.routeUrl,
-    title: reviewedCandidate.title,
-    detail: reviewedCandidate.detail,
+    title: "GET DIRECTIONS",
+    detail: `Owner-reviewed route in Google Maps · ${reviewedCandidate.detail}`,
     ariaLabel: `Open the owner-reviewed ${pad.padName} route in Google Maps; exact graph and public Google authority remain separate`,
   };
   const destinationUrl = padDestinationNavigationUrl(pad);
@@ -214,21 +235,21 @@ export function buildFixedNavigationAction(
   if (destinationUrl && destination) return {
     kind: "destination_pin",
     href: destinationUrl,
-    title: "Navigate",
+    title: "GET DIRECTIONS",
     detail: `GPS destination only · ${destination.label} · not an approved route`,
     ariaLabel: `Navigate to the ${destination.label.toLowerCase()} in Google Maps; GPS destination only, not a BrineSearch-approved route`,
   };
   return {
     kind: "unavailable",
     href: null,
-    title: "Navigate",
+    title: "GET DIRECTIONS",
     detail: "No trusted GPS destination",
     ariaLabel: "Navigation unavailable because this pad has no explicitly sourced GPS destination",
   };
 }
 
-export function FixedNavigateAction({ view, pad }: { view: GoogleHandoffView; pad: PadSummary }) {
-  const action = buildFixedNavigationAction(view, pad);
+export function FixedNavigateAction({ view, pad, higherPriorityCheckState = "checked" }: { view: GoogleHandoffView; pad: PadSummary; higherPriorityCheckState?: HigherPriorityNavigationCheckState }) {
+  const action = buildFixedNavigationAction(view, pad, reviewedNavigationCandidateForPad(pad), higherPriorityCheckState);
   return <nav className="pad-fixed-navigation" aria-label="Pad navigation">
     {action.href ? <a className={`navigate-action is-${action.kind.replaceAll("_", "-")}`} href={action.href} target="_blank" rel="noreferrer" aria-label={action.ariaLabel} data-navigation-kind={action.kind}>
       <Icon name={action.kind === "approved_route" || action.kind === "reviewed_route" ? "route" : "location"}/>
@@ -332,7 +353,8 @@ export function PadPage() {
   const { findPad, favorites, toggleFavorite, loading, snapshot } = useDirectory();
   const pad = findPad(decodeURIComponent(padId));
   const [resolvedStatus, setStatus] = useState<DriverPadStatus | null>(null);
-  const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffPlan | null | undefined>(undefined);
+  const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffLoad | undefined>(undefined);
+  const [statusAuthorityCheck, setStatusAuthorityCheck] = useState<{ recordKey: string; checked: boolean } | null>(null);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [selectedNamedApproachKey, setSelectedNamedApproachKey] = useState("");
@@ -343,14 +365,15 @@ export function PadPage() {
     let cancelled = false;
     setStatus(null);
     setReleasedHandoff(undefined);
+    setStatusAuthorityCheck(null);
     setRouteChoices([]);
     setSelectedRouteKey("");
     setSelectedNamedApproachKey("");
     setLoadedWellRows(null);
     const recordKey = `${pad.padId}:${pad.recordRevision}`;
     saveRecent(pad).catch(() => undefined);
-    loadReleasedGoogleHandoff(pad).then((plan) => {
-      if (!cancelled) setReleasedHandoff(plan);
+    loadReleasedGoogleHandoff(pad).then((result) => {
+      if (!cancelled) setReleasedHandoff(result);
     });
     if (online) {
       readPadDirectionsOffline(pad).then((cached) => {
@@ -360,6 +383,10 @@ export function PadPage() {
     loadPadStatus(pad, snapshot?.sourceState).then((next) => {
       if (cancelled) return;
       setStatus(next);
+      setStatusAuthorityCheck({
+        recordKey,
+        checked: !pad.canonicalId || next.loadProvenance === "live_response" || next.loadProvenance === "session_cache",
+      });
       const namedApproaches = next.namedApproaches || [];
       setSelectedNamedApproachKey(namedApproaches.length === 1 ? namedApproaches[0].approachKey : "");
       if (!namedApproaches.length && online && next.dataState === "live" && next.route.state === "ready" && next.route.source === "exact_graph" && next.graph.state === "active_current") {
@@ -385,7 +412,7 @@ export function PadPage() {
   const currentRouteChoices = currentResolvedStatus ? routeChoices : [];
   const currentNamedApproaches = currentResolvedStatus?.namedApproaches || [];
   const connectionState = padRouteConnectionState(currentResolvedStatus, online);
-  const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "session-checked" ? "Ready" : connectionState === "saved-reviewed" ? "Saved reviewed" : connectionState === "unavailable" ? "Unavailable" : "Checking";
+  const connectionLabel = connectionState === "offline" ? "Offline" : connectionState === "live" ? "Live" : connectionState === "session-checked" ? "Checked" : connectionState === "saved-reviewed" ? "Saved reviewed" : connectionState === "unavailable" ? "Unavailable" : "Checking";
   const hasSavedReviewedStatus = status.loadProvenance === "device_cache";
   const offlineCacheMiss = !online && !hasSavedReviewedStatus;
 
@@ -411,6 +438,7 @@ export function PadPage() {
       longitude: selectedNamedApproach.destination.longitude,
     },
   } : status;
+  const currentReleasedHandoffLoadResult = currentReleasedGoogleHandoffLoad(releasedHandoff, pad);
   const currentReleasedHandoffPlan = online ? currentReleasedGoogleHandoff(releasedHandoff, pad) : null;
   const exactRouteDisplayed = status.route.state === "ready"
     && (status.route.source === "exact_graph" || status.route.source === "exact_graph_handoff")
@@ -426,6 +454,16 @@ export function PadPage() {
     selectedNamedApproach,
     namedSelectionRequired,
   );
+  const currentStatusAuthorityCheck = statusAuthorityCheck?.recordKey === padRecordKey ? statusAuthorityCheck : null;
+  const higherPriorityNavigationState = higherPriorityNavigationCheckState({
+    online,
+    approvedRouteAvailable: Boolean(currentReleasedHandoffPlan)
+      || Boolean(currentStatusAuthorityCheck?.checked && googleHandoff.available),
+    statusRequestSettled: currentStatusAuthorityCheck !== null,
+    statusChecked: currentStatusAuthorityCheck?.checked === true,
+    releaseRequestSettled: currentReleasedHandoffLoadResult !== null,
+    releaseChecked: currentReleasedHandoffLoadResult?.checked === true,
+  });
   const reviewedNavigationCandidate = reviewedNavigationCandidateForPad(pad);
   const activeReviewedNavigationCandidate = selectedRouteIsPrimary && !googleHandoff.available && !namedSelectionRequired ? reviewedNavigationCandidate : null;
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
@@ -503,6 +541,6 @@ export function PadPage() {
     </details>
     <details className="detail-card"><summary><span><strong>Data source and freshness</strong><small>Record status, identity, coordinate role, and revision</small></span><span>⌄</span></summary><div className="detail-grid"><div><small>Operating status</small><strong>{pad.operatingStatus || "Not listed"}</strong></div><div><small>Record ID</small><strong className="mono">{pad.canonicalId || pad.legacyId || pad.padId}</strong></div><div><small>Record revision</small><strong>{pad.recordRevision}</strong></div><div><small>Map coordinate</small><strong>{mapDisplayCoordinateLabel(pad)}</strong></div><div><small>Google handoff state</small><strong>{googleHandoff.state.replaceAll("_", " ")}</strong></div></div></details>
     <p className="safety-footer">BrineSearch route data does not guarantee present road, weather, gate, or site conditions. Follow company and field safety requirements.</p>
-    <FixedNavigateAction view={googleHandoff} pad={pad}/>
+    <FixedNavigateAction view={googleHandoff} pad={pad} higherPriorityCheckState={higherPriorityNavigationState}/>
   </article>;
 }

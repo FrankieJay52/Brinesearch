@@ -19,14 +19,16 @@ import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import {
   currentReleasedGoogleHandoff,
+  currentReleasedGoogleHandoffLoad,
+  higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
   releasedGoogleNavigationUrl,
+  type ReleasedGoogleHandoffLoad,
 } from "@/data/releasedGoogleHandoff";
 import { graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
 import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import { closestPadSearchResults, distanceMilesFromPad, nearbyDistanceLabel, nearbyPadResultsHeading } from "@/data/search";
-import type { ReleasedGoogleHandoffPlan } from "@/data/googleRoute";
 import type { CompanyRoadOverlayRow, DriverPadStatus, DriverRouteChoice, DriverRouteGeometry, PadSummary } from "@/data/types";
 import {
   coincidentLocationsNeedChooser,
@@ -326,7 +328,8 @@ export function MapPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
-  const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffPlan | null | undefined>(undefined);
+  const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffLoad | undefined>(undefined);
+  const [statusAuthorityCheck, setStatusAuthorityCheck] = useState<{ recordKey: string; checked: boolean } | null>(null);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
   const [routeChoicesRecordKey, setRouteChoicesRecordKey] = useState<string | null>(null);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
@@ -391,6 +394,7 @@ export function MapPage() {
     selectedNamedApproach?.routeGroup || null,
     selectedRouteChoice?.routeGroup || null,
   );
+  const currentReleasedHandoffLoadResult = currentReleasedGoogleHandoffLoad(releasedHandoff, selected);
   const currentReleasedHandoffPlan = currentReleasedGoogleHandoff(releasedHandoff, selected);
   const liveApprovedNavigationUrl = !currentNamedApproaches.length && selectedRouteIsPrimary
     && currentSelectedStatus?.route.state === "ready"
@@ -405,8 +409,21 @@ export function MapPage() {
       selectedRouteIsPrimary ? "primary" : "alternate",
     )
     : null) : null;
-  const selectedReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null;
-  const selectedRoadSequence = selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
+  const currentStatusAuthorityCheck = selectedRecordKey && statusAuthorityCheck?.recordKey === selectedRecordKey
+    ? statusAuthorityCheck
+    : null;
+  const higherPriorityNavigationState = higherPriorityNavigationCheckState({
+    online,
+    approvedRouteAvailable: Boolean(currentReleasedHandoffPlan)
+      || Boolean(currentStatusAuthorityCheck?.checked && (selectedNamedApproach?.navigationUrl || liveApprovedNavigationUrl)),
+    statusRequestSettled: !selected || currentStatusAuthorityCheck !== null,
+    statusChecked: !selected || currentStatusAuthorityCheck?.checked === true,
+    releaseRequestSettled: !selected || currentReleasedHandoffLoadResult !== null,
+    releaseChecked: !selected || currentReleasedHandoffLoadResult?.checked === true,
+  });
+  const eligibleReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null;
+  const selectedReviewedNavigation = higherPriorityNavigationState === "checked" ? eligibleReviewedNavigation : null;
+  const selectedRoadSequence = eligibleReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
       ? "Approved roads then GPS"
@@ -505,13 +522,15 @@ export function MapPage() {
     let cancelled = false;
     setSelectedStatus(null);
     setReleasedHandoff(undefined);
+    setStatusAuthorityCheck(null);
     setRouteChoices([]);
     setRouteChoicesRecordKey(null);
     setSelectedRouteKey("");
     setSelectedNamedApproachKey("");
     if (selected) {
-      loadReleasedGoogleHandoff(selected).then((plan) => {
-        if (!cancelled) setReleasedHandoff(plan);
+      const recordKey = `${selected.padId}:${selected.recordRevision}`;
+      loadReleasedGoogleHandoff(selected).then((result) => {
+        if (!cancelled) setReleasedHandoff(result);
       });
       if (online) {
         readPadDirectionsOffline(selected).then((cached) => {
@@ -521,6 +540,10 @@ export function MapPage() {
       loadPadStatus(selected, snapshot?.sourceState).then((status) => {
         if (cancelled) return;
         setSelectedStatus(status);
+        setStatusAuthorityCheck({
+          recordKey,
+          checked: !selected.canonicalId || status.loadProvenance === "live_response" || status.loadProvenance === "session_cache",
+        });
         const namedApproaches = status.namedApproaches || [];
         setSelectedNamedApproachKey(namedApproaches.length === 1 ? namedApproaches[0].approachKey : "");
         if (!namedApproaches.length && online && status.dataState === "live" && status.route.state === "ready" && status.route.source === "exact_graph" && status.graph.state === "active_current") {
@@ -816,8 +839,10 @@ export function MapPage() {
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
           ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
-        {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
-          : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName} title={selectedReviewedNavigation.title} detail={selectedReviewedNavigation.detail}/>
+        {higherPriorityNavigationState === "checking" ? <small className="map-google-link-state">Checking for the highest-priority reviewed route…</small>
+          : higherPriorityNavigationState === "unavailable" ? <small className="map-google-link-state">Live route check unavailable · no fallback opened</small>
+          : approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
+          : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName} detail={selectedReviewedNavigation.detail}/>
           : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
           : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable approved-road navigation</small>
           : <small className="map-google-link-state">No trusted GPS destination</small>}

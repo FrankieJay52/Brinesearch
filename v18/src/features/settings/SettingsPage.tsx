@@ -177,7 +177,7 @@ export function SettingsPage() {
         </div>
         <div className="settings-info-row settings-route-check-row">
           <span className="settings-state-icon"><Icon name="route"/></span>
-          <span><strong>Route checks</strong><small id="route-check-description">Ready exact routes are checked once per app session and reused only for the same pad revision. Held or incomplete routes are checked again.</small><em id="route-check-safety">Rechecking clears only this session’s completed route checks. It does not delete saved directions, change approval, or alter the currently open pad.</em><span className="settings-route-check-status" role="status" aria-live="polite" aria-atomic="true">{routeCheckStatus}</span></span>
+          <span><strong>Route checks</strong><small id="route-check-description">Each completed live check is reused only for the same pad revision during this app session. A directory refresh or this button checks it again.</small><em id="route-check-safety">Rechecking clears only this session’s completed route checks. It does not delete saved directions, change approval, or alter the currently open pad.</em><span className="settings-route-check-status" role="status" aria-live="polite" aria-atomic="true">{routeCheckStatus}</span></span>
           <button type="button" className="settings-row-action settings-row-button" aria-describedby="route-check-description route-check-safety" onClick={() => { clearCompletedRouteSessionChecks(); setRouteCheckStatus("Route checks cleared. The next pad you open online will check again."); }}>Recheck routes</button>
         </div>
         <div className="settings-info-row">

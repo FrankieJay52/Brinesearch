@@ -1,11 +1,13 @@
 import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { mapDisplayCoordinate } from "./mapDisplayCoordinates";
-import { attachPadReferences, normalizePadReferencePayload } from "./padReferences";
+import { attachPadReferences, attachPadReferencesResult, loadPadReferencesResult, normalizePadReferencePayload } from "./padReferences";
 import type { DirectorySnapshot, PadSummary } from "./types";
 
 const snapshotId = "11111111-1111-4111-8111-111111111111";
 const padId = "22222222-2222-4222-8222-222222222222";
+
+afterEach(() => vi.unstubAllGlobals());
 
 function pad(): PadSummary {
   return {
@@ -121,6 +123,48 @@ describe("V18 exact pad-reference contract", () => {
       kind: "saved_pad_reference",
       latitude: 40.2,
       longitude: -80.8,
+    });
+  });
+
+  it("does not accept a reference response that cannot attach to the exact directory row", () => {
+    const references = normalizePadReferencePayload(payload(), snapshotId, "5");
+    expect(references).not.toBeNull();
+
+    const unknownPadReferences = new Map(references);
+    const reference = unknownPadReferences.get(padId)!;
+    unknownPadReferences.delete(padId);
+    unknownPadReferences.set("33333333-3333-4333-8333-333333333333", reference);
+    expect(attachPadReferencesResult(snapshot(), unknownPadReferences)).toEqual({
+      snapshot: snapshot(),
+      accepted: false,
+    });
+
+    const alreadyLocated = snapshot();
+    alreadyLocated.rows[0] = {
+      ...alreadyLocated.rows[0],
+      coordinate: { role: "driver_entrance", latitude: 40.3, longitude: -80.7 },
+    };
+    expect(attachPadReferencesResult(alreadyLocated, references!).accepted).toBe(false);
+  });
+
+  it("distinguishes a verified empty response from a failed reference request", async () => {
+    const emptyPayload = payload({
+      rowCount: 0,
+      kindCounts: { officialPadReference: 0, officialWellheadReference: 0, savedPadReference: 0 },
+      rows: [],
+    });
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify(emptyPayload), { status: 200 }))
+      .mockResolvedValueOnce(new Response("unavailable", { status: 503 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(loadPadReferencesResult(snapshot())).resolves.toEqual({
+      snapshot: snapshot(),
+      verified: true,
+    });
+    await expect(loadPadReferencesResult(snapshot())).resolves.toEqual({
+      snapshot: snapshot(),
+      verified: false,
     });
   });
 

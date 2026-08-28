@@ -3,9 +3,13 @@ import type { PadSummary } from "./types";
 import {
   BEETLE_REVIEWED_GOOGLE_URL,
   BILINOVICH_REVIEWED_GOOGLE_URL,
+  DUKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
+  PORTERFIELD_REVIEWED_GOOGLE_URL,
+  buildReviewedNavigationUrl,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
+  reviewedNavigationUrlMatchesContract,
 } from "./reviewedNavigationCandidates";
 
 function bilinovich(): PadSummary {
@@ -47,6 +51,7 @@ function lawson(): PadSummary {
     padName: "LAWSON",
     address: "23291 Millers Fork Road",
     structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd",
+    mapReference: { latitude: 40.124991, longitude: -81.295913, role: "reference", kind: "saved_pad_reference" },
   };
 }
 
@@ -55,6 +60,7 @@ function correctedBilinovich(): PadSummary {
     ...bilinovich(),
     recordRevision: "1787802711836476",
     structuredRoadSequence: "US-22 E → McCoy Rd / CR-82 → Merry Rd / TR-967 → Penrose Rd / CR-694 → Logan Rd / CR-964 → Turkle Rd / TR-693 → trusted lease approach → BILINOVICH",
+    mapReference: { latitude: 40.08863, longitude: -81.304164, role: "reference", kind: "saved_pad_reference" },
   };
 }
 
@@ -75,7 +81,74 @@ function beetle(): PadSummary {
   };
 }
 
+function duke(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
+    canonicalId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
+    legacyId: "ascent--duke",
+    recordRevision: "1786265812046205",
+    padName: "DUKE",
+    county: "Harrison",
+    township: "GREEN",
+    address: "",
+    structuredRoadSequence: "US-250 → Foxes Bottom Rd → Springdale Hill Rd → Lamborn Rd",
+    mapReference: { latitude: 40.214409, longitude: -80.891316, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function porterfield(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+    canonicalId: "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+    legacyId: "ascent--porterfield-gas-unit",
+    recordRevision: "1786258360881449",
+    padName: "PORTERFIELD GAS UNIT",
+    county: "Belmont",
+    township: "Richland",
+    structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → OR → OH-331 → US-40 → Vineyard Rd",
+    mapReference: { latitude: 40.090431, longitude: -80.928503, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
 describe("reviewed navigation candidates", () => {
+  it("builds current-location Google handoffs and rejects invalid waypoint counts or coordinates", () => {
+    const url = new URL(buildReviewedNavigationUrl(
+      { latitude: 40.2, longitude: -80.9 },
+      [{ latitude: 40.21, longitude: -80.91 }],
+    ));
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(() => buildReviewedNavigationUrl({ latitude: 40.2, longitude: -80.9 }, [])).toThrow();
+    expect(() => buildReviewedNavigationUrl({ latitude: 40.2, longitude: -80.9 }, [
+      { latitude: 40.21, longitude: -80.91 },
+      { latitude: 40.22, longitude: -80.92 },
+      { latitude: 40.23, longitude: -80.93 },
+      { latitude: 40.24, longitude: -80.94 },
+    ])).toThrow();
+    expect(() => buildReviewedNavigationUrl(
+      { latitude: Number.NaN, longitude: -80.9 },
+      [{ latitude: 40.21, longitude: -80.91 }],
+    )).toThrow();
+  });
+
+  it("rejects duplicate, missing, unknown, fixed-origin, and over-budget URL parameters", () => {
+    const destination = { latitude: 40.2, longitude: -80.9 };
+    const waypoints = [{ latitude: 40.21, longitude: -80.91 }];
+    const valid = buildReviewedNavigationUrl(destination, waypoints);
+    expect(reviewedNavigationUrlMatchesContract(valid, destination, waypoints)).toBe(true);
+    expect(reviewedNavigationUrlMatchesContract(`${valid}&destination=40.3%2C-80.8`, destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(`${valid}&api=1`, destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(`${valid}&origin=Cadiz%2C%20OH`, destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(`${valid}&unexpected=1`, destination, waypoints)).toBe(false);
+    expect(reviewedNavigationUrlMatchesContract(valid.replace("&waypoints=40.21%2C-80.91", ""), destination, waypoints)).toBe(false);
+    const fourWaypoints = `${valid}&waypoints=40.21%2C-80.91%7C40.22%2C-80.92%7C40.23%2C-80.93%7C40.24%2C-80.94`;
+    expect(reviewedNavigationUrlMatchesContract(fourWaypoints, destination, waypoints)).toBe(false);
+  });
+
   it("withdraws the unsafe BILINOVICH Blaze handoff and binds the safety hold to the exact stale record", () => {
     expect(reviewedNavigationCandidateForPad(bilinovich())).toBeNull();
     expect(reviewedNavigationSafetyHoldForPad(bilinovich())).toMatchObject({
@@ -100,6 +173,7 @@ describe("reviewed navigation candidates", () => {
     const url = new URL(candidate!.routeUrl);
     const waypoints = url.searchParams.get("waypoints")?.split("|");
     expect(url.searchParams.get("origin")).toBeNull();
+    expect(BILINOVICH_REVIEWED_GOOGLE_URL).toBe("https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620&waypoints=40.123106982%2C-81.353948693%7C40.095894612%2C-81.283992781%7C40.099684564%2C-81.297880136");
     expect(url.searchParams.get("destination")).toBe("40.08738445,-81.30282620");
     expect(waypoints).toEqual([
       "40.123106982,-81.353948693",
@@ -172,8 +246,20 @@ describe("reviewed navigation candidates", () => {
     expect(reviewedNavigationCandidateForPad({ ...lawson(), [field]: value })).toBeNull();
   });
 
+  it("fails LAWSON and BILINOVICH closed when their current trusted record coordinate drifts", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...lawson(),
+      mapReference: { latitude: 40.125, longitude: -81.295913, role: "reference", kind: "saved_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...correctedBilinovich(),
+      mapReference: { latitude: 40.08863, longitude: -81.304, role: "reference", kind: "saved_pad_reference" },
+    })).toBeNull();
+  });
+
   it("returns BEETLE's owner-reviewed Sixteen Road handoff without promoting graph authority", () => {
     const candidate = reviewedNavigationCandidateForPad(beetle());
+    expect(BEETLE_REVIEWED_GOOGLE_URL).toBe("https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500");
 
     expect(candidate).toMatchObject({
       padId: "0e6f23f1-3bfb-44b0-aa4e-f24dde611880",
@@ -226,5 +312,98 @@ describe("reviewed navigation candidates", () => {
     ["different source", { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "official_pad_reference" }],
   ] as const)("fails the BEETLE reviewed handoff closed when its trusted destination is %s", (_label, mapReference) => {
     expect(reviewedNavigationCandidateForPad({ ...beetle(), mapReference })).toBeNull();
+  });
+
+  it("returns DUKE's exact record-bound Cologie-corridor handoff", () => {
+    const candidate = reviewedNavigationCandidateForPad(duke());
+    expect(candidate).toMatchObject({
+      padId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
+      routeUrl: DUKE_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "US-250 → Foxes Bottom Rd → Springdale Hill Rd → Lamborn Rd → saved pad GPS",
+    });
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.214409,-80.891316");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.2376772526251,-80.9645933421097",
+      "40.2344651449313,-80.9216048043883",
+      "40.2438460898288,-80.9156965297937",
+    ]);
+  });
+
+  it.each([
+    ["padId", "not-duke"],
+    ["canonicalId", "not-duke"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "DUKE EAST"],
+    ["state", "West Virginia"],
+    ["county", "Belmont"],
+    ["structuredRoadSequence", "US-250 → nearest road → DUKE"],
+  ] as const)("fails DUKE closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...duke(), [field]: value })).toBeNull();
+  });
+
+  it("fails DUKE closed when its exact saved destination changes", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...duke(),
+      mapReference: { latitude: 40.2145, longitude: -80.891316, role: "reference", kind: "saved_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...duke(),
+      mapReference: { latitude: 40.214409, longitude: -80.891316, role: "reference", kind: "official_pad_reference" },
+    })).toBeNull();
+  });
+
+  it("returns PORTERFIELD's exact record-bound US-40 and Vineyard Road handoff", () => {
+    const candidate = reviewedNavigationCandidateForPad(porterfield());
+    expect(candidate).toMatchObject({
+      padId: "0b7105a0-1b36-4182-8d10-1f2e297c8bab",
+      routeUrl: PORTERFIELD_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "I-70 → Exit 215 → US-40 W → Vineyard Rd / CR-56 → saved pad GPS",
+    });
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.090431,-80.928503");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.073689,-80.945041",
+      "40.088246,-80.944086",
+      "40.090469,-80.928294",
+    ]);
+  });
+
+  it.each([
+    ["padId", "not-porterfield"],
+    ["canonicalId", "not-porterfield"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "PORTERFIELD"],
+    ["state", "West Virginia"],
+    ["county", "Harrison"],
+    ["structuredRoadSequence", "US-40 → nearest road → PORTERFIELD"],
+  ] as const)("fails PORTERFIELD closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...porterfield(), [field]: value })).toBeNull();
+  });
+
+  it("fails PORTERFIELD closed when its saved destination changes", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...porterfield(),
+      mapReference: { latitude: 40.0905, longitude: -80.928503, role: "reference", kind: "saved_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...porterfield(),
+      mapReference: { latitude: 40.090431, longitude: -80.928503, role: "reference", kind: "official_wellhead_reference" },
+    })).toBeNull();
+  });
+
+  it("never cross-binds same-name pads from another company, county, or exact identity", () => {
+    const sameNameOtherCompany = { ...duke(), padId: "11111111-1111-4111-8111-111111111111", canonicalId: "11111111-1111-4111-8111-111111111111", company: "Other" };
+    const sameNameOtherCounty = { ...duke(), padId: "22222222-2222-4222-8222-222222222222", canonicalId: "22222222-2222-4222-8222-222222222222", county: "Belmont" };
+    expect(sameNameOtherCompany.padName).toBe("DUKE");
+    expect(sameNameOtherCounty.padName).toBe("DUKE");
+    expect(reviewedNavigationCandidateForPad(sameNameOtherCompany)).toBeNull();
+    expect(reviewedNavigationCandidateForPad(sameNameOtherCounty)).toBeNull();
   });
 });
