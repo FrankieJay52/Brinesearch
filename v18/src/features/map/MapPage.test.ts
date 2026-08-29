@@ -142,6 +142,21 @@ describe("map viewer controls", () => {
 describe("map viewer authority boundary", () => {
   const pageSource = readFileSync(new URL("./MapPage.tsx", import.meta.url), "utf8");
   const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "utf8");
+  const ascentDisplaySource = readFileSync(new URL("./ascentPadRoadDisplays.ts", import.meta.url), "utf8");
+  const ascentLayerSource = readFileSync(new URL("./ascentPadRoadLayers.ts", import.meta.url), "utf8");
+  const ascentArtifact = JSON.parse(
+    readFileSync(new URL("./ascentPadRoadDisplays.batch1.json", import.meta.url), "utf8"),
+  ) as {
+    summary: { reviewedRouteCount: number; productionWrites: number };
+    routes: Array<{
+      padId: string;
+      padName: string;
+      company: string;
+      arrival: { colorRole: string; visibility: string };
+      gpsLeg: null | { authority: string; colorRole: string; lineStyle: string; navigationGeometry: boolean };
+      redContinuation: null | { colorRole: string };
+    }>;
+  };
 
   it("keeps the published approved-road overlay teal and separable in every map mode", () => {
     expect(pageSource).toContain("companyRoads.selectRoads(requestedRoadSelection)");
@@ -156,7 +171,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('aria-label="Filter pads and approved roads by company"');
     expect(pageSource).toContain('<option value="all">All pads + all approved roads</option>');
     expect(pageSource).toContain("Only ${selectedCompany} pads and released approved roads are shown.");
-    expect(pageSource).toContain("Held, candidate, incomplete, stale, guessed, and unpublished routes stay hidden.");
+    expect(pageSource).toContain("A held State-1 or graph stamp does not block this reviewed display");
+    expect(pageSource).toContain("only unreviewed, invalid, or stale record bindings stay hidden");
     expect(pageSource).not.toContain('option value="">Roads off');
     expect(pageSource).not.toContain('"rgba(240, 180, 93, .9)"');
     expect(pageSource).not.toContain("isolateSelectedRoute");
@@ -184,7 +200,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("selectedRouteRef.current = selectedAscentPadRoadDisplay ? null : selectedRouteGeometry");
     expect(pageSource).toContain("drawRoute(context, map, selectedId ? geometry : null)");
     expect(pageSource).toContain("Partial and handoff pad geometry rendered on this canvas is selection-only");
-    expect(pageSource).toContain("Exact-record arrivals that end at saved GPS use the persistent native");
+    expect(pageSource).toContain("selectedAscentPadRoadDisplay ? null : selectedRouteGeometry");
     expect(pageSource).toContain("authorized company-road network remains separate");
     expect(pageSource).toContain('selectedRouteGeometry && <div className="selected-pad-route-key"');
     expect(pageSource).toContain("Selected pad route · bright teal");
@@ -216,54 +232,100 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("Teal arrival");
     expect(pageSource).toContain("OH-331 → Lafferty-Bannock Road / CR-10 → BANNOCK");
     expect(pageSource).toContain("Red exit reference");
-    expect(pageSource).toContain("Black Oak Road → OH-149");
+    expect(pageSource).toContain("BANNOCK road seam → Lafferty-Bannock / CR-10 → Black Oak Road → OH-149");
     expect(pageSource).toContain("Red is not a restriction or closure.");
-    expect(pageSource).toContain("no road-to-pin connector is inferred");
+    expect(pageSource).toContain("Any separate thin dashed road-to-GPS tether is unapproved and is not road geometry");
     expect(pageSource).toContain("Google Navigate link and road authority are unchanged");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(appCss).toContain(".legend-line.exit");
   });
 
-  it("keeps the exact BANNOCK arrival teal and exit red on the all-pads and Ascent main map", () => {
-    expect(pageSource).toContain("bannockFieldDirectionDisplayForDirectory(snapshot?.rows || [])");
-    expect(pageSource).toContain('companyFilter === "all" || companyFilter === bannockFieldDirectionDisplay.company');
-    expect(pageSource).toContain('typeFilter !== "disposal"');
-    expect(pageSource).toContain("function syncBannockRoadReferenceLayers(");
-    expect(pageSource).toContain("map.addSource(bannockRoadReferenceSourceId");
-    expect(pageSource).toContain("features: [display.inbound, display.outbound].map");
-    expect(pageSource).toContain('role: line.colorRole === "teal" ? "inbound-road-reference" : "outbound-road-reference"');
-    expect(pageSource).toContain("colorRole: line.colorRole");
-    expect(pageSource).toContain('["match", ["get", "colorRole"], "teal", "#52e4bd", "red", "#ef4444", "#52e4bd"]');
-    expect(pageSource).toContain("syncBannockRoadReferenceLayers(map, bannockRoadReferenceRef.current)");
-    expect(pageSource).toContain("map.moveLayer(bannockRoadReferenceLineLayerId)");
-    expect(pageSource).toContain('map.setPaintProperty(bannockRoadReferenceLineLayerId, "line-color", [');
-    expect(pageSource).toContain("OH-331 to BANNOCK · teal");
-    expect(pageSource).toContain("BANNOCK via Black Oak Road to OH-149 · red");
-    expect(pageSource).toContain("BANNOCK's field reference is teal from OH-331 to the pad and red by Black Oak Road to OH-149.");
-    expect(pageSource).toContain("BANNOCK road colors: teal from OH-331 to BANNOCK; red from BANNOCK by Black Oak Road to OH-149.");
-    expect(pageSource).toContain("[visibleAscentPadRoadDisplays, visibleBannockRoadReference, visibleCompanyRoadOverlay, viewerMode]");
+  it("owns BANNOCK teal and its one proven red continuation in the shared all-55 native source", () => {
+    const redRoutes = ascentArtifact.routes.filter((route) => route.redContinuation);
+
+    expect(redRoutes.map((route) => route.padName)).toEqual(["BANNOCK"]);
+    expect(redRoutes[0]?.redContinuation?.colorRole).toBe("red");
+    expect(ascentLayerSource).toContain("[display.arrival, display.gpsLeg, display.redContinuation]");
+    expect(ascentLayerSource).toContain('const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"]');
+    expect(pageSource).toContain("ascentPadRoadLayerIdsInPaintOrder");
+    expect(pageSource).not.toContain("bannockRoadReferenceSourceId");
+    expect(pageSource).not.toContain("syncBannockRoadReferenceLayers");
+    expect(pageSource).not.toContain("visibleBannockRoadReference");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(pageSource).not.toContain('map.setPaintProperty(highwayReferenceLineLayerId, "line-color", "#ef4444")');
   });
 
-  it("keeps exact-record Ascent lines visible to their saved GPS without inventing red tails", () => {
+  it("keeps all 55 reviewed Ascent road displays persistent for All/Ascent and hidden elsewhere", () => {
+    expect(ascentArtifact.summary).toMatchObject({ reviewedRouteCount: 55, productionWrites: 0 });
+    expect(ascentArtifact.routes).toHaveLength(55);
+    expect(new Set(ascentArtifact.routes.map((route) => route.padId)).size).toBe(55);
+    expect(ascentArtifact.routes.every((route) => route.company === "Ascent")).toBe(true);
+    expect(ascentArtifact.routes.every((route) => route.arrival.colorRole === "teal")).toBe(true);
+    expect(ascentArtifact.routes.every((route) => route.arrival.visibility === "main-map-all-and-ascent")).toBe(true);
     expect(pageSource).toContain("ascentPadRoadDisplaysForDirectory(snapshot?.rows || [])");
-    expect(pageSource).toContain('companyFilter === "all" || companyFilter === "Ascent"');
+    expect(pageSource).toContain('typeFilter !== "disposal" && (companyFilter === "all" || companyFilter === "Ascent")');
+    expect(pageSource).toContain("? ascentPadRoadDisplays");
+    expect(pageSource).toContain(": []");
     expect(pageSource).toContain("syncAscentPadRoadLayers(");
     expect(pageSource).toContain("ascentPadRoadDisplaysRef.current");
-    expect(pageSource).toContain("syncAscentPadRoadSelection(mapRef.current, selectedId)");
-    expect(pageSource).toContain("Exact Ascent road lines reaching saved GPS:");
-    expect(pageSource).toContain("display.padName");
     expect(pageSource).toContain("visibleAscentPadRoadDisplays.length");
-    expect(pageSource).toContain("Exact Ascent line to saved GPS · bright teal");
+    expect(pageSource).toContain("reviewed Ascent routes");
+    expect(pageSource).toContain("syncAscentPadRoadSelection(mapRef.current, selectedId)");
+    expect(pageSource).toContain("Reviewed Ascent route lines shown:");
+    expect(pageSource).toContain("Reviewed Ascent named roads · solid teal");
+    expect(pageSource).toContain("Reviewed named roads · bright solid teal");
     expect(pageSource).toContain("No red continuation is drawn:");
     expect(pageSource).toContain("State and U.S. routes remain teal.");
+  });
+
+  it("uses one cached native GeoJSON source, updates it in place, and brightens only the selected pad", () => {
+    expect(ascentLayerSource).toContain('export const ascentPadRoadSourceId = "brinesearch-ascent-pad-road-lines"');
+    expect(ascentLayerSource).toContain("const existingSource = map.getSource(ascentPadRoadSourceId)");
+    expect(ascentLayerSource).toContain("if (existingSource && completeExistingLayers)");
+    expect(ascentLayerSource).toContain("geoJsonSource.setData(data)");
+    expect(ascentLayerSource).toContain("setLayerVisibility(map, displays.length > 0)");
+    expect(ascentLayerSource).toContain('["==", ["get", "colorRole"], "teal"]');
+    expect(ascentLayerSource).toContain('["==", ["get", "padId"], selectedPadId || "__none__"]');
+    expect(ascentLayerSource).toContain("map.setFilter(ascentPadRoadSelectedCasingLayerId, filter)");
+    expect(ascentLayerSource).toContain("map.setFilter(ascentPadRoadSelectedLineLayerId, filter)");
+    expect(ascentLayerSource).toContain('"line-color": "#7ef8d8"');
+    expect(pageSource).toContain("if (mapRef.current) syncAscentPadRoadSelection(mapRef.current, selectedId)");
+    expect(pageSource).not.toContain("isolateSelectedRoute");
+  });
+
+  it("renders GPS-only movement as a neutral dashed unapproved tether, never a teal approved road", () => {
+    const gpsLegs = ascentArtifact.routes.flatMap((route) => route.gpsLeg ? [route.gpsLeg] : []);
+
+    expect(gpsLegs.length).toBeGreaterThan(0);
+    expect(gpsLegs.every((leg) => leg.authority === "unapproved_gps_tether")).toBe(true);
+    expect(gpsLegs.every((leg) => leg.colorRole === "gps" && leg.lineStyle === "dashed")).toBe(true);
+    expect(gpsLegs.every((leg) => leg.navigationGeometry === false)).toBe(true);
+    expect(ascentDisplaySource).toContain('line.colorRole !== "gps"');
+    expect(ascentDisplaySource).toContain('line.authority !== "unapproved_gps_tether"');
+    expect(ascentDisplaySource).toContain("line.navigationGeometry !== false");
+    expect(ascentLayerSource).toContain('const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"]');
+    expect(ascentLayerSource).toContain('"line-color": "#94a3b8"');
+    expect(ascentLayerSource).toContain('"line-dasharray": [1.15, 1.25]');
+    expect(ascentLayerSource).toContain('"line-width": ["interpolate", ["linear"], ["zoom"]');
+    expect(pageSource).toContain("GPS-only tether · thin dashed · never approved road");
+    expect(appCss).toContain(".legend-line.gps-tether");
+  });
+
+  it("does no browser hashing or runtime route-service work while drawing the cached catalog", () => {
+    const runtimeSources = [pageSource, ascentDisplaySource, ascentLayerSource].join("\n");
+
+    expect(runtimeSources).not.toContain("crypto.subtle");
+    expect(runtimeSources).not.toContain("subtle.digest");
+    expect(runtimeSources).not.toContain("routes.googleapis.com");
+    expect(runtimeSources).not.toContain("router.project-osrm.org");
+    expect(runtimeSources).not.toContain("fetch(");
   });
 
   it("removes the two top badges and lets the map controls collapse to the left", () => {
     expect(pageSource).not.toContain('className="map-data-note"');
     expect(pageSource).not.toContain('className="map-bannock-exit-note"');
     expect(pageSource).not.toContain("safe map points");
+    expect(pageSource).not.toContain("still missing");
     expect(pageSource).not.toContain("const visibleMappedCount");
     expect(appCss).not.toMatch(/\.map-data-note\b/);
     expect(appCss).not.toMatch(/\.map-bannock-exit-note\b/);

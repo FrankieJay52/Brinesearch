@@ -1,10 +1,12 @@
-import type { FilterSpecification, Map as MapLibreMap } from "maplibre-gl";
+import type { FilterSpecification, GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { firstSymbolLayerAfterLines, highwayReferenceCasingLayerId } from "./highwayReference";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
 
 export const ascentPadRoadSourceId = "brinesearch-ascent-pad-road-lines";
 export const ascentPadRoadRedCasingLayerId = "brinesearch-ascent-pad-road-red-casing";
 export const ascentPadRoadRedLineLayerId = "brinesearch-ascent-pad-road-red-line";
+export const ascentPadRoadGpsCasingLayerId = "brinesearch-ascent-pad-road-gps-casing";
+export const ascentPadRoadGpsLineLayerId = "brinesearch-ascent-pad-road-gps-line";
 export const ascentPadRoadTealCasingLayerId = "brinesearch-ascent-pad-road-teal-casing";
 export const ascentPadRoadTealLineLayerId = "brinesearch-ascent-pad-road-teal-line";
 export const ascentPadRoadSelectedCasingLayerId = "brinesearch-ascent-pad-road-selected-casing";
@@ -13,6 +15,8 @@ export const ascentPadRoadSelectedLineLayerId = "brinesearch-ascent-pad-road-sel
 export const ascentPadRoadLayerIdsInPaintOrder = [
   ascentPadRoadRedCasingLayerId,
   ascentPadRoadRedLineLayerId,
+  ascentPadRoadGpsCasingLayerId,
+  ascentPadRoadGpsLineLayerId,
   ascentPadRoadTealCasingLayerId,
   ascentPadRoadTealLineLayerId,
   ascentPadRoadSelectedCasingLayerId,
@@ -20,12 +24,13 @@ export const ascentPadRoadLayerIdsInPaintOrder = [
 ] as const;
 
 const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"];
+const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"];
 const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"];
 
 export function ascentPadRoadCollection(displays: readonly AscentPadRoadDisplay[]) {
   return {
     type: "FeatureCollection" as const,
-    features: displays.flatMap((display) => [display.arrival, display.redContinuation].flatMap((line) => line ? [{
+    features: displays.flatMap((display) => [display.arrival, display.gpsLeg, display.redContinuation].flatMap((line) => line ? [{
       type: "Feature" as const,
       properties: {
         padId: display.padId,
@@ -47,6 +52,20 @@ function selectedFilter(selectedPadId: string | null): FilterSpecification {
     ["==", ["get", "colorRole"], "teal"],
     ["==", ["get", "padId"], selectedPadId || "__none__"],
   ];
+}
+
+function allLayersExist(map: MapLibreMap) {
+  return ascentPadRoadLayerIdsInPaintOrder.every((layerId) => Boolean(map.getLayer(layerId)));
+}
+
+function anyLayerExists(map: MapLibreMap) {
+  return ascentPadRoadLayerIdsInPaintOrder.some((layerId) => Boolean(map.getLayer(layerId)));
+}
+
+function setLayerVisibility(map: MapLibreMap, visible: boolean) {
+  for (const layerId of ascentPadRoadLayerIdsInPaintOrder) {
+    if (map.getLayer(layerId)) map.setLayoutProperty(layerId, "visibility", visible ? "visible" : "none");
+  }
 }
 
 export function clearAscentPadRoadLayers(map: MapLibreMap) {
@@ -83,12 +102,28 @@ export function syncAscentPadRoadLayers(
   displays: readonly AscentPadRoadDisplay[],
   selectedPadId: string | null,
 ) {
-  clearAscentPadRoadLayers(map);
-  if (!displays.length) return true;
+  const data = ascentPadRoadCollection(displays);
   try {
+    const existingSource = map.getSource(ascentPadRoadSourceId);
+    const completeExistingLayers = allLayersExist(map);
+    if (existingSource && completeExistingLayers) {
+      const geoJsonSource = existingSource as GeoJSONSource;
+      if (typeof geoJsonSource.setData !== "function") throw new Error("Ascent GPS-line source is not GeoJSON");
+      geoJsonSource.setData(data);
+      syncAscentPadRoadSelection(map, selectedPadId);
+      setLayerVisibility(map, displays.length > 0);
+      return true;
+    }
+
+    // Style replacement can leave a partial source/layer family. Rebuild only
+    // that exceptional state; ordinary filter and directory changes stay on
+    // the existing native source so phone pans do not pay eight layer rebuilds.
+    if (existingSource || anyLayerExists(map)) clearAscentPadRoadLayers(map);
+    if (!displays.length) return true;
+
     map.addSource(ascentPadRoadSourceId, {
       type: "geojson",
-      data: ascentPadRoadCollection(displays),
+      data,
     });
     if (!map.getSource(ascentPadRoadSourceId)) throw new Error("Ascent GPS-line source was rejected");
 
@@ -112,6 +147,32 @@ export function syncAscentPadRoadLayers(
       paint: { "line-color": "#ef4444", "line-width": 4.5, "line-opacity": .98 },
       layout: { "line-cap": "round", "line-join": "round" },
     }, belowHighways);
+    map.addLayer({
+      id: ascentPadRoadGpsCasingLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: gpsFilter,
+      paint: {
+        "line-color": "rgba(30, 41, 59, .9)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.4, 10, 3.4, 14, 4.8],
+        "line-opacity": .9,
+        "line-dasharray": [1.15, 1.25],
+      },
+      layout: { "line-cap": "butt", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadGpsLineLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: gpsFilter,
+      paint: {
+        "line-color": "#94a3b8",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.1, 10, 1.8, 14, 2.7],
+        "line-opacity": .96,
+        "line-dasharray": [1.15, 1.25],
+      },
+      layout: { "line-cap": "butt", "line-join": "round" },
+    }, firstSymbolLayer);
     map.addLayer({
       id: ascentPadRoadTealCasingLayerId,
       type: "line",
@@ -147,6 +208,7 @@ export function syncAscentPadRoadLayers(
     if (ascentPadRoadLayerIdsInPaintOrder.some((layerId) => !map.getLayer(layerId))) {
       throw new Error("Ascent GPS-line layers were rejected");
     }
+    setLayerVisibility(map, true);
     return true;
   } catch {
     clearAscentPadRoadLayers(map);

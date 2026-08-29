@@ -1,54 +1,183 @@
-import { describe, expect, it } from "vitest";
+import type { Map as MapLibreMap } from "maplibre-gl";
+import { describe, expect, it, vi } from "vitest";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
 import {
   ascentPadRoadCollection,
+  ascentPadRoadGpsCasingLayerId,
+  ascentPadRoadGpsLineLayerId,
   ascentPadRoadLayerIdsInPaintOrder,
+  ascentPadRoadRedCasingLayerId,
   ascentPadRoadRedLineLayerId,
+  ascentPadRoadSelectedCasingLayerId,
+  ascentPadRoadSelectedLineLayerId,
+  ascentPadRoadSourceId,
+  ascentPadRoadTealCasingLayerId,
   ascentPadRoadTealLineLayerId,
+  syncAscentPadRoadLayers,
 } from "./ascentPadRoadLayers";
 
 const display: AscentPadRoadDisplay = {
   padId: "pad-1",
+  canonicalId: "pad-1",
+  legacyId: "ascent--pad-one",
+  recordRevision: "1",
   padName: "PAD ONE",
   company: "Ascent",
+  state: "Ohio",
+  county: "Belmont",
+  structuredRoadSequence: "OH-9 → CR-1",
+  directoryCoordinate: [-80.89, 40.2],
   displayScope: "persistent-main-map-all-and-ascent",
   displayAuthority: "display only",
-  savedPin: [-80.9, 40.2],
+  savedPin: [-80.89, 40.2],
   reviewedRoadSequence: "OH-9 → CR-1 → saved GPS",
   arrival: {
     type: "LineString",
     colorRole: "teal",
+    lineRole: "reviewed_network_arrival",
+    pattern: "solid",
+    approvedRoad: false,
     visibility: "main-map-all-and-ascent",
     label: "arrival",
     coordinates: [[-81, 40.1], [-80.9, 40.2]],
+  },
+  gpsLeg: {
+    type: "LineString",
+    colorRole: "gps",
+    lineRole: "unapproved_gps_tether",
+    pattern: "dashed",
+    lineStyle: "dashed",
+    authority: "unapproved_gps_tether",
+    approvedRoad: false,
+    navigationGeometry: false,
+    visibility: "main-map-all-and-ascent",
+    label: "GPS tether",
+    coordinates: [[-80.9, 40.2], [-80.89, 40.2]],
   },
   redContinuation: null,
   redDecision: { state: "not_drawn", reason: "No proof" },
 };
 
+function mapHarness() {
+  const sources = new Map<string, { setData: ReturnType<typeof vi.fn> }>();
+  const layers = new Map<string, unknown>();
+  const addSource = vi.fn((sourceId: string) => {
+    sources.set(sourceId, { setData: vi.fn() });
+  });
+  const removeSource = vi.fn((sourceId: string) => sources.delete(sourceId));
+  const addLayer = vi.fn((layer: { id: string }) => layers.set(layer.id, layer));
+  const removeLayer = vi.fn((layerId: string) => layers.delete(layerId));
+  const setFilter = vi.fn();
+  const setLayoutProperty = vi.fn();
+  const map = {
+    addLayer,
+    addSource,
+    getLayer: (layerId: string) => layers.get(layerId),
+    getSource: (sourceId: string) => sources.get(sourceId),
+    getStyle: () => ({
+      version: 8,
+      sources: {},
+      layers: [{ id: "labels", type: "symbol" }],
+    }),
+    removeLayer,
+    removeSource,
+    setFilter,
+    setLayoutProperty,
+  } as unknown as MapLibreMap;
+  return { addLayer, addSource, layers, map, removeLayer, removeSource, setFilter, setLayoutProperty, sources };
+}
+
 describe("Ascent native road-line layers", () => {
-  it("creates one pad-bound teal feature and no invented red feature", () => {
+  it("creates separate solid arrival and unapproved GPS-tether features", () => {
     expect(ascentPadRoadCollection([display])).toEqual({
       type: "FeatureCollection",
-      features: [{
-        type: "Feature",
-        properties: {
-          padId: "pad-1",
-          company: "Ascent",
-          colorRole: "teal",
-          label: "arrival",
+      features: [
+        {
+          type: "Feature",
+          properties: {
+            padId: "pad-1",
+            company: "Ascent",
+            colorRole: "teal",
+            label: "arrival",
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: [[-81, 40.1], [-80.9, 40.2]],
+          },
         },
-        geometry: {
-          type: "LineString",
-          coordinates: [[-81, 40.1], [-80.9, 40.2]],
+        {
+          type: "Feature",
+          properties: {
+            padId: "pad-1",
+            company: "Ascent",
+            colorRole: "gps",
+            label: "GPS tether",
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: [[-80.9, 40.2], [-80.89, 40.2]],
+          },
         },
-      }],
+      ],
     });
   });
 
-  it("keeps red continuations below teal and selected emphasis in paint order", () => {
-    expect(ascentPadRoadLayerIdsInPaintOrder.indexOf(ascentPadRoadRedLineLayerId))
-      .toBeLessThan(ascentPadRoadLayerIdsInPaintOrder.indexOf(ascentPadRoadTealLineLayerId));
-    expect(ascentPadRoadLayerIdsInPaintOrder.at(-1)).toContain("selected-line");
+  it("keeps red, GPS, teal, and selected pairs in required paint order", () => {
+    expect(ascentPadRoadLayerIdsInPaintOrder).toEqual([
+      ascentPadRoadRedCasingLayerId,
+      ascentPadRoadRedLineLayerId,
+      ascentPadRoadGpsCasingLayerId,
+      ascentPadRoadGpsLineLayerId,
+      ascentPadRoadTealCasingLayerId,
+      ascentPadRoadTealLineLayerId,
+      ascentPadRoadSelectedCasingLayerId,
+      ascentPadRoadSelectedLineLayerId,
+    ]);
+  });
+
+  it("draws GPS tethers as zoom-scaled neutral gray dashes", () => {
+    const harness = mapHarness();
+    expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
+    const gpsLine = harness.layers.get(ascentPadRoadGpsLineLayerId) as {
+      filter: unknown;
+      paint: Record<string, unknown>;
+    };
+    expect(JSON.stringify(gpsLine.filter)).toContain("gps");
+    expect(gpsLine.paint["line-color"]).toBe("#94a3b8");
+    expect(gpsLine.paint["line-dasharray"]).toEqual([1.15, 1.25]);
+    expect(gpsLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
+  });
+
+  it("updates a complete native source in place instead of rebuilding eight layers", () => {
+    const harness = mapHarness();
+    expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
+    expect(harness.addSource).toHaveBeenCalledTimes(1);
+    expect(harness.addLayer).toHaveBeenCalledTimes(ascentPadRoadLayerIdsInPaintOrder.length);
+
+    const source = harness.sources.get(ascentPadRoadSourceId);
+    expect(source).toBeDefined();
+    expect(syncAscentPadRoadLayers(harness.map, [display], display.padId)).toBe(true);
+    expect(source?.setData).toHaveBeenCalledTimes(1);
+    expect(harness.addSource).toHaveBeenCalledTimes(1);
+    expect(harness.addLayer).toHaveBeenCalledTimes(ascentPadRoadLayerIdsInPaintOrder.length);
+    expect(harness.removeSource).not.toHaveBeenCalled();
+    expect(harness.removeLayer).not.toHaveBeenCalled();
+    expect(harness.setFilter.mock.calls.some((call) => JSON.stringify(call).includes(display.padId))).toBe(true);
+  });
+
+  it("hides and empties an existing source without removing it", () => {
+    const harness = mapHarness();
+    expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
+    const source = harness.sources.get(ascentPadRoadSourceId);
+
+    expect(syncAscentPadRoadLayers(harness.map, [], null)).toBe(true);
+    expect(source?.setData).toHaveBeenCalledWith({ type: "FeatureCollection", features: [] });
+    expect(harness.setLayoutProperty).toHaveBeenCalledWith(
+      ascentPadRoadLayerIdsInPaintOrder[0],
+      "visibility",
+      "none",
+    );
+    expect(harness.removeSource).not.toHaveBeenCalled();
+    expect(harness.removeLayer).not.toHaveBeenCalled();
   });
 });

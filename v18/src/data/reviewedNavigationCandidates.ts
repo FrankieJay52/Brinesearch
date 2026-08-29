@@ -15,8 +15,11 @@ export interface ReviewedNavigationCandidate {
 // These record-bound handoffs are ordinary driver navigation once Google has
 // been checked against the ordered named roads. Their working URLs remain
 // byte-stable unless wrong-road evidence requires a new review. They are not
-// State-1 grades, and intentionally carry no line geometry that a map could
-// guess or infer.
+// State-1 grades, and the contracts themselves remain geometry-free. A separate
+// build-time catalog may reconstruct display-only routable lines through their
+// frozen destinations and ordered controls, plus a neutral dashed
+// `unapproved_gps_tether` where needed. The browser never routes or rewrites
+// these contracts.
 
 export interface OwnerApprovedNavigationPresentation {
   kind: "owner_approved_directions";

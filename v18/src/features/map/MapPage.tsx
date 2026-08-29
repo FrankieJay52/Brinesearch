@@ -54,7 +54,6 @@ import {
   libertyHighwayReferenceSource,
 } from "./highwayReference";
 import {
-  bannockFieldDirectionDisplayForDirectory,
   selectedPadFieldDirectionDisplayForPad,
   type SelectedPadFieldDirectionDisplay,
   type SelectedPadFieldDirectionLineString,
@@ -83,9 +82,6 @@ const mapStyleTimeoutMs = 8_000;
 const companyRoadSourceId = "brinesearch-company-roads";
 const companyRoadCasingLayerId = "brinesearch-company-roads-casing";
 const companyRoadLineLayerId = "brinesearch-company-roads-line";
-const bannockRoadReferenceSourceId = "brinesearch-bannock-road-reference";
-const bannockRoadReferenceCasingLayerId = "brinesearch-bannock-road-reference-casing";
-const bannockRoadReferenceLineLayerId = "brinesearch-bannock-road-reference-line";
 const roadModeFadeSourceId = "brinesearch-road-mode-fade";
 const roadModeFadeLayerId = "brinesearch-road-mode-fade-layer";
 
@@ -172,81 +168,6 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
   }
 }
 
-function bannockRoadReferenceCollection(display: SelectedPadFieldDirectionDisplay) {
-  return {
-    type: "FeatureCollection" as const,
-    features: [display.inbound, display.outbound].map((line) => ({
-      type: "Feature" as const,
-      properties: {
-        padId: display.padId,
-        colorRole: line.colorRole,
-        role: line.colorRole === "teal" ? "inbound-road-reference" : "outbound-road-reference",
-        label: line.label,
-      },
-      geometry: {
-        type: "LineString" as const,
-        coordinates: line.coordinates.map(([longitude, latitude]) => [longitude, latitude]),
-      },
-    })),
-  };
-}
-
-function clearBannockRoadReferenceLayers(map: MapLibreMap) {
-  for (const layerId of [bannockRoadReferenceLineLayerId, bannockRoadReferenceCasingLayerId]) {
-    try {
-      if (map.getLayer(layerId)) map.removeLayer(layerId);
-    } catch {
-      // Style replacement can remove the persistent source before cleanup.
-    }
-  }
-  try {
-    if (map.getSource(bannockRoadReferenceSourceId)) map.removeSource(bannockRoadReferenceSourceId);
-  } catch {
-    // The persistent reference fails closed if style cleanup races removal.
-  }
-}
-
-function syncBannockRoadReferenceLayers(
-  map: MapLibreMap,
-  display: SelectedPadFieldDirectionDisplay | null,
-) {
-  clearBannockRoadReferenceLayers(map);
-  if (!display) return true;
-  try {
-    map.addSource(bannockRoadReferenceSourceId, {
-      type: "geojson",
-      data: bannockRoadReferenceCollection(display),
-    });
-    if (!map.getSource(bannockRoadReferenceSourceId)) throw new Error("BANNOCK road-reference source was rejected");
-    const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
-    map.addLayer({
-      id: bannockRoadReferenceCasingLayerId,
-      type: "line",
-      source: bannockRoadReferenceSourceId,
-      paint: { "line-color": "rgba(7, 19, 31, .9)", "line-width": 8, "line-opacity": .96 },
-      layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
-    map.addLayer({
-      id: bannockRoadReferenceLineLayerId,
-      type: "line",
-      source: bannockRoadReferenceSourceId,
-      paint: {
-        "line-color": ["match", ["get", "colorRole"], "teal", "#52e4bd", "red", "#ef4444", "#52e4bd"],
-        "line-width": 4.5,
-        "line-opacity": .98,
-      },
-      layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
-    if (!map.getLayer(bannockRoadReferenceCasingLayerId) || !map.getLayer(bannockRoadReferenceLineLayerId)) {
-      throw new Error("BANNOCK road-reference layers were rejected");
-    }
-    return true;
-  } catch {
-    clearBannockRoadReferenceLayers(map);
-    return false;
-  }
-}
-
 function clearHighwayReferenceLayers(map: MapLibreMap) {
   for (const layerId of [highwayReferenceLineLayerId, highwayReferenceCasingLayerId]) {
     try {
@@ -318,8 +239,10 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
     }
 
     // Keep the same truthful road hierarchy in both standard and Roads modes:
-    // red local continuation, highways, released network, persistent arrivals,
-    // BANNOCK reference, then the selected exact Ascent arrival brightest.
+    // red local continuation, highways, released network, neutral GPS tethers,
+    // solid named-road arrivals, then the selected exact Ascent arrival
+    // brightest. BANNOCK's proven outbound reference is the one red feature in
+    // this shared source, so it is never rebuilt or double-painted separately.
     for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(0, 2)) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
@@ -330,8 +253,6 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
     for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(2, 4)) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
-    if (map.getLayer(bannockRoadReferenceCasingLayerId)) map.moveLayer(bannockRoadReferenceCasingLayerId);
-    if (map.getLayer(bannockRoadReferenceLineLayerId)) map.moveLayer(bannockRoadReferenceLineLayerId);
     for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(4)) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
@@ -344,15 +265,6 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
       // reviewed selected-pad route is the brighter canvas line above them.
       map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6");
       map.setPaintProperty(companyRoadLineLayerId, "line-opacity", .86);
-    }
-    if (map.getLayer(bannockRoadReferenceLineLayerId)) {
-      // These exact BANNOCK arrival/exit references keep their teal/red roles
-      // on the all-pads and Ascent main map. This dedicated source never
-      // recolors generic basemap or company-road layers.
-      map.setPaintProperty(bannockRoadReferenceLineLayerId, "line-color", [
-        "match", ["get", "colorRole"], "teal", "#52e4bd", "red", "#ef4444", "#52e4bd",
-      ]);
-      map.setPaintProperty(bannockRoadReferenceLineLayerId, "line-opacity", .98);
     }
   } catch {
     clearRoadModeFade(map);
@@ -591,7 +503,6 @@ export function MapPage() {
   const [mapNotice, setMapNotice] = useState("Loading basemap and mapped locations…");
   const [highwayReferenceReady, setHighwayReferenceReady] = useState(false);
   const [mapControlsCollapsed, setMapControlsCollapsed] = useState(false);
-  const [bannockRoadReferenceReady, setBannockRoadReferenceReady] = useState(false);
   const [ascentPadRoadsReady, setAscentPadRoadsReady] = useState(false);
   const [companyRoadRenderFailed, setCompanyRoadRenderFailed] = useState(false);
   const { origin: mapSearchOrigin, state: mapSearchLocationState, requestLocation: requestMapSearchLocation, retryLocation: retryMapSearchLocation } = usePadSearchLocation();
@@ -602,7 +513,6 @@ export function MapPage() {
   const visibleRowsRef = useRef(snapshot?.rows || []);
   const selectedRouteRef = useRef<DriverRouteGeometry | null>(null);
   const selectedFieldDirectionDisplayRef = useRef<SelectedPadFieldDirectionDisplay | null>(null);
-  const bannockRoadReferenceRef = useRef<SelectedPadFieldDirectionDisplay | null>(null);
   const ascentPadRoadDisplaysRef = useRef<AscentPadRoadDisplay[]>([]);
   const companyRoadRowsRef = useRef<CompanyRoadOverlayRow[]>([]);
   const selectedIdRef = useRef<string | null>(null);
@@ -642,15 +552,6 @@ export function MapPage() {
     () => filterMapRows(companyScopedRows, typeFilter, null),
     [companyScopedRows, typeFilter],
   );
-  const bannockFieldDirectionDisplay = useMemo(
-    () => bannockFieldDirectionDisplayForDirectory(snapshot?.rows || []),
-    [snapshot],
-  );
-  const visibleBannockRoadReference = bannockFieldDirectionDisplay
-    && typeFilter !== "disposal"
-    && (companyFilter === "all" || companyFilter === bannockFieldDirectionDisplay.company)
-    ? bannockFieldDirectionDisplay
-    : null;
   const ascentPadRoadDisplays = useMemo(
     () => ascentPadRoadDisplaysForDirectory(snapshot?.rows || []),
     [snapshot],
@@ -662,7 +563,7 @@ export function MapPage() {
     [ascentPadRoadDisplays, companyFilter, typeFilter],
   );
   const ascentPadRoadScopeDetail = visibleAscentPadRoadDisplays.length
-    ? ` ${visibleAscentPadRoadDisplays.length} exact Ascent pad line${visibleAscentPadRoadDisplays.length === 1 ? "" : "s"} reach the bound saved GPS and remain visible in this scope.`
+    ? ` ${visibleAscentPadRoadDisplays.length} reviewed Ascent route${visibleAscentPadRoadDisplays.length === 1 ? "" : "s"} remain visible in this scope. Solid teal follows the reviewed named roads; any thin dashed GPS-only tether is unapproved and never an approved road.`
     : "";
   const companyRoadScopeStatus = companyRoadRenderFailed
     ? `Approved route roads could not be drawn and are hidden. ${selectedCompany ? `${selectedCompany} pads remain filtered.` : "All pads remain visible."} No route-road geometry was inferred.`
@@ -675,7 +576,7 @@ export function MapPage() {
           : companyRoads.error
             ? `${selectedCompany ? `${selectedCompany} pads remain filtered.` : "All pads remain visible."} ${companyRoads.error}`
             : visibleCompanyRoadOverlay
-              ? `${visibleCompanyRoadOverlay.rows.length.toLocaleString()} exact approved route-road sections shown in teal for ${selectedCompany || "all available companies"}. ${selectedCompany ? `Only ${selectedCompany} pads and released approved roads are shown.` : "All pads and all released approved roads are shown."}${ascentPadRoadScopeDetail} BANNOCK's separately scoped teal arrival and red return also persist on All/Ascent. This is the checked display subset, not a complete statewide or company road inventory.`
+              ? `${visibleCompanyRoadOverlay.rows.length.toLocaleString()} exact approved route-road sections shown in teal for ${selectedCompany || "all available companies"}. ${selectedCompany ? `Only ${selectedCompany} pads and released approved roads are shown.` : "All pads and all released approved roads are shown."}${ascentPadRoadScopeDetail} BANNOCK's proven red outbound reference is included once in the shared Ascent layer. This is the checked display subset, not a complete statewide or company road inventory.`
               : `${selectedCompany ? `${selectedCompany} pads are shown.` : "All pads are shown."} No released exact approved roads are available for this scope; nothing was inferred.`;
   const mapSearchReady = padSearchResultsReadyForQuery(mapSearchLocationState, mapSearchOrigin, mapSearch);
   const searchResults = useMemo(
@@ -765,7 +666,6 @@ export function MapPage() {
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedAscentPadRoadDisplay ? null : selectedRouteGeometry;
   selectedFieldDirectionDisplayRef.current = selectedFieldDirectionDisplay;
-  bannockRoadReferenceRef.current = visibleBannockRoadReference;
   ascentPadRoadDisplaysRef.current = visibleAscentPadRoadDisplays;
   companyRoadRowsRef.current = visibleCompanyRoadOverlay?.rows || [];
   selectedIdRef.current = selectedId;
@@ -867,14 +767,18 @@ export function MapPage() {
     if (!selected || !pendingRouteFitRef.current || !mapRef.current) return;
     if (!selectedFieldDirectionDisplay && !selectedAscentPadRoadDisplay && !currentSelectedStatus) return;
     pendingRouteFitRef.current = false;
-    const lines = selectedFieldDirectionDisplay
-      ? [selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]
-      : selectedAscentPadRoadDisplay
-        ? [
-            selectedAscentPadRoadDisplay.arrival.coordinates,
-            ...(selectedAscentPadRoadDisplay.redContinuation ? [selectedAscentPadRoadDisplay.redContinuation.coordinates] : []),
-          ]
-      : routeLines(selectedRouteGeometry);
+    const lines = selectedAscentPadRoadDisplay
+      ? [
+          selectedAscentPadRoadDisplay.arrival.coordinates,
+          ...(selectedAscentPadRoadDisplay.gpsLeg ? [selectedAscentPadRoadDisplay.gpsLeg.coordinates] : []),
+          ...(selectedAscentPadRoadDisplay.redContinuation ? [selectedAscentPadRoadDisplay.redContinuation.coordinates] : []),
+          ...(selectedFieldDirectionDisplay
+            ? [selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]
+            : []),
+        ]
+      : selectedFieldDirectionDisplay
+        ? [selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]
+        : routeLines(selectedRouteGeometry);
     const coordinate = mapDisplayCoordinate(selected);
     if (!lines.length || !coordinate) return;
     const bounds = new LngLatBounds([coordinate.longitude, coordinate.latitude], [coordinate.longitude, coordinate.latitude]);
@@ -1002,8 +906,6 @@ export function MapPage() {
         selectedIdRef.current,
       );
       setAscentPadRoadsReady(ascentPadRoadDisplaysRef.current.length > 0 && ascentPadRoadsSynced);
-      const bannockRoadSynced = syncBannockRoadReferenceLayers(map, bannockRoadReferenceRef.current);
-      setBannockRoadReferenceReady(Boolean(bannockRoadReferenceRef.current) && bannockRoadSynced);
       syncMapPresentation(map, viewerModeRef.current === "roads");
       companyRoadRenderFailedRef.current = failed;
       setCompanyRoadRenderFailed(failed);
@@ -1012,10 +914,7 @@ export function MapPage() {
         setMapNotice("Approved route roads could not be drawn. They were hidden; mapped locations remain available.");
       } else if (!ascentPadRoadsSynced) {
         setMapRenderState("degraded");
-        setMapNotice("The exact Ascent GPS road lines could not be drawn and are hidden. Mapped locations remain available.");
-      } else if (!bannockRoadSynced) {
-        setMapRenderState("degraded");
-        setMapNotice("The BANNOCK road reference could not be drawn and is hidden. Mapped locations remain available.");
+        setMapNotice("The reviewed Ascent route lines could not be drawn and are hidden. Mapped locations remain available.");
       }
       scheduleOverlayDraw();
     };
@@ -1059,14 +958,7 @@ export function MapPage() {
         clearAscentPadRoadLayers(map);
         setAscentPadRoadsReady(false);
         setMapRenderState("degraded");
-        setMapNotice("The exact Ascent GPS road lines could not be drawn and are hidden. Mapped locations remain available.");
-        return;
-      }
-      if ((event as typeof event & { sourceId?: string }).sourceId === bannockRoadReferenceSourceId) {
-        clearBannockRoadReferenceLayers(map);
-        setBannockRoadReferenceReady(false);
-        setMapRenderState("degraded");
-        setMapNotice("The BANNOCK road reference could not be drawn and is hidden. Mapped locations remain available.");
+        setMapNotice("The reviewed Ascent route lines could not be drawn and are hidden. Mapped locations remain available.");
         return;
       }
       if ((event as typeof event & { sourceId?: string }).sourceId === companyRoadSourceId) {
@@ -1155,14 +1047,13 @@ export function MapPage() {
       hitTargetsRef.current = [];
       clearHighwayReferenceLayers(map);
       clearAscentPadRoadLayers(map);
-      clearBannockRoadReferenceLayers(map);
       clearRoadModeFade(map);
       map.remove();
       mapRef.current = null;
     };
   }, [focusPad, loading, navigate]);
 
-  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleAscentPadRoadDisplays, visibleBannockRoadReference, visibleCompanyRoadOverlay, viewerMode]);
+  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleAscentPadRoadDisplays, visibleCompanyRoadOverlay, viewerMode]);
   useEffect(() => {
     if (mapRef.current) syncAscentPadRoadSelection(mapRef.current, selectedId);
   }, [selectedId]);
@@ -1255,7 +1146,7 @@ export function MapPage() {
           <div className="filter-row" aria-label="Map filters">
             {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
           </div>
-          {roadMode && companyRoads.availability.state === "ready" && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Highway reference + exact checked roads</strong><small>Thin teal is the basemap Interstate, U.S., and state highway reference inside counties with pads. Stronger teal is exact approved-road geometry plus exact-record Ascent lines that reach a saved GPS. BANNOCK's field reference is teal from OH-331 to the pad and red by Black Oak Road to OH-149. Held, candidate, incomplete, stale, guessed, and unpublished routes stay hidden.</small></span></div>}
+          {roadMode && companyRoads.availability.state === "ready" && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Highway reference + {visibleAscentPadRoadDisplays.length} reviewed Ascent routes</strong><small>Thin teal is the basemap Interstate, U.S., and state highway reference inside counties with pads. Stronger solid teal is exact approved-road geometry or a reviewed Ascent named-road display. A thin dashed GPS-only tether is unapproved and never an approved road. BANNOCK's proven outbound reference is the one red feature, by Black Oak Road to OH-149. A held State-1 or graph stamp does not block this reviewed display; only unreviewed, invalid, or stale record bindings stay hidden.</small></span></div>}
           <label className="company-road-filter">
             <span><Icon name="company"/>Pads + approved roads</span>
             <select value={companyFilter} onChange={(event) => { setSelectedId(null); setLocationChoices(null); setCompanyFilter(event.target.value); }} aria-label="Filter pads and approved roads by company">
@@ -1272,8 +1163,8 @@ export function MapPage() {
         <span/>{mapNotice}
       </div>
     </div>
-    {ascentPadRoadsReady && <p className="sr-only">Exact Ascent road lines reaching saved GPS: {visibleAscentPadRoadDisplays.map((display) => display.padName).join(", ")}. Count: {visibleAscentPadRoadDisplays.length}.</p>}
-    {bannockRoadReferenceReady && <p className="sr-only">BANNOCK road colors: teal from OH-331 to BANNOCK; red from BANNOCK by Black Oak Road to OH-149.</p>}
+    {ascentPadRoadsReady && <p className="sr-only">Reviewed Ascent route lines shown: {visibleAscentPadRoadDisplays.map((display) => display.padName).join(", ")}. Count: {visibleAscentPadRoadDisplays.length}. Solid teal is the reviewed named-road display. A thin dashed GPS-only tether, when present, is unapproved and never an approved road.</p>}
+    {ascentPadRoadsReady && visibleAscentPadRoadDisplays.some((display) => display.redContinuation) && <p className="sr-only">BANNOCK outbound road reference is red from BANNOCK by Black Oak Road to OH-149. Its reviewed inbound named-road line is part of the same shared Ascent route layer.</p>}
     {locationChoices ? <aside className="map-cluster-chooser" role="dialog" aria-modal="false" aria-labelledby="map-cluster-title">
       <header><div><span className="selection-kicker">SAME EXACT POINT</span><h2 id="map-cluster-title">Choose one of {locationChoices.length}</h2></div><button className="selection-close" onClick={() => setLocationChoices(null)} aria-label="Close location chooser"><Icon name="close"/></button></header>
       <p>These records share the same stored coordinate. Select the exact pad or disposal you want to review.</p>
@@ -1302,28 +1193,30 @@ export function MapPage() {
       {selectedFieldDirectionDisplay && <div className="selected-pad-field-direction" role="note" aria-label="BANNOCK selected road directions">
         <span><i className="legend-line selected"/><strong>Teal arrival</strong><small>OH-331 → Lafferty-Bannock Road / CR-10 → BANNOCK</small></span>
         <span><i className="legend-line exit"/><strong>Red exit reference</strong><small>BANNOCK road seam → Lafferty-Bannock / CR-10 → Black Oak Road → OH-149</small></span>
-        <p>Red is not a restriction or closure. The marker stays at the exact saved GPS; no road-to-pin connector is inferred. Display only—the Google Navigate link and road authority are unchanged.</p>
+        <p>Red is not a restriction or closure. The marker stays at the exact saved GPS. Any separate thin dashed road-to-GPS tether is unapproved and is not road geometry. Display only—the Google Navigate link and road authority are unchanged.</p>
       </div>}
-      {selectedAscentPadRoadDisplay && <div className="selected-pad-field-direction" role="note" aria-label={`${selected.padName} exact GPS road line`}>
-        <span><i className="legend-line selected"/><strong>Teal to exact GPS</strong><small>{selectedAscentPadRoadDisplay.reviewedRoadSequence}</small></span>
+      {selectedAscentPadRoadDisplay && <div className="selected-pad-field-direction" role="note" aria-label={`${selected.padName} reviewed Ascent route`}>
+        <span><i className="legend-line selected"/><strong>Reviewed named roads · solid teal</strong><small>{selectedAscentPadRoadDisplay.reviewedRoadSequence}</small></span>
+        {selectedAscentPadRoadDisplay.gpsLeg && <span><i className="legend-line gps-tether"/><strong>GPS-only tether</strong><small>{selectedAscentPadRoadDisplay.gpsLeg.label} · thin dashed · never an approved road</small></span>}
         <p>{selectedAscentPadRoadDisplay.redContinuation
           ? "The checked non-state road beyond this last pad is red to the next highway junction. State and U.S. routes remain teal."
           : `No red continuation is drawn: ${selectedAscentPadRoadDisplay.redDecision.reason}`}</p>
-        <p>Display only—the saved GPS, Google Navigate link, and route authority are unchanged.</p>
+        <p>Display only—the saved GPS, Google Navigate link, and route authority are unchanged. A dashed tether shows only the final movement to GPS; it does not approve or name that movement as a road.</p>
       </div>}
       <details className="map-route-status"><summary><strong>Route status</strong><span>View</span></summary><div className="map-route-status-content">
-        {selectedAscentPadRoadDisplay && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Exact line to saved GPS · bright teal</strong></div>}
+        {selectedAscentPadRoadDisplay && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Reviewed named roads · bright solid teal</strong></div>}
+        {selectedAscentPadRoadDisplay?.gpsLeg && <div className="selected-pad-route-key"><i className="legend-line gps-tether"/><strong>GPS-only tether · thin dashed · never approved road</strong></div>}
         {!selectedFieldDirectionDisplay && !selectedAscentPadRoadDisplay && selectedRouteGeometry && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Selected pad route · bright teal</strong></div>}
         <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label="Named-road status"/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? "Named roads ready" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Named roads ready"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label="Named roads ready"/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
         {selectedFieldDirectionDisplay
-          ? <p className="selection-route-note is-ready">BANNOCK selected display: teal arrives from OH-331; red exits by Black Oak Road to OH-149. The color split occurs on the road projection beside the exact saved GPS, with no invented connector.</p>
+          ? <p className="selection-route-note is-ready">BANNOCK selected display: solid teal arrives from OH-331; red exits by Black Oak Road to OH-149. Any thin dashed movement from the reviewed road to the exact GPS is an unapproved GPS-only tether, never a named or approved road.</p>
           : selectedAscentPadRoadDisplay
-            ? <p className="selection-route-note is-ready">{selected.padName} exact-record line highlighted through the reviewed named roads to its exact saved GPS. Teal is field display, not new road or release authority.</p>
+            ? <p className="selection-route-note is-ready">{selected.padName} is highlighted through its reviewed named roads in solid teal.{selectedAscentPadRoadDisplay.gpsLeg ? " The final thin dashed segment is an unapproved GPS-only tether." : " The reviewed line reaches the saved GPS without a separate tether."} Display creates no new road or release authority.</p>
           : currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · directed named roads highlighted to the reviewed handoff · unnamed final movement is not shown as a named road.` : `${selectedNamedApproach.approachLabel} · reviewed named roads highlighted to the saved pin.` : namedSelectionRequired ? "Choose one reviewed named-road approach. GPS destination navigation remains available; no teal line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Reviewed named roads highlighted to their handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Reviewed named roads highlighted · teal is display, not new authority.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no separately reviewed display geometry exists, so no teal line is inferred.` : "No reviewed named-road display geometry · no teal line inferred."}</p>}
         {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? "Reviewed named-road sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
-        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedAscentPadRoadDisplay?.gpsLeg ? "The marker is the saved GPS destination. The thin dashed final segment is an unnamed, unapproved GPS-only tether—not an approved road." : selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
-    </article> : <aside className="map-legend-card"><strong>BrineSearch road layers</strong>{highwayReferenceReady && <span><i className="legend-line highway"/>Pad-county Interstate / U.S. / state reference · thin teal</span>}<span><i className="legend-line approved"/>Exact approved route road · stronger teal</span>{ascentPadRoadsReady && <span><i className="legend-line selected"/>Exact Ascent line to saved GPS · bright teal</span>}{bannockRoadReferenceReady && <><span><i className="legend-line selected"/>OH-331 to BANNOCK · teal</span><span><i className="legend-line exit"/>BANNOCK via Black Oak Road to OH-149 · red</span></>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
+    </article> : <aside className="map-legend-card"><strong>BrineSearch road layers</strong>{highwayReferenceReady && <span><i className="legend-line highway"/>Pad-county Interstate / U.S. / state reference · thin teal</span>}<span><i className="legend-line approved"/>Exact approved route road · stronger teal</span>{ascentPadRoadsReady && <><span><i className="legend-line selected"/>Reviewed Ascent named roads · solid teal</span>{visibleAscentPadRoadDisplays.some((display) => display.gpsLeg) && <span><i className="legend-line gps-tether"/>GPS-only tether · thin dashed · never approved road</span>}{visibleAscentPadRoadDisplays.some((display) => display.redContinuation) && <span><i className="legend-line exit"/>BANNOCK via Black Oak Road to OH-149 · red</span>}</>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;
 }

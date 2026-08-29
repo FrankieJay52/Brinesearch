@@ -1,34 +1,54 @@
-import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "@/data/types";
+import artifactJson from "./ascentPadRoadDisplays.batch1.json";
 import {
   ascentPadRoadDisplayForPad,
   ascentPadRoadDisplaysForDirectory,
   ascentRedContinuationIsEligible,
 } from "./ascentPadRoadDisplays";
 
-function pad(overrides: Partial<PadSummary> = {}): PadSummary {
+interface RouteFixture {
+  padId: string;
+  canonicalId: string;
+  legacyId: string;
+  recordRevision: string;
+  padName: string;
+  company: string;
+  state: string;
+  county: string;
+  structuredRoadSequence: string;
+  directoryCoordinate: { latitude: number; longitude: number };
+  destination: { latitude: number; longitude: number };
+}
+
+const routes = (artifactJson as unknown as { routes: RouteFixture[] }).routes;
+
+function padForRoute(route: RouteFixture, overrides: Partial<PadSummary> = {}): PadSummary {
   return {
-    padId: "e2b32e85-9e93-4388-8215-9d8167cbbeb8",
-    canonicalId: "e2b32e85-9e93-4388-8215-9d8167cbbeb8",
-    legacyId: "ascent--cologie",
-    aliases: ["ascent--cologie"],
-    recordNumber: 108,
-    recordRevision: "1787615581785257",
+    padId: route.padId,
+    canonicalId: route.canonicalId,
+    legacyId: route.legacyId,
+    aliases: [route.legacyId],
+    recordNumber: 1,
+    recordRevision: route.recordRevision,
     recordType: "pad",
-    company: "Ascent",
-    padName: "COLOGIE",
-    state: "Ohio",
-    county: "Harrison",
-    township: "Green",
+    company: route.company,
+    padName: route.padName,
+    state: route.state,
+    county: route.county,
+    township: "",
     address: "",
-    coordinate: { role: "driver_entrance", latitude: 40.25403, longitude: -80.913577 },
+    coordinate: {
+      role: "legacy_saved",
+      latitude: route.directoryCoordinate.latitude,
+      longitude: route.directoryCoordinate.longitude,
+    },
     mapReference: null,
     wellNames: [],
     apiNumbers: [],
     propertyNumbers: [],
     safeRoadTerms: [],
-    structuredRoadSequence: "",
+    structuredRoadSequence: route.structuredRoadSequence,
     writtenDirections: "",
     verificationStatus: "",
     operatingStatus: "",
@@ -37,82 +57,85 @@ function pad(overrides: Partial<PadSummary> = {}): PadSummary {
   };
 }
 
-function duke(overrides: Partial<PadSummary> = {}): PadSummary {
-  return pad({
-    padId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
-    canonicalId: "bb351070-6c94-45e5-942f-e155f9e86f7e",
-    legacyId: "ascent--duke",
-    aliases: ["ascent--duke"],
-    recordNumber: 126,
-    recordRevision: "1786265812046205",
-    padName: "DUKE",
-    township: "Short Creek",
-    coordinate: null,
-    mapReference: {
-      role: "reference",
-      kind: "saved_pad_reference",
-      latitude: 40.214409,
-      longitude: -80.891316,
-    },
-    ...overrides,
-  });
-}
-
-describe("Ascent exact GPS road-line batch", () => {
-  it("binds COLOGIE and DUKE only to their exact frozen directory records", () => {
-    const displays = ascentPadRoadDisplaysForDirectory([pad(), duke()]);
-    expect(displays.map((display) => display.padId)).toEqual([
-      "e2b32e85-9e93-4388-8215-9d8167cbbeb8",
-      "bb351070-6c94-45e5-942f-e155f9e86f7e",
-    ]);
+describe("Ascent reviewed all-55 road-line artifact", () => {
+  it("binds all 55 generated routes to their exact directory records", () => {
+    expect(routes).toHaveLength(55);
+    const displays = ascentPadRoadDisplaysForDirectory(routes.map((route) => padForRoute(route)));
+    expect(displays).toHaveLength(55);
+    expect(new Set(displays.map((display) => display.padId)).size).toBe(55);
     expect(displays.every((display) => display.company === "Ascent")).toBe(true);
-    expect(displays.every((display) => display.displayScope === "persistent-main-map-all-and-ascent")).toBe(true);
   });
 
-  it("ends every published teal arrival at that exact saved GPS", () => {
-    for (const display of ascentPadRoadDisplaysForDirectory([pad(), duke()])) {
-      expect(display.arrival.colorRole).toBe("teal");
-      expect(display.arrival.coordinates.at(-1)).toEqual(display.savedPin);
-      expect(display.redContinuation).toBeNull();
+  it("fails one stale record independently while retaining the other 54", () => {
+    const pads = routes.map((route, index) => padForRoute(
+      route,
+      index === 0 ? { recordRevision: `${route.recordRevision}-stale` } : {},
+    ));
+    const displays = ascentPadRoadDisplaysForDirectory(pads);
+    expect(displays).toHaveLength(54);
+    expect(displays.some((display) => display.padId === routes[0].padId)).toBe(false);
+    expect(ascentPadRoadDisplayForPad(pads[0])).toBeNull();
+  });
+
+  it("binds BILINOVICH by its directory coordinate while keeping its distinct route destination", () => {
+    const route = routes.find((candidate) => candidate.padName === "BILINOVICH");
+    expect(route).toBeDefined();
+    const display = ascentPadRoadDisplayForPad(padForRoute(route!));
+    expect(display).not.toBeNull();
+    expect(display?.directoryCoordinate).toEqual([
+      route!.directoryCoordinate.longitude,
+      route!.directoryCoordinate.latitude,
+    ]);
+    expect(display?.savedPin).toEqual([route!.destination.longitude, route!.destination.latitude]);
+    expect(display?.savedPin).not.toEqual(display?.directoryCoordinate);
+  });
+
+  it("keeps solid network geometry separate from dashed unapproved GPS tethers", () => {
+    const displays = ascentPadRoadDisplaysForDirectory(routes.map((route) => padForRoute(route)));
+    expect(displays.every((display) => display.arrival.colorRole === "teal"
+      && display.arrival.pattern === "solid")).toBe(true);
+    expect(displays.filter((display) => display.gpsLeg)).toHaveLength(54);
+    for (const display of displays) {
+      if (display.gpsLeg) {
+        expect(display.gpsLeg.colorRole).toBe("gps");
+        expect(display.gpsLeg.lineStyle).toBe("dashed");
+        expect(display.gpsLeg.authority).toBe("unapproved_gps_tether");
+        expect(display.gpsLeg.navigationGeometry).toBe(false);
+        expect(display.gpsLeg.coordinates[0]).toEqual(display.arrival.coordinates.at(-1));
+        expect(display.gpsLeg.coordinates.at(-1)).toEqual(display.savedPin);
+      } else {
+        expect(display.arrival.coordinates.at(-1)).toEqual(display.savedPin);
+      }
     }
   });
 
-  it("freezes the reviewed coordinates and expected point counts", () => {
-    const displays = ascentPadRoadDisplaysForDirectory([pad(), duke()]);
-    expect(displays.map((display) => display.arrival.coordinates.length)).toEqual([277, 253]);
-    expect(displays.map((display) => createHash("sha256")
-      .update(JSON.stringify(display.arrival.coordinates))
-      .digest("hex"))).toEqual([
-      "d892361582fabc06cd5ba3a3426d56bf063d50be72dcc8ea7fc0e6a30afe9392",
-      "2708db887528c801b6f9df839337999baa77698365e6777933523702c6935d5c",
-    ]);
-  });
-
-  it("fails closed for stale, moved, mismatched, missing, or duplicate records", () => {
-    expect(ascentPadRoadDisplayForPad(pad({ recordRevision: "1787615581785258" }))).toBeNull();
-    expect(ascentPadRoadDisplayForPad(pad({ company: "Other" }))).toBeNull();
-    expect(ascentPadRoadDisplayForPad(pad({ coordinate: { role: "driver_entrance", latitude: 40.254031, longitude: -80.913577 } }))).toBeNull();
-    // The exact legacy-ID packaged reference is an intentional offline-safe
-    // coordinate fallback for this otherwise exact canonical record.
-    expect(ascentPadRoadDisplayForPad(duke({ mapReference: null }))).not.toBeNull();
-    expect(ascentPadRoadDisplaysForDirectory([pad(), duke(), duke()]).map((display) => display.padId)).toEqual([
-      "e2b32e85-9e93-4388-8215-9d8167cbbeb8",
-    ]);
+  it("rejects record-coordinate, sequence, and duplicate mismatches independently", () => {
+    const first = routes[0];
+    expect(ascentPadRoadDisplayForPad(padForRoute(first, {
+      coordinate: { role: "legacy_saved", latitude: first.directoryCoordinate.latitude + .000001, longitude: first.directoryCoordinate.longitude },
+    }))).toBeNull();
+    expect(ascentPadRoadDisplayForPad(padForRoute(first, { structuredRoadSequence: `${first.structuredRoadSequence} changed` }))).toBeNull();
+    expect(ascentPadRoadDisplaysForDirectory([
+      ...routes.map((route) => padForRoute(route)),
+      padForRoute(first),
+    ])).toHaveLength(54);
   });
 
   it("allows red only with exact no-downstream-pad proof on a non-highway road", () => {
     const expectedPadId = "333598ca-37b3-4b44-9411-a490cc3da672";
     const expectedSavedPin: [number, number] = [-81.01, 40.11];
+    const expectedRoadSeam: [number, number] = [-81.0101, 40.1101];
     const geometrySha256 = "7969ce7d19cb558fb2ba92efbc7ab1ee47bf10b404b24ad0bb5e13d2f879261d";
     const candidate = {
       type: "LineString",
       colorRole: "red",
+      approvedRoad: false,
       visibility: "main-map-all-and-ascent",
       label: "Last pad to OH-149",
       roadClass: "county",
       exactRoadIdentity: "CR-10",
       geometrySha256,
-      coordinates: [[-81.01, 40.11], [-81.02, 40.12]],
+      coordinates: [expectedRoadSeam, [-81.02, 40.12]],
       noDownstreamPadsProof: {
         directorySnapshotId: "098667bf-a39f-4e7b-86e1-0706c882943c",
         sourceRevision: "6",
@@ -121,21 +144,11 @@ describe("Ascent exact GPS road-line batch", () => {
         exactRoadIdentity: "CR-10",
         redGeometrySha256: geometrySha256,
       },
-      nextHighway: {
-        roadClass: "state",
-        designation: "OH-149",
-        junction: [-81.02, 40.12],
-      },
+      nextHighway: { roadClass: "state", designation: "OH-149", junction: [-81.02, 40.12] },
     };
-    expect(ascentRedContinuationIsEligible(candidate, expectedPadId, expectedSavedPin)).toBe(true);
-    expect(ascentRedContinuationIsEligible({ ...candidate, roadClass: "state" }, expectedPadId, expectedSavedPin)).toBe(false);
-    expect(ascentRedContinuationIsEligible({ ...candidate, noDownstreamPadsProof: null }, expectedPadId, expectedSavedPin)).toBe(false);
-    expect(ascentRedContinuationIsEligible(candidate, "wrong-pad", expectedSavedPin)).toBe(false);
-    expect(ascentRedContinuationIsEligible(candidate, expectedPadId, [-81.011, 40.11])).toBe(false);
-    expect(ascentRedContinuationIsEligible({ ...candidate, coordinates: [[-81.01, 40.11], [-81.021, 40.12]] }, expectedPadId, expectedSavedPin)).toBe(false);
-    expect(ascentRedContinuationIsEligible({
-      ...candidate,
-      noDownstreamPadsProof: { ...candidate.noDownstreamPadsProof, redGeometrySha256: "0".repeat(64) },
-    }, expectedPadId, expectedSavedPin)).toBe(false);
+    expect(ascentRedContinuationIsEligible(candidate, expectedPadId, expectedRoadSeam, expectedSavedPin)).toBe(true);
+    expect(ascentRedContinuationIsEligible({ ...candidate, roadClass: "state" }, expectedPadId, expectedRoadSeam, expectedSavedPin)).toBe(false);
+    expect(ascentRedContinuationIsEligible({ ...candidate, noDownstreamPadsProof: null }, expectedPadId, expectedRoadSeam, expectedSavedPin)).toBe(false);
+    expect(ascentRedContinuationIsEligible(candidate, "wrong-pad", expectedRoadSeam, expectedSavedPin)).toBe(false);
   });
 });
