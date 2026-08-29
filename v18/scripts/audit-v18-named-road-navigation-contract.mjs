@@ -11,6 +11,9 @@ const pad = read("v18/src/features/pad/PadPage.tsx");
 const map = read("v18/src/features/map/MapPage.tsx");
 const fieldDirection = read("v18/src/features/map/selectedPadFieldDirectionDisplay.ts");
 const bannockRoadDisplay = JSON.parse(read("v18/src/features/map/bannockRoadDisplay.json"));
+const ascentPadRoadDisplays = read("v18/src/features/map/ascentPadRoadDisplays.ts");
+const ascentPadRoadLayers = read("v18/src/features/map/ascentPadRoadLayers.ts");
+const ascentPadRoadArtifact = JSON.parse(read("v18/src/features/map/ascentPadRoadDisplays.batch1.json"));
 const highwayReference = read("v18/src/features/map/highwayReference.ts");
 const preview = read("v18/src/features/pad/PadMapPreview.tsx");
 const reviewed = read("v18/src/data/reviewedNavigationCandidates.ts");
@@ -32,7 +35,11 @@ requireText(contract, "The origin is the phone's current location", "phone-curre
 requireText(contract, "The destination is the pad's saved GPS", "saved GPS destination");
 requireText(contract, "draws no substitute teal line", "no fake teal rule");
 requireText(contract, "Every supplied, separately reviewed named-road geometry feature is highlighted", "all supplied named roads are teal");
-requireText(contract, "pad-bound highlight is drawn only while that exact pad is selected", "selected-pad-only route color");
+requireText(contract, "final coordinate exactly equals that\nrecord's current saved GPS", "exact GPS endpoint for persistent pad color");
+requireText(contract, "road projection remains\nselection-only", "partial geometry remains selection-only");
+requireText(contract, "are always teal and are never red", "Interstate, U.S., and state roads never red");
+requireText(contract, "DUKE has no red continuation because CRICKET is farther", "DUKE downstream-pad red hold");
+requireText(contract, "No other Ascent pad is\nstamped by that batch", "first Ascent batch scope");
 requireText(contract, "exact released approved-road overlay remains teal", "persistent approved-road teal");
 requireText(contract, "defaults to **All pads + all\napproved roads**", "unified all-pads/all-approved-roads scope");
 requireText(contract, "one exact company", "single-company approved-road scope");
@@ -65,7 +72,16 @@ requireText(map, '"line-color": "#14b8a6"', "persistent approved-road teal sourc
 requireText(map, 'map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6")', "persistent approved-road teal after style changes");
 requireText(map, "fallbackApplied ? companyRoadRowsRef.current : []", "approved-road teal on basemap fallback");
 requireText(map, "const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current", "single approved-network renderer");
-requireText(map, "drawRoute(context, map, selectedId ? geometry : null)", "selected-pad-only display geometry");
+requireText(map, "drawRoute(context, map, selectedId ? geometry : null)", "partial selected-pad display geometry");
+requireText(map, "ascentPadRoadDisplaysForDirectory(snapshot?.rows || [])", "exact-record Ascent line binding");
+requireText(map, 'companyFilter === "all" || companyFilter === "Ascent"', "Ascent All/company persistent scope");
+requireText(map, "syncAscentPadRoadLayers(", "persistent Ascent native line lifecycle");
+requireText(map, "syncAscentPadRoadSelection(mapRef.current, selectedId)", "selected Ascent line emphasis");
+requireText(map, "Exact Ascent road lines reaching saved GPS:", "accessible exact Ascent batch description");
+requireText(map, "visibleAscentPadRoadDisplays.map((display) => display.padName)", "accessible exact Ascent names");
+requireText(map, "Count: {visibleAscentPadRoadDisplays.length}", "accessible exact Ascent dynamic count");
+requireText(map, "No red continuation is drawn:", "truthful missing-red explanation");
+requireText(map, "State and U.S. routes remain teal.", "selected-card state road color rule");
 requireText(map, "selectedId === fieldDirectionDisplay?.padId ? fieldDirectionDisplay : null", "exact selected BANNOCK field display guard");
 requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5)', "BANNOCK teal arrival stroke");
 requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef4444", 5)', "BANNOCK selected red exit stroke");
@@ -108,6 +124,41 @@ if (bannockRoadDisplay.outbound?.pointCount !== 239 || bannockRoadDisplay.outbou
 if (bannockRoadDisplay.displayScope !== "persistent-main-map-teal-arrival-and-red-exit" || bannockRoadDisplay.inbound?.visibility !== "main-map-all-and-ascent" || bannockRoadDisplay.outbound?.visibility !== "main-map-all-and-ascent") errors.push("BANNOCK teal/red visibility scope is not frozen to persistent All/Ascent road colors");
 if (JSON.stringify(bannockRoadDisplay.inbound?.coordinates?.at(-1)) !== JSON.stringify(bannockRoadDisplay.outbound?.coordinates?.[0])) errors.push("BANNOCK teal/red field geometry no longer shares one exact road seam");
 if (bannockRoadDisplay.noConnectorToGps !== true || bannockRoadDisplay.continuity?.gpsConnectorIncluded !== false) errors.push("BANNOCK field display includes or permits an invented GPS connector");
+
+requireText(ascentPadRoadDisplays, "route.arrival.coordinates.at(-1)", "Ascent arrival endpoint validation");
+requireText(ascentPadRoadDisplays, "sha256Hex(route.arrival.coordinates) !== contract.geometrySha256", "Ascent loaded-coordinate hash validation");
+requireText(ascentPadRoadDisplays, "destination?.longitude === contract.destination[0]", "Ascent exact directory GPS binding");
+requireText(ascentPadRoadDisplays, 'roadClass === "county" || roadClass === "township" || roadClass === "local"', "red local-road class gate");
+requireText(ascentPadRoadDisplays, 'nextHighway.roadClass === "interstate" || nextHighway.roadClass === "us" || nextHighway.roadClass === "state"', "red next-highway junction gate");
+requireText(ascentPadRoadDisplays, "proof.lastPadId === expectedPadId", "red proof exact-pad binding");
+requireText(ascentPadRoadDisplays, "sameCoordinate(candidate.coordinates[0], expectedSavedPin)", "red line starts at exact last-pad GPS");
+requireText(ascentPadRoadDisplays, "proof.redGeometrySha256 === candidate.geometrySha256", "red proof geometry binding");
+requireText(ascentPadRoadLayers, 'const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"]', "Ascent red role-only layer filter");
+requireText(ascentPadRoadLayers, 'const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"]', "Ascent teal role-only layer filter");
+requireText(ascentPadRoadLayers, 'paint: { "line-color": "#ef4444"', "Ascent red continuation paint");
+requireText(ascentPadRoadLayers, 'paint: { "line-color": "#2dd4bf"', "Ascent teal arrival paint");
+
+if (ascentPadRoadArtifact.rules?.arrivalMustEndAtExactSavedGps !== true
+  || ascentPadRoadArtifact.rules?.noSyntheticGpsConnector !== true
+  || ascentPadRoadArtifact.rules?.redContinuationRequiresExactNoDownstreamPadProof !== true
+  || ascentPadRoadArtifact.rules?.interstateUsAndStateRoutesNeverRed !== true) {
+  errors.push("Ascent GPS-line artifact rules are not fail-closed");
+}
+if (!Array.isArray(ascentPadRoadArtifact.routes) || ascentPadRoadArtifact.routes.length !== 2
+  || ascentPadRoadArtifact.routes.map((route) => route.padName).join("|") !== "COLOGIE|DUKE") {
+  errors.push("Ascent GPS-line batch is not frozen to COLOGIE and DUKE");
+} else {
+  for (const route of ascentPadRoadArtifact.routes) {
+    const expected = [route.destination?.longitude, route.destination?.latitude];
+    if (JSON.stringify(route.arrival?.coordinates?.at(-1)) !== JSON.stringify(expected)) {
+      errors.push(`${route.padName} Ascent arrival does not end at its exact saved GPS`);
+    }
+    if (route.redContinuation !== null) errors.push(`${route.padName} unexpectedly has a red continuation in Batch 1`);
+  }
+  if (!String(ascentPadRoadArtifact.routes.find((route) => route.padName === "DUKE")?.redDecision?.reason || "").includes("CRICKET")) {
+    errors.push("DUKE red hold no longer identifies downstream CRICKET");
+  }
+}
 
 forbid(`${pad}\n${map}`, /higherPriorityNavigationCheckState|navigationFallbackAfterHigherPriorityCheck|Live route check unavailable · no fallback opened/u, "runtime still contains State-1 fallback suppression");
 forbid(`${pad}\n${map}\n${preview}`, /selectedReviewedNavigation(?:Candidate)?\.geometry|nearest_road|fuzzy_name/u, "runtime can infer display geometry from an unverified candidate");

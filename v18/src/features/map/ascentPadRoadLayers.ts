@@ -1,0 +1,155 @@
+import type { FilterSpecification, Map as MapLibreMap } from "maplibre-gl";
+import { firstSymbolLayerAfterLines, highwayReferenceCasingLayerId } from "./highwayReference";
+import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
+
+export const ascentPadRoadSourceId = "brinesearch-ascent-pad-road-lines";
+export const ascentPadRoadRedCasingLayerId = "brinesearch-ascent-pad-road-red-casing";
+export const ascentPadRoadRedLineLayerId = "brinesearch-ascent-pad-road-red-line";
+export const ascentPadRoadTealCasingLayerId = "brinesearch-ascent-pad-road-teal-casing";
+export const ascentPadRoadTealLineLayerId = "brinesearch-ascent-pad-road-teal-line";
+export const ascentPadRoadSelectedCasingLayerId = "brinesearch-ascent-pad-road-selected-casing";
+export const ascentPadRoadSelectedLineLayerId = "brinesearch-ascent-pad-road-selected-line";
+
+export const ascentPadRoadLayerIdsInPaintOrder = [
+  ascentPadRoadRedCasingLayerId,
+  ascentPadRoadRedLineLayerId,
+  ascentPadRoadTealCasingLayerId,
+  ascentPadRoadTealLineLayerId,
+  ascentPadRoadSelectedCasingLayerId,
+  ascentPadRoadSelectedLineLayerId,
+] as const;
+
+const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"];
+const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"];
+
+export function ascentPadRoadCollection(displays: readonly AscentPadRoadDisplay[]) {
+  return {
+    type: "FeatureCollection" as const,
+    features: displays.flatMap((display) => [display.arrival, display.redContinuation].flatMap((line) => line ? [{
+      type: "Feature" as const,
+      properties: {
+        padId: display.padId,
+        company: display.company,
+        colorRole: line.colorRole,
+        label: line.label,
+      },
+      geometry: {
+        type: "LineString" as const,
+        coordinates: line.coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
+      },
+    }] : [])),
+  };
+}
+
+function selectedFilter(selectedPadId: string | null): FilterSpecification {
+  return [
+    "all",
+    ["==", ["get", "colorRole"], "teal"],
+    ["==", ["get", "padId"], selectedPadId || "__none__"],
+  ];
+}
+
+export function clearAscentPadRoadLayers(map: MapLibreMap) {
+  for (const layerId of [...ascentPadRoadLayerIdsInPaintOrder].reverse()) {
+    try {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+    } catch {
+      // Style replacement can remove a layer between checking and cleanup.
+    }
+  }
+  try {
+    if (map.getSource(ascentPadRoadSourceId)) map.removeSource(ascentPadRoadSourceId);
+  } catch {
+    // The exact-record display fails closed if source cleanup races a style load.
+  }
+}
+
+export function syncAscentPadRoadSelection(map: MapLibreMap, selectedPadId: string | null) {
+  const filter = selectedFilter(selectedPadId);
+  try {
+    if (map.getLayer(ascentPadRoadSelectedCasingLayerId)) {
+      map.setFilter(ascentPadRoadSelectedCasingLayerId, filter);
+    }
+    if (map.getLayer(ascentPadRoadSelectedLineLayerId)) {
+      map.setFilter(ascentPadRoadSelectedLineLayerId, filter);
+    }
+  } catch {
+    // Losing optional emphasis never changes the persistent verified line.
+  }
+}
+
+export function syncAscentPadRoadLayers(
+  map: MapLibreMap,
+  displays: readonly AscentPadRoadDisplay[],
+  selectedPadId: string | null,
+) {
+  clearAscentPadRoadLayers(map);
+  if (!displays.length) return true;
+  try {
+    map.addSource(ascentPadRoadSourceId, {
+      type: "geojson",
+      data: ascentPadRoadCollection(displays),
+    });
+    if (!map.getSource(ascentPadRoadSourceId)) throw new Error("Ascent GPS-line source was rejected");
+
+    const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
+    const belowHighways = map.getLayer(highwayReferenceCasingLayerId)
+      ? highwayReferenceCasingLayerId
+      : firstSymbolLayer;
+    map.addLayer({
+      id: ascentPadRoadRedCasingLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: redFilter,
+      paint: { "line-color": "rgba(7, 19, 31, .9)", "line-width": 8, "line-opacity": .96 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, belowHighways);
+    map.addLayer({
+      id: ascentPadRoadRedLineLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: redFilter,
+      paint: { "line-color": "#ef4444", "line-width": 4.5, "line-opacity": .98 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, belowHighways);
+    map.addLayer({
+      id: ascentPadRoadTealCasingLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: tealFilter,
+      paint: { "line-color": "rgba(7, 19, 31, .88)", "line-width": 8, "line-opacity": .94 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadTealLineLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: tealFilter,
+      paint: { "line-color": "#2dd4bf", "line-width": 4.5, "line-opacity": .96 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadSelectedCasingLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: selectedFilter(selectedPadId),
+      paint: { "line-color": "rgba(7, 19, 31, .95)", "line-width": 10, "line-opacity": .98 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadSelectedLineLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: selectedFilter(selectedPadId),
+      paint: { "line-color": "#7ef8d8", "line-width": 6, "line-opacity": 1 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    if (ascentPadRoadLayerIdsInPaintOrder.some((layerId) => !map.getLayer(layerId))) {
+      throw new Error("Ascent GPS-line layers were rejected");
+    }
+    return true;
+  } catch {
+    clearAscentPadRoadLayers(map);
+    return false;
+  }
+}

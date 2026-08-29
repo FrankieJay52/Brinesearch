@@ -70,14 +70,23 @@ public-Google authority.
 11. Show one driver Navigate button. Written directions remain text and do not
     become geometry.
 12. Highlight every supplied, separately reviewed named-road geometry feature
-    in bright teal only while its exact pad is selected, even while graph,
-    State-1, or public-Google authority is held. Stop at the last named road or
-    pin. The independent exact released approved-road network remains teal and
-    may be separated by company or shown as All approved routes; it is never
-    attributed to a selected pad. With no verified named sequence or no
-    supplied pad-bound geometry, show that pad's pin only and draw no substitute
-    pad route from text, control points, whole roads, basemap classes, or
-    nearest-road results.
+    in bright teal, even while graph, State-1, or public-Google authority is
+    held. A pad-bound arrival may remain visible on All routes and its exact
+    company filter only when it is bound to the exact current pad record and its
+    final coordinate exactly equals that pad's saved GPS. Selecting the pad
+    brightens the same geometry. A partial or handoff display stays
+    selection-only and stops at its proved endpoint. With no verified named
+    sequence, no supplied geometry, record drift, or an endpoint mismatch, show
+    that pad's pin only and draw no substitute pad route from text, controls,
+    whole roads, basemap classes, or nearest-road results. The independent exact
+    released approved-road network remains teal and may be separated by company
+    or shown as All approved routes; it is never attributed to a selected pad.
+    After the final pad on an exactly identified county, township, or local road,
+    show the remaining road in red only when exact corridor evidence proves no
+    farther pad exists and the geometry ends at the next Interstate, U.S., or
+    state-highway junction. Interstate, U.S., and state routes are always teal.
+    Missing downstream-pad or junction proof means no red. Red is field
+    orientation only, not a closure, approval, or inferred road.
 13. The map may add a thin, connected highway-reference layer from the loaded
     OpenFreeMap Liberty vector basemap only when its structured `network`
     identity is exactly `us-interstate`, `us-highway`, or `us-state`. This is
@@ -87,7 +96,8 @@ public-Google authority.
     the repository's 39 confirmed pad counties using the compact U.S. Census
     Bureau 2025 1:20m county boundary union. Dissolve shared county borders so
     through-highways remain connected; do not render it statewide. Draw
-    exact released approved roads in stronger teal above it and the selected
-    pad's separately reviewed route brightest above both.
+    exact released approved roads in stronger teal above it, exact GPS-reaching
+    pad arrivals above that network, and the selected pad's separately reviewed
+    display brightest above both.
 14. Publishing this client-side handoff never changes graph activation, route
     approval, the public-Google table, or cutover state.

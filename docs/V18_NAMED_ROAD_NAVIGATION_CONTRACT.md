@@ -43,11 +43,33 @@ must not call the display a State-1 graph release.
 Every supplied, separately reviewed named-road geometry feature is highlighted
 in teal, including when graph, State-1, or public-Google authority remains held.
 The highlight is presentation only. It does not create an official road,
-public-Google publication, graph membership, or route-release authority. This
-pad-bound highlight is drawn only while that exact pad is selected. Unselected
-pads never project their route color onto the map. The persistent BANNOCK teal
-arrival and red exit described below are one separately scoped field-orientation
-layer, not a general exception that projects other unselected pad routes.
+public-Google publication, graph membership, or route-release authority.
+
+A pad-bound arrival may remain visible on the main **All pads + all approved
+roads** map and under its exact company filter only when the display artifact is
+bound to that exact pad record and its final coordinate exactly equals that
+record's current saved GPS. Selecting the pad brightens the same geometry.
+Reviewed geometry that stops at a handoff or road projection remains
+selection-only and must describe that shorter endpoint truthfully. Record drift,
+an endpoint mismatch, or missing geometry fails closed to the pin; text,
+waypoints, and nearby road shapes are not joined into a substitute connector.
+
+After the final pad on a county, township, or other local named road, the
+remaining road may be displayed in red only when exact corridor evidence proves
+there is no farther pad on that road and exact geometry reaches the next
+Interstate, U.S., or state-highway junction. Interstate, U.S., and state routes
+are always teal and are never red. Missing road identity, missing downstream-pad
+proof, or an imprecise junction means no red continuation. Red is field
+orientation only; it is not a closure, restriction, route approval, or authority
+to infer a road.
+
+The first exact Ascent batch contains COLOGIE and DUKE. Both teal arrivals end
+at their exact saved GPS. DUKE has no red continuation because CRICKET is farther
+along the Lamborn Road corridor. COLOGIE has no red continuation because the
+post-pad corridor order has not been separately proved. No other Ascent pad is
+stamped by that batch. The persistent BANNOCK teal arrival and red exit described
+below remain one separately scoped legacy field-orientation reference whose teal
+leg ends at the proved road projection rather than inventing a connector to GPS.
 
 Independently, the current exact released approved-road overlay remains teal in
 every driver map view. The unified selector defaults to **All pads + all
@@ -65,8 +87,9 @@ connected across adjoining pad counties. It uses only the exact structured `netw
 infer a company association, or become Navigate geometry. The presentation
 clip uses the U.S. Census Bureau 2025 1:20m county boundaries. If Liberty's
 expected source/layer contract is absent, this reference fails closed. Exact
-released approved roads remain stronger teal above the reference and a selected
-pad's separately reviewed route remains brightest.
+released approved roads remain stronger teal above the reference, exact
+GPS-reaching pad arrivals remain above that network, and the selected pad's
+separately reviewed display remains brightest.
 
 For the exact frozen BANNOCK record, the selected-pad field display uses two
 direction colors. Teal shows the arrival from OH-331 along Lafferty-Bannock

@@ -156,7 +156,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('aria-label="Filter pads and approved roads by company"');
     expect(pageSource).toContain('<option value="all">All pads + all approved roads</option>');
     expect(pageSource).toContain("Only ${selectedCompany} pads and released approved roads are shown.");
-    expect(pageSource).toContain("Held, candidate, stale, guessed, and unpublished routes stay hidden.");
+    expect(pageSource).toContain("Held, candidate, incomplete, stale, guessed, and unpublished routes stay hidden.");
     expect(pageSource).not.toContain('option value="">Roads off');
     expect(pageSource).not.toContain('"rgba(240, 180, 93, .9)"');
     expect(pageSource).not.toContain("isolateSelectedRoute");
@@ -180,11 +180,12 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toContain(".legend-line.highway");
   });
 
-  it("draws a pad-specific bright route only from the selected pad's reviewed geometry", () => {
-    expect(pageSource).toContain("selectedRouteRef.current = selectedRouteGeometry");
+  it("keeps partial canvas geometry selection-only while exact GPS arrivals use the native layer", () => {
+    expect(pageSource).toContain("selectedRouteRef.current = selectedAscentPadRoadDisplay ? null : selectedRouteGeometry");
     expect(pageSource).toContain("drawRoute(context, map, selectedId ? geometry : null)");
-    expect(pageSource).toContain("Pad-bound route color is selection-only");
-    expect(pageSource).toContain("persistent teal road network");
+    expect(pageSource).toContain("Partial and handoff pad geometry rendered on this canvas is selection-only");
+    expect(pageSource).toContain("Exact-record arrivals that end at saved GPS use the persistent native");
+    expect(pageSource).toContain("authorized company-road network remains separate");
     expect(pageSource).toContain('selectedRouteGeometry && <div className="selected-pad-route-key"');
     expect(pageSource).toContain("Selected pad route · bright teal");
     const unselectedLegend = pageSource.slice(pageSource.indexOf('<aside className="map-legend-card">'));
@@ -240,9 +241,23 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("BANNOCK via Black Oak Road to OH-149 · red");
     expect(pageSource).toContain("BANNOCK's field reference is teal from OH-331 to the pad and red by Black Oak Road to OH-149.");
     expect(pageSource).toContain("BANNOCK road colors: teal from OH-331 to BANNOCK; red from BANNOCK by Black Oak Road to OH-149.");
-    expect(pageSource).toContain("[visibleBannockRoadReference, visibleCompanyRoadOverlay, viewerMode]");
+    expect(pageSource).toContain("[visibleAscentPadRoadDisplays, visibleBannockRoadReference, visibleCompanyRoadOverlay, viewerMode]");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(pageSource).not.toContain('map.setPaintProperty(highwayReferenceLineLayerId, "line-color", "#ef4444")');
+  });
+
+  it("keeps exact-record Ascent lines visible to their saved GPS without inventing red tails", () => {
+    expect(pageSource).toContain("ascentPadRoadDisplaysForDirectory(snapshot?.rows || [])");
+    expect(pageSource).toContain('companyFilter === "all" || companyFilter === "Ascent"');
+    expect(pageSource).toContain("syncAscentPadRoadLayers(");
+    expect(pageSource).toContain("ascentPadRoadDisplaysRef.current");
+    expect(pageSource).toContain("syncAscentPadRoadSelection(mapRef.current, selectedId)");
+    expect(pageSource).toContain("Exact Ascent road lines reaching saved GPS:");
+    expect(pageSource).toContain("display.padName");
+    expect(pageSource).toContain("visibleAscentPadRoadDisplays.length");
+    expect(pageSource).toContain("Exact Ascent line to saved GPS · bright teal");
+    expect(pageSource).toContain("No red continuation is drawn:");
+    expect(pageSource).toContain("State and U.S. routes remain teal.");
   });
 
   it("removes the two top badges and lets the map controls collapse to the left", () => {
