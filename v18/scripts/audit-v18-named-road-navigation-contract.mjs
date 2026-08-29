@@ -170,7 +170,7 @@ requireText(map, "visibleAscentPadRoadDisplays.map((display) => display.padName)
 requireText(map, "Count: {visibleAscentPadRoadDisplays.length}", "accessible exact Ascent dynamic count");
 requireText(map, "loadAscentPadApproachesForDirectory(snapshot.rows)", "lazy remaining-192 directory load");
 requireText(map, "ascentPadApproachMapDisplays(ascentPadApproaches)", "batch-2 approach map-display resolver");
-requireText(map, "[...visibleAscentPadRoadDisplays, ...visibleAscentPadApproachDisplays]", "shared batch-1 and batch-2 native layer source");
+requireText(map, "[...visibleAscentPadRoadDisplays, ...visibleAscentPadApproachDisplays, ...visibleAscentPadPersistentRedDisplays]", "shared batch-1, batch-2, and persistent-red native layer source");
 requireText(map, "exact matched sections are solid teal and unresolved access stays visible as solid neutral/unapproved geometry", "batch-2 map color boundary");
 requireText(map, "Fail-closed and pin-only records add no line", "batch-2 map pin-only fail close");
 requireText(map, "Measured last-highway approach lines shown:", "accessible batch-2 approach count");

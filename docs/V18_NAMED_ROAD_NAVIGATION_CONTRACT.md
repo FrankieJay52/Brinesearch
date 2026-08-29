@@ -167,8 +167,7 @@ junction. CARLOS remains GPS_ONLY: the red reference does not replace its stale
 written Elm States/TR-82 label, change its Navigate URL, or approve the road.
 Its red line begins at the existing OSM road seam beside the saved GPS, with no
 colored connector across the GPS offset. Both red references remain visible in
-All/Ascent scope and hide for another company or disposal-only scope. DUKE
-remains teal because CRICKET is farther along the Lamborn Road corridor. Missing
+All/Ascent scope and hide for another company or disposal-only scope. DUKE remains teal because CRICKET is farther along the Lamborn Road corridor. Missing
 proof never turns another local road red.
 
 Independently, the current exact released approved-road overlay remains teal in
