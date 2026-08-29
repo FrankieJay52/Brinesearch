@@ -143,6 +143,7 @@ assert.match(worker, /maplibre-gl-shared\.mjs/, "MapLibre worker must import its
 assert.ok(shared.length > 100_000, "MapLibre shared worker module is unexpectedly small");
 assert.match(serviceWorker, /maplibre\/maplibre-gl-worker\.mjs/, "PWA precache is missing the MapLibre worker");
 assert.match(serviceWorker, /maplibre\/maplibre-gl-shared\.mjs/, "PWA precache is missing the MapLibre shared module");
+assert.match(serviceWorker, /assets\/ascentPadApproaches\.batch2-[^"']+\.js/, "PWA precache is missing the lazy Ascent field-route catalog");
 assert.match(appJavascript, /owner_approved_routes_map_viewport/, "Built V18 app is missing the owner road viewport adapter");
 assert.match(appJavascript, /\/settings\/approved-routes/, "Built V18 app is missing the Owner Settings map route");
 assert.match(appJavascript, /brinesearch\.v18AuthSession\.v1/, "Built V18 app is missing its V18-only owner session");

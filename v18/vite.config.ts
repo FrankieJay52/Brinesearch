@@ -61,6 +61,11 @@ export default defineConfig(({ command, isPreview }) => {
       workbox: {
         cleanupOutdatedCaches: true,
         navigateFallback: `${base}index.html`,
+        // The lazy, gzip-compressed Ascent field-route catalog is about 421 KB
+        // over the wire but exceeds Workbox's 2 MiB raw-file default. Keep the
+        // bounded 4 MiB ceiling so the inspected road names remain available
+        // offline without relaxing the cache limit for arbitrarily large files.
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
         globPatterns: ["**/*.{js,mjs,wasm,css,html,svg,png,webp,woff2}"],
         globIgnores: [
           "**/owner-google-verify-google-runtime-*.js",
