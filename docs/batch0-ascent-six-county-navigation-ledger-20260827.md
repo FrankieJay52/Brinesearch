@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `1ef3a09f39c621a6bdbe3f56e3fe55b902acb4c5`
-- Candidate implementation HEAD: `7749cd2f3e4e1b748d68cf4b5064efa84163327c`
-- Candidate content SHA-256: `a03a3e8987fb1b1968e60c37ea76ce018cb01cb096af4da047874f6edf60a6d6`
+- Base origin/main SHA: `8b5fc95c7da719d59479954fd1677e01a7febcab`
+- Candidate implementation HEAD: `770c5a72b177e0bd707c56ea52a40f831483170d`
+- Candidate content SHA-256: `20e098efe5ff870ae29b9d380b7baa3d6e40ec12f988a8aedb037fcd62867f31`
 - Uncommitted non-generated changes: **no**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
@@ -12,17 +12,12 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 - `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
 - `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
-- `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
-- `v18/scripts/verify-built-runtime.mjs`
-- `v18/src/features/map/MapCompanyFilter.test.ts`
 - `v18/src/features/map/MapPage.test.ts`
 - `v18/src/features/map/MapPage.tsx`
 - `v18/src/features/map/highwayReference.test.ts`
 - `v18/src/features/map/highwayReference.ts`
 - `v18/src/features/map/mapModel.ts`
 - `v18/src/features/map/padCountyHighwayScope.json`
-- `v18/src/features/search/SearchOverlay.test.ts`
-- `v18/src/styles/app.css`
 
 ## Counts
 
