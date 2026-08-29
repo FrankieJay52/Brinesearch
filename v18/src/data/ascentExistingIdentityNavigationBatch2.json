@@ -16,9 +16,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "Route 70 → OH-9 → CR-5 → Garrett Hill Rd → Sutton Rd → Access Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-9 → CR-5 → Garrett Hill Rd / TR-257 → Sutton Rd / TR-753 → saved GPS",
+      "detail": "OH-9 → CR-5 → Garrett Hill Rd / TR-257 → Sutton Rd / TR-753 → BLESSED lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.011526%2C-80.879811&waypoints=40.035474%2C-80.892577%7C40.009951%2C-80.880346%7C40.011421512%2C-80.878924291",
-      "reviewedRoadSequence": "OH-9 → CR-5 → Garrett Hill Rd / TR-257 → Sutton Rd / TR-753 → saved BLESSED GPS",
+      "reviewedRoadSequence": "OH-9 → CR-5 → Garrett Hill Rd / TR-257 → Sutton Rd / TR-753 → BLESSED lease road → saved BLESSED GPS",
       "roadIdentityHook": [
         {
           "roadId": "5f9cf989-1d29-44cb-8424-3fe81e73f51b",
@@ -53,7 +53,7 @@
           "roadId": "38e4e373-eb08-4cf3-9e93-abe2617146d0"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to BLESSED's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to BLESSED's exact saved GPS. The final saved-pin connector is displayed as BLESSED lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.011526,
         "longitude": -80.879811,
@@ -95,9 +95,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "St Bellaire Exit On St → OH-149 → Tar Run Rd → Cumberland Run Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-149 → Tar Run Rd / TR-723 → Cumberland Run Rd / TR-289 → saved GPS",
+      "detail": "OH-149 → Tar Run Rd / TR-723 → Cumberland Run Rd / TR-289 → COOK lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.002019%2C-80.875167&waypoints=40.002767%2C-80.875883%7C40.002044%2C-80.87509",
-      "reviewedRoadSequence": "OH-149 → Tar Run Rd / TR-723 → Cumberland Run Rd / TR-289 → saved COOK GPS",
+      "reviewedRoadSequence": "OH-149 → Tar Run Rd / TR-723 → Cumberland Run Rd / TR-289 → COOK lease road → saved COOK GPS",
       "roadIdentityHook": [
         {
           "roadId": "a7806f26-25a3-4558-aff8-fd3d75cabb4a",
@@ -122,7 +122,7 @@
           "roadId": "f73b1bc0-5aed-45c1-a88c-7c1f769f52b9"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to COOK's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to COOK's exact saved GPS. The final saved-pin connector is displayed as COOK lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.002019,
         "longitude": -80.875167,
@@ -160,9 +160,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "US-250 → Lansing Cheermont Rd → Blaine Cheermont Rd → Access Road → OR → I-70 → Exit 225 → Marion St → Main St → US-250 → Lansing Cheermont Rd → Blaine Cheermont Rd → Access Road",
       "title": "Navigate named-road handoff",
-      "detail": "US-250 → Lansing Cheermont Rd / CR-18 → Blaine Cheermont Rd → saved GPS",
+      "detail": "US-250 → Lansing Cheermont Rd / CR-18 → Blaine Cheermont Rd → LEE lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.090178%2C-80.811589&waypoints=40.091593514%2C-80.809829547%7C40.0901548%2C-80.8114553",
-      "reviewedRoadSequence": "US-250 → Lansing Cheermont Rd / CR-18 → Blaine Cheermont Rd → saved LEE GPS",
+      "reviewedRoadSequence": "US-250 → Lansing Cheermont Rd / CR-18 → Blaine Cheermont Rd → LEE lease road → saved LEE GPS",
       "roadIdentityHook": [
         {
           "roadId": "7cbc3263-4442-4161-9ba3-4e31dd072a7f",
@@ -187,7 +187,7 @@
           "roadId": "ff1dfe60-ffb2-4aa1-b2ae-8380690d9129"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to LEE's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to LEE's exact saved GPS. The final saved-pin connector is displayed as LEE lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.090178,
         "longitude": -80.811589,
@@ -225,9 +225,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "Route 70 → I-470 → 7s To 26th St → OH-7 → TR-476 → Brown Hollow Rd",
       "title": "Navigate named-road handoff",
-      "detail": "OH-7 → TR-476 → Brown Hollow Rd / TR-302 → saved GPS",
+      "detail": "OH-7 → TR-476 → Brown Hollow Rd / TR-302 → MILLER lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.994185%2C-80.790537&waypoints=40.0102176%2C-80.763444%7C39.994284114%2C-80.790444819",
-      "reviewedRoadSequence": "OH-7 → TR-476 → Brown Hollow Rd / TR-302 → saved MILLER GPS",
+      "reviewedRoadSequence": "OH-7 → TR-476 → Brown Hollow Rd / TR-302 → MILLER lease road → saved MILLER GPS",
       "roadIdentityHook": [
         {
           "roadId": "c2514f70-7c63-4ce0-a9fb-b618d9a6b467",
@@ -252,7 +252,7 @@
           "roadId": "69ee4f55-04e3-4cac-add2-6eedf0c769fc"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to MILLER's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to MILLER's exact saved GPS. The final saved-pin connector is displayed as MILLER lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 39.994185,
         "longitude": -80.790537,
@@ -290,9 +290,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "I-70 → Exit 213 → OH-331 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → I-70 → Exit 208 → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd",
       "title": "Navigate named-road handoff",
-      "detail": "US-40 → Lloydsville Bannock Rd / CR-80 → Lude Rd / TR-264 → saved GPS",
+      "detail": "US-40 → Lloydsville Bannock Rd / CR-80 → Lude Rd / TR-264 → RICHLAND B lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.077481%2C-80.995772&waypoints=40.075237%2C-80.990567%7C40.0769%2C-80.994086",
-      "reviewedRoadSequence": "US-40 → Lloydsville Bannock Rd / CR-80 → Lude Rd / TR-264 → saved RICHLAND B GPS",
+      "reviewedRoadSequence": "US-40 → Lloydsville Bannock Rd / CR-80 → Lude Rd / TR-264 → RICHLAND B lease road → saved RICHLAND B GPS",
       "roadIdentityHook": [
         {
           "roadId": "dc8ecf1f-a026-4607-878b-42ee0dfda5ed",
@@ -317,7 +317,7 @@
           "roadId": "9950715b-d6b1-4093-bef5-04c66c1d8763"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to RICHLAND B's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to RICHLAND B's exact saved GPS. The final saved-pin connector is displayed as RICHLAND B lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.077481,
         "longitude": -80.995772,
@@ -355,9 +355,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "OH-1 → OH-9 → Unity Church Rd → Pad → OR → I-70 → Exit 216 → OH-9 → Newell Ave → OH-9N → Unity Church Rd → OR → OH-1 → OH-331S → OH-149N → OH-9S → Unity Church Rd",
       "title": "Navigate named-road handoff",
-      "detail": "OH-9 → Unity Church Rd → saved GPS",
+      "detail": "OH-9 → Unity Church Rd → SIDWELL lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.146316%2C-80.979282&waypoints=40.149932%2C-80.974296",
-      "reviewedRoadSequence": "OH-9 → Unity Church Rd → saved SIDWELL GPS",
+      "reviewedRoadSequence": "OH-9 → Unity Church Rd → SIDWELL lease road → saved SIDWELL GPS",
       "roadIdentityHook": [
         {
           "roadId": "614c27a7-17a3-4828-b4eb-9c6837cc021b",
@@ -372,7 +372,7 @@
           "roadId": "614c27a7-17a3-4828-b4eb-9c6837cc021b"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to SIDWELL's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to SIDWELL's exact saved GPS. The final saved-pin connector is displayed as SIDWELL lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.146316,
         "longitude": -80.979282,
@@ -406,9 +406,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "OH-7 → Route 70 → Exit 218 → Mall Rd → US-40 → Barton Rd → Pad",
       "title": "Navigate named-road handoff",
-      "detail": "US-40 → Barton Rd / CR-4 → saved GPS",
+      "detail": "US-40 → Barton Rd / CR-4 → THREE DADS lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.099252%2C-80.855031&waypoints=40.097864%2C-80.870567",
-      "reviewedRoadSequence": "US-40 → Barton Rd / CR-4 → saved THREE DADS GPS",
+      "reviewedRoadSequence": "US-40 → Barton Rd / CR-4 → THREE DADS lease road → saved THREE DADS GPS",
       "roadIdentityHook": [
         {
           "roadId": "348bc14e-b613-4c72-90e0-cb3290ef186e",
@@ -423,7 +423,7 @@
           "roadId": "348bc14e-b613-4c72-90e0-cb3290ef186e"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to THREE DADS's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to THREE DADS's exact saved GPS. The final saved-pin connector is displayed as THREE DADS lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.099252,
         "longitude": -80.855031,
@@ -457,9 +457,9 @@
       "county": "Belmont",
       "structuredRoadSequence": "Route 70 → Exit 208 → OH-149 → OH-147 → CR-4 → Mcclainsville Rd → Pad",
       "title": "Navigate named-road handoff",
-      "detail": "OH-147 → CR-4 / CR-4 → Mcclainsville Rd / TR-308 → saved GPS",
+      "detail": "OH-147 → CR-4 / CR-4 → Mcclainsville Rd / TR-308 → VIOLET lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.014235%2C-80.793111&waypoints=40.1024833%2C-80.8453652%7C40.017196218%2C-80.795470272",
-      "reviewedRoadSequence": "OH-147 → CR-4 / CR-4 → Mcclainsville Rd / TR-308 → saved VIOLET GPS",
+      "reviewedRoadSequence": "OH-147 → CR-4 / CR-4 → Mcclainsville Rd / TR-308 → VIOLET lease road → saved VIOLET GPS",
       "roadIdentityHook": [
         {
           "roadId": "348bc14e-b613-4c72-90e0-cb3290ef186e",
@@ -484,7 +484,7 @@
           "roadId": "a030075b-b40a-4997-92f5-1b6c923da96e"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to VIOLET's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to VIOLET's exact saved GPS. The final saved-pin connector is displayed as VIOLET lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.014235,
         "longitude": -80.793111,
@@ -522,9 +522,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "US-22 → Mc Coy Rd → OR → OH-513 → US-22 → Mc Coy Rd",
       "title": "Navigate named-road handoff",
-      "detail": "US-22 → Mc Coy Rd / CR-82 → saved GPS",
+      "detail": "US-22 → Mc Coy Rd / CR-82 → BETTS lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.105342%2C-81.260282&waypoints=40.103146%2C-81.254728",
-      "reviewedRoadSequence": "US-22 → Mc Coy Rd / CR-82 → saved BETTS GPS",
+      "reviewedRoadSequence": "US-22 → Mc Coy Rd / CR-82 → BETTS lease road → saved BETTS GPS",
       "roadIdentityHook": [
         {
           "roadId": "6ce8ec7b-a330-4ba4-9f41-33ae37e888ad",
@@ -539,7 +539,7 @@
           "roadId": "6ce8ec7b-a330-4ba4-9f41-33ae37e888ad"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to BETTS's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to BETTS's exact saved GPS. The final saved-pin connector is displayed as BETTS lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.105342,
         "longitude": -81.260282,
@@ -573,9 +573,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "I-70 → Exit 193 → OH-513 → Oxford Rd → Lease Road → OR → OH-1 → OH-513 / North/batesville Road./pike St → Oxford Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-513 → Oxford Rd → saved GPS",
+      "detail": "OH-513 → Oxford Rd → COAD lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.033571%2C-81.258135&waypoints=40.032423%2C-81.27029",
-      "reviewedRoadSequence": "OH-513 → Oxford Rd → saved COAD GPS",
+      "reviewedRoadSequence": "OH-513 → Oxford Rd → COAD lease road → saved COAD GPS",
       "roadIdentityHook": [
         {
           "roadId": "ab828b60-dfdd-4cab-b6e7-5e00453ea3bb",
@@ -590,7 +590,7 @@
           "roadId": "ab828b60-dfdd-4cab-b6e7-5e00453ea3bb"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to COAD's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to COAD's exact saved GPS. The final saved-pin connector is displayed as COAD lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.033571,
         "longitude": -81.258135,
@@ -624,9 +624,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "I-70 → Exit 193 → OH-513 → Oxford Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-513 → Oxford Rd → saved GPS",
+      "detail": "OH-513 → Oxford Rd → J BARR J lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.03226%2C-81.263847&waypoints=40.030336%2C-81.276968",
-      "reviewedRoadSequence": "OH-513 → Oxford Rd → saved J BARR J GPS",
+      "reviewedRoadSequence": "OH-513 → Oxford Rd → J BARR J lease road → saved J BARR J GPS",
       "roadIdentityHook": [
         {
           "roadId": "ab828b60-dfdd-4cab-b6e7-5e00453ea3bb",
@@ -641,7 +641,7 @@
           "roadId": "ab828b60-dfdd-4cab-b6e7-5e00453ea3bb"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to J BARR J's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to J BARR J's exact saved GPS. The final saved-pin connector is displayed as J BARR J lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.03226,
         "longitude": -81.263847,
@@ -675,9 +675,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "OH-22 → OH-800 / Smyrna Rd → Eest Main St → High St → OH-342 Westchester Rd → OH-342 → Martha Rd → Titus Rd → Slingo Rd → Sugartree Rd → Pad",
       "title": "Navigate named-road handoff",
-      "detail": "OH-342 → Martha Rd + Titus Rd / CR-878 → Slingo Rd / CR-870 → Sugartree Rd → saved GPS",
+      "detail": "OH-342 → Martha Rd + Titus Rd / CR-878 → Slingo Rd / CR-870 → Sugartree Rd → MILLER FARMS lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.174982%2C-81.380498&waypoints=40.1926563%2C-81.366256%7C40.185027035%2C-81.381535076%7C40.1761233%2C-81.3833817",
-      "reviewedRoadSequence": "OH-342 → Martha Rd + Titus Rd / CR-878 → Slingo Rd / CR-870 → Sugartree Rd → saved MILLER FARMS GPS",
+      "reviewedRoadSequence": "OH-342 → Martha Rd + Titus Rd / CR-878 → Slingo Rd / CR-870 → Sugartree Rd → MILLER FARMS lease road → saved MILLER FARMS GPS",
       "roadIdentityHook": [
         {
           "roadId": "21c40fdf-2d5c-40d2-b96c-1900a7d5581c",
@@ -716,7 +716,7 @@
           "roadId": "f96e1f2b-8470-4ec2-a79f-fa7007d37e40"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to MILLER FARMS's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to MILLER FARMS's exact saved GPS. The final saved-pin connector is displayed as MILLER FARMS lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.174982,
         "longitude": -81.380498,
@@ -758,9 +758,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "I-70 → OH-285 → OH-313 → Salem Rd → Nighthawk Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-313 → Salem Rd / CR-74 → Nighthawk Rd / TR-59 → saved GPS",
+      "detail": "OH-313 → Salem Rd / CR-74 → Nighthawk Rd / TR-59 → SLABAUGH lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.95541%2C-81.4408&waypoints=39.941409%2C-81.446907%7C39.952222%2C-81.440069",
-      "reviewedRoadSequence": "OH-313 → Salem Rd / CR-74 → Nighthawk Rd / TR-59 → saved SLABAUGH GPS",
+      "reviewedRoadSequence": "OH-313 → Salem Rd / CR-74 → Nighthawk Rd / TR-59 → SLABAUGH lease road → saved SLABAUGH GPS",
       "roadIdentityHook": [
         {
           "roadId": "bdae3fc7-0497-4994-a048-5b9e6db12140",
@@ -785,7 +785,7 @@
           "roadId": "3cffea08-d00d-4aac-862d-658b78cf6d72"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to SLABAUGH's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to SLABAUGH's exact saved GPS. The final saved-pin connector is displayed as SLABAUGH lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 39.95541,
         "longitude": -81.4408,
@@ -823,9 +823,9 @@
       "county": "Guernsey",
       "structuredRoadSequence": "Route 70 → OH-513 → Bridgewater Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-513 → Bridgewater Rd / CR-690 → saved GPS",
+      "detail": "OH-513 → Bridgewater Rd / CR-690 → TARPLEY lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.063839%2C-81.293734&waypoints=40.057381%2C-81.314105",
-      "reviewedRoadSequence": "OH-513 → Bridgewater Rd / CR-690 → saved TARPLEY GPS",
+      "reviewedRoadSequence": "OH-513 → Bridgewater Rd / CR-690 → TARPLEY lease road → saved TARPLEY GPS",
       "roadIdentityHook": [
         {
           "roadId": "7732bb51-8498-4b8b-8d93-3f859aae18e1",
@@ -840,7 +840,7 @@
           "roadId": "7732bb51-8498-4b8b-8d93-3f859aae18e1"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to TARPLEY's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Guernsey Road Manager identities in the written/reviewed order to TARPLEY's exact saved GPS. The final saved-pin connector is displayed as TARPLEY lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.063839,
         "longitude": -81.293734,
@@ -874,9 +874,9 @@
       "county": "Harrison",
       "structuredRoadSequence": "I-70 → Exit 202 → OH-800 → US-22 → Main St → OH-799 → Redeye Rd → Access Road → OR → US-22 → OH-800 → Main St → OH-799 → Redeye Rd → Access Road → OR → US-250 → OH-800 → Center St → Taylor Ave → OH-799 → Redeye Rd → Access Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-799 → Redeye Rd → saved GPS",
+      "detail": "OH-799 → Redeye Rd → BSA lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.256309%2C-81.155001&waypoints=40.267062%2C-81.177933",
-      "reviewedRoadSequence": "OH-799 → Redeye Rd → saved BSA GPS",
+      "reviewedRoadSequence": "OH-799 → Redeye Rd → BSA lease road → saved BSA GPS",
       "roadIdentityHook": [
         {
           "roadId": "f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965",
@@ -891,7 +891,7 @@
           "roadId": "f9ee9c0b-290f-4ffe-a62b-a4d9a4b52965"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Harrison Road Manager identities in the written/reviewed order to BSA's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Harrison Road Manager identities in the written/reviewed order to BSA's exact saved GPS. The final saved-pin connector is displayed as BSA lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.256309,
         "longitude": -81.155001,
@@ -925,9 +925,9 @@
       "county": "Harrison",
       "structuredRoadSequence": "OH-800 / South/johnson Ave → US-22 → Old Piedmont Rd → Moore Rd → OR → US-22 → Old Piedmont Rd → Moore Rd → OR → I-70 → Exit 202 → US-22 → Old Piedmont Rd → Moore Rd",
       "title": "Navigate named-road handoff",
-      "detail": "US-22 → Old Piedmont Rd → Moore Rd → saved GPS",
+      "detail": "US-22 → Old Piedmont Rd → Moore Rd → TARBERT lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.203776%2C-81.17709&waypoints=40.209638527%2C-81.178024734%7C40.203940521%2C-81.176868458",
-      "reviewedRoadSequence": "US-22 → Old Piedmont Rd → Moore Rd → saved TARBERT GPS",
+      "reviewedRoadSequence": "US-22 → Old Piedmont Rd → Moore Rd → TARBERT lease road → saved TARBERT GPS",
       "roadIdentityHook": [
         {
           "roadId": "819e5206-1eda-4cc9-bb7b-903c840afbba",
@@ -952,7 +952,7 @@
           "roadId": "8b4431ba-9cf6-4c43-b088-5b3cd6b9567b"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Harrison Road Manager identities in the written/reviewed order to TARBERT's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Harrison Road Manager identities in the written/reviewed order to TARBERT's exact saved GPS. The final saved-pin connector is displayed as TARBERT lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.203776,
         "longitude": -81.17709,
@@ -990,9 +990,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "OH-9 → I-70 → I-470 → Exit 6 → OH-7 → 2nd St → CR-80 → Liberty Ave → OH-150 → OH-152 → CR-11 → Piney Fork Rd → OR → US-22 → OH-151 / Mill St → OH-152 / South/main St → CR-11 → Piney Fork Rd",
       "title": "Navigate named-road handoff",
-      "detail": "OH-152 → CR-11 + Piney Fork Rd / CR-11 → saved GPS",
+      "detail": "OH-152 → CR-11 + Piney Fork Rd / CR-11 → CERMAK lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.244707%2C-80.807728&waypoints=40.2475711%2C-80.8104457",
-      "reviewedRoadSequence": "OH-152 → CR-11 + Piney Fork Rd / CR-11 → saved CERMAK GPS",
+      "reviewedRoadSequence": "OH-152 → CR-11 + Piney Fork Rd / CR-11 → CERMAK lease road → saved CERMAK GPS",
       "roadIdentityHook": [
         {
           "roadId": "c7610083-6ce1-495c-ba46-7da6f84ce003",
@@ -1011,7 +1011,7 @@
           "roadId": "c7610083-6ce1-495c-ba46-7da6f84ce003"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to CERMAK's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to CERMAK's exact saved GPS. The final saved-pin connector is displayed as CERMAK lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.244707,
         "longitude": -80.807728,
@@ -1045,9 +1045,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "US-22 → CR-26",
       "title": "Navigate named-road handoff",
-      "detail": "US-22 → CR-26 → saved GPS",
+      "detail": "US-22 → CR-26 → COLLINS lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.349789%2C-80.809605&waypoints=40.342349%2C-80.813317",
-      "reviewedRoadSequence": "US-22 → CR-26 → saved COLLINS GPS",
+      "reviewedRoadSequence": "US-22 → CR-26 → COLLINS lease road → saved COLLINS GPS",
       "roadIdentityHook": [
         {
           "roadId": "b33268d1-19e2-4d9f-9d0f-70e96332ef95",
@@ -1062,7 +1062,7 @@
           "roadId": "b33268d1-19e2-4d9f-9d0f-70e96332ef95"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to COLLINS's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to COLLINS's exact saved GPS. The final saved-pin connector is displayed as COLLINS lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.349789,
         "longitude": -80.809605,
@@ -1096,9 +1096,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "OH-1 → Northwest On East Market St → 1st Cross St → Main St → US-22 / East/cadiz-steubenville Rd → OH-151 / Mill St → OH-152 / South/main St → OH-150 → Dry Fork Rd → OR → OH-1 → US-40 → OH-149 → Main St → Wheeling St → OH-519 / East/stumptown Rd → US-250 → OH-150 → Union St → Concord St → Dry Fork Rd → TR-118",
       "title": "Navigate named-road handoff",
-      "detail": "OH-150 → Dry Fork Rd / CR-8 → saved GPS",
+      "detail": "OH-150 → Dry Fork Rd / CR-8 → FERGUSON lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.234358%2C-80.779074&waypoints=40.231849517%2C-80.782699349",
-      "reviewedRoadSequence": "OH-150 → Dry Fork Rd / CR-8 → saved FERGUSON GPS",
+      "reviewedRoadSequence": "OH-150 → Dry Fork Rd / CR-8 → FERGUSON lease road → saved FERGUSON GPS",
       "roadIdentityHook": [
         {
           "roadId": "2d36868a-bb33-451e-943f-a146d8db1734",
@@ -1113,7 +1113,7 @@
           "roadId": "2d36868a-bb33-451e-943f-a146d8db1734"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to FERGUSON's exact saved GPS. TR-118 and any final lease/access remain unapproved and are not claimed by this hook. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to FERGUSON's exact saved GPS. TR-118 and any final lease/access remain unapproved and are not claimed by this hook. The final saved-pin connector is displayed as FERGUSON lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.234358,
         "longitude": -80.779074,
@@ -1147,9 +1147,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "US-22 → CR-23 → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "US-22 → CR-23 / CR-23 → saved GPS",
+      "detail": "US-22 → CR-23 / CR-23 → GRISWOLD lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.31714%2C-80.801752&waypoints=40.329162%2C-80.805422",
-      "reviewedRoadSequence": "US-22 → CR-23 / CR-23 → saved GRISWOLD GPS",
+      "reviewedRoadSequence": "US-22 → CR-23 / CR-23 → GRISWOLD lease road → saved GRISWOLD GPS",
       "roadIdentityHook": [
         {
           "roadId": "96ceebd4-0dc3-4bf9-95b1-b83e99933da8",
@@ -1164,7 +1164,7 @@
           "roadId": "96ceebd4-0dc3-4bf9-95b1-b83e99933da8"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to GRISWOLD's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to GRISWOLD's exact saved GPS. The final saved-pin connector is displayed as GRISWOLD lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.31714,
         "longitude": -80.801752,
@@ -1198,9 +1198,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "Cadiz East On St → OH-150 → CR-6 → Lease Road → OR → Bridgeport West On St → OH-150 → CR-6 → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-150 → CR-6 / CR-6 → saved GPS",
+      "detail": "OH-150 → CR-6 / CR-6 → GRYWALSKI lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.201238%2C-80.829907&waypoints=40.199234358%2C-80.835523397",
-      "reviewedRoadSequence": "OH-150 → CR-6 / CR-6 → saved GRYWALSKI GPS",
+      "reviewedRoadSequence": "OH-150 → CR-6 / CR-6 → GRYWALSKI lease road → saved GRYWALSKI GPS",
       "roadIdentityHook": [
         {
           "roadId": "5a6fe603-66e1-400b-85d7-ce99da3edbed",
@@ -1215,7 +1215,7 @@
           "roadId": "5a6fe603-66e1-400b-85d7-ce99da3edbed"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to GRYWALSKI's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to GRYWALSKI's exact saved GPS. The final saved-pin connector is displayed as GRYWALSKI lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.201238,
         "longitude": -80.829907,
@@ -1249,9 +1249,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "US-22 → CR-23 → CR-26 → OH-26 → CR-33 → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-26 → CR-33 / CR-33 → saved GPS",
+      "detail": "OH-26 → CR-33 / CR-33 → NOELLE lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.362018%2C-80.716719&waypoints=40.3615878%2C-80.7120815",
-      "reviewedRoadSequence": "OH-26 → CR-33 / CR-33 → saved NOELLE GPS",
+      "reviewedRoadSequence": "OH-26 → CR-33 / CR-33 → NOELLE lease road → saved NOELLE GPS",
       "roadIdentityHook": [
         {
           "roadId": "598f7cf0-b64b-4c6d-aafc-61935b5cf60a",
@@ -1266,7 +1266,7 @@
           "roadId": "598f7cf0-b64b-4c6d-aafc-61935b5cf60a"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to NOELLE's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to NOELLE's exact saved GPS. The final saved-pin connector is displayed as NOELLE lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.362018,
         "longitude": -80.716719,
@@ -1300,9 +1300,9 @@
       "county": "Jefferson",
       "structuredRoadSequence": "US-22 → CR-23 → CR-26 → Pad",
       "title": "Navigate named-road handoff",
-      "detail": "US-22 → CR-23 / CR-23 → CR-26 → saved GPS",
+      "detail": "US-22 → CR-23 / CR-23 → CR-26 → PUGGLE lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.318098%2C-80.774283&waypoints=40.341887%2C-80.815764%7C40.340191%2C-80.795637",
-      "reviewedRoadSequence": "US-22 → CR-23 / CR-23 → CR-26 → saved PUGGLE GPS",
+      "reviewedRoadSequence": "US-22 → CR-23 / CR-23 → CR-26 → PUGGLE lease road → saved PUGGLE GPS",
       "roadIdentityHook": [
         {
           "roadId": "96ceebd4-0dc3-4bf9-95b1-b83e99933da8",
@@ -1327,7 +1327,7 @@
           "roadId": "b33268d1-19e2-4d9f-9d0f-70e96332ef95"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to PUGGLE's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Jefferson Road Manager identities in the written/reviewed order to PUGGLE's exact saved GPS. The final saved-pin connector is displayed as PUGGLE lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 40.318098,
         "longitude": -80.774283,
@@ -1365,9 +1365,9 @@
       "county": "Noble",
       "structuredRoadSequence": "I-77 → OH-215 → OH-147 → CR-25 → Pad",
       "title": "Navigate named-road handoff",
-      "detail": "OH-147 → CR-25 → saved GPS",
+      "detail": "OH-147 → CR-25 → BILLY SHERMAN lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.850171%2C-81.398778&waypoints=39.84881%2C-81.407812",
-      "reviewedRoadSequence": "OH-147 → CR-25 → saved BILLY SHERMAN GPS",
+      "reviewedRoadSequence": "OH-147 → CR-25 → BILLY SHERMAN lease road → saved BILLY SHERMAN GPS",
       "roadIdentityHook": [
         {
           "roadId": "6fac3299-89f3-4c9c-910c-e0c583c67266",
@@ -1382,7 +1382,7 @@
           "roadId": "6fac3299-89f3-4c9c-910c-e0c583c67266"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Noble Road Manager identities in the written/reviewed order to BILLY SHERMAN's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Noble Road Manager identities in the written/reviewed order to BILLY SHERMAN's exact saved GPS. The final saved-pin connector is displayed as BILLY SHERMAN lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 39.850171,
         "longitude": -81.398778,
@@ -1416,9 +1416,9 @@
       "county": "Noble",
       "structuredRoadSequence": "I-77S → OH-821 → OH-215 → OH-146 → Cowgill Rd → Donald Franklin Rd → Lease Road",
       "title": "Navigate named-road handoff",
-      "detail": "OH-146 → Cowgill Rd / CR-4 → Donald Franklin Rd / TR-215 → saved GPS",
+      "detail": "OH-146 → Cowgill Rd / CR-4 → Donald Franklin Rd / TR-215 → VAULT lease road → saved GPS",
       "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.811778%2C-81.400909&waypoints=39.822623%2C-81.406897%7C39.815439%2C-81.400421",
-      "reviewedRoadSequence": "OH-146 → Cowgill Rd / CR-4 → Donald Franklin Rd / TR-215 → saved VAULT GPS",
+      "reviewedRoadSequence": "OH-146 → Cowgill Rd / CR-4 → Donald Franklin Rd / TR-215 → VAULT lease road → saved VAULT GPS",
       "roadIdentityHook": [
         {
           "roadId": "bc613553-15e3-4888-a79f-1818567b7f78",
@@ -1443,7 +1443,7 @@
           "roadId": "9c1f0401-a8ee-4e42-ae5e-0fb8ab941f0d"
         }
       ],
-      "finalLegNotice": "This handoff binds only the existing exact Noble Road Manager identities in the written/reviewed order to VAULT's exact saved GPS. Any final unnamed lease/access remains unapproved. It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.",
+      "finalLegNotice": "This handoff binds only the existing exact Noble Road Manager identities in the written/reviewed order to VAULT's exact saved GPS. The final saved-pin connector is displayed as VAULT lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
       "trustedDestination": {
         "latitude": 39.811778,
         "longitude": -81.400909,
@@ -1469,11 +1469,10 @@
           "longitude": -81.400421
         }
       ]
-    }
-  ],
-  "holds": [
+    },
     {
       "padId": "ce5d219e-1d2c-47c8-b921-3f2abfe45c5d",
+      "canonicalId": "ce5d219e-1d2c-47c8-b921-3f2abfe45c5d",
       "legacyId": "ascent--vannelle",
       "recordRevision": "1786258360881449",
       "company": "Ascent",
@@ -1481,15 +1480,47 @@
       "state": "Ohio",
       "county": "Belmont",
       "structuredRoadSequence": "I-70 → Exit 216 → OH-9 → Shepherdstown Rd → Pad → OR → OH-9 → Shepherdstown Rd → Pad → OR → OH-149 → OH-9 → Shepherdstown Rd → Pad",
+      "title": "Navigate named-road handoff",
+      "detail": "OH-9 → VANNELLE lease road → saved GPS",
+      "routeUrl": "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.14744%2C-80.961696&waypoints=40.147784%2C-80.959671",
+      "reviewedRoadSequence": "OH-9 → VANNELLE lease road → saved VANNELLE GPS",
+      "roadIdentityHook": [
+        {
+          "roadId": "52b08bc7-9b54-4b8d-a833-f903fc298f7b",
+          "county": "Belmont",
+          "roadName": "OH-9",
+          "routeNumber": "OH-9"
+        }
+      ],
+      "identitySequence": [
+        {
+          "writtenRoadName": "OH-9",
+          "roadId": "52b08bc7-9b54-4b8d-a833-f903fc298f7b"
+        }
+      ],
+      "finalLegNotice": "This handoff binds only the existing exact Belmont Road Manager identities in the written/reviewed order to VANNELLE's exact saved GPS. The final saved-pin connector is displayed as VANNELLE lease road. That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.",
+      "trustedDestination": {
+        "latitude": 40.14744,
+        "longitude": -80.961696,
+        "source": "saved_pad_gps"
+      },
       "directoryDestination": {
         "gpsSource": "saved",
         "coordinateRole": "saved pad reference",
         "latitude": 40.14744,
         "longitude": -80.961696
       },
-      "disposition": "GPS_ONLY",
-      "reason": "Documented Shepherdstown control made Google enter Shepherdstown Road briefly, return to OH-9, and then reach the saved pin. No different ordered control is proved, so the named-road hook remains fail-closed.",
-      "evidenceSource": "docs/issue97-ascent-reviewed-handoff-batch8-20260828.md"
+      "routeDestination": {
+        "latitude": 40.14744,
+        "longitude": -80.961696
+      },
+      "waypoints": [
+        {
+          "latitude": 40.147784,
+          "longitude": -80.959671
+        }
+      ]
     }
-  ]
+  ],
+  "holds": []
 }

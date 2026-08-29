@@ -1970,8 +1970,18 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
-  it("keeps VANNELLE on GPS-only navigation after the shared-corridor control backtracked", () => {
-    expect(reviewedNavigationCandidateForPad(vannelle())).toBeNull();
+  it("routes VANNELLE from the existing OH-9 endpoint over its pad-specific lease to the saved pin", () => {
+    const candidate = reviewedNavigationCandidateForPad(vannelle());
+    expect(candidate).toMatchObject({
+      padId: "ce5d219e-1d2c-47c8-b921-3f2abfe45c5d",
+      detail: "OH-9 → VANNELLE lease road → saved GPS",
+      reviewedRoadSequence: "OH-9 → VANNELLE lease road → saved VANNELLE GPS",
+    });
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("waypoints")).toBe("40.147784,-80.959671");
+    expect(url.searchParams.get("destination")).toBe("40.14744,-80.961696");
+    expect(candidate?.finalLegNotice).toMatch(/not a public-road identity/u);
   });
 
   it("returns WINSTON SMITH only for its exact record and three ordered local-road controls", () => {

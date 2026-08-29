@@ -100,10 +100,10 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("batch-2 adds twenty-five exact existing-identity bindings and holds VANNELLE fail-closed", () => {
+test("batch-2 adds twenty-six exact existing-identity bindings including VANNELLE via OH-9", () => {
   const padIds = existingIdentityBatch2PadIds();
-  assert.equal(padIds.length, 25);
-  assert.equal(new Set(padIds).size, 25);
+  assert.equal(padIds.length, 26);
+  assert.equal(new Set(padIds).size, 26);
   for (const padId of padIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing batch-2 binding for ${padId}`);
@@ -112,11 +112,10 @@ test("batch-2 adds twenty-five exact existing-identity bindings and holds VANNEL
     assert.doesNotMatch(explicitReceiptForPad(padId), /approved (?:lease|geometry|public Google)|State 1 release/iu);
   }
   const holds = existingIdentityBatch2Holds();
-  assert.equal(holds.length, 1);
-  assert.equal(holds[0].padName, "VANNELLE");
-  assert.equal(holds[0].disposition, "GPS_ONLY");
-  assert.match(holds[0].reason, /return to OH-9/u);
-  assert.equal(reviewedBindingForPad(holds[0].padId), null);
+  assert.equal(holds.length, 0);
+  const vannelle = reviewedBindingForPad("ce5d219e-1d2c-47c8-b921-3f2abfe45c5d");
+  assert.equal(vannelle?.padName, "VANNELLE");
+  assert.match(explicitReceiptForPad(vannelle.padId), /exact existing Road Manager identities/u);
 });
 
 test("all forty-six reviewed ledger states require every exact record and destination field", () => {

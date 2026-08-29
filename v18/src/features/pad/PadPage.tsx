@@ -437,16 +437,20 @@ export function AscentPadApproachDirections({ approach }: { approach: AscentPadA
     {approach.structuredRoadSequence && <p><strong>Saved road sequence · text only:</strong> {approach.structuredRoadSequence}</p>}
   </div>;
   return <section className="ascent-measured-approach" aria-label="Measured last-highway approach">
-    <header><div><strong>{approach.lastHighway?.displayRoad} → saved GPS</strong><small>{approach.start?.authority === "exact_highway_next_road_intersection" ? "Exact highway-road intersection start" : "Bounded candidate point on the last named highway · not an approved handoff"} · display only</small></div><span>{approach.directions.length} sections</span></header>
+    <header><div><strong>{approach.lastHighway?.displayRoad} → saved GPS</strong><small>{approach.start?.authority === "exact_highway_next_road_intersection" ? "Exact highway-road intersection start" : "Bounded candidate point on the last named highway · not an approved handoff"} · display only</small></div><span>{approach.directions.length + (approach.gpsTether?.nontrivial ? 1 : 0)} sections</span></header>
     <ol className="route-step-list ascent-approach-step-list">{approach.directions.map((direction) => <li key={direction.directionOrder} className={`route-step${direction.authority !== "named_public_road" ? " is-unapproved" : ""}`}>
       <span className="step-number">{direction.directionOrder}</span>
       <div><strong>{direction.displayName}</strong><p>{direction.instruction}</p><div className="designation-row"><b>{ascentPadApproachDirectionAuthorityLabel(direction)}</b></div></div>
       {direction.distanceMiles !== null && <small>{direction.distanceMiles.toFixed(2)} mi</small>}
-    </li>)}</ol>
+    </li>)}{approach.gpsTether?.nontrivial && <li className="route-step">
+      <span className="step-number">{approach.directions.length + 1}</span>
+      <div><strong>{approach.padName} lease road</strong><p>Continue on {approach.padName} lease road to the saved GPS</p><div className="designation-row"><b>Pad-specific lease · solid teal</b></div></div>
+      <small>{approach.gpsTether.distanceMiles.toFixed(2)} mi</small>
+    </li>}</ol>
     <footer>
       <strong>Measured road sections: {approach.mileage.roadDistanceMiles?.toFixed(2)} mi</strong>
-      <span>{approach.gpsTether?.nontrivial ? "No total-to-GPS mileage is shown." : "Road-section total only."} The separate straight GPS tether ({approach.gpsTether?.distanceMiles.toFixed(2)} mi) is not road geometry and is excluded.</span>
-      <small>Solid teal stops permanently at the first identity mismatch. Everything after that point stays visible as a solid neutral, unapproved line; genuinely unnamed and unverified sections are labeled separately.</small>
+      <span>{approach.gpsTether?.nontrivial ? `The separate ${approach.padName} lease road connector (${approach.gpsTether.distanceMiles.toFixed(2)} mi) is shown in teal to the saved pin and is excluded from the public-road mileage total.` : "Road-section total only."}</span>
+      <small>A pad-specific lease label is not a Road Manager public-road identity and cannot be reused for another pad. Other genuinely unresolved sections stay solid neutral.</small>
     </footer>
   </section>;
 }

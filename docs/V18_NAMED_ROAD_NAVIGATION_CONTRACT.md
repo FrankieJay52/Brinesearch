@@ -36,12 +36,11 @@ Banjo and Pickens named-road handoffs. Each passes or fails by the same test.
 ## Map display
 
 V18 may highlight the reviewed directed named roads so the map is useful to the
-driver. Solid teal stops at the final routable named-road point or at the saved
-GPS when the routable network reaches it. When the frozen GPS is beyond that
-point, an optional thin solid neutral segment with authority
-`unapproved_gps_tether` may connect the routable endpoint to the GPS. That tether
-does not claim a road, road name, lease shape, or approval. A label may list the
-reviewed road names but must not call the display a State-1 graph release.
+driver. Solid teal follows the reviewed public roads and continues over the
+existing stored final connector to the saved GPS. That terminal connector is
+labeled `<PAD NAME> lease road` and is teal to the pad pin. The lease label is
+pad-specific: it is not a Road Manager public-road identity, cannot be shared
+with another pad, and does not create State-1 or public-Google authority.
 
 Every supplied, separately reviewed named-road geometry feature is highlighted
 in teal, including when graph, State-1, or public-Google authority remains held.
@@ -58,8 +57,9 @@ prose, fuzzy matching, a nearby line, or a whole-road name match.
 
 For the current frozen batch, exact ordered road-step comparison leaves 31 of
 the 45 reconstructed handoffs solid through their routable endpoint. Thirteen
-stop solid teal at the first unreviewed or unnamed step and continue only as a
-solid neutral GPS tether. BEETLE's public router returned a different-road
+stop public-road teal at the first unreviewed or unnamed step; their stored final
+connectors are separately projected as pad-specific teal lease roads to the pin.
+BEETLE's public router returned a different-road
 loop before any reviewed step, so it fails closed with no visible false-teal
 candidate route. These outcomes keep all 55 records
 inspectable without coloring an unreviewed road teal.
@@ -106,18 +106,18 @@ unanchored master-road matching fails closed. The bounded nearest-highway start
 mode does not select a road by proximity: it may choose a point only on the
 already exact-`roadId` highway, after the same 25-air-mile relevance gate.
 
-Teal is limited to the ordered prefix whose routed step names match the exact
+Public-road teal is limited to the ordered prefix whose routed step names match the exact
 stored road identity or one of its exact aliases. At the first name mismatch,
 missing identity, private or lease step, or other unreviewed movement, solid
 teal stops. Any remaining routed movement stays visible as a solid neutral,
 unapproved access line. A genuinely unnamed first mismatch is labeled
 `Unnamed / unapproved access`; a named identity mismatch and every later
 unverified section are labeled `Unverified / unapproved access`. No routed
-road name is exposed as verified, and teal cannot restart farther along the
-approach. A separate straight road-end-to-GPS tether, when needed to show the
-frozen destination, is also solid neutral and unapproved. That straight
-tether is display context only and is **excluded from all routed-section and
-approach mileage**.
+road name is exposed as verified, and public-road teal cannot restart farther
+along the approach. A separate existing road-end-to-GPS connector, when present,
+is displayed as `<PAD NAME> lease road` in solid teal to the frozen destination.
+That lease role is distinct from public-road authority, cannot be borrowed by a
+different pad, and is **excluded from all routed-section and approach mileage**.
 
 An immutable graph-evidence receipt may subdivide that same preserved routed
 line by exact authoritative road identity. Each exact graph run keeps its graph
@@ -186,9 +186,9 @@ entry remains brightest.
 
 For the exact frozen BANNOCK record, the field display uses two direction
 colors. Solid teal shows the routable arrival from OH-331 along Lafferty-Bannock
-Road / CR-10 to the road projection beside the saved BANNOCK GPS. Its optional
-thin solid neutral `unapproved_gps_tether` reaches the frozen GPS without naming or
-approving a road. Red shows the
+Road / CR-10 to the road projection beside the saved BANNOCK GPS. Its stored
+final connector reaches the frozen GPS in teal as `BANNOCK lease road`; that
+pad-specific label is not a reusable public-road identity. Red shows the
 exit reference from that same road projection along the remaining
 Lafferty-Bannock / CR-10 chain and Black Oak Road to OH-149. Red is not a
 restriction or closure. The destination marker remains at the exact saved GPS.

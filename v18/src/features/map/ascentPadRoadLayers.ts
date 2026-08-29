@@ -38,7 +38,16 @@ const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"];
 function displayLines(display: AscentPadRoadLayerDisplay) {
   return "lines" in display
     ? display.lines
-    : [display.arrival, display.gpsLeg, display.redContinuation].filter((line) => line !== null);
+    : [
+        display.arrival,
+        ...(display.gpsLeg ? [{
+          type: "LineString" as const,
+          colorRole: "teal" as const,
+          label: `${display.padName} lease road`,
+          coordinates: display.gpsLeg.coordinates,
+        }] : []),
+        display.redContinuation,
+      ].filter((line) => line !== null);
 }
 
 export function ascentPadRoadCollection(displays: readonly AscentPadRoadLayerDisplay[]) {

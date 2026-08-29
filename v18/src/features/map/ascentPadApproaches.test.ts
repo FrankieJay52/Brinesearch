@@ -98,19 +98,42 @@ describe("Ascent last-highway approach runtime catalog", () => {
     expect(bound.some((record) => record.padId === pads[0].padId)).toBe(false);
   });
 
-  it("keeps all 111 successful routed displays visible as compact solid teal/neutral runs", () => {
+  it("keeps all 111 successful routed displays visible with named, lease, and unresolved roles", () => {
     const catalog = parseAscentPadApproachArtifact(artifactJson);
     const displays = ascentPadApproachMapDisplays(catalog.records);
     expect(displays).toHaveLength(111);
     expect(displays.some((display) => display.lines.some((line) => line.colorRole === "teal"))).toBe(true);
-    expect(displays.some((display) => !display.lines.some((line) => line.colorRole === "teal"))).toBe(true);
-    expect(displays.every((display) => display.lines.length <= 3)).toBe(true);
+    expect(displays.every((display) => display.lines.some((line) => line.colorRole === "teal"))).toBe(true);
+    expect(displays.every((display) => display.lines.length <= 4)).toBe(true);
     for (const display of displays) {
       expect(display.lines.every((line) => line.coordinates.length >= 2)).toBe(true);
       expect(display.lines.every((line) => (
-        line.colorRole === "teal" || line.colorRole === "unverified" || line.colorRole === "gps"
+        line.colorRole === "teal" || line.colorRole === "unverified"
+      ))).toBe(true);
+      expect(display.lines.every((line) => (
+        line.lineRole === "named_public_road"
+        || line.lineRole === "pad_lease_road"
+        || line.lineRole === "unverified_access"
       ))).toBe(true);
     }
+  });
+
+  it("shows VANNELLE's existing OH-9 section and final connector as teal, with no Shepherdstown backtrack", () => {
+    const record = parseAscentPadApproachArtifact(artifactJson).records
+      .find((candidate) => candidate.padName === "VANNELLE");
+    expect(record).toBeDefined();
+    const display = ascentPadApproachMapDisplay(record!);
+    expect(display?.lines.some((line) => (
+      line.colorRole === "teal" && line.lineRole === "named_public_road" && line.label.includes("OH-9")
+    ))).toBe(true);
+    expect(display?.lines.some((line) => (
+      line.colorRole === "teal"
+      && line.lineRole === "pad_lease_road"
+      && line.label === "VANNELLE lease road"
+      && line.coordinates.at(-1)?.[0] === -80.961696
+      && line.coordinates.at(-1)?.[1] === 40.14744
+    ))).toBe(true);
+    expect(display?.lines.some((line) => line.colorRole === "unverified")).toBe(false);
   });
 
   it("labels graph-named and unresolved runs truthfully while keeping every visible line solid", () => {
@@ -237,7 +260,8 @@ describe("Ascent last-highway approach runtime catalog", () => {
     ))).toBe(true);
 
     const display = parsed ? ascentPadApproachMapDisplay(parsed) : null;
-    expect(display?.lines.some((line) => line.colorRole === "teal")).toBe(false);
+    expect(display?.lines.some((line) => line.lineRole === "named_public_road")).toBe(false);
+    expect(display?.lines.some((line) => line.lineRole === "pad_lease_road")).toBe(true);
     expect(display?.lines.some((line) => line.colorRole === "unverified")).toBe(true);
     expect(display?.lines.every((line) => line.coordinates.length >= 2)).toBe(true);
   });

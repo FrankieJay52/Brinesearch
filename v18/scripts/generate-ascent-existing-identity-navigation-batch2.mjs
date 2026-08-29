@@ -208,9 +208,19 @@ const specifications = [
       road(["Donald Franklin Rd"], "9c1f0401-a8ee-4e42-ae5e-0fb8ab941f0d", "Donald Franklin Rd", "TR-215", 39.815439, -81.400421),
     ],
   },
+  {
+    padName: "VANNELLE",
+    anchor: "OH-9",
+    roads: [
+      // Existing OH-9 endpoint at the visible pad-specific connector. The
+      // connector itself is named VANNELLE lease road below and is never
+      // registered as a reusable public-road identity.
+      road(["OH-9"], "52b08bc7-9b54-4b8d-a833-f903fc298f7b", "OH-9", "OH-9", 40.147784, -80.959671),
+    ],
+  },
 ];
 
-const heldPadNames = new Set(["VANNELLE"]);
+const heldPadNames = new Set();
 
 function buildUrl(destination, waypoints) {
   const parameters = new URLSearchParams({
@@ -245,8 +255,8 @@ function uniqueIdentities(roads, county) {
 async function render() {
   const source = JSON.parse(await readFile(sourcePath, "utf8"));
   const sourceByName = new Map(source.records.map((record) => [record.padName, record]));
-  assert.equal(specifications.length, 25);
-  assert.equal(new Set(specifications.map(({ padName }) => padName)).size, 25);
+  assert.equal(specifications.length, 26);
+  assert.equal(new Set(specifications.map(({ padName }) => padName)).size, 26);
 
   const records = specifications.map((specification) => {
     const sourceRecord = sourceByName.get(specification.padName);
@@ -270,7 +280,14 @@ async function render() {
     };
     const waypoints = specification.roads.map(({ control }) => control);
     const namedRoads = specification.roads.map(routeLabel);
-    const finalTail = specification.unapprovedTail || "Any final unnamed lease/access remains unapproved.";
+    const namedRoadsAfterAnchor = namedRoads[0]?.toLocaleUpperCase() === specification.anchor.toLocaleUpperCase()
+      ? namedRoads.slice(1)
+      : namedRoads;
+    const namedRoadCore = [specification.anchor, ...namedRoadsAfterAnchor].join(" → ");
+    const leaseRoadName = `${sourceRecord.padName} lease road`;
+    const finalTail = specification.unapprovedTail
+      ? `${specification.unapprovedTail} The final saved-pin connector is displayed as ${leaseRoadName}.`
+      : `The final saved-pin connector is displayed as ${leaseRoadName}.`;
 
     return {
       padId: sourceRecord.padId,
@@ -283,15 +300,15 @@ async function render() {
       county: sourceRecord.county,
       structuredRoadSequence: sourceRecord.structuredRoadSequence,
       title: "Navigate named-road handoff",
-      detail: `${specification.anchor} → ${namedRoads.join(" → ")} → saved GPS`,
+      detail: `${namedRoadCore} → ${leaseRoadName} → saved GPS`,
       routeUrl: buildUrl(destination, waypoints),
-      reviewedRoadSequence: `${specification.anchor} → ${namedRoads.join(" → ")} → saved ${sourceRecord.padName} GPS`,
+      reviewedRoadSequence: `${namedRoadCore} → ${leaseRoadName} → saved ${sourceRecord.padName} GPS`,
       roadIdentityHook: uniqueIdentities(specification.roads, sourceRecord.county),
       identitySequence: specification.roads.flatMap((entry) => entry.writtenRoadNames.map((writtenRoadName) => ({
         writtenRoadName,
         roadId: entry.roadId,
       }))),
-      finalLegNotice: `This handoff binds only the existing exact ${sourceRecord.county} Road Manager identities in the written/reviewed order to ${sourceRecord.padName}'s exact saved GPS. ${finalTail} It creates no road identity, geometry, teal authority, owner approval, State 1, graph release, or public Google route.`,
+      finalLegNotice: `This handoff binds only the existing exact ${sourceRecord.county} Road Manager identities in the written/reviewed order to ${sourceRecord.padName}'s exact saved GPS. ${finalTail} That pad-specific lease label is not a public-road identity and cannot be shared with another pad. This creates no new Road Manager identity, State 1 stamp, graph release, production write, or public Google route.`,
       trustedDestination: { ...destination, source: "saved_pad_gps" },
       directoryDestination: {
         gpsSource: "saved",

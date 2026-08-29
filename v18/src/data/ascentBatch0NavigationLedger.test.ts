@@ -4,7 +4,6 @@ import type { PadMapReferenceKind, PadSummary } from "./types";
 import { reviewedNavigationCandidateForPad } from "./reviewedNavigationCandidates";
 import {
   ascentExistingIdentityNavigationBatch2,
-  ascentExistingIdentityNavigationBatch2Holds,
 } from "./ascentExistingIdentityNavigationBatch2";
 import { buildFixedNavigationAction, type GoogleHandoffView } from "@/features/pad/PadPage";
 
@@ -108,14 +107,14 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     ]))).toEqual({
       "1": 1,
       "2": 8,
-      "3": 167,
+      "3": 166,
       reviewed_handoff_authority_held: 46,
-      reviewed_existing_identity_hook: 25,
+      reviewed_existing_identity_hook: 26,
     });
     expect(Object.fromEntries(["DONE", "GPS_ONLY"].map((status) => [
       status,
       ledger.filter((row) => row.driver_rule_status === status).length,
-    ]))).toEqual({ DONE: 80, GPS_ONLY: 167 });
+    ]))).toEqual({ DONE: 81, GPS_ONLY: 166 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
@@ -128,9 +127,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       .every((row) => row.blocker === "No reviewed named-road sequence; use the trusted GPS destination only.")).toBe(true);
   });
 
-  it("keeps all 167 pads without a passing named sequence GPS-only", () => {
+  it("keeps all 166 pads without a passing named sequence GPS-only", () => {
     const gpsOnly = ledger.filter((row) => row.driver_rule_status === "GPS_ONLY");
-    expect(gpsOnly).toHaveLength(167);
+    expect(gpsOnly).toHaveLength(166);
     for (const row of gpsOnly) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -146,16 +145,17 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("resolves the 25 exact existing-identity hooks without geometry or owner approval", () => {
+  it("resolves the 26 exact existing-identity hooks without owner approval or public identity creation", () => {
     const expectedIds = new Set(ascentExistingIdentityNavigationBatch2.map(({ padId }) => padId));
     const hooked = ledger.filter((row) => row.current_state === "reviewed_existing_identity_hook");
-    expect(hooked).toHaveLength(25);
+    expect(hooked).toHaveLength(26);
     expect(new Set(hooked.map(({ record_id }) => record_id))).toEqual(expectedIds);
     for (const row of hooked) {
       const candidate = reviewedNavigationCandidateForPad(padFromLedger(row));
       expect(candidate?.ownerApproval, row.name).toBeUndefined();
       expect(candidate?.roadIdentityHook?.length, row.name).toBeGreaterThanOrEqual(1);
-      expect(candidate?.finalLegNotice, row.name).toMatch(/creates no road identity, geometry, teal authority/u);
+      expect(candidate?.finalLegNotice, row.name).toContain(`${row.name} lease road`);
+      expect(candidate?.finalLegNotice, row.name).toMatch(/not a public-road identity and cannot be shared/u);
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("reviewed_route");
       const url = new URL(action.href!);
@@ -165,11 +165,15 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("keeps VANNELLE GPS-only because its recorded Shepherdstown control backtracks", () => {
-    const hold = ascentExistingIdentityNavigationBatch2Holds[0];
-    const row = ledger.find(({ record_id }) => record_id === hold.padId);
-    expect(row).toMatchObject({ name: "VANNELLE", current_state: "3", driver_rule_status: "GPS_ONLY" });
-    expect(reviewedNavigationCandidateForPad(padFromLedger(row!))).toBeNull();
+  it("hooks VANNELLE directly from existing OH-9 and excludes the old Shepherdstown backtrack", () => {
+    const row = ledger.find(({ name }) => name === "VANNELLE");
+    expect(row).toMatchObject({
+      current_state: "reviewed_existing_identity_hook",
+      driver_rule_status: "DONE",
+    });
+    const candidate = reviewedNavigationCandidateForPad(padFromLedger(row!));
+    expect(candidate?.reviewedRoadSequence).toBe("OH-9 → VANNELLE lease road → saved VANNELLE GPS");
+    expect(candidate?.reviewedRoadSequence).not.toMatch(/Shepherdstown/u);
   });
 
   it("resolves all forty-six exact-record reviewed handoffs without waiting on promotion state", () => {

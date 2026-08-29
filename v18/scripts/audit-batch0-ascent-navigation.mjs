@@ -17,11 +17,10 @@ const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Nob
 const existingIdentityBatch2 = JSON.parse(await readFile(existingIdentityBatch2Path, "utf8"));
 assert(existingIdentityBatch2.schemaVersion === 1, "Existing-identity batch-2 schema drifted");
 assert(existingIdentityBatch2.productionWrites === 0, "Existing-identity batch-2 artifact claims a production write");
-assert(Array.isArray(existingIdentityBatch2.records) && existingIdentityBatch2.records.length === 25,
-  "Existing-identity batch-2 must contain exactly 25 safe hooks");
-assert(Array.isArray(existingIdentityBatch2.holds) && existingIdentityBatch2.holds.length === 1
-  && existingIdentityBatch2.holds[0].padName === "VANNELLE",
-"Existing-identity batch-2 must keep the documented VANNELLE backtrack held");
+assert(Array.isArray(existingIdentityBatch2.records) && existingIdentityBatch2.records.length === 26,
+  "Existing-identity batch-2 must contain exactly 26 reviewed hooks");
+assert(Array.isArray(existingIdentityBatch2.holds) && existingIdentityBatch2.holds.length === 0,
+  "Existing-identity batch-2 must have no remaining held candidate");
 
 // These legacy state/blocker values are frozen promotion-audit provenance.
 // They do not grade or block the everyday one-rule Navigate action below.
@@ -1303,9 +1302,9 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
 - The ${driverStatuses.DONE || 0} named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining ${driverStatuses.GPS_ONLY || 0} pads have no passing named-road handoff yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them. VANNELLE remains in this group because its recorded Shepherdstown control backtracked to OH-9.
-- After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- The existing build-time Ascent display catalog remains scoped to its previously receipted 55 pads. These new existing-identity hooks add no geometry or teal; Navigate may exist without a display line. Solid teal remains governed only by already-receipted network geometry, and no GPS tether receives a road name or approval. BANNOCK's separately proved exit remains the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- The remaining ${driverStatuses.GPS_ONLY || 0} pads have no passing named-road handoff yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them. VANNELLE is DONE through the existing OH-9 endpoint and its pad-specific VANNELLE lease road to the saved GPS; the discarded Shepherdstown backtrack is not used.
+- After the last reviewed named public road, the existing stored connector to the destination pin is displayed in teal as \`<PAD NAME> lease road\`. That label is pad-specific display/navigation language, not a reusable public-road identity, and it cannot be shared with another pad.
+- The existing build-time Ascent display catalog remains scoped to its previously receipted 55 pads. Their stored final connectors and the final connectors on these reviewed hooks may display teal with the pad-specific lease label. No lease becomes a Road Manager identity or public-road approval. BANNOCK's separately proved exit remains the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
@@ -1442,12 +1441,12 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 167
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 166
     && stateCounts.reviewed_handoff_authority_held === 46
-    && stateCounts.reviewed_existing_identity_hook === 25,
+    && stateCounts.reviewed_existing_identity_hook === 26,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   const driverRuleCounts = countBy(ledger, "driver_rule_status");
-  assert(driverRuleCounts.DONE === 80 && driverRuleCounts.GPS_ONLY === 167,
+  assert(driverRuleCounts.DONE === 81 && driverRuleCounts.GPS_ONLY === 166,
     `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

@@ -12,7 +12,7 @@ const expectedNames = [
   "BETTS", "BILLY SHERMAN", "BLESSED", "BSA", "CERMAK", "COAD", "COLLINS", "COOK",
   "FERGUSON", "GRISWOLD", "GRYWALSKI", "J BARR J", "LEE", "MILLER", "MILLER FARMS",
   "NOELLE", "PUGGLE", "RICHLAND B", "SIDWELL", "SLABAUGH", "TARBERT", "TARPLEY",
-  "THREE DADS", "VAULT", "VIOLET",
+  "THREE DADS", "VANNELLE", "VAULT", "VIOLET",
 ].sort();
 
 const frozenPadIds = new Set([
@@ -57,10 +57,10 @@ function padFor(contract: ExistingIdentityNavigationContract | ExistingIdentityN
 }
 
 describe("Ascent existing-identity navigation batch 2", () => {
-  it("binds exactly the 25 safe records and none of the frozen pads", () => {
-    expect(ascentExistingIdentityNavigationBatch2).toHaveLength(25);
+  it("binds exactly the 26 reviewed records and none of the frozen pads", () => {
+    expect(ascentExistingIdentityNavigationBatch2).toHaveLength(26);
     expect(ascentExistingIdentityNavigationBatch2.map(({ padName }) => padName).sort()).toEqual(expectedNames);
-    expect(new Set(ascentExistingIdentityNavigationBatch2.map(({ padId }) => padId)).size).toBe(25);
+    expect(new Set(ascentExistingIdentityNavigationBatch2.map(({ padId }) => padId)).size).toBe(26);
     expect(ascentExistingIdentityNavigationBatch2.some(({ padId }) => frozenPadIds.has(padId))).toBe(false);
   });
 
@@ -98,8 +98,10 @@ describe("Ascent existing-identity navigation batch 2", () => {
         roadIdentityHook: contract.roadIdentityHook,
       });
       expect(candidate?.ownerApproval, contract.padName).toBeUndefined();
-      expect(candidate?.finalLegNotice, contract.padName).toMatch(/lease\/access remains unapproved|TR-118.*remain unapproved/u);
-      expect(candidate?.finalLegNotice, contract.padName).toMatch(/creates no road identity, geometry, teal authority/u);
+      expect(candidate?.reviewedRoadSequence, contract.padName).toContain(`${contract.padName} lease road`);
+      expect(candidate?.finalLegNotice, contract.padName).toContain(`${contract.padName} lease road`);
+      expect(candidate?.finalLegNotice, contract.padName).toMatch(/not a public-road identity/u);
+      expect(candidate?.finalLegNotice, contract.padName).toMatch(/creates no new Road Manager identity/u);
     }
   });
 
@@ -114,12 +116,22 @@ describe("Ascent existing-identity navigation batch 2", () => {
     }
   });
 
-  it("keeps VANNELLE GPS-only after the documented Shepherdstown backtrack", () => {
-    expect(ascentExistingIdentityNavigationBatch2Holds).toHaveLength(1);
-    const hold = ascentExistingIdentityNavigationBatch2Holds[0];
-    expect(hold).toMatchObject({ padName: "VANNELLE", disposition: "GPS_ONLY" });
-    expect(hold.reason).toMatch(/enter Shepherdstown Road briefly, return to OH-9/u);
-    expect(reviewedNavigationCandidateForPad(padFor(hold))).toBeNull();
+  it("uses the existing OH-9 endpoint then VANNELLE's pad-specific lease to the saved GPS", () => {
+    expect(ascentExistingIdentityNavigationBatch2Holds).toHaveLength(0);
+    const contract = ascentExistingIdentityNavigationBatch2.find(({ padName }) => padName === "VANNELLE");
+    expect(contract).toBeDefined();
+    expect(contract).toMatchObject({
+      detail: "OH-9 → VANNELLE lease road → saved GPS",
+      reviewedRoadSequence: "OH-9 → VANNELLE lease road → saved VANNELLE GPS",
+      waypoints: [{ latitude: 40.147784, longitude: -80.959671 }],
+      routeDestination: { latitude: 40.14744, longitude: -80.961696 },
+    });
+    expect(contract?.roadIdentityHook).toEqual([{
+      roadId: "52b08bc7-9b54-4b8d-a833-f903fc298f7b",
+      county: "Belmont",
+      roadName: "OH-9",
+      routeNumber: "OH-9",
+    }]);
+    expect(contract && reviewedNavigationCandidateForPad(padFor(contract))).toMatchObject({ padId: contract?.padId });
   });
 });
-
