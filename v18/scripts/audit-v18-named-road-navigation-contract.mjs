@@ -53,14 +53,14 @@ requireText(contract, "**55 pads**: **46 immutable reviewed\nGoogle handoffs** p
 requireText(contract, "One build-time display\ncatalog covers that whole set", "one build-time Ascent catalog");
 requireText(contract, "offline routed reconstruction through the frozen action\ndestination and ordered controls", "frozen-control offline reconstruction");
 requireText(contract, "`unapproved_gps_tether`", "unapproved GPS tether authority");
-requireText(contract, "thin neutral dashed segment", "neutral dashed GPS tether display");
+requireText(contract, "thin solid neutral segment", "solid neutral GPS tether display");
 requireText(contract, "All 55 catalog entries remain visible", "persistent all-55 Ascent display");
 requireText(contract, "Another company filter or disposal-only view hides\nthe Ascent catalog", "Ascent company/disposal filter boundary");
 requireText(contract, "makes no route-service call,\nperforms no coordinate hashing", "no browser routing or hashing");
 requireText(contract, "updates the existing source data and selection filter instead", "no ordinary layer rebuild");
 requireText(contract, "separate batch-2 catalog covers the **192 remaining Ascent pads**", "separate remaining-192 catalog");
 requireText(contract, "last Interstate, U.S., or\nstate highway whose **road identity** is exactly supported", "exact last-highway identity boundary");
-requireText(contract, "28 start at a stored exact highway-to-next-road intersection and 67\nstart at a build-time nearest-highway candidate", "exact-versus-candidate approach starts");
+requireText(contract, "32 start at a stored exact highway-to-next-road intersection and 79\nstart at a build-time nearest-highway candidate", "exact-versus-candidate approach starts");
 requireText(contract, "passed the bounded\n100-metre snap gate", "candidate highway-start distance gate");
 requireText(contract, "does\nnot assert or approve an intersection, handoff, road identity, or public route", "candidate start has no junction authority");
 requireText(contract, "exact\nmaster `roadId` of that record's last highway", "exact master highway roadId start binding");
@@ -70,14 +70,16 @@ requireText(contract, "does not select a road by proximity", "candidate start ca
 requireText(contract, "Every routed section stores its raw distance in metres", "raw routed-section metres");
 requireText(contract, "stored road identity or one of its exact aliases", "exact-alias teal boundary");
 requireText(contract, "At the first name mismatch", "first-mismatch permanent teal stop");
-requireText(contract, "generic dashed, unapproved\naccess line", "generic dashed unapproved remainder");
+requireText(contract, "remaining routed movement stays visible as a solid neutral,\nunapproved access line", "solid neutral unapproved remainder");
+requireText(contract, "`Unnamed / unapproved access`", "truthful unnamed remainder label");
+requireText(contract, "`Unverified / unapproved access`", "truthful unverified remainder label");
 requireText(contract, "excluded from all routed-section and\napproach mileage", "straight GPS tether mileage exclusion");
-requireText(contract, "record fails closed\nto the frozen destination pin", "pin-only fail-closed result");
-requireText(contract, "95 routed displays, 16 internally rejected\nrouting results, and 81 direct pin-only results", "batch-2 frozen result accounting");
-requireText(contract, "CENA, NOELLE, ROXY, SPORT, and TANNER", "five remote starts named as pin-only");
-requireText(contract, "farthest\ndisplayed start is 13.079406 air miles", "maximum retained display start distance");
-requireText(contract, "presentation-equivalent to pin-only", "rejected candidate presentation fail close");
-requireText(contract, "measured directions, and candidate mileage are stripped from the\nstatic artifact", "rejected candidate is stripped before runtime");
+requireText(contract, "or routing fails, the record fails closed to the frozen destination pin", "pin-only fail-closed result");
+requireText(contract, "111 routed displays, zero internally rejected\nsuccessful routes, and 81 direct pin-only results", "batch-2 frozen result accounting");
+requireText(contract, "CENA, NOELLE,\nROXY, SPORT, and TANNER", "five remote starts named as pin-only");
+requireText(contract, "farthest displayed start is\n14.306095 air miles", "maximum retained display start distance");
+requireText(contract, "other 16 successful routes are retained as\nsolid neutral with no teal authority", "successful no-receipt routes remain visible without approval");
+requireText(contract, "All 111 successful routed results keep\ntheir road geometry, measured sections, and mileage", "successful route geometry and mileage are preserved");
 requireText(contract, "are always teal and are never red", "Interstate, U.S., and state roads never red");
 requireText(contract, "DUKE remains teal because CRICKET is farther", "DUKE downstream-pad red hold");
 requireText(contract, "the only red\ncontinuation in this 55-pad catalog", "BANNOCK-only red continuation");
@@ -96,8 +98,8 @@ requireText(contract, "PROMOTE <PAD NAME> TO STATE 1", "explicit promotion trigg
 
 requireText(ownerPresentation, "not part of the 46 owner-approved\nGoogle handoffs or the 9 database releases", "batch-2 owner-authority separation");
 requireText(ownerPresentation, "covers the 192 remaining Ascent\nrecords", "owner presentation remaining-192 count");
-requireText(ownerPresentation, "28 start at a stored exact\nhighway-to-next-road intersection", "owner presentation exact-intersection count");
-requireText(ownerPresentation, "other 67 use a build-time\nnearest-highway candidate", "owner presentation candidate-start count");
+requireText(ownerPresentation, "32 start at a stored exact\nhighway-to-next-road intersection", "owner presentation exact-intersection count");
+requireText(ownerPresentation, "other 79 use a build-time\nnearest-highway candidate", "owner presentation candidate-start count");
 requireText(ownerPresentation, "not an approved or exact intersection", "owner presentation candidate authority boundary");
 requireText(ownerPresentation, "exact master `roadId` for the\nrecord's last highway", "owner presentation exact master roadId binding");
 requireText(ownerPresentation, "within 25 air miles of that pad's frozen GPS", "owner presentation spatial relevance gate");
@@ -105,14 +107,15 @@ requireText(ownerPresentation, "Fuzzy, nearest-road, name-only, and unanchored m
 requireText(ownerPresentation, "proximity cannot choose or create the road\nidentity", "owner presentation candidate proximity boundary");
 requireText(ownerPresentation, "Each routed section retains its raw distance in\nmetres", "owner presentation raw section metres");
 requireText(ownerPresentation, "exact road-identity or exact-alias-matched prefix may be solid teal", "owner presentation exact-alias teal prefix");
-requireText(ownerPresentation, "rest of the routed approach becomes one generic dashed", "owner presentation generic dashed suffix");
+requireText(ownerPresentation, "rest of the routed approach remains visible as solid neutral", "owner presentation solid neutral suffix");
+requireText(ownerPresentation, "named identity mismatches\nand later unverified sections are labeled `Unverified / unapproved access`", "owner presentation truthful mismatch label");
 requireText(ownerPresentation, "excluded from the section and total\napproach mileage", "owner presentation straight-tether mileage exclusion");
-requireText(ownerPresentation, "fails that record closed to\nits frozen pin", "owner presentation pin-only fail close");
-requireText(ownerPresentation, "95 routed displays, 16 internally rejected", "owner presentation batch-2 accounting");
-requireText(ownerPresentation, "CENA, NOELLE, ROXY, SPORT,\nand TANNER", "owner presentation five remote pin-only records");
-requireText(ownerPresentation, "farthest retained display\nstart is 13.079406 air miles", "owner presentation maximum retained start distance");
-requireText(ownerPresentation, "presentation-equivalent to pin-only", "owner presentation rejects candidate evidence");
-requireText(ownerPresentation, "and mileage are stripped from the fixed artifact", "owner presentation artifact-level evidence stripping");
+requireText(ownerPresentation, "stale record binding fails that record closed to its frozen pin", "owner presentation pin-only fail close");
+requireText(ownerPresentation, "111 routed displays, zero internally rejected\nsuccessful routes", "owner presentation batch-2 accounting");
+requireText(ownerPresentation, "CENA, NOELLE, ROXY, SPORT, and TANNER", "owner presentation five remote pin-only records");
+requireText(ownerPresentation, "farthest retained display start is 14.306095 air miles", "owner presentation maximum retained start distance");
+requireText(ownerPresentation, "16 successful no-receipt routes remain visible as solid\nneutral", "owner presentation retains no-receipt route geometry");
+requireText(ownerPresentation, "All 111 successful routed results retain their candidate start, road geometry", "owner presentation preserves successful route evidence");
 
 for (const error of auditAscentPadApproachesBatch2()) {
   errors.push(`Batch-2 approach: ${error}`);
@@ -134,8 +137,8 @@ requireText(pad, "The exact last-highway anchor was more than 25 air miles from 
 requireText(pad, 'aria-label="Measured last-highway approach"', "measured last-highway step presentation");
 requireText(pad, "Exact highway-road intersection start", "exact-intersection start label");
 requireText(pad, "Bounded candidate point on the last named highway · not an approved handoff", "candidate start is not presented as an exact handoff");
-requireText(pad, "Exact identity match · solid teal", "exact batch-2 step authority label");
-requireText(pad, "Unnamed / unapproved · dashed", "generic batch-2 step authority label");
+requireText(pad, "ascentPadApproachDirectionAuthorityLabel(direction)", "match-state batch-2 authority label projection");
+requireText(pad, "solid neutral, unapproved line", "solid neutral batch-2 presentation");
 requireText(pad, "Measured road sections:", "batch-2 routed-section mileage total");
 requireText(pad, "No total-to-GPS mileage is shown.", "batch-2 withheld GPS total");
 requireText(pad, "straight GPS tether", "batch-2 tether disclosure");
@@ -163,7 +166,7 @@ requireText(map, "Count: {visibleAscentPadRoadDisplays.length}", "accessible exa
 requireText(map, "loadAscentPadApproachesForDirectory(snapshot.rows)", "lazy remaining-192 directory load");
 requireText(map, "ascentPadApproachMapDisplays(ascentPadApproaches)", "batch-2 approach map-display resolver");
 requireText(map, "[...visibleAscentPadRoadDisplays, ...visibleAscentPadApproachDisplays]", "shared batch-1 and batch-2 native layer source");
-requireText(map, "only exact matched sections are solid teal and all unmatched access stays dashed and unapproved", "batch-2 map color boundary");
+requireText(map, "exact matched sections are solid teal and unresolved access stays visible as solid neutral/unapproved geometry", "batch-2 map color boundary");
 requireText(map, "Fail-closed and pin-only records add no line", "batch-2 map pin-only fail close");
 requireText(map, "Measured last-highway approach lines shown:", "accessible batch-2 approach count");
 requireText(map, "No approach line or measured mileage is shown because this record failed closed", "selected batch-2 fail-closed disclosure");
@@ -172,8 +175,8 @@ requireText(map, "No bounded highway start passed the identity and distance chec
 requireText(map, "The exact last-highway anchor was more than 25 air miles from the saved GPS.", "remote exact-master start fails closed on the map");
 requireText(map, "Reviewed Ascent named roads · solid teal", "solid teal reviewed-network legend");
 requireText(map, "Exact measured approach sections · solid teal", "solid teal measured exact-network legend");
-requireText(map, "GPS-only tether · thin dashed · never approved road", "neutral dashed GPS tether legend");
-requireText(map, "Thin dashed approach/access and GPS-tether lines are unapproved.", "GPS tether and unmatched-access authority disclosure");
+requireText(map, "GPS-only tether · thin solid neutral · not road geometry", "solid neutral GPS tether legend");
+requireText(map, "Solid neutral approach/access lines are unresolved and unapproved", "unresolved-access authority disclosure");
 requireText(map, "No red continuation is drawn:", "truthful missing-red explanation");
 requireText(map, "State and U.S. routes remain teal.", "selected-card state road color rule");
 requireText(map, "selected ? selectedPadFieldDirectionDisplayForPad(selected) : null", "exact selected BANNOCK field display guard");
@@ -215,7 +218,7 @@ if (JSON.stringify(bannockRoadDisplay.inbound?.coordinates?.at(-1)) !== JSON.str
 if (bannockRoadDisplay.noConnectorToGps !== true || bannockRoadDisplay.continuity?.gpsConnectorIncluded !== false) errors.push("BANNOCK field display includes or permits an invented GPS connector");
 
 requireText(ascentPadRoadDisplays, 'authority: "unapproved_gps_tether"', "Ascent GPS tether authority type");
-requireText(ascentPadRoadDisplays, 'lineStyle: "dashed"', "Ascent GPS tether dashed style type");
+requireText(ascentPadRoadDisplays, 'lineStyle: "solid"', "Ascent GPS tether solid style type");
 requireText(ascentPadRoadDisplays, "route.gpsLeg", "separate Ascent GPS tether validation");
 requireText(ascentPadRoadDisplays, "pad.structuredRoadSequence === display.structuredRoadSequence", "exact directory road-sequence binding");
 requireText(ascentPadRoadDisplays, "const directoryCoordinate = mapDisplayCoordinate(pad)", "exact directory coordinate selection");
@@ -226,9 +229,10 @@ requireText(ascentPadRoadDisplays, "proof.redGeometrySha256 === candidate.geomet
 requireText(ascentPadRoadDisplays, 'nextHighway.roadClass === "interstate" || nextHighway.roadClass === "us" || nextHighway.roadClass === "state"', "red must end at an Interstate, U.S., or state junction");
 requireText(ascentPadRoadLayers, 'const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"]', "Ascent teal role-only layer filter");
 requireText(ascentPadRoadLayers, 'const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"]', "Ascent neutral GPS role-only layer filter");
+requireText(ascentPadRoadLayers, 'const unverifiedFilter: FilterSpecification = ["==", ["get", "colorRole"], "unverified"]', "Ascent neutral unresolved-road role-only layer filter");
 requireText(ascentPadRoadLayers, 'paint: { "line-color": "#2dd4bf"', "Ascent teal arrival paint");
 requireText(ascentPadRoadLayers, "[display.arrival, display.gpsLeg, display.redContinuation]", "one shared all-55 teal/GPS/red source");
-requireText(ascentPadRoadLayers, '"line-dasharray"', "Ascent GPS tether dashed paint");
+forbid(ascentPadRoadLayers, /"line-dasharray"/u, "Ascent feature still paints a dotted or dashed line");
 requireText(ascentPadRoadLayers, "geoJsonSource.setData(data)", "Ascent catalog reuses its native source");
 requireText(ascentPadRoadLayers, "syncAscentPadRoadSelection(map, selectedPadId)", "Ascent selection updates existing layers");
 
@@ -249,7 +253,9 @@ requireText(ascentPadApproaches, "sections: presentationFailedClosed ? [] : sect
 requireText(ascentPadApproaches, "gpsTether: presentationFailedClosed ? null : gpsTether", "batch-2 rejected tether scrub");
 requireText(ascentPadApproaches, "directions: presentationFailedClosed ? [] : measuredDirections(sections)", "batch-2 rejected directions scrub");
 requireText(ascentPadApproaches, 'if (record.status !== "ROUTED_DISPLAY") return null', "batch-2 rejected map-line guard");
-requireText(ascentPadApproaches, 'colorRole: section.lineStyle === "solid" ? "teal" : "gps"', "batch-2 exact teal and generic dashed map split");
+requireText(ascentPadApproaches, 'colorRole: exact ? "teal" : "unverified"', "batch-2 exact teal and unresolved neutral map split");
+requireText(ascentPadApproaches, 'displayName: "Unverified / unapproved access"', "batch-2 truthful unverified label");
+requireText(ascentPadApproaches, 'displayName: "Unnamed / unapproved access"', "batch-2 truthful unnamed label");
 requireText(ascentPadApproaches, 'label: "Straight GPS tether · not road geometry"', "batch-2 straight tether map label");
 
 forbid(ascentPadRoadDisplays, /sha256|createHash|crypto\.subtle|TextEncoder/u, "Ascent browser runtime performs coordinate hashing");

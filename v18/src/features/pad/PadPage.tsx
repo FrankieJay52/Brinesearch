@@ -24,6 +24,7 @@ import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers
 import { PadMapPreview } from "./PadMapPreview";
 import { ownerGoogleVerifyDestination } from "@/features/owner-google-verify/ownerGoogleVerifyModel";
 import {
+  ascentPadApproachDirectionAuthorityLabel,
   loadAscentPadApproachForPad,
   type AscentPadApproachRecord,
 } from "@/features/map/ascentPadApproaches";
@@ -437,15 +438,15 @@ export function AscentPadApproachDirections({ approach }: { approach: AscentPadA
   </div>;
   return <section className="ascent-measured-approach" aria-label="Measured last-highway approach">
     <header><div><strong>{approach.lastHighway?.displayRoad} → saved GPS</strong><small>{approach.start?.authority === "exact_highway_next_road_intersection" ? "Exact highway-road intersection start" : "Bounded candidate point on the last named highway · not an approved handoff"} · display only</small></div><span>{approach.directions.length} sections</span></header>
-    <ol className="route-step-list ascent-approach-step-list">{approach.directions.map((direction) => <li key={direction.directionOrder} className={`route-step${direction.authority === "generic_unapproved_access" ? " is-unapproved" : ""}`}>
+    <ol className="route-step-list ascent-approach-step-list">{approach.directions.map((direction) => <li key={direction.directionOrder} className={`route-step${direction.authority !== "named_public_road" ? " is-unapproved" : ""}`}>
       <span className="step-number">{direction.directionOrder}</span>
-      <div><strong>{direction.displayName}</strong><p>{direction.instruction}</p><div className="designation-row"><b>{direction.authority === "named_public_road" ? "Exact identity match · solid teal" : "Unnamed / unapproved · dashed"}</b></div></div>
+      <div><strong>{direction.displayName}</strong><p>{direction.instruction}</p><div className="designation-row"><b>{ascentPadApproachDirectionAuthorityLabel(direction)}</b></div></div>
       {direction.distanceMiles !== null && <small>{direction.distanceMiles.toFixed(2)} mi</small>}
     </li>)}</ol>
     <footer>
       <strong>Measured road sections: {approach.mileage.roadDistanceMiles?.toFixed(2)} mi</strong>
       <span>{approach.gpsTether?.nontrivial ? "No total-to-GPS mileage is shown." : "Road-section total only."} The separate straight GPS tether ({approach.gpsTether?.distanceMiles.toFixed(2)} mi) is not road geometry and is excluded.</span>
-      <small>Solid teal stops permanently at the first identity mismatch. Everything after that point stays generic, dashed, and unapproved.</small>
+      <small>Solid teal stops permanently at the first identity mismatch. Everything after that point stays visible as a solid neutral, unapproved line; genuinely unnamed and unverified sections are labeled separately.</small>
     </footer>
   </section>;
 }

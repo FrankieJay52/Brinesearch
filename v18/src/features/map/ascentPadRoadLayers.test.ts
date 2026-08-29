@@ -14,6 +14,8 @@ import {
   ascentPadRoadSourceId,
   ascentPadRoadTealCasingLayerId,
   ascentPadRoadTealLineLayerId,
+  ascentPadRoadUnverifiedCasingLayerId,
+  ascentPadRoadUnverifiedLineLayerId,
   syncAscentPadRoadLayers,
 } from "./ascentPadRoadLayers";
 
@@ -46,8 +48,8 @@ const display: AscentPadRoadDisplay = {
     type: "LineString",
     colorRole: "gps",
     lineRole: "unapproved_gps_tether",
-    pattern: "dashed",
-    lineStyle: "dashed",
+    pattern: "solid",
+    lineStyle: "solid",
     authority: "unapproved_gps_tether",
     approvedRoad: false,
     navigationGeometry: false,
@@ -123,30 +125,32 @@ describe("Ascent native road-line layers", () => {
     });
   });
 
-  it("adds batch2 solid and dashed runs to the same native source", () => {
+  it("adds batch2 solid teal and neutral runs to the same native source", () => {
     const approach: AscentPadApproachMapDisplay = {
       kind: "batch2-approach",
       padId: "pad-2",
       company: "Ascent",
       lines: [
         { type: "LineString", colorRole: "teal", label: "OH-78", coordinates: [[-81.1, 40.1], [-81.11, 40.11]] },
-        { type: "LineString", colorRole: "gps", label: "Unnamed / unapproved access", coordinates: [[-81.11, 40.11], [-81.12, 40.12]] },
+        { type: "LineString", colorRole: "unverified", label: "Unverified / unapproved access", coordinates: [[-81.11, 40.11], [-81.12, 40.12]] },
       ],
     };
     const collection = ascentPadRoadCollection([display, approach]);
     expect(collection.features).toHaveLength(4);
     expect(collection.features.filter((feature) => feature.properties.padId === "pad-2")).toEqual([
       expect.objectContaining({ properties: expect.objectContaining({ colorRole: "teal", label: "OH-78" }) }),
-      expect.objectContaining({ properties: expect.objectContaining({ colorRole: "gps", label: "Unnamed / unapproved access" }) }),
+      expect.objectContaining({ properties: expect.objectContaining({ colorRole: "unverified", label: "Unverified / unapproved access" }) }),
     ]);
   });
 
-  it("keeps red, GPS, teal, and selected pairs in required paint order", () => {
+  it("keeps red, GPS, unverified, teal, and selected pairs in required paint order", () => {
     expect(ascentPadRoadLayerIdsInPaintOrder).toEqual([
       ascentPadRoadRedCasingLayerId,
       ascentPadRoadRedLineLayerId,
       ascentPadRoadGpsCasingLayerId,
       ascentPadRoadGpsLineLayerId,
+      ascentPadRoadUnverifiedCasingLayerId,
+      ascentPadRoadUnverifiedLineLayerId,
       ascentPadRoadTealCasingLayerId,
       ascentPadRoadTealLineLayerId,
       ascentPadRoadSelectedCasingLayerId,
@@ -154,7 +158,7 @@ describe("Ascent native road-line layers", () => {
     ]);
   });
 
-  it("draws GPS tethers as zoom-scaled neutral gray dashes", () => {
+  it("draws GPS tethers as zoom-scaled thin solid neutral lines", () => {
     const harness = mapHarness();
     expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
     const gpsLine = harness.layers.get(ascentPadRoadGpsLineLayerId) as {
@@ -163,11 +167,35 @@ describe("Ascent native road-line layers", () => {
     };
     expect(JSON.stringify(gpsLine.filter)).toContain("gps");
     expect(gpsLine.paint["line-color"]).toBe("#94a3b8");
-    expect(gpsLine.paint["line-dasharray"]).toEqual([1.15, 1.25]);
+    expect(gpsLine.paint).not.toHaveProperty("line-dasharray");
     expect(gpsLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
   });
 
-  it("updates a complete native source in place instead of rebuilding eight layers", () => {
+  it("draws unresolved approach sections as wider solid neutral lines", () => {
+    const harness = mapHarness();
+    const approach: AscentPadApproachMapDisplay = {
+      kind: "batch2-approach",
+      padId: "pad-2",
+      company: "Ascent",
+      lines: [{
+        type: "LineString",
+        colorRole: "unverified",
+        label: "Unverified / unapproved access",
+        coordinates: [[-81.11, 40.11], [-81.12, 40.12]],
+      }],
+    };
+    expect(syncAscentPadRoadLayers(harness.map, [approach], null)).toBe(true);
+    const unverifiedLine = harness.layers.get(ascentPadRoadUnverifiedLineLayerId) as {
+      filter: unknown;
+      paint: Record<string, unknown>;
+    };
+    expect(JSON.stringify(unverifiedLine.filter)).toContain("unverified");
+    expect(unverifiedLine.paint["line-color"]).toBe("#94a3b8");
+    expect(unverifiedLine.paint).not.toHaveProperty("line-dasharray");
+    expect(unverifiedLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
+  });
+
+  it("updates a complete native source in place instead of rebuilding its layers", () => {
     const harness = mapHarness();
     expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
     expect(harness.addSource).toHaveBeenCalledTimes(1);

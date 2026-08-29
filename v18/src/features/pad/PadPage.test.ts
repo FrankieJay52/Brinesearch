@@ -721,7 +721,9 @@ describe("V18 pad legacy route fallback", () => {
     const catalog = parseAscentPadApproachArtifact(approachArtifact);
     const approach = catalog.records.find((record) => record.status === "ROUTED_DISPLAY"
       && record.gpsTether?.nontrivial
-      && record.directions.some((direction) => direction.authority === "generic_unapproved_access"));
+      && record.directions.some((direction) => (
+        direction.displayName === "Unverified / unapproved access"
+      )));
     expect(approach).toBeDefined();
     const html = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: approach! }));
     expect(html).toContain("Measured last-highway approach");
@@ -729,24 +731,30 @@ describe("V18 pad legacy route fallback", () => {
       ? "Exact highway-road intersection start"
       : "Bounded candidate point on the last named highway · not an approved handoff");
     expect(html).toContain("Measured road sections:");
-    expect(html).toContain("Unnamed / unapproved access");
-    expect(html).toContain("Unnamed / unapproved · dashed");
+    expect(html).toContain("Unverified / unapproved access");
+    expect(html).toContain("Unverified / unapproved · solid neutral");
     expect(html).toContain("No total-to-GPS mileage is shown");
     expect(html).toContain("is not road geometry and is excluded");
     expect(html).not.toContain("Measured total to saved GPS");
+
+    const graphNamed = catalog.records.find((record) => record.status === "ROUTED_DISPLAY"
+      && record.directions.some((direction) => direction.authority === "graph_identified_unapproved"));
+    expect(graphNamed).toBeDefined();
+    const graphNamedHtml = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: graphNamed! }));
+    expect(graphNamedHtml).toContain("Graph-identified / unapproved · solid neutral");
+    expect(`${html}${graphNamedHtml}`).not.toContain("· dashed");
   });
 
-  it("renders routed-fail-closed and pin-only records as reason plus GPS pin only", () => {
+  it("renders current pin-only records as reason plus GPS pin only and retains every successful route", () => {
     const catalog = parseAscentPadApproachArtifact(approachArtifact);
-    for (const status of ["ROUTED_FAIL_CLOSED", "PIN_ONLY"] as const) {
-      const approach = catalog.records.find((record) => record.status === status);
-      expect(approach).toBeDefined();
-      const html = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: approach! }));
-      expect(html).toContain("GPS pin only");
-      expect(html).toContain("No candidate line, turn mileage, or route total is shown");
-      expect(html).not.toContain("route-step-list");
-      expect(html).not.toMatch(/\d+\.\d+ mi/);
-    }
+    expect(catalog.records.filter((record) => record.status === "ROUTED_FAIL_CLOSED")).toHaveLength(0);
+    const approach = catalog.records.find((record) => record.status === "PIN_ONLY");
+    expect(approach).toBeDefined();
+    const html = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: approach! }));
+    expect(html).toContain("GPS pin only");
+    expect(html).toContain("No candidate line, turn mileage, or route total is shown");
+    expect(html).not.toContain("route-step-list");
+    expect(html).not.toMatch(/\d+\.\d+ mi/);
   });
 
   it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {

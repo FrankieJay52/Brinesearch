@@ -21,8 +21,8 @@ export interface AscentPadRoadArrival extends AscentPadRoadLineString<"teal"> {
 }
 
 export interface AscentPadGpsLeg extends AscentPadRoadLineString<"gps"> {
-  pattern: "dashed";
-  lineStyle: "dashed";
+  pattern: "solid";
+  lineStyle: "solid";
   lineRole: "unapproved_gps_tether";
   authority: "unapproved_gps_tether";
   approvedRoad: false;
@@ -163,7 +163,11 @@ export function ascentRedContinuationIsEligible(
 function batchHeaderIsValid() {
   const rules = object(artifact.rules);
   const summary = object(artifact.summary);
-  return artifact.schemaVersion === 2
+  const presentationRulesAreValid = artifact.schemaVersion === 2
+    ? rules.gpsLegIsSeparateDashedUnapprovedTether === true
+    : artifact.schemaVersion === 3
+      && rules.gpsLegIsSeparateSolidNeutralUnapprovedTether === true;
+  return (artifact.schemaVersion === 2 || artifact.schemaVersion === 3)
     && artifact.batchId === "ascent-gps-road-lines-20260829-all55"
     && artifact.displayScope === "persistent-main-map-all-and-ascent"
     && nonemptyText(artifact.displayAuthority)
@@ -172,7 +176,7 @@ function batchHeaderIsValid() {
     && rules.staticSolidGeometryUsesOrderedExactIdentityAllowlist === true
     && rules.staticSolidGeometryStopsAtFirstUnreviewedStep === true
     && rules.divergentStaticRouteFailsClosed === true
-    && rules.gpsLegIsSeparateDashedUnapprovedTether === true
+    && presentationRulesAreValid
     && rules.noSyntheticRoadConnector === true
     && rules.redContinuationRequiresExactNoDownstreamPadProof === true
     && rules.interstateUsAndStateRoutesNeverRed === true
@@ -218,11 +222,12 @@ function validGpsLeg(
   destination: AscentPadRoadCoordinate,
 ): AscentPadGpsLeg | null {
   const line = object(value);
+  const artifactLineStyle = artifact.schemaVersion === 2 ? "dashed" : "solid";
   if (line.type !== "LineString"
     || line.colorRole !== "gps"
     || line.lineRole !== "unapproved_gps_tether"
-    || line.pattern !== "dashed"
-    || line.lineStyle !== "dashed"
+    || line.pattern !== artifactLineStyle
+    || line.lineStyle !== artifactLineStyle
     || line.authority !== "unapproved_gps_tether"
     || line.approvedRoad !== false
     || line.navigationGeometry !== false
@@ -235,8 +240,11 @@ function validGpsLeg(
     type: "LineString",
     colorRole: "gps",
     lineRole: "unapproved_gps_tether",
-    pattern: "dashed",
-    lineStyle: "dashed",
+    // The frozen schema-2 artifact used a dashed tether. Keep its exact
+    // coordinates and non-road authority while projecting a solid neutral
+    // presentation at runtime.
+    pattern: "solid",
+    lineStyle: "solid",
     authority: "unapproved_gps_tether",
     approvedRoad: false,
     navigationGeometry: false,

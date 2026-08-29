@@ -90,7 +90,7 @@ describe("Ascent reviewed all-55 road-line artifact", () => {
     expect(display?.savedPin).not.toEqual(display?.directoryCoordinate);
   });
 
-  it("keeps solid network geometry separate from dashed unapproved GPS tethers", () => {
+  it("keeps solid network geometry separate from thin solid unapproved GPS tethers", () => {
     const displays = ascentPadRoadDisplaysForDirectory(routes.map((route) => padForRoute(route)));
     expect(displays.every((display) => display.arrival.colorRole === "teal"
       && display.arrival.pattern === "solid")).toBe(true);
@@ -98,7 +98,8 @@ describe("Ascent reviewed all-55 road-line artifact", () => {
     for (const display of displays) {
       if (display.gpsLeg) {
         expect(display.gpsLeg.colorRole).toBe("gps");
-        expect(display.gpsLeg.lineStyle).toBe("dashed");
+        expect(display.gpsLeg.lineStyle).toBe("solid");
+        expect(display.gpsLeg.pattern).toBe("solid");
         expect(display.gpsLeg.authority).toBe("unapproved_gps_tether");
         expect(display.gpsLeg.navigationGeometry).toBe(false);
         expect(display.gpsLeg.coordinates[0]).toEqual(display.arrival.coordinates.at(-1));

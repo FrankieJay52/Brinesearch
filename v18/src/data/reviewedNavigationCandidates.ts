@@ -17,7 +17,7 @@ export interface ReviewedNavigationCandidate {
 // byte-stable unless wrong-road evidence requires a new review. They are not
 // State-1 grades, and the contracts themselves remain geometry-free. A separate
 // build-time catalog may reconstruct display-only routable lines through their
-// frozen destinations and ordered controls, plus a neutral dashed
+// frozen destinations and ordered controls, plus a solid neutral
 // `unapproved_gps_tether` where needed. The browser never routes or rewrites
 // these contracts.
 

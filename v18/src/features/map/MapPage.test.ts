@@ -235,7 +235,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("Red exit reference");
     expect(pageSource).toContain("BANNOCK road seam → Lafferty-Bannock / CR-10 → Black Oak Road → OH-149");
     expect(pageSource).toContain("Red is not a restriction or closure.");
-    expect(pageSource).toContain("Any separate thin dashed road-to-GPS tether is unapproved and is not road geometry");
+    expect(pageSource).toContain("Any separate thin solid neutral road-to-GPS tether is unapproved and is not road geometry");
     expect(pageSource).toContain("Google Navigate link and road authority are unchanged");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(appCss).toContain(".legend-line.exit");
@@ -310,6 +310,10 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("bounded candidate point on the last named highway; that point is not an approved handoff");
     expect(pageSource).toContain("begins at an exact highway-road intersection");
     expect(pageSource).toContain("const activeSelectedAscentPadApproach = !selectedFieldDirectionDisplay");
+    expect(pageSource).toContain("const activeSelectedAscentPadApproachHasTeal = activeSelectedAscentPadApproachDisplay?.lines");
+    expect(pageSource).toContain('line.colorRole === "teal"');
+    expect(pageSource).toContain("{activeSelectedAscentPadApproachHasTeal && <div");
+    expect(pageSource).not.toContain("{activeSelectedAscentPadApproachDisplay && <div className=\"selected-pad-route-key\"><i className=\"legend-line selected\"");
     expect(pageSource).toContain("&& !selectedAscentPadRoadDisplay");
     expect(pageSource).toContain("&& !selectedRouteGeometry");
     expect(pageSource).toContain('if (selected.company === "Ascent" && !ascentPadApproachesLoaded) return');
@@ -319,22 +323,29 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("!activeSelectedAscentPadApproachDisplay && (selectedRouteGeometry");
   });
 
-  it("renders GPS-only movement as a neutral dashed unapproved tether, never a teal approved road", () => {
+  it("renders GPS-only movement as a thin solid neutral tether, never a teal approved road", () => {
     const gpsLegs = ascentArtifact.routes.flatMap((route) => route.gpsLeg ? [route.gpsLeg] : []);
 
     expect(gpsLegs.length).toBeGreaterThan(0);
     expect(gpsLegs.every((leg) => leg.authority === "unapproved_gps_tether")).toBe(true);
+    // The frozen artifact is intentionally not regenerated in this change;
+    // its loader projects the legacy dash metadata to the solid contract.
     expect(gpsLegs.every((leg) => leg.colorRole === "gps" && leg.lineStyle === "dashed")).toBe(true);
     expect(gpsLegs.every((leg) => leg.navigationGeometry === false)).toBe(true);
     expect(ascentDisplaySource).toContain('line.colorRole !== "gps"');
     expect(ascentDisplaySource).toContain('line.authority !== "unapproved_gps_tether"');
     expect(ascentDisplaySource).toContain("line.navigationGeometry !== false");
+    expect(ascentDisplaySource).toContain('lineStyle: "solid"');
     expect(ascentLayerSource).toContain('const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"]');
+    expect(ascentLayerSource).toContain('const unverifiedFilter: FilterSpecification = ["==", ["get", "colorRole"], "unverified"]');
     expect(ascentLayerSource).toContain('"line-color": "#94a3b8"');
-    expect(ascentLayerSource).toContain('"line-dasharray": [1.15, 1.25]');
+    expect(ascentLayerSource).not.toContain('"line-dasharray"');
     expect(ascentLayerSource).toContain('"line-width": ["interpolate", ["linear"], ["zoom"]');
-    expect(pageSource).toContain("GPS-only tether · thin dashed · never approved road");
+    expect(pageSource).toContain("GPS-only tether · thin solid neutral · not road geometry");
+    expect(pageSource).toContain("Graph-identified or unverified access · solid neutral · unapproved");
     expect(appCss).toContain(".legend-line.gps-tether");
+    expect(appCss).toContain(".legend-line.unverified");
+    expect(appCss).not.toContain("repeating-linear-gradient");
   });
 
   it("does no browser hashing or runtime route-service work while drawing the cached catalog", () => {

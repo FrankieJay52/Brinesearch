@@ -24,7 +24,7 @@ PORTERFIELD GAS UNIT, PORTERFIELD B, ROCK RIDGE, CROWIE, CASTON, LAKE, THOMAS, T
 
 Both groups may display **Owner-approved directions** under the same everyday driver rule. The evidence description may still distinguish exact identities from a validated Google handoff, but that distinction does not withhold Navigate. One build-time catalog covers the full 55-pad DONE set: it reuses existing exact public graph geometry where present and performs offline routed reconstruction through frozen destinations and ordered controls for the remaining static reviewed contracts. It does not modify or replace any frozen Google URL, destination, or waypoint.
 
-The catalog's routable named-road portion is solid teal and display only. When a routable network line stops short of the frozen GPS, an optional thin neutral dashed `unapproved_gps_tether` may reach the destination without asserting a road name, lease shape, or approval. In the current batch, 31 reconstructed handoffs stay solid through the network endpoint, 13 stop at the first unreviewed step and continue dashed, and BEETLE fails closed with no visible false-teal line because its candidate path left the reviewed road order. Exact database and frozen geometries are outside those reconstruction counts. All 55 entries persist on the All map and Ascent filter and brighten on selection; other-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation. Red beyond any other final pad remains held unless exact no-downstream-pad proof and exact geometry to the next highway junction are supplied. Interstate, U.S., and state routes are never red. None of these displays creates graph, public-Google, or approved-road-overlay authority.
+The catalog's routable named-road portion is solid teal and display only. When a routable network line stops short of the frozen GPS, an optional thin solid neutral `unapproved_gps_tether` may reach the destination without asserting a road name, lease shape, or approval. In the current batch, 31 reconstructed handoffs stay solid through the network endpoint, 13 stop at the first unreviewed step and continue with solid neutral unapproved geometry, and BEETLE fails closed with no visible false-teal line because its candidate path left the reviewed road order. Exact database and frozen geometries are outside those reconstruction counts. All 55 entries persist on the All map and Ascent filter and brighten on selection; other-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation. Red beyond any other final pad remains held unless exact no-downstream-pad proof and exact geometry to the next highway junction are supplied. Interstate, U.S., and state routes are never red. None of these displays creates graph, public-Google, or approved-road-overlay authority.
 
 Each approval is frozen to the complete reviewed contract content: exact pad and legacy identities, record revision, company/county/name, saved structured sequence, trusted destination source and coordinates, action destination, waypoint order, Google URL, driver-facing sequence, and final-leg warning. The build-time display catalog consumes those immutable values; it cannot rewrite them. Any later change fails closed and removes the owner-approved presentation until a new receipt is explicitly reviewed.
 
@@ -39,8 +39,8 @@ states remain unchanged.
 Every batch-2 record is limited to the last Interstate, U.S., or state highway
 whose road identity is exact in its stored ordered sequence, through the pad's
 exact frozen GPS. Exact road identity and start-coordinate authority stay
-separate. Of the 95 displayed approaches, 28 start at a stored exact
-highway-to-next-road intersection. The other 67 use a build-time
+separate. Of the 111 displayed approaches, 32 start at a stored exact
+highway-to-next-road intersection. The other 79 use a build-time
 nearest-highway candidate that passed the bounded 100-metre snap gate. That
 candidate is a routing/display seed, not an approved or exact intersection,
 handoff, road identity, or public route. Neither start mode stores the trip from
@@ -59,29 +59,40 @@ identity.
 
 The exact road-identity or exact-alias-matched prefix may be solid teal. At the
 first mismatch, unresolved identity, private road, lease, or other unreviewed
-movement, the rest of the routed approach becomes one generic dashed,
-unapproved access line and teal cannot resume. Any separate straight tether
-from the routed endpoint to the frozen GPS is dashed destination context, is
+movement, the rest of the routed approach remains visible as solid neutral,
+unapproved access geometry and teal cannot resume. A truly unnamed first
+mismatch is labeled `Unnamed / unapproved access`; named identity mismatches
+and later unverified sections are labeled `Unverified / unapproved access`.
+Any separate straight tether from the routed endpoint to the frozen GPS is
+solid neutral destination context, is
 not road or navigation geometry, and is excluded from the section and total
 approach mileage.
 
-Missing exact highway identity, no bounded start candidate, failed routing,
-stale record binding, or an empty exact named prefix fails that record closed to
-its frozen pin. Pin-only records have no teal, no fabricated turn, no
-straight-line mileage, and no borrowed road tail. Batch-2 evidence does not
-mint a Google route, public-road identity, graph occurrence, approved overlay,
-State-1 grade, or owner release.
-The fixed evidence file records 95 routed displays, 16 internally rejected
-routing candidates, and 81 direct pin-only results. CENA, NOELLE, ROXY, SPORT,
-and TANNER are five of the pin-only results because their proposed starts were
-more than 25 air miles from their frozen GPS. The farthest retained display
-start is 13.079406 air miles from its destination. The 16 rejected candidates
-retain only a rejection reason, attempt accounting, and evidence hashes. Their
-candidate start, geometry, routed sections, GPS tether, measured directions,
-and mileage are stripped from the fixed artifact. Runtime parsing independently
-fails every non-display status closed. The rejected records are therefore
-presentation-equivalent to pin-only, so 97 records show only their frozen
-destination pin.
+For the measured Ascent approach catalog, a sealed graph-evidence receipt may
+split the preserved routed line into exact authoritative road runs. Exact graph
+names and measured run mileage remain visible after the first source-order gap,
+but those later runs stay solid neutral and explicitly unapproved. Teal requires
+both the exact graph identity and the uninterrupted exact stored source-step
+`roadId` binding. A graph-only name never promotes a route, never changes the
+Google handoff, and never resumes teal after the first gap.
+
+Missing exact highway identity, no bounded start candidate, failed routing, or
+stale record binding fails that record closed to its frozen pin. Pin-only
+records have no teal, no fabricated turn, no straight-line mileage, and no
+borrowed road tail. A successful bounded route with no sealed graph receipt or
+no ordered exact prefix is retained as measured solid-neutral geometry with no
+teal authority; any router-reported names remain graph-unverified. Batch-2
+evidence does not mint a Google route, public-road identity, graph occurrence,
+approved overlay, State-1 grade, or owner release.
+The fixed evidence file records 111 routed displays, zero internally rejected
+successful routes, and 81 direct pin-only results. Ninety-five displays have
+sealed graph receipts; 16 successful no-receipt routes remain visible as solid
+neutral. CENA, NOELLE, ROXY, SPORT, and TANNER are five of the pin-only results
+because their proposed starts were more than 25 air miles from their frozen GPS.
+The farthest retained display start is 14.306095 air miles from its destination.
+All 111 successful routed results retain their candidate start, road geometry,
+measured sections, GPS tether, directions, and mileage. Only the 81 pin-only
+records omit route evidence from the driver presentation.
 
 ## Driver presentation
 

@@ -65,7 +65,7 @@ assert.deepEqual(
   [],
   "Source Ascent batch-2 highway-to-pad catalog failed its independent contract audit",
 );
-assert.equal(ascentApproachCatalog.schemaVersion, 1, "Source Ascent batch-2 catalog has the wrong schema");
+assert.equal(ascentApproachCatalog.schemaVersion, 3, "Source Ascent batch-2 catalog has the wrong schema");
 assert.equal(
   ascentApproachCatalog.batchId,
   "ascent-last-highway-to-pad-approaches-20260829-batch2",
@@ -81,18 +81,26 @@ assert.equal(ascentApproachCatalog.rules?.noFuzzyOrUnanchoredNameOnlyCandidateSt
 assert.equal(ascentApproachCatalog.rules?.maxStartToDestinationAirMiles, 25, "Source Ascent batch-2 catalog has the wrong spatial relevance boundary");
 assert.equal(ascentApproachCatalog.summary?.sourcePadCount, 192, "Source Ascent batch-2 catalog does not bind 192 source pads");
 assert.equal(ascentApproachCatalog.summary?.outputPadCount, 192, "Source Ascent batch-2 catalog does not contain 192 outcomes");
-assert.equal(ascentApproachCatalog.summary?.routedDisplayCount, 95, "Source Ascent batch-2 routed-display count changed");
-assert.equal(ascentApproachCatalog.summary?.routedFailClosedCount, 16, "Source Ascent batch-2 routed fail-closed count changed");
+assert.equal(ascentApproachCatalog.summary?.routedDisplayCount, 111, "Source Ascent batch-2 routed-display count changed");
+assert.equal(ascentApproachCatalog.summary?.routedFailClosedCount, 0, "Source Ascent batch-2 routed fail-closed count changed");
 assert.equal(ascentApproachCatalog.summary?.pinOnlyCount, 81, "Source Ascent batch-2 pin-only count changed");
+assert.equal(ascentApproachCatalog.summary?.retainedRouterUnverifiedRouteCount, 16, "Source Ascent batch-2 retained no-receipt route count changed");
+assert.equal(ascentApproachCatalog.summary?.graphEvidenceReceiptCount, 95, "Source Ascent batch-2 graph receipt count changed");
+assert.equal(ascentApproachCatalog.summary?.appliedGraphEvidenceReceiptCount, 95, "Source Ascent batch-2 applied graph receipt count changed");
+assert.equal(ascentApproachCatalog.summary?.graphEvidenceNamedRunCount, 565, "Source Ascent batch-2 graph-named run count changed");
+assert.equal(ascentApproachCatalog.summary?.graphEvidenceOrderedExactRunCount, 203, "Source Ascent batch-2 ordered exact run count changed");
+assert.equal(ascentApproachCatalog.summary?.graphEvidenceNamedNeutralRunCount, 495, "Source Ascent batch-2 graph-named neutral run count changed");
+assert.equal(ascentApproachCatalog.summary?.graphEvidenceUnresolvedRunCount, 802, "Source Ascent batch-2 unresolved graph run count changed");
 assert.equal(ascentApproachCatalog.summary?.remoteStartRejectedPinOnlyCount, 5, "Source Ascent batch-2 remote-start rejection count changed");
-assert.equal(ascentApproachCatalog.summary?.exactIntersectionStartCount, 28, "Source Ascent batch-2 exact-intersection start count changed");
-assert.equal(ascentApproachCatalog.summary?.candidateNearestHighwayStartCount, 67, "Source Ascent batch-2 bounded candidate-start count changed");
+assert.equal(ascentApproachCatalog.summary?.exactIntersectionStartCount, 32, "Source Ascent batch-2 exact-intersection start count changed");
+assert.equal(ascentApproachCatalog.summary?.candidateNearestHighwayStartCount, 79, "Source Ascent batch-2 bounded candidate-start count changed");
 assert.equal(ascentApproachCatalog.summary?.osrmCandidateRequestCount, 119, "Source Ascent batch-2 build-time route-request count changed");
-assert.equal(ascentApproachCatalog.summary?.solidSectionCount, 163, "Source Ascent batch-2 solid-section count changed");
-assert.equal(ascentApproachCatalog.summary?.dashedSectionCount, 333, "Source Ascent batch-2 dashed-section count changed");
-assert.equal(ascentApproachCatalog.summary?.nontrivialGpsTetherCount, 82, "Source Ascent batch-2 GPS-tether count changed");
-assert.equal(ascentApproachCatalog.summary?.totalToGpsWithheldCount, 82, "Source Ascent batch-2 withheld-total count changed");
-assert.equal(ascentApproachCatalog.summary?.maximumDisplayedStartToDestinationAirMiles, 13.079406, "Source Ascent batch-2 maximum displayed-start distance changed");
+assert.equal(ascentApproachCatalog.summary?.solidSectionCount, 1514, "Source Ascent batch-2 solid-section count changed");
+assert.equal(ascentApproachCatalog.summary?.solidUnapprovedSectionCount, 1444, "Source Ascent batch-2 solid-neutral section count changed");
+assert.equal(Object.hasOwn(ascentApproachCatalog.summary || {}, "dashedSectionCount"), false, "Source Ascent batch-2 summary still contains dashed sections");
+assert.equal(ascentApproachCatalog.summary?.nontrivialGpsTetherCount, 96, "Source Ascent batch-2 GPS-tether count changed");
+assert.equal(ascentApproachCatalog.summary?.totalToGpsWithheldCount, 96, "Source Ascent batch-2 withheld-total count changed");
+assert.equal(ascentApproachCatalog.summary?.maximumDisplayedStartToDestinationAirMiles, 14.306095, "Source Ascent batch-2 maximum displayed-start distance changed");
 assert.equal(ascentApproachCatalog.summary?.productionWrites, 0, "Source Ascent batch-2 catalog declares a production write");
 assert.equal(ascentApproachCatalog.summary?.googleUrlChanges, 0, "Source Ascent batch-2 catalog declares a Google URL change");
 assert.equal(ascentApproachCatalog.summary?.redGeometryCount, 0, "Source Ascent batch-2 catalog contains red geometry");
@@ -121,6 +129,8 @@ for (const record of ascentApproachCatalog.records) {
   } else {
     assert.equal(record.start?.anchoredRoadId, record.lastHighway?.roadId, `Displayed batch-2 record ${record.padName} is not bound to its exact master highway roadId`);
     assert.ok(record.start?.startToDestinationAirMiles <= 25, `Displayed batch-2 record ${record.padName} starts more than 25 air miles from its GPS`);
+    assert.ok(record.sections.every((section) => section.lineStyle === "solid" || section.lineStyle === "none"), `Displayed batch-2 record ${record.padName} contains a dotted or dashed section`);
+    assert.ok(record.gpsTether === null || record.gpsTether.lineStyle === "solid", `Displayed batch-2 record ${record.padName} contains a dotted or dashed GPS tether`);
   }
 }
 for (const padName of ["CENA", "NOELLE", "ROXY", "SPORT", "TANNER"]) {
@@ -160,12 +170,13 @@ assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference 
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
 assert.match(appJavascript, /Reviewed Ascent route lines shown:/, "Built V18 app is missing the accessible all-55 Ascent route disclosure");
 assert.match(appJavascript, /Reviewed Ascent named roads · solid teal/, "Built V18 app is missing the solid reviewed-network key");
-assert.match(appJavascript, /GPS-only tether · thin dashed · never approved road/, "Built V18 app is missing the neutral unapproved-GPS-tether key");
+assert.match(appJavascript, /GPS-only tether · thin solid neutral · not road geometry/, "Built V18 app is missing the solid neutral unapproved-GPS-tether key");
 assert.match(appJavascript, /Measured last-highway approach/, "Built V18 app is missing measured highway-to-pad directions");
 assert.match(appJavascript, /Exact highway-road intersection start/, "Built V18 app is missing the exact-intersection start label");
 assert.match(appJavascript, /Bounded candidate point on the last named highway · not an approved handoff/, "Built V18 app presents a bounded candidate as an exact handoff");
 assert.match(appJavascript, /Exact identity match · solid teal/, "Built V18 app is missing the exact batch-2 step authority");
-assert.match(appJavascript, /Unnamed \/ unapproved · dashed/, "Built V18 app is missing the generic unapproved batch-2 step authority");
+assert.match(appJavascript, /Unnamed \/ unapproved · solid neutral/, "Built V18 app is missing the truthful unnamed batch-2 step authority");
+assert.match(appJavascript, /Unverified \/ unapproved · solid neutral/, "Built V18 app is missing the truthful unverified batch-2 step authority");
 assert.match(appJavascript, /Measured road sections:/, "Built V18 app is missing the batch-2 routed-section mileage total");
 assert.match(appJavascript, /No total-to-GPS mileage is shown/, "Built V18 app is missing the withheld GPS-total disclosure");
 assert.match(appJavascript, /No candidate line, turn mileage, or route total is shown/, "Built V18 app exposes rejected batch-2 candidate evidence");
@@ -185,7 +196,7 @@ assert.match(appJavascript, /OH-331 → Lafferty-Bannock Road \/ CR-10 → BANNO
 assert.match(appJavascript, /Red exit reference/, "Built V18 app is missing BANNOCK's red exit key");
 assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missing BANNOCK's red exit sequence");
 assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
-assert.match(appJavascript, /Any separate thin dashed road-to-GPS tether is unapproved and is not road geometry/, "Built V18 app is missing BANNOCK's GPS tether boundary");
+assert.match(appJavascript, /Any separate thin solid neutral road-to-GPS tether is unapproved and is not road geometry/, "Built V18 app is missing BANNOCK's GPS tether boundary");
 assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
 assert.match(appJavascript, /BANNOCK via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
 assert.match(appJavascript, /BANNOCK's proven outbound reference is the one red feature, by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's only-red road-mode explanation");
@@ -215,4 +226,4 @@ assert.doesNotMatch(appJavascript, /Measured total to saved GPS/, "Built V18 app
 assert.doesNotMatch(appJavascript, /brinesearch-bannock-road-reference/, "Built V18 app retained BANNOCK's duplicate standalone road source");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog are static and independently validated; exact solid prefixes, generic dashed remainders, and excluded GPS tethers remain distinct; BANNOCK is the only red exit; and no browser routing or privileged material is bundled.");
+console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog are static and independently validated; exact solid teal prefixes, solid neutral unresolved remainders, and thin solid neutral GPS tethers remain distinct; BANNOCK is the only red exit; and no browser routing or privileged material is bundled.");

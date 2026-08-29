@@ -10,6 +10,8 @@ export const ascentPadRoadRedCasingLayerId = "brinesearch-ascent-pad-road-red-ca
 export const ascentPadRoadRedLineLayerId = "brinesearch-ascent-pad-road-red-line";
 export const ascentPadRoadGpsCasingLayerId = "brinesearch-ascent-pad-road-gps-casing";
 export const ascentPadRoadGpsLineLayerId = "brinesearch-ascent-pad-road-gps-line";
+export const ascentPadRoadUnverifiedCasingLayerId = "brinesearch-ascent-pad-road-unverified-casing";
+export const ascentPadRoadUnverifiedLineLayerId = "brinesearch-ascent-pad-road-unverified-line";
 export const ascentPadRoadTealCasingLayerId = "brinesearch-ascent-pad-road-teal-casing";
 export const ascentPadRoadTealLineLayerId = "brinesearch-ascent-pad-road-teal-line";
 export const ascentPadRoadSelectedCasingLayerId = "brinesearch-ascent-pad-road-selected-casing";
@@ -20,6 +22,8 @@ export const ascentPadRoadLayerIdsInPaintOrder = [
   ascentPadRoadRedLineLayerId,
   ascentPadRoadGpsCasingLayerId,
   ascentPadRoadGpsLineLayerId,
+  ascentPadRoadUnverifiedCasingLayerId,
+  ascentPadRoadUnverifiedLineLayerId,
   ascentPadRoadTealCasingLayerId,
   ascentPadRoadTealLineLayerId,
   ascentPadRoadSelectedCasingLayerId,
@@ -28,6 +32,7 @@ export const ascentPadRoadLayerIdsInPaintOrder = [
 
 const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"];
 const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"];
+const unverifiedFilter: FilterSpecification = ["==", ["get", "colorRole"], "unverified"];
 const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"];
 
 function displayLines(display: AscentPadRoadLayerDisplay) {
@@ -165,9 +170,8 @@ export function syncAscentPadRoadLayers(
         "line-color": "rgba(30, 41, 59, .9)",
         "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.4, 10, 3.4, 14, 4.8],
         "line-opacity": .9,
-        "line-dasharray": [1.15, 1.25],
       },
-      layout: { "line-cap": "butt", "line-join": "round" },
+      layout: { "line-cap": "round", "line-join": "round" },
     }, firstSymbolLayer);
     map.addLayer({
       id: ascentPadRoadGpsLineLayerId,
@@ -178,9 +182,32 @@ export function syncAscentPadRoadLayers(
         "line-color": "#94a3b8",
         "line-width": ["interpolate", ["linear"], ["zoom"], 6, 1.1, 10, 1.8, 14, 2.7],
         "line-opacity": .96,
-        "line-dasharray": [1.15, 1.25],
       },
-      layout: { "line-cap": "butt", "line-join": "round" },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadUnverifiedCasingLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: unverifiedFilter,
+      paint: {
+        "line-color": "rgba(30, 41, 59, .92)",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 5, 10, 6.5, 14, 8],
+        "line-opacity": .94,
+      },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadUnverifiedLineLayerId,
+      type: "line",
+      source: ascentPadRoadSourceId,
+      filter: unverifiedFilter,
+      paint: {
+        "line-color": "#94a3b8",
+        "line-width": ["interpolate", ["linear"], ["zoom"], 6, 2.4, 10, 3.4, 14, 4.8],
+        "line-opacity": .98,
+      },
+      layout: { "line-cap": "round", "line-join": "round" },
     }, firstSymbolLayer);
     map.addLayer({
       id: ascentPadRoadTealCasingLayerId,
