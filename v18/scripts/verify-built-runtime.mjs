@@ -199,9 +199,9 @@ assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missi
 assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
 assert.match(appJavascript, /Any separate thin solid neutral road-to-GPS tether is unapproved and is not road geometry/, "Built V18 app is missing BANNOCK's GPS tether boundary");
 assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
-assert.match(appJavascript, /BANNOCK via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
-assert.match(appJavascript, /BANNOCK's proven outbound reference is the one red feature, by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's only-red road-mode explanation");
-assert.match(appJavascript, /part of the same shared Ascent route layer/, "Built V18 app is missing BANNOCK's shared teal/red accessible description");
+assert.match(appJavascript, /BANNOCK to OH-149 \+ CARLOS via Airport Rd \/ CR-82 to US-40 · red/, "Built V18 app is missing the persistent BANNOCK and CARLOS red legend");
+assert.match(appJavascript, /The proved red outbound references are BANNOCK by Black Oak Road to OH-149 and CARLOS by Airport Road \/ CR-82 to US-40/, "Built V18 app is missing the two exact red road-mode references");
+assert.match(appJavascript, /Red outbound road references shown: BANNOCK by Black Oak Road to OH-149; CARLOS by Airport Road \/ CR-82 to US-40/, "Built V18 app is missing the shared red accessible description");
 assert.match(appJavascript, /Collapse map controls to the left/, "Built V18 app is missing the compact map-control action");
 assert.match(appJavascript, /Show map controls/, "Built V18 app is missing the map-control restore action");
 assert.doesNotMatch(appJavascript, /safe map points|Red exitBANNOCK/, "Built V18 app retained a removed top map badge");
@@ -227,4 +227,4 @@ assert.doesNotMatch(appJavascript, /Measured total to saved GPS/, "Built V18 app
 assert.doesNotMatch(appJavascript, /brinesearch-bannock-road-reference/, "Built V18 app retained BANNOCK's duplicate standalone road source");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog are static and independently validated; exact solid teal prefixes, solid neutral unresolved remainders, and thin solid neutral GPS tethers remain distinct; BANNOCK is the only red exit; and no browser routing or privileged material is bundled.");
+console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog remain static; CARLOS adds one separate exact-record-bound Airport Road / CR-82 red continuation to US-40; teal, neutral, GPS-tether, and red roles stay distinct; and no browser routing or privileged material is bundled.");

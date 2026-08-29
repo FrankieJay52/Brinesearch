@@ -17,6 +17,46 @@ const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Nob
 // These legacy state/blocker values are frozen promotion-audit provenance.
 // They do not grade or block the everyday one-rule Navigate action below.
 const explicitStates = new Map([
+  ["036d0ac7-d72e-49e4-a400-ee0a631029e1", {
+    state: "reviewed_existing_identity_hook",
+    receipt: "HENDERSON Google-checked OH-9 and existing Henderson Road / TR-722 identity hook; final unnamed access remains unapproved",
+    reviewedBinding: {
+      padId: "036d0ac7-d72e-49e4-a400-ee0a631029e1", legacyId: "ascent--henderson", recordRevision: "1786265812046205",
+      company: "Ascent", padName: "HENDERSON", state: "Ohio", county: "Belmont",
+      structuredRoadSequence: "Exit 208 → I-70 → OH-149 → OH-147 → OH-9 → Henderson Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.050354, longitude: -80.935656 },
+    },
+  }],
+  ["8a7b9669-169d-45a5-bf55-b9be5cbd51e2", {
+    state: "reviewed_existing_identity_hook",
+    receipt: "DONNA Google-checked existing Skull Fork Road / CR-98 and Bond Lane / TR-8965 identity hook; final unnamed access remains unapproved",
+    reviewedBinding: {
+      padId: "8a7b9669-169d-45a5-bf55-b9be5cbd51e2", legacyId: "ascent--donna", recordRevision: "1787459253071652",
+      company: "Ascent", padName: "DONNA", state: "Ohio", county: "Guernsey",
+      structuredRoadSequence: "OH-800 → US-22 → Skull Fork Rd → Bond Ln → OR → I-77 → Exit 47 → US-22 → Skull Fork Rd → Bond Ln → OR → I-70 → Exit 193 → OH-513 → US-22 → Skull Fork Rd → Bond Ln",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.123656, longitude: -81.252093 },
+    },
+  }],
+  ["883420b3-07b9-4682-912e-42ba278d1132", {
+    state: "reviewed_existing_identity_hook",
+    receipt: "LAVADA Google-checked OH-265 and existing Salem Road / CR-74 identity hook; final unnamed access remains unapproved",
+    reviewedBinding: {
+      padId: "883420b3-07b9-4682-912e-42ba278d1132", legacyId: "ascent--lavada", recordRevision: "1786265812046205",
+      company: "Ascent", padName: "LAVADA", state: "Ohio", county: "Guernsey",
+      structuredRoadSequence: "I-70 → Exit 186 → OH-285 → OH-265 → Salem Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 39.97411, longitude: -81.412098 },
+    },
+  }],
+  ["b48399d6-1890-4a19-af28-dba54b28fb55", {
+    state: "reviewed_existing_identity_hook",
+    receipt: "MATADOR Google-checked OH-146 and existing Cowgill Road / CR-4 identity hook; final unnamed access remains unapproved",
+    reviewedBinding: {
+      padId: "b48399d6-1890-4a19-af28-dba54b28fb55", legacyId: "ascent--matador", recordRevision: "1786265812046205",
+      company: "Ascent", padName: "MATADOR", state: "Ohio", county: "Noble",
+      structuredRoadSequence: "I-77 → OH-821 → OH-215 → OH-146 → Cowgill Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 39.821516, longitude: -81.39377 },
+    },
+  }],
   ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record owner-reviewed Google handoff exists; graph and public-Google authority remain held.",
@@ -939,7 +979,7 @@ function countBy(rows, field) {
 // provenance. Everyday driver readiness has one rule: a reviewed ordered
 // named-road handoff is DONE; without one, the pad remains GPS_ONLY.
 export function driverRuleStatusForState(currentState) {
-  if (["1", "2", "reviewed_handoff_authority_held"].includes(currentState)) return "DONE";
+  if (["1", "2", "reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(currentState)) return "DONE";
   if (currentState === "3") return "GPS_ONLY";
   return "UNAVAILABLE";
 }
@@ -1226,7 +1266,7 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
+- 247 / 59 DONE reviewed named-road handoffs / 188 GPS_ONLY
 - Production writes zero
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
@@ -1248,7 +1288,7 @@ ${countyRows}
 
 ## Parked promotion provenance
 
-The retained \`current_state\` values are audit provenance only: State 1 **${states["1"] || 0}**, State 2 **${states["2"] || 0}**, legacy GPS state **${states["3"] || 0}**, and reviewed-handoff / graph-held **${states.reviewed_handoff_authority_held || 0}**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says \`PROMOTE <PAD NAME> TO STATE 1\`.
+The retained \`current_state\` values are audit provenance only: State 1 **${states["1"] || 0}**, State 2 **${states["2"] || 0}**, legacy GPS state **${states["3"] || 0}**, reviewed-handoff / graph-held **${states.reviewed_handoff_authority_held || 0}**, and reviewed existing-identity hooks **${states.reviewed_existing_identity_hook || 0}**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says \`PROMOTE <PAD NAME> TO STATE 1\`.
 
 ## GPS source accounting
 
@@ -1260,10 +1300,11 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
-- The 55 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
+- The 59 reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining 188 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- One build-time Ascent display catalog covers the exact 55 DONE pads: 46 immutable reviewed handoffs plus 9 existing database releases. It reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only that routable network; an optional thin solid neutral \`unapproved_gps_tether\` reaches the frozen GPS without a road name or approval. All 55 persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- The existing build-time Ascent display catalog remains bound to its 55 proved display routes: 46 immutable reviewed handoffs plus 9 existing database releases. The four new identity hooks grant Navigate only and do not fabricate teal. Solid teal shows only already-proved routable geometry; an optional thin solid neutral \`unapproved_gps_tether\` reaches the frozen GPS without a road name or approval. Browser routing at runtime, production writes, graph/public-Google promotion, and cutover remain zero.
+- Red remains a non-highway road-after-last-pad reference, not approval or a closure: BANNOCK continues by Black Oak Road to OH-149, and CARLOS continues on the exact Airport Road / CR-82 topology to US-40. The separate CARLOS artifact does not color its GPS offset or change its GPS-only Navigate state.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
@@ -1340,7 +1381,7 @@ async function main() {
     assert(targets.some((row) => row.padId === padId), `Explicit state receipt target ${padId} is absent`);
   }
   for (const [padId, explicit] of explicitStates) {
-    if (explicit.state === "reviewed_handoff_authority_held") {
+    if (["reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(explicit.state)) {
       assert(explicit.reviewedBinding, `Reviewed handoff ${padId} lacks an exact audit binding`);
     }
   }
@@ -1348,7 +1389,7 @@ async function main() {
   const ledger = targets.map((row) => {
     const directoryDestination = trustedDirectoryDestination(row, references);
     const explicit = explicitStates.get(row.padId);
-    if (explicit?.state === "reviewed_handoff_authority_held") {
+    if (["reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(explicit?.state)) {
       assert(
         reviewedBindingMatches(row, directoryDestination, explicit.reviewedBinding),
         `Reviewed handoff binding drifted for ${row.padId}`,
@@ -1400,11 +1441,12 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 192
-    && stateCounts.reviewed_handoff_authority_held === 46,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 188
+    && stateCounts.reviewed_handoff_authority_held === 46
+    && stateCounts.reviewed_existing_identity_hook === 4,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   const driverRuleCounts = countBy(ledger, "driver_rule_status");
-  assert(driverRuleCounts.DONE === 55 && driverRuleCounts.GPS_ONLY === 192,
+  assert(driverRuleCounts.DONE === 59 && driverRuleCounts.GPS_ONLY === 188,
     `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

@@ -1,6 +1,7 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { describe, expect, it, vi } from "vitest";
 import type { AscentPadApproachMapDisplay } from "./ascentPadApproaches";
+import type { AscentPadPersistentRedDisplay } from "./ascentPadRedContinuations";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
 import {
   ascentPadRoadCollection,
@@ -141,6 +142,40 @@ describe("Ascent native road-line layers", () => {
       expect.objectContaining({ properties: expect.objectContaining({ colorRole: "teal", label: "OH-78" }) }),
       expect.objectContaining({ properties: expect.objectContaining({ colorRole: "unverified", label: "Unverified / unapproved access" }) }),
     ]);
+  });
+
+  it("adds a persistent CARLOS red continuation exactly once to the shared source", () => {
+    const red: AscentPadPersistentRedDisplay = {
+      kind: "persistent-red-continuation",
+      padId: "carlos",
+      company: "Ascent",
+      lines: [{
+        type: "LineString",
+        colorRole: "red",
+        approvedRoad: false,
+        visibility: "main-map-all-and-ascent",
+        label: "CARLOS seam → Airport Road / CR-82 → US-40",
+        roadClass: "county",
+        exactRoadIdentity: "Airport Road / CR-82",
+        geometrySha256: "0a44385106d3623ff541921b243212ff08b2bffa1f595387edae4f7198cf69b0",
+        coordinates: [[-80.972759, 40.042283], [-80.966566, 40.0722464]],
+        noDownstreamPadsProof: {
+          directorySnapshotId: "68f1d076-fe03-4519-a5cd-c68f8a28b06c",
+          sourceRevision: "8",
+          lastPadId: "carlos",
+          lastPadSavedGps: [-80.972809, 40.042305],
+          exactRoadIdentity: "Airport Road / CR-82",
+          redGeometrySha256: "0a44385106d3623ff541921b243212ff08b2bffa1f595387edae4f7198cf69b0",
+        },
+        nextHighway: { roadClass: "us", designation: "US-40", junction: [-80.966566, 40.0722464] },
+      }],
+    };
+    const features = ascentPadRoadCollection([red]).features;
+    expect(features).toHaveLength(1);
+    expect(features[0]).toMatchObject({
+      properties: { padId: "carlos", company: "Ascent", colorRole: "red" },
+      geometry: { type: "LineString" },
+    });
   });
 
   it("keeps red, GPS, unverified, teal, and selected pairs in required paint order", () => {

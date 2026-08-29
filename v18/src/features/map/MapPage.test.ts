@@ -145,6 +145,10 @@ describe("map viewer authority boundary", () => {
   const ascentDisplaySource = readFileSync(new URL("./ascentPadRoadDisplays.ts", import.meta.url), "utf8");
   const ascentApproachSource = readFileSync(new URL("./ascentPadApproaches.ts", import.meta.url), "utf8");
   const ascentLayerSource = readFileSync(new URL("./ascentPadRoadLayers.ts", import.meta.url), "utf8");
+  const carlosRedSource = readFileSync(new URL("./ascentPadRedContinuations.ts", import.meta.url), "utf8");
+  const carlosRedArtifact = JSON.parse(
+    readFileSync(new URL("./carlosRedContinuation.json", import.meta.url), "utf8"),
+  ) as { padName: string; redContinuation: { colorRole: string; label: string } };
   const ascentArtifact = JSON.parse(
     readFileSync(new URL("./ascentPadRoadDisplays.batch1.json", import.meta.url), "utf8"),
   ) as {
@@ -241,11 +245,20 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toContain(".legend-line.exit");
   });
 
-  it("owns BANNOCK teal and its one proven red continuation in the shared all-55 native source", () => {
+  it("keeps sealed BANNOCK red and adds exact-record CARLOS red once in the shared native source", () => {
     const redRoutes = ascentArtifact.routes.filter((route) => route.redContinuation);
 
     expect(redRoutes.map((route) => route.padName)).toEqual(["BANNOCK"]);
     expect(redRoutes[0]?.redContinuation?.colorRole).toBe("red");
+    expect(carlosRedArtifact).toMatchObject({
+      padName: "CARLOS",
+      redContinuation: { colorRole: "red", label: "CARLOS seam → Airport Road / CR-82 → US-40" },
+    });
+    expect(carlosRedSource).toContain("ascentRedContinuationIsEligible");
+    expect(carlosRedSource).toContain('kind: "persistent-red-continuation"');
+    expect(pageSource).toContain("ascentPadPersistentRedDisplaysForDirectory(snapshot?.rows || [])");
+    expect(pageSource).toContain("...visibleAscentPadPersistentRedDisplays");
+    expect(pageSource).toContain("CARLOS by Airport Road / CR-82 to US-40");
     expect(ascentLayerSource).toContain("[display.arrival, display.gpsLeg, display.redContinuation]");
     expect(ascentLayerSource).toContain('const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"]');
     expect(pageSource).toContain("ascentPadRoadLayerIdsInPaintOrder");
@@ -264,6 +277,7 @@ describe("map viewer authority boundary", () => {
     expect(ascentArtifact.routes.every((route) => route.arrival.colorRole === "teal")).toBe(true);
     expect(ascentArtifact.routes.every((route) => route.arrival.visibility === "main-map-all-and-ascent")).toBe(true);
     expect(pageSource).toContain("ascentPadRoadDisplaysForDirectory(snapshot?.rows || [])");
+    expect(pageSource).toContain("ascentPadPersistentRedDisplaysForDirectory(snapshot?.rows || [])");
     expect(pageSource).toContain('typeFilter !== "disposal" && (companyFilter === "all" || companyFilter === "Ascent")');
     expect(pageSource).toContain("? ascentPadRoadDisplays");
     expect(pageSource).toContain(": []");
@@ -277,6 +291,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("Reviewed named roads · bright solid teal");
     expect(pageSource).toContain("No red continuation is drawn:");
     expect(pageSource).toContain("State and U.S. routes remain teal.");
+    expect(pageSource).toContain("BANNOCK to OH-149 + CARLOS via Airport Rd / CR-82 to US-40 · red");
   });
 
   it("uses one cached native GeoJSON source, updates it in place, and brightens only the selected pad", () => {
