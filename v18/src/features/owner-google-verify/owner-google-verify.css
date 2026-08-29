@@ -14,8 +14,29 @@
   background: #0b2332;
 }
 
-/* Local controls stop above the bottom edge so Google's logo, attribution,
-   and legal links remain uncovered without shrinking the full-height map. */
+/* Local controls stop above the bottom edge so the free map attribution stays
+   readable without shrinking the full-height map. */
+
+.owner-google-verify-map .maplibregl-canvas { outline: none; }
+.owner-google-verify-map .maplibregl-ctrl-bottom-right { right: 6px; bottom: 104px; }
+.owner-google-verify-map .maplibregl-ctrl-bottom-left { left: 4px; bottom: 2px; }
+.owner-google-verify-map .maplibregl-ctrl-attrib { max-width: min(68vw, 520px); font-size: 9px; }
+
+.owner-free-map-marker {
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  color: #05201d;
+  background: var(--owner-free-marker-color, #2dd4bf);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, .45);
+  font: 900 10px/1 var(--font-body);
+  pointer-events: none;
+}
+
+.owner-free-map-marker[style*="#2563eb"],
+.owner-free-map-marker[style*="#a855f7"] { color: #fff; }
 
 .owner-google-map-state {
   position: absolute;

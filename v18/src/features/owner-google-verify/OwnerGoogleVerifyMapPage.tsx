@@ -1,4 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  GeoJSONSource,
+  LngLatBounds,
+  Map as MapLibreMap,
+  Marker,
+  NavigationControl,
+  type MapMouseEvent,
+} from "maplibre-gl";
 import { Link, useParams } from "react-router-dom";
 import { Icon } from "@/components/Icon";
 import { LoadingState } from "@/components/LoadingState";
@@ -18,15 +26,7 @@ import {
   type OwnerGoogleVerifySectionMark,
   type OwnerGoogleVerifySectionState,
 } from "@/data/ownerGoogleVerifyDrafts";
-import type {
-  GoogleLatLng,
-  GoogleMapInstance,
-  GoogleMapsApi,
-  GoogleMarkerClass,
-  GooglePolylineInstance,
-  GoogleRouteClass,
-  GoogleRouteLeg,
-} from "./googleMapsLoader";
+import { ownerRoadBasemapStyle, ownerRoadFallbackStyle, type OwnerRoadBasemapMode } from "@/features/owner-roads/ownerRoadBasemap";
 import {
   addOwnerGoogleVerifyPoint,
   buildOwnerGoogleVerifySections,
@@ -36,20 +36,117 @@ import {
   ownerGoogleVerifyOutcome,
   type OwnerGoogleVerifyNamedRoadRoute,
 } from "./ownerGoogleVerifyModel";
+import { requestFreeRoutePreview, type FreeRoutePreviewLeg } from "./freeRoutePreview";
 import "./owner-google-verify.css";
 
-type MapState = "loading" | "ready" | "not_configured" | "error";
+type MapState = "loading" | "ready" | "error";
 type PreviewState = "waiting_for_phone" | "waiting_for_anchor" | "routing" | "ready" | "error";
 
-function pointFromGoogle(value: GoogleLatLng): OwnerGoogleVerifyPoint {
+const approvedRoadSourceId = "owner-free-approved-roads";
+const approvedRoadCasingLayerId = "owner-free-approved-roads-casing";
+const approvedRoadLayerId = "owner-free-approved-roads-line";
+const approvedStepSourceId = "owner-free-approved-steps";
+const approvedStepCasingLayerId = "owner-free-approved-steps-casing";
+const approvedStepLayerId = "owner-free-approved-steps-line";
+const previewSourceId = "owner-free-route-preview";
+const previewApproachLayerId = "owner-free-route-approach";
+const previewSectionCasingLayerId = "owner-free-route-sections-casing";
+const previewSectionLayerId = "owner-free-route-sections";
+
+function emptyCollection() {
+  return { type: "FeatureCollection" as const, features: [] };
+}
+
+function mapPoint(value: OwnerGoogleVerifyPoint): [number, number] {
+  return [value.longitude, value.latitude];
+}
+
+function setSourceData(map: MapLibreMap | null, sourceId: string, data: ReturnType<typeof emptyCollection> | Record<string, unknown>) {
+  const source = map?.getSource(sourceId);
+  if (source) (source as GeoJSONSource).setData(data as never);
+}
+
+function ensureFreeVerifierLayers(map: MapLibreMap) {
+  if (!map.getSource(approvedRoadSourceId)) map.addSource(approvedRoadSourceId, { type: "geojson", data: emptyCollection() });
+  if (!map.getSource(approvedStepSourceId)) map.addSource(approvedStepSourceId, { type: "geojson", data: emptyCollection() });
+  if (!map.getSource(previewSourceId)) map.addSource(previewSourceId, { type: "geojson", data: emptyCollection() });
+  const before = map.getStyle().layers?.find((layer) => layer.type === "symbol")?.id;
+  if (!map.getLayer(approvedRoadCasingLayerId)) map.addLayer({
+    id: approvedRoadCasingLayerId,
+    type: "line",
+    source: approvedRoadSourceId,
+    paint: { "line-color": "#042f2e", "line-opacity": .82, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 10, 18, 14] as never },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
+  if (!map.getLayer(approvedRoadLayerId)) map.addLayer({
+    id: approvedRoadLayerId,
+    type: "line",
+    source: approvedRoadSourceId,
+    paint: { "line-color": "#14b8a6", "line-opacity": .96, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 3, 14, 7, 18, 10] as never },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
+  if (!map.getLayer(approvedStepCasingLayerId)) map.addLayer({
+    id: approvedStepCasingLayerId,
+    type: "line",
+    source: approvedStepSourceId,
+    paint: { "line-color": "#07131f", "line-opacity": .94, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 8, 14, 14, 18, 18] as never },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
+  if (!map.getLayer(approvedStepLayerId)) map.addLayer({
+    id: approvedStepLayerId,
+    type: "line",
+    source: approvedStepSourceId,
+    paint: { "line-color": "#2dd4bf", "line-opacity": 1, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 10, 18, 13] as never },
+    layout: { "line-cap": "round", "line-join": "round" },
+  }, before);
+  if (!map.getLayer(previewApproachLayerId)) map.addLayer({
+    id: previewApproachLayerId,
+    type: "line",
+    source: previewSourceId,
+    filter: ["==", ["get", "kind"], "approach"] as never,
+    paint: { "line-color": "#64748b", "line-opacity": .86, "line-width": 4 },
+    layout: { "line-cap": "round", "line-join": "round" },
+  });
+  if (!map.getLayer(previewSectionCasingLayerId)) map.addLayer({
+    id: previewSectionCasingLayerId,
+    type: "line",
+    source: previewSourceId,
+    filter: ["==", ["get", "kind"], "section"] as never,
+    paint: { "line-color": "#07131f", "line-opacity": .9, "line-width": ["case", ["==", ["get", "selected"], true], 13, 10] as never },
+    layout: { "line-cap": "round", "line-join": "round" },
+  });
+  if (!map.getLayer(previewSectionLayerId)) map.addLayer({
+    id: previewSectionLayerId,
+    type: "line",
+    source: previewSourceId,
+    filter: ["==", ["get", "kind"], "section"] as never,
+    paint: {
+      "line-color": ["match", ["get", "state"], "approved_named_road", "#14b8a6", "not_approved", "#ef4444", "lease_or_unnamed", "#94a3b8", "#d7dee8"] as never,
+      "line-opacity": 1,
+      "line-width": ["case", ["==", ["get", "selected"], true], 9, 6] as never,
+    },
+    layout: { "line-cap": "round", "line-join": "round" },
+  });
+}
+
+function lineCollection(lines: Array<{ coordinates: [number, number][]; properties?: Record<string, unknown> }>) {
   return {
-    latitude: typeof value.lat === "function" ? value.lat() : value.lat,
-    longitude: typeof value.lng === "function" ? value.lng() : value.lng,
+    type: "FeatureCollection" as const,
+    features: lines.filter((line) => line.coordinates.length >= 2).map((line) => ({
+      type: "Feature" as const,
+      properties: line.properties || {},
+      geometry: { type: "LineString" as const, coordinates: line.coordinates },
+    })),
   };
 }
 
-function googlePoint(value: OwnerGoogleVerifyPoint) {
-  return { lat: value.latitude, lng: value.longitude };
+function freeMapMarker(label: string, color: string, title: string) {
+  const element = document.createElement("div");
+  element.className = "owner-free-map-marker";
+  element.textContent = label;
+  element.title = title;
+  element.style.setProperty("--owner-free-marker-color", color);
+  return element;
 }
 
 function validPhonePoint(value: OwnerGoogleVerifyPoint) {
@@ -117,28 +214,29 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   const pad = findPad(decodeURIComponent(padId));
   const destination = useMemo(() => pad ? ownerGoogleVerifyDestination(pad) : null, [pad]);
   const mapHost = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<GoogleMapInstance | null>(null);
-  const mapsRef = useRef<GoogleMapsApi | null>(null);
-  const routeClassRef = useRef<GoogleRouteClass | null>(null);
-  const markerClassRef = useRef<GoogleMarkerClass | null>(null);
-  const overlaysRef = useRef<Array<{ setMap(map: GoogleMapInstance | null): void }>>([]);
-  const approvedRoadOverlaysRef = useRef<Array<{ setMap(map: GoogleMapInstance | null): void }>>([]);
-  const approvedStepOverlaysRef = useRef<Array<{ setMap(map: GoogleMapInstance | null): void }>>([]);
+  const mapRef = useRef<MapLibreMap | null>(null);
+  const markersRef = useRef<Marker[]>([]);
+  const previewAbortRef = useRef<AbortController | null>(null);
+  const styleReadyRef = useRef(false);
+  const fallbackAppliedRef = useRef(false);
+  const appliedMapTypeRef = useRef<OwnerRoadBasemapMode>("road");
   const companyRoadsRef = useRef(companyRoads);
   const previewRequestRef = useRef(0);
   const suppressMapClickRef = useRef(0);
   const mapClickActionRef = useRef<(point: OwnerGoogleVerifyPoint) => void>(() => undefined);
+  const sectionClickActionRef = useRef<(sectionId: string) => void>(() => undefined);
 
   const [mapState, setMapState] = useState<MapState>("loading");
-  const [mapMessage, setMapMessage] = useState("Loading owner Google map…");
-  const [mapType, setMapType] = useState<"roadmap" | "satellite">("roadmap");
+  const [mapMessage, setMapMessage] = useState("Loading free road map…");
+  const [mapType, setMapType] = useState<OwnerRoadBasemapMode>("road");
+  const [mapRenderRevision, setMapRenderRevision] = useState(0);
   const [workflowOpen, setWorkflowOpen] = useState(false);
   const [draftPanelOpen, setDraftPanelOpen] = useState(false);
   const [origin, setOrigin] = useState<OwnerGoogleVerifyPoint | null>(null);
   const [locationState, setLocationState] = useState<"idle" | "locating" | "ready" | "error">("idle");
   const [anchor, setAnchor] = useState<OwnerGoogleVerifyPoint | null>(null);
   const [turnPins, setTurnPins] = useState<OwnerGoogleVerifyPoint[]>([]);
-  const [routeLegs, setRouteLegs] = useState<GoogleRouteLeg[]>([]);
+  const [routeLegs, setRouteLegs] = useState<FreeRoutePreviewLeg[]>([]);
   const [sectionMarks, setSectionMarks] = useState<OwnerGoogleVerifySectionMark[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [roadName, setRoadName] = useState("");
@@ -173,22 +271,23 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   const candidateEntrancePoint = parsedCandidateEntrance.point;
 
   const clearOverlays = useCallback(() => {
-    for (const overlay of overlaysRef.current) overlay.setMap(null);
-    overlaysRef.current = [];
+    for (const marker of markersRef.current) marker.remove();
+    markersRef.current = [];
+    setSourceData(mapRef.current, previewSourceId, emptyCollection());
   }, []);
 
   const clearApprovedRoadOverlays = useCallback(() => {
-    for (const overlay of approvedRoadOverlaysRef.current) overlay.setMap(null);
-    approvedRoadOverlaysRef.current = [];
+    setSourceData(mapRef.current, approvedRoadSourceId, emptyCollection());
   }, []);
 
   const clearApprovedStepOverlays = useCallback(() => {
-    for (const overlay of approvedStepOverlaysRef.current) overlay.setMap(null);
-    approvedStepOverlaysRef.current = [];
+    setSourceData(mapRef.current, approvedStepSourceId, emptyCollection());
   }, []);
 
   const invalidatePreview = useCallback(() => {
     previewRequestRef.current += 1;
+    previewAbortRef.current?.abort();
+    previewAbortRef.current = null;
     clearOverlays();
     setRouteLegs([]);
     setSectionMarks([]);
@@ -253,7 +352,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       setOrigin(nextOrigin);
       setLocationState("ready");
       setPreviewState(anchor ? "routing" : "waiting_for_anchor");
-      setPreviewMessage(anchor ? "Updating Google preview…" : "Phone origin ready. Tap a named public road for the anchor.");
+      setPreviewMessage(anchor ? "Updating free route preview…" : "Phone origin ready. Tap a named public road for the anchor.");
     }, () => {
       setOrigin(null);
       setLocationState("error");
@@ -264,54 +363,110 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
 
   useEffect(() => {
     if (access.state !== "owner" || !pad || !destination || !mapHost.current) return;
-    let active = true;
+    let map: MapLibreMap;
+    let styleDeadline = 0;
+    let resizeFrame: number | null = null;
     setMapState("loading");
-    setMapMessage("Loading owner Google map…");
-    import("./googleMapsLoader").then(({ loadOwnerGoogleMaps }) => loadOwnerGoogleMaps()).then(async (maps) => {
-      if (!active || !mapHost.current) return;
-      const [routes, marker] = await Promise.all([
-        maps.importLibrary("routes"),
-        maps.importLibrary("marker"),
-      ]);
-      if (!active || !mapHost.current) return;
-      const map = new maps.Map(mapHost.current, {
-        center: googlePoint(destination),
+    setMapMessage("Loading free road map…");
+    try {
+      map = new MapLibreMap({
+        container: mapHost.current,
+        style: ownerRoadBasemapStyle("road"),
+        center: mapPoint(destination),
         zoom: 14,
-        mapTypeId: maps.MapTypeId.ROADMAP,
-        clickableIcons: false,
-        disableDefaultUI: true,
-        zoomControl: true,
-        zoomControlOptions: { position: maps.ControlPosition.RIGHT_CENTER },
-        streetViewControl: false,
-        fullscreenControl: false,
-        gestureHandling: "greedy",
+        attributionControl: { compact: true },
+        cooperativeGestures: false,
+        dragRotate: false,
+        touchPitch: false,
+        pitchWithRotate: false,
+        renderWorldCopies: false,
+        fadeDuration: 0,
       });
-      map.addListener("click", (event) => {
-        if (event.latLng) mapClickActionRef.current(pointFromGoogle(event.latLng));
-      });
-      mapsRef.current = maps;
-      mapRef.current = map;
-      routeClassRef.current = routes.Route;
-      markerClassRef.current = marker.Marker;
+      map.touchZoomRotate.disableRotation();
+      map.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
+    } catch {
+      setMapState("error");
+      setMapMessage("The free map renderer could not start.");
+      return;
+    }
+    styleReadyRef.current = false;
+    fallbackAppliedRef.current = false;
+    appliedMapTypeRef.current = "road";
+    const onStyleLoad = () => {
+      window.clearTimeout(styleDeadline);
+      styleReadyRef.current = true;
+      ensureFreeVerifierLayers(map);
       setMapState("ready");
-      setMapMessage("Owner map ready.");
-    }).catch((error) => {
-      if (!active) return;
-      const notConfigured = error instanceof Error && error.message === "Owner map not configured.";
-      setMapState(notConfigured ? "not_configured" : "error");
-      setMapMessage(notConfigured ? "Owner map not configured." : "Owner Google map could not start.");
+      setMapMessage(fallbackAppliedRef.current
+        ? "Road background unavailable. Saved overlays remain visible on a reference background."
+        : appliedMapTypeRef.current === "satellite" ? "Free USGS satellite map ready." : "Free road map ready.");
+      setMapRenderRevision((revision) => revision + 1);
+    };
+    const recoverStyle = () => {
+      if (styleReadyRef.current || fallbackAppliedRef.current) return;
+      if (appliedMapTypeRef.current === "satellite") {
+        appliedMapTypeRef.current = "road";
+        setMapType("road");
+        setMapMessage("Satellite imagery unavailable. Returning to the free road map…");
+        try {
+          map.setStyle(ownerRoadBasemapStyle("road"));
+        } catch {
+          fallbackAppliedRef.current = true;
+          try { map.setStyle(ownerRoadFallbackStyle); } catch {
+            setMapState("error");
+            setMapMessage("The free map background could not start.");
+          }
+        }
+        return;
+      }
+      fallbackAppliedRef.current = true;
+      setMapMessage("Road background unavailable. Loading a reference background for saved overlays…");
+      try { map.setStyle(ownerRoadFallbackStyle); } catch {
+        setMapState("error");
+        setMapMessage("The free map background could not start.");
+      }
+    };
+    const onClick = (event: MapMouseEvent) => {
+      const hit = map.getLayer(previewSectionLayerId)
+        ? map.queryRenderedFeatures(event.point, { layers: [previewSectionLayerId], validate: false })[0]
+        : null;
+      const sectionId = typeof hit?.properties?.sectionId === "string" ? hit.properties.sectionId : "";
+      if (sectionId) {
+        suppressMapClickRef.current = Date.now();
+        sectionClickActionRef.current(sectionId);
+        return;
+      }
+      mapClickActionRef.current({ latitude: event.lngLat.lat, longitude: event.lngLat.lng });
+    };
+    map.on("style.load", onStyleLoad);
+    map.on("error", recoverStyle);
+    map.on("click", onClick);
+    const resizeObserver = new ResizeObserver(() => {
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
+      resizeFrame = window.requestAnimationFrame(() => {
+        resizeFrame = null;
+        map.resize();
+      });
     });
+    resizeObserver.observe(mapHost.current);
+    styleDeadline = window.setTimeout(recoverStyle, 8_000);
+    mapRef.current = map;
     return () => {
-      active = false;
       previewRequestRef.current += 1;
+      previewAbortRef.current?.abort();
+      previewAbortRef.current = null;
+      window.clearTimeout(styleDeadline);
+      if (resizeFrame !== null) window.cancelAnimationFrame(resizeFrame);
+      resizeObserver.disconnect();
       clearOverlays();
       clearApprovedRoadOverlays();
       clearApprovedStepOverlays();
+      map.off("style.load", onStyleLoad);
+      map.off("error", recoverStyle);
+      map.off("click", onClick);
+      map.remove();
       mapRef.current = null;
-      mapsRef.current = null;
-      routeClassRef.current = null;
-      markerClassRef.current = null;
-      if (mapHost.current) mapHost.current.replaceChildren();
+      styleReadyRef.current = false;
     };
   }, [access.state, clearApprovedRoadOverlays, clearApprovedStepOverlays, clearOverlays, destination, pad]);
 
@@ -357,9 +512,48 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
 
   useEffect(() => {
     const map = mapRef.current;
-    const maps = mapsRef.current;
-    if (!map || !maps) return;
-    map.setMapTypeId(mapType === "satellite" ? maps.MapTypeId.SATELLITE : maps.MapTypeId.ROADMAP);
+    if (!map || appliedMapTypeRef.current === mapType) return;
+    appliedMapTypeRef.current = mapType;
+    styleReadyRef.current = false;
+    fallbackAppliedRef.current = false;
+    setMapState("loading");
+    setMapMessage(mapType === "satellite" ? "Loading free USGS satellite imagery…" : "Loading free road map…");
+    try {
+      map.setStyle(ownerRoadBasemapStyle(mapType));
+    } catch {
+      appliedMapTypeRef.current = "road";
+      setMapType("road");
+      try { map.setStyle(ownerRoadBasemapStyle("road")); } catch {
+        fallbackAppliedRef.current = true;
+        try { map.setStyle(ownerRoadFallbackStyle); } catch {
+          setMapState("error");
+          setMapMessage("The free map background could not start.");
+        }
+      }
+    }
+    const timeout = window.setTimeout(() => {
+      if (styleReadyRef.current || !mapRef.current) return;
+      if (appliedMapTypeRef.current === "satellite") {
+        appliedMapTypeRef.current = "road";
+        setMapType("road");
+        setMapMessage("Satellite imagery timed out. Returning to the free road map…");
+        try { map.setStyle(ownerRoadBasemapStyle("road")); } catch {
+          fallbackAppliedRef.current = true;
+          try { map.setStyle(ownerRoadFallbackStyle); } catch {
+            setMapState("error");
+            setMapMessage("The free map background could not start.");
+          }
+        }
+        return;
+      }
+      fallbackAppliedRef.current = true;
+      setMapMessage("Road background timed out. Loading a reference background for saved overlays…");
+      try { map.setStyle(ownerRoadFallbackStyle); } catch {
+        setMapState("error");
+        setMapMessage("The free map background could not start.");
+      }
+    }, 8_000);
+    return () => window.clearTimeout(timeout);
   }, [mapState, mapType]);
 
   useEffect(() => {
@@ -375,8 +569,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   }, [access.state]);
 
   useEffect(() => {
-    const Route = routeClassRef.current;
-    if (access.state !== "owner" || mapState !== "ready" || !Route || !origin || !anchor || !destination) {
+    if (access.state !== "owner" || mapState !== "ready" || !origin || !anchor || !destination) {
       if (!origin) {
         setPreviewState("waiting_for_phone");
         setPreviewMessage("Waiting for this phone's GPS.");
@@ -387,40 +580,31 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       return;
     }
     const requestId = ++previewRequestRef.current;
+    previewAbortRef.current?.abort();
+    const controller = new AbortController();
+    previewAbortRef.current = controller;
     setPreviewState("routing");
-    setPreviewMessage("Updating Google preview…");
-    Route.computeRoutes({
-      origin: googlePoint(origin),
-      destination: googlePoint(destination),
-      intermediates: [anchor, ...turnPins].map((point) => ({
-        location: googlePoint(point),
-        via: false as const,
-        vehicleStopover: false as const,
-      })),
-      optimizeWaypointOrder: false,
-      computeAlternativeRoutes: false,
-      travelMode: "DRIVING",
-      routingPreference: "TRAFFIC_UNAWARE",
-      polylineQuality: "HIGH_QUALITY",
-      fields: ["path", "legs", "viewport"],
-    }).then(({ routes }) => {
+    setPreviewMessage("Updating free OpenStreetMap route preview…");
+    requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal).then((legs) => {
       if (requestId !== previewRequestRef.current) return;
-      const route = routes?.[0];
-      const legs = route?.legs || [];
       const expectedLegCount = turnPins.length + 2;
-      if (!route || legs.length !== expectedLegCount || legs.some((leg) => !Array.isArray(leg.path) || leg.path.length < 2)) {
-        throw new Error("Route response did not preserve every owner control point.");
-      }
+      if (legs.length !== expectedLegCount) throw new Error("Route response did not preserve every owner control point.");
       setRouteLegs(legs);
       setPreviewState("ready");
-      setPreviewMessage(`${legs.length - 1} post-anchor ${legs.length - 1 === 1 ? "section" : "sections"} ready. Tap each line to classify it.`);
+      setPreviewMessage(`${legs.length - 1} route ${legs.length - 1 === 1 ? "section" : "sections"} ready after the anchor. Tap each line to approve or reject it.`);
       setSelectedSectionId("");
-      if (route.viewport) mapRef.current?.fitBounds(route.viewport, mapFitPadding());
+      const points = legs.flatMap((leg) => leg.path);
+      if (points.length) {
+        const bounds = points.slice(1).reduce((next, point) => next.extend(point), new LngLatBounds(points[0], points[0]));
+        mapRef.current?.fitBounds(bounds, { padding: mapFitPadding(), maxZoom: 16, duration: 260 });
+      }
     }).catch(() => {
-      if (requestId !== previewRequestRef.current) return;
+      if (requestId !== previewRequestRef.current || controller.signal.aborted) return;
       setRouteLegs([]);
       setPreviewState("error");
-      setPreviewMessage("Google could not preview this route. Check Maps JavaScript and Routes API access, then refresh the preview.");
+      setPreviewMessage("The free routing service could not preview this route. Your map and saved controls still work; tap Refresh preview to try again.");
+    }).finally(() => {
+      if (previewAbortRef.current === controller) previewAbortRef.current = null;
     });
   }, [access.state, anchor, destination, mapState, origin, previewVersion, turnPins]);
 
@@ -429,79 +613,40 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     : [], [anchor, destination, sectionMarks, turnPins]);
   const outcome = ownerGoogleVerifyOutcome(routeLegs.length ? sections : []);
   const selectedSection = sections.find((section) => section.sectionId === selectedSectionId) || null;
+  sectionClickActionRef.current = (sectionId) => {
+    const section = sections.find((candidate) => candidate.sectionId === sectionId);
+    if (!section) return;
+    dismissPhoneKeyboard();
+    setWorkflowOpen(false);
+    setDraftPanelOpen(false);
+    setSelectedSectionId(section.sectionId);
+    setRoadName(section.mark?.roadName || "");
+  };
 
   useEffect(() => {
     clearApprovedRoadOverlays();
-    const maps = mapsRef.current;
     const map = mapRef.current;
     const overlay = companyRoads.overlay;
-    if (!maps || !map || !overlay || overlay.selection !== "all") return;
-    for (const row of overlay.rows) {
-      const paths = row.geometry.type === "LineString" ? [row.geometry.coordinates] : row.geometry.coordinates;
-      for (const path of paths) {
-        const mapPath = path.map(([longitude, latitude]) => ({ lat: latitude, lng: longitude }));
-        approvedRoadOverlaysRef.current.push(new maps.Polyline({
-          map,
-          path: mapPath,
-          strokeColor: "#042f2e",
-          strokeOpacity: .82,
-          strokeWeight: 11,
-          clickable: false,
-          zIndex: 0,
-        }));
-        approvedRoadOverlaysRef.current.push(new maps.Polyline({
-          map,
-          path: mapPath,
-          strokeColor: "#14b8a6",
-          strokeOpacity: .96,
-          strokeWeight: 8,
-          clickable: false,
-          zIndex: 1,
-        }));
-      }
-    }
-  }, [clearApprovedRoadOverlays, companyRoads.overlay, mapState]);
+    if (!map || !styleReadyRef.current || !overlay || overlay.selection !== "all") return;
+    setSourceData(map, approvedRoadSourceId, {
+      type: "FeatureCollection",
+      features: overlay.rows.map((row) => ({ type: "Feature", properties: {}, geometry: row.geometry })),
+    });
+  }, [clearApprovedRoadOverlays, companyRoads.overlay, mapRenderRevision, mapState]);
 
   useEffect(() => {
     clearApprovedStepOverlays();
-    const maps = mapsRef.current;
     const map = mapRef.current;
-    if (!maps || !map) return;
-    for (const route of approvedStepRoutes) {
-      for (const feature of route.geometry.features) {
-        const paths = feature.geometry.type === "LineString"
-          ? [feature.geometry.coordinates]
-          : feature.geometry.coordinates;
-        for (const path of paths) {
-          const mapPath = path.map(([longitude, latitude]) => ({ lat: latitude, lng: longitude }));
-          approvedStepOverlaysRef.current.push(new maps.Polyline({
-            map,
-            path: mapPath,
-            strokeColor: "#07131f",
-            strokeOpacity: .94,
-            strokeWeight: 14,
-            clickable: false,
-            zIndex: 2,
-          }));
-          approvedStepOverlaysRef.current.push(new maps.Polyline({
-            map,
-            path: mapPath,
-            strokeColor: "#2dd4bf",
-            strokeOpacity: 1,
-            strokeWeight: 10,
-            clickable: false,
-            zIndex: 3,
-          }));
-        }
-      }
-    }
-  }, [approvedStepRoutes, clearApprovedStepOverlays, mapState]);
+    if (!map || !styleReadyRef.current) return;
+    setSourceData(map, approvedStepSourceId, {
+      type: "FeatureCollection",
+      features: approvedStepRoutes.flatMap((route) => route.geometry.features.map((feature) => ({ ...feature, properties: feature.properties || {} }))),
+    });
+  }, [approvedStepRoutes, clearApprovedStepOverlays, mapRenderRevision, mapState]);
 
   useEffect(() => {
-    const maps = mapsRef.current;
     const map = mapRef.current;
-    const Marker = markerClassRef.current;
-    if (!maps || !map || !destination || !pad || !Marker) return;
+    if (!map || !styleReadyRef.current || !destination || !pad) return;
     clearOverlays();
     const markers = [
       origin && { point: origin, color: "#2563eb", label: "YOU", title: "Current phone GPS", scale: 16, zIndex: 10 },
@@ -510,81 +655,46 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       candidateEntrancePoint && { point: candidateEntrancePoint, color: "#a855f7", label: "E", title: "Draft entrance candidate", scale: 16, zIndex: 13 },
       { point: destination, color: "#2dd4bf", label: "PAD", title: `${pad.padName} — saved pad GPS`, scale: 19, zIndex: 14 },
     ].filter((value): value is { point: OwnerGoogleVerifyPoint; color: string; label: string; title: string; scale: number; zIndex: number } => Boolean(value));
-    for (const item of markers) overlaysRef.current.push(new Marker({
-      map,
-      position: googlePoint(item.point),
-      title: item.title,
-      zIndex: item.zIndex,
-      clickable: false,
-      optimized: false,
-      icon: {
-        path: maps.SymbolPath.CIRCLE,
-        scale: item.scale,
-        fillColor: item.color,
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeOpacity: 1,
-        strokeWeight: 3,
-      },
-      label: {
-        text: item.label,
-        color: item.color === "#2563eb" || item.color === "#a855f7" ? "#ffffff" : "#05201d",
-        fontSize: item.label.length > 1 ? "9px" : "12px",
-        fontWeight: "900",
-      },
-    }));
-    const approachLeg = routeLegs[0];
-    if (approachLeg) overlaysRef.current.push(new maps.Polyline({
-      map,
-      path: approachLeg.path,
-      strokeColor: "#64748b",
-      strokeOpacity: .8,
-      strokeWeight: 4,
-      clickable: false,
-      zIndex: 4,
-    }));
+    for (const item of markers) {
+      const element = freeMapMarker(item.label, item.color, item.title);
+      element.style.width = `${item.scale * 2}px`;
+      element.style.height = `${item.scale * 2}px`;
+      element.style.zIndex = String(item.zIndex);
+      markersRef.current.push(new Marker({ element, anchor: "center" }).setLngLat(mapPoint(item.point)).addTo(map));
+    }
+    const previewLines: Array<{ coordinates: [number, number][]; properties: Record<string, unknown> }> = [];
+    if (routeLegs[0]) previewLines.push({ coordinates: routeLegs[0].path, properties: { kind: "approach" } });
     routeLegs.slice(1).forEach((leg, index) => {
       const section = sections[index];
       if (!section) return;
-      const approved = section.mark?.state === "approved_named_road";
-      const selected = section.sectionId === selectedSectionId;
-      const polyline: GooglePolylineInstance = new maps.Polyline({
-        map,
-        path: leg.path,
-        strokeColor: approved ? "#14b8a6" : "#94a3b8",
-        strokeOpacity: approved ? 1 : .9,
-        strokeWeight: selected ? 9 : 5,
-        clickable: true,
-        zIndex: selected ? 6 : 5,
+      previewLines.push({
+        coordinates: leg.path,
+        properties: {
+          kind: "section",
+          sectionId: section.sectionId,
+          state: section.mark?.state || "unreviewed",
+          selected: section.sectionId === selectedSectionId,
+        },
       });
-      polyline.addListener("click", () => {
-        suppressMapClickRef.current = Date.now();
-        dismissPhoneKeyboard();
-        setWorkflowOpen(false);
-        setDraftPanelOpen(false);
-        setSelectedSectionId(section.sectionId);
-        setRoadName(section.mark?.roadName || "");
-      });
-      overlaysRef.current.push(polyline);
     });
-  }, [anchor, candidateEntrancePoint, clearOverlays, destination, mapState, origin, pad, routeLegs, sectionMarks, sections, selectedSectionId, turnPins]);
+    setSourceData(map, previewSourceId, lineCollection(previewLines));
+  }, [anchor, candidateEntrancePoint, clearOverlays, destination, mapRenderRevision, mapState, origin, pad, routeLegs, sectionMarks, sections, selectedSectionId, turnPins]);
 
   function fitAll() {
-    const maps = mapsRef.current;
     const map = mapRef.current;
-    if (!maps || !map || !destination) return;
-    const bounds = new maps.LatLngBounds();
-    [origin, anchor, ...turnPins, candidateEntrancePoint, destination].filter((point): point is OwnerGoogleVerifyPoint => Boolean(point)).forEach((point) => bounds.extend(googlePoint(point)));
+    if (!map || !destination) return;
+    const bounds = new LngLatBounds(mapPoint(destination), mapPoint(destination));
+    [origin, anchor, ...turnPins, candidateEntrancePoint].filter((point): point is OwnerGoogleVerifyPoint => Boolean(point)).forEach((point) => bounds.extend(mapPoint(point)));
     for (const route of approvedStepRoutes) for (const feature of route.geometry.features) {
       const paths = feature.geometry.type === "LineString" ? [feature.geometry.coordinates] : feature.geometry.coordinates;
-      for (const path of paths) for (const [longitude, latitude] of path) bounds.extend({ lat: latitude, lng: longitude });
+      for (const path of paths) for (const point of path) bounds.extend(point);
     }
     for (const leg of routeLegs) for (const point of leg.path) bounds.extend(point);
     dismissPhoneKeyboard();
     setWorkflowOpen(false);
     setDraftPanelOpen(false);
     setSelectedSectionId("");
-    map.fitBounds(bounds, mapFitPadding());
+    map.fitBounds(bounds, { padding: mapFitPadding(), maxZoom: 16, duration: 260 });
   }
 
   function focusPad() {
@@ -594,8 +704,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     setWorkflowOpen(false);
     setDraftPanelOpen(false);
     setSelectedSectionId("");
-    map.setCenter(googlePoint(destination));
-    map.setZoom(16);
+    map.easeTo({ center: mapPoint(destination), zoom: 16, duration: 260 });
     setNotice(`${pad.padName} saved pad GPS centered.`);
   }
 
@@ -654,7 +763,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       end: selectedSection.end,
     };
     setSectionMarks((current) => [...current.filter((candidate) => candidate.sectionId !== mark.sectionId), mark]);
-    setNotice(state === "approved_named_road" ? `${name} marked as a directed named road.` : state === "lease_or_unnamed" ? "Section marked unnamed or lease road." : "Section marked as the wrong road.");
+    setNotice(state === "approved_named_road" ? `${name} approved for this draft section.` : state === "lease_or_unnamed" ? "Section marked unnamed or lease road." : "Section marked as the wrong road.");
     dismissPhoneKeyboard();
     setRoadName("");
     setSelectedSectionId("");
@@ -707,7 +816,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     setEntranceLatitude(draft.pad.candidateEntrance ? String(draft.pad.candidateEntrance.latitude) : "");
     setEntranceLongitude(draft.pad.candidateEntrance ? String(draft.pad.candidateEntrance.longitude) : "");
     setDraftId(draft.draftId);
-    setNotice("Draft points resumed. Google is recomputing, and every section must be reviewed again.");
+    setNotice("Draft points resumed. The free route preview is recomputing, and every section must be reviewed again.");
     setSaveMessage("");
     setDraftPanelOpen(false);
   }
@@ -727,15 +836,15 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   const revisionMismatch = Boolean(latestDraft && (latestDraft.pad.recordRevision !== pad.recordRevision || !sameDestination(latestDraft, destination)));
 
   return <section className="owner-google-verify-page" data-map-state={mapState}>
-    <div ref={mapHost} className="owner-google-verify-map" aria-label={`Google route verification map for ${pad.padName}`}/>
-    {mapState !== "ready" && <div className="owner-google-map-state" role={mapState === "error" ? "alert" : "status"}><Icon name="google"/><strong>{mapMessage}</strong>{mapState === "not_configured" && <small>Add VITE_GOOGLE_MAPS_API_KEY to the V18 environment. Never paste it into this page.</small>}</div>}
+    <div ref={mapHost} className="owner-google-verify-map" aria-label={`Free route verification map for ${pad.padName}`}/>
+    {mapState !== "ready" && <div className="owner-google-map-state" role={mapState === "error" ? "alert" : "status"}><Icon name="map"/><strong>{mapMessage}</strong><small>No Google key or paid map account is used here.</small></div>}
 
     <header className="owner-google-verify-topbar">
       <Link to="/?view=roads" replace className="icon-button" aria-label="Back to Approved Roads map"><Icon name="back"/></Link>
       <div><span className="eyebrow">OWNER · DRAFT ONLY</span><strong>{pad.padName}</strong><small>{pad.company} · revision {pad.recordRevision}</small></div>
       <nav className="owner-map-tools" aria-label="Map controls">
         <button type="button" className="owner-pad-focus" onClick={focusPad} disabled={mapState !== "ready"} aria-label={`Find ${pad.padName} saved pad GPS`}><Icon name="location"/>Pad</button>
-        <button type="button" className="owner-map-type" onClick={() => setMapType((value) => value === "satellite" ? "roadmap" : "satellite")} disabled={mapState !== "ready"} aria-label={`Show ${mapType === "satellite" ? "map" : "satellite"} view`}><Icon name="map"/>{mapType === "satellite" ? "Map" : "Satellite"}</button>
+        <button type="button" className="owner-map-type" onClick={() => setMapType((value) => value === "satellite" ? "road" : "satellite")} disabled={mapState !== "ready"} aria-label={`Show ${mapType === "satellite" ? "road map" : "satellite"} view`}><Icon name="map"/>{mapType === "satellite" ? "Road map" : "Satellite"}</button>
       </nav>
     </header>
 
@@ -747,12 +856,14 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       </button>
       {workflowOpen && <div id="owner-google-workflow-content" className="owner-google-workflow-content" aria-live="polite">
         <div className={`owner-verify-outcome is-${outcome.state}`}><span/><strong>{outcome.label}</strong><small>{outcome.detail}</small></div>
+        <div className="owner-approved-road-status owner-free-map-status"><span/><strong>Free map and road preview</strong><small>Pick the anchor and turns here, then review the route line. The Google Driver Navigate link stays unchanged. If the community router is busy, keep your points and tap Refresh preview.</small></div>
         <div className={`owner-approved-road-status${companyRoads.error ? " is-error" : ""}`}><span/><strong>Public road reference overlay</strong><small>{companyRoads.loading ? "Loading reviewed public-road references…" : companyRoads.error || (companyRoads.overlay?.selection === "all" ? `${companyRoads.overlay.rows.length.toLocaleString()} reviewed public-road sections shown as references.` : companyRoads.availability.reason || "Public-road references unavailable; nothing was inferred.")}</small></div>
         <div className="owner-approved-road-status owner-approved-step-status"><span/><strong>Named-road display for {pad.padName}</strong><small>{currentApprovedStepState === "loading" ? "Checking this pad's reviewed named-road display geometry…" : currentApprovedStepState === "ready" ? `${approvedStepRoutes.reduce((count, route) => count + route.stepCount, 0).toLocaleString()} reviewed named-road steps highlighted in bright teal. Teal is display only; State-1 graph/public-Google authority is separate.` : "No reviewed named-road display geometry is available for this pad; no line was inferred."}</small></div>
         <ol>
-          <li className={origin ? "done" : "active"}><span>1</span><div><strong>Phone origin</strong><small>{locationState === "ready" ? "Current phone GPS ready · never stored" : locationState === "error" ? previewMessage : "Tap to share this phone's GPS with Google for this preview · never stored or exported"}</small></div>{locationState !== "locating" && <button type="button" onClick={() => { requestPhoneOrigin(); setWorkflowOpen(false); }}>Use phone GPS</button>}</li>
+          <li className={origin ? "done" : "active"}><span>1</span><div><strong>Phone starting point</strong><small>{locationState === "ready" ? "Starting point ready · shows how the unchanged Google Navigate link will begin · not saved" : locationState === "error" ? previewMessage : "Use this phone only as the route starting point · not saved in drafts or exports"}</small></div>{locationState !== "locating" && <button type="button" onClick={() => { requestPhoneOrigin(); setWorkflowOpen(false); }}>Use phone GPS</button>}</li>
           <li className={anchor ? "done" : origin ? "active" : ""}><span>2</span><div><strong>Anchor</strong><small>{anchor ? "Named public-road anchor set" : "Tap the map on a named public road"}</small></div></li>
           <li className={routeLegs.length ? "done" : anchor ? "active" : ""}><span>3</span><div><strong>Turn pins</strong><small>{turnPins.length} of {maximumOwnerGoogleVerifyTurnPins} · preview updates after every tap</small></div></li>
+          <li className={outcome.state === "success" ? "done" : routeLegs.length ? "active" : ""}><span>4</span><div><strong>Review and approve</strong><small>{outcome.state === "success" ? "Every route section is approved for this draft" : "Tap each preview line, then approve the named road or mark it wrong / unnamed"}</small></div></li>
         </ol>
         <p className="owner-verify-notice" role="status">{notice}</p>
         <p className={`owner-preview-state is-${previewState}`} role="status">{previewMessage}</p>
@@ -769,10 +880,10 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       <button type="button" className="selection-close" onClick={() => setSelectedSectionId("")} aria-label="Close section editor"><Icon name="close"/></button>
       <span className="eyebrow">SECTION {selectedSection.ordinal}</span>
       <h2 id="owner-section-title">{sectionLabel(selectedSection.ordinal, turnPins.length)}</h2>
-      <p>Enter a public road name yourself. Google does not name or approve this section.</p>
+      <p>Enter the public road name yourself. Your choice approves only this draft section; the map does not auto-name or auto-approve it.</p>
       <label><span>Named public road</span><input value={roadName} maxLength={120} onChange={(event) => setRoadName(event.target.value)} placeholder="Example: Repik Ln / CR 9876" autoComplete="off"/></label>
       <div>
-        <button type="button" className="section-approved" onClick={() => markSelected("approved_named_road")}>Directed named road</button>
+        <button type="button" className="section-approved" onClick={() => markSelected("approved_named_road")}>Approve named road</button>
         <button type="button" onClick={() => markSelected("lease_or_unnamed")}>Unnamed / lease</button>
         <button type="button" className="section-not-approved" onClick={() => markSelected("not_approved")}>Wrong road</button>
       </div>
@@ -792,7 +903,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
             {(entranceLatitude || entranceLongitude) && <button type="button" onClick={() => { setEntranceLatitude(""); setEntranceLongitude(""); }}>Clear entrance point</button>}
             {!parsedCandidateEntrance.valid && <small role="alert">Enter both valid coordinates, or clear both fields.</small>}
           </fieldset>
-          <div className="owner-draft-buttons"><button type="button" className="button-primary" onClick={saveDraft} disabled={!anchor}>Save draft</button><button type="button" className="button-secondary" onClick={downloadDrafts} disabled={!drafts.length}>Export JSON</button></div>
+          <div className="owner-draft-buttons"><button type="button" className="button-primary" onClick={saveDraft} disabled={!anchor}>Save review draft</button><button type="button" className="button-secondary" onClick={downloadDrafts} disabled={!drafts.length}>Export JSON</button></div>
           {saveMessage && <p className="owner-draft-message" role="status">{saveMessage}</p>}
           {latestDraft && <section className={`owner-latest-draft${revisionMismatch ? " is-stale" : ""}`}><span><strong>Latest for this pad</strong><small>{readableTime(latestDraft.savedAt)} · revision {latestDraft.pad.recordRevision}</small></span><button type="button" onClick={() => resumeDraft(latestDraft)} disabled={revisionMismatch}>{revisionMismatch ? "Revision changed" : "Resume points"}</button></section>}
           <ul className="owner-draft-results">{drafts.slice(0, 12).map((draft) => <li key={draft.draftId}><span><strong>{draft.pad.padName}</strong><small>{draft.sectionMarks.length} section marks · {draft.turnPins.length} turn pins · {draft.pad.candidateEntrance ? "entrance candidate saved" : "no entrance candidate"}</small></span><time dateTime={draft.savedAt}>{readableTime(draft.savedAt)}</time></li>)}</ul>

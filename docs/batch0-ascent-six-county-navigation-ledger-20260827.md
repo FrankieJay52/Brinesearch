@@ -1,8 +1,8 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `9156758ea1d13c76dfa88782d92457dc7f56144a`
+- Base origin/main SHA: `a6738ccbef848315f81ab2243d60aea09da32279`
 - Candidate implementation HEAD: `2a509d39725bcbf5e16272dbeb06402fa1ad8bf2`
-- Candidate content SHA-256: `a87fea562a5ecead01039aef3390c1ed6cb8b27e465a564286b0659b1e1f1971`
-- Uncommitted non-generated changes: **no**
+- Candidate content SHA-256: `1717cdb7bf7c96a298a8541586bb69f3b5c91dda068f41fd9f78f682a3aa12af`
+- Uncommitted non-generated changes: **yes**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
 
@@ -10,38 +10,22 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
-- `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
-- `docs/issue97-owner-approved-directions-presentation-20260828.md`
-- `v18/README.md`
+- `netlify.toml`
 - `v18/package.json`
-- `v18/scripts/audit-batch0-ascent-navigation.mjs`
-- `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
-- `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
 - `v18/scripts/audit-v18-owner-google-verify-map.mjs`
-- `v18/scripts/sanitize-pad-fallback-data.mjs`
-- `v18/scripts/verify-built-runtime.mjs`
-- `v18/src/data/ascentBatch0NavigationLedger.test.ts`
-- `v18/src/data/ownerGoogleVerifyDrafts.ts`
-- `v18/src/data/releasedGoogleHandoff.test.ts`
-- `v18/src/data/releasedGoogleHandoff.ts`
-- `v18/src/data/reviewedNavigationCandidates.ts`
-- `v18/src/data/status.test.ts`
-- `v18/src/data/status.ts`
-- `v18/src/data/types.ts`
-- `v18/src/features/map/MapApprovedRouteLink.test.ts`
-- `v18/src/features/map/MapApprovedRouteLink.tsx`
-- `v18/src/features/map/MapPage.test.ts`
-- `v18/src/features/map/MapPage.tsx`
 - `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.test.ts`
 - `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.tsx`
+- `v18/src/features/owner-google-verify/freeRoutePreview.test.ts`
+- `v18/src/features/owner-google-verify/freeRoutePreview.ts`
+- `v18/src/features/owner-google-verify/googleMapsLoader.ts`
+- `v18/src/features/owner-google-verify/owner-google-verify.css`
 - `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.test.ts`
 - `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.ts`
-- `v18/src/features/pad/PadMapPreview.test.ts`
-- `v18/src/features/pad/PadMapPreview.tsx`
 - `v18/src/features/pad/PadPage.test.ts`
 - `v18/src/features/pad/PadPage.tsx`
-- `v18/src/styles/app.css`
+- `v18/src/features/settings/SettingsPage.test.ts`
+- `v18/src/features/settings/SettingsPage.tsx`
+- `v18/src/vite-env.d.ts`
 
 ## Counts
 

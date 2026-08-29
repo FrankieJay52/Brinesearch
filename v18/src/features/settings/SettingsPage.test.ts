@@ -25,12 +25,12 @@ describe("route session checks", () => {
   });
 });
 
-describe("owner Google route verifier entry", () => {
+describe("owner free route verifier entry", () => {
   it("shows an owner-only local-draft button with the exact verifier path", () => {
     expect(settingsPage).toContain('{access.state === "owner" && <div className="settings-info-row settings-owner-verify-row">');
-    expect(settingsPage).toContain("<strong>Owner Google route verifier</strong>");
-    expect(settingsPage).toContain("Local drafts only");
+    expect(settingsPage).toContain("<strong>Owner free route verifier</strong>");
+    expect(settingsPage).toContain("No paid map key · local drafts only");
     expect(settingsPage).toContain('`/settings/verify-route/${encodeURIComponent(ownerDraftSummary.lastDraft.pad.padId)}`');
-    expect(settingsPage).toContain('className="settings-row-action">Verify route on Google</Link>');
+    expect(settingsPage).toContain('className="settings-row-action">Verify on free map</Link>');
   });
 });

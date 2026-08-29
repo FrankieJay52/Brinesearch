@@ -203,9 +203,9 @@ export function SettingsPage() {
           <Link to="/?view=roads" className="settings-row-action">Open viewer</Link>
         </div>
         {access.state === "owner" && <div className="settings-info-row settings-owner-verify-row">
-          <span className="settings-state-icon"><Icon name="google"/></span>
-          <span><strong>Owner Google route verifier</strong><small>Local drafts only · {ownerDraftSummary.draftCount} saved on this device · Last pad verified: {ownerDraftSummary.lastDraft ? `${ownerDraftSummary.lastDraft.pad.padName} · ${formatDate(ownerDraftSummary.lastDraft.savedAt)}` : "none"}</small></span>
-          <Link to={ownerDraftSummary.lastDraft ? `/settings/verify-route/${encodeURIComponent(ownerDraftSummary.lastDraft.pad.padId)}` : "/?view=roads"} className="settings-row-action">Verify route on Google</Link>
+          <span className="settings-state-icon"><Icon name="map"/></span>
+          <span><strong>Owner free route verifier</strong><small>No paid map key · local drafts only · {ownerDraftSummary.draftCount} saved on this device · Last pad verified: {ownerDraftSummary.lastDraft ? `${ownerDraftSummary.lastDraft.pad.padName} · ${formatDate(ownerDraftSummary.lastDraft.savedAt)}` : "none"}</small></span>
+          <Link to={ownerDraftSummary.lastDraft ? `/settings/verify-route/${encodeURIComponent(ownerDraftSummary.lastDraft.pad.padId)}` : "/?view=roads"} className="settings-row-action">Verify on free map</Link>
         </div>}
         <div className="settings-info-row settings-locked-row">
           <span className="settings-state-icon"><Icon name="route"/></span>

@@ -144,7 +144,7 @@ export function ownerGoogleVerifyOutcome(
   if (!sections.length || sections.some((section) => section.mark === null)) return {
     state: "review",
     label: "Review route sections",
-    detail: "Tap every post-anchor section and classify it before this draft can show a route result.",
+    detail: "Tap every route section after the anchor and approve the named road, or mark it wrong or unnamed.",
   };
 
   let trailingLeaseStarted = false;
@@ -170,11 +170,11 @@ export function ownerGoogleVerifyOutcome(
   };
   return trailingLeaseStarted ? {
     state: "success",
-    label: "Named roads then saved pin",
-    detail: "Directed named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
+    label: "Route review complete",
+    detail: "Approved named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS. This result is draft only.",
   } : {
     state: "success",
-    label: "Named roads to saved pin",
-    detail: "Every post-anchor section is marked as a directed named road.",
+    label: "Route review complete",
+    detail: "Every route section after the anchor is approved as a named road. This result is draft only.",
   };
 }

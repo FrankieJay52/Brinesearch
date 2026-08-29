@@ -158,8 +158,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain("const ownerVerifyDestination = ownerGoogleVerifyDestination(pad);");
     expect(padPage).toContain('{access.state === "owner" && ownerVerifyDestination && <Link className="pad-owner-google-verify"');
     expect(padPage).toContain('to={`/settings/verify-route/${encodeURIComponent(pad.padId)}`}');
-    expect(padPage).toContain("<strong>Verify route on Google</strong>");
-    expect(padPage).toContain("<small>Owner draft only · Navigate unchanged</small>");
+    expect(padPage).toContain("<strong>Verify route on free map</strong>");
+    expect(padPage).toContain("<small>No paid key · owner draft only · Navigate unchanged</small>");
   });
 
   it("requires an explicit named approach choice and keeps its steps, geometry, and URL together", () => {

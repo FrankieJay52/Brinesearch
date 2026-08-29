@@ -301,8 +301,8 @@ describe("owner Google verify outcome", () => {
       section(2, "approved_named_road", "State Route 519"),
     ])).toEqual({
       state: "success",
-      label: "Named roads to saved pin",
-      detail: "Every post-anchor section is marked as a directed named road.",
+      label: "Route review complete",
+      detail: "Every route section after the anchor is approved as a named road. This result is draft only.",
     });
   });
 
@@ -314,8 +314,8 @@ describe("owner Google verify outcome", () => {
       section(4, "lease_or_unnamed"),
     ])).toEqual({
       state: "success",
-      label: "Named roads then saved pin",
-      detail: "Directed named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
+      label: "Route review complete",
+      detail: "Approved named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS. This result is draft only.",
     });
   });
 
