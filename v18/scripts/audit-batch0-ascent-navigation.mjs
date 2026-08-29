@@ -12,6 +12,9 @@ const generatedAuditPaths = new Set([
   "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
   "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
 ]);
+const frozenValidatorPaths = new Set([
+  "v18/scripts/audit-batch0-ascent-navigation.mjs",
+]);
 const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Noble"];
 
 // These legacy state/blocker values are frozen promotion-audit provenance.
@@ -914,6 +917,10 @@ export function hostedBuildArtifact(relativePath) {
   return normalized === ".netlify" || normalized.startsWith(".netlify/");
 }
 
+export function frozenDigestUsesHistoricalContent(relativePath) {
+  return frozenValidatorPaths.has(String(relativePath).replaceAll("\\", "/"));
+}
+
 export function implementationPathSet(changedFromBase, trackedDirty, untracked, frozen) {
   const candidateUntracked = frozen
     ? untracked.filter((value) => !hostedBuildArtifact(value))
@@ -975,6 +982,27 @@ function gitBlob(relativePath) {
   }
 }
 
+function gitBlobAt(ref, relativePath) {
+  try {
+    return execFileSync("git", ["show", `${ref}:${relativePath}`], {
+      cwd: repositoryRoot,
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+  } catch {
+    return null;
+  }
+}
+
+function ensureCommitAvailable(commitSha) {
+  if (tryGit("cat-file", "-e", `${commitSha}^{commit}`) !== null) return;
+  execFileSync("git", ["fetch", "--no-tags", "--depth=1", "origin", commitSha], {
+    cwd: repositoryRoot,
+    stdio: "ignore",
+  });
+  assert(tryGit("cat-file", "-e", `${commitSha}^{commit}`) !== null,
+    `Saved Batch 0 implementation commit ${commitSha} is unavailable`);
+}
+
 function gitPaths(...args) {
   const output = git(...args);
   return output ? output.split(/\r?\n/u).filter(Boolean).map((value) => value.replaceAll("\\", "/")) : [];
@@ -991,6 +1019,7 @@ async function implementationProvenance(baseMainSha, frozen = null) {
       ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
       ":(exclude)docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
     );
+  if (frozen) ensureCommitAvailable(frozen.implementationSha);
   const changedFromBase = frozen?.implementationPaths || gitPaths("diff", "--name-only", baseMainSha, "--", ".");
   const trackedDirty = [...new Set([
     ...gitPaths("diff", "--name-only", "HEAD", "--", "."),
@@ -1010,7 +1039,14 @@ async function implementationProvenance(baseMainSha, frozen = null) {
   const entries = [];
   for (const relativePath of implementationPaths) {
     try {
-      const committed = dirty.has(relativePath) ? null : gitBlob(relativePath);
+      let committed = null;
+      if (frozen && frozenDigestUsesHistoricalContent(relativePath)) {
+        committed = gitBlobAt(frozen.implementationSha, relativePath);
+        assert(committed,
+          `Saved Batch 0 validator content ${relativePath} is unavailable at ${frozen.implementationSha}`);
+      } else if (!dirty.has(relativePath)) {
+        committed = gitBlob(relativePath);
+      }
       entries.push({
         path: relativePath,
         content: committed || await readFile(path.join(repositoryRoot, ...relativePath.split("/"))),
@@ -1103,13 +1139,12 @@ export function frozenProvenanceCheckoutMode({ headSha, originMainSha, frozenBas
   assert(/^[0-9a-f]{40}$/u.test(originMainSha), "Current origin/main SHA is invalid");
   assert(/^[0-9a-f]{40}$/u.test(frozenBaseSha), "Saved Batch 0 base SHA is invalid");
   if (headSha === originMainSha) return "merged-main";
-  assert(originMainSha === frozenBaseSha,
-    `Saved Batch 0 base ${frozenBaseSha} does not match current origin/main ${originMainSha}`);
-  return "candidate-branch";
+  if (originMainSha === frozenBaseSha) return "candidate-branch";
+  return "post-merge-descendant";
 }
 
 export function frozenProvenanceNeedsBaseHistory(checkoutMode) {
-  assert(checkoutMode === "candidate-branch" || checkoutMode === "merged-main",
+  assert(["candidate-branch", "merged-main", "post-merge-descendant"].includes(checkoutMode),
     `Unsupported frozen provenance checkout mode ${checkoutMode}`);
   return checkoutMode === "candidate-branch";
 }
@@ -1307,7 +1342,17 @@ async function main() {
       assert(JSON.stringify(currentPaths) === JSON.stringify([...frozen.implementationPaths].sort()),
         "Saved Batch 0 implementation file list is stale");
     }
-    assert(!githubBase || checkoutMode === "candidate-branch",
+    if (checkoutMode === "post-merge-descendant") {
+      if (githubBase) {
+        assert(githubBase === originMainSha,
+          `Post-merge Batch 0 pull-request base ${githubBase} does not match current origin/main ${originMainSha}`);
+      } else {
+        const mergeBase = git("merge-base", "HEAD", "origin/main");
+        assert(mergeBase === originMainSha,
+          `Post-merge Batch 0 branch must descend from current origin/main ${originMainSha}; merge base is ${mergeBase}`);
+      }
+    }
+    assert(!githubBase || checkoutMode !== "merged-main",
       "A pull-request checkout cannot use merged-main provenance mode");
     provenance = await implementationProvenance(frozen.baseMainSha, frozen);
     assert(provenance.candidateContentSha256 === frozen.candidateContentSha256,
