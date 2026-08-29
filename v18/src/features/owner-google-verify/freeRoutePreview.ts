@@ -4,6 +4,7 @@ export const freeRoutePreviewEndpoint = "https://router.project-osrm.org/route/v
 
 export type FreeRoutePreviewLeg = {
   path: [number, number][];
+  distanceMeters: number;
 };
 
 type OsrmStep = {
@@ -19,6 +20,7 @@ type OsrmLeg = {
 
 type OsrmRoute = {
   legs?: unknown;
+  distance?: unknown;
 };
 
 function routeCoordinate(value: unknown): [number, number] | null {
@@ -55,13 +57,12 @@ function requestPoint(point: OwnerGoogleVerifyPoint) {
 }
 
 export function freeRoutePreviewUrl(
-  origin: OwnerGoogleVerifyPoint,
-  controls: readonly OwnerGoogleVerifyPoint[],
-  destination: OwnerGoogleVerifyPoint,
+  start: OwnerGoogleVerifyPoint,
+  end: OwnerGoogleVerifyPoint,
 ) {
-  const coordinates = [origin, ...controls, destination].map(requestPoint).join(";");
+  const coordinates = [start, end].map(requestPoint).join(";");
   const options = new URLSearchParams({
-    alternatives: "false",
+    alternatives: "3",
     steps: "true",
     geometries: "geojson",
     overview: "false",
@@ -71,12 +72,21 @@ export function freeRoutePreviewUrl(
 }
 
 export async function requestFreeRoutePreview(
-  origin: OwnerGoogleVerifyPoint,
+  anchor: OwnerGoogleVerifyPoint,
   controls: readonly OwnerGoogleVerifyPoint[],
   destination: OwnerGoogleVerifyPoint,
   signal?: AbortSignal,
 ): Promise<FreeRoutePreviewLeg[]> {
-  const response = await fetch(freeRoutePreviewUrl(origin, controls, destination), {
+  const points = [anchor, ...controls, destination];
+  return Promise.all(points.slice(0, -1).map((start, index) => requestShortestSegment(start, points[index + 1], signal)));
+}
+
+async function requestShortestSegment(
+  start: OwnerGoogleVerifyPoint,
+  end: OwnerGoogleVerifyPoint,
+  signal?: AbortSignal,
+): Promise<FreeRoutePreviewLeg> {
+  const response = await fetch(freeRoutePreviewUrl(start, end), {
     signal,
     cache: "no-store",
     credentials: "omit",
@@ -89,17 +99,19 @@ export async function requestFreeRoutePreview(
     throw new Error("Free route service did not return a usable route.");
   }
   const routes = (body as { routes?: unknown }).routes;
-  if (!Array.isArray(routes) || !routes.length || !routes[0] || typeof routes[0] !== "object") {
+  if (!Array.isArray(routes) || !routes.length) {
     throw new Error("Free route service returned no route.");
   }
-  const legs = (routes[0] as OsrmRoute).legs;
-  const expectedLegCount = controls.length + 1;
-  if (!Array.isArray(legs) || legs.length !== expectedLegCount) {
-    throw new Error("Free route service did not preserve every control point.");
-  }
-  const parsed = legs.map(legPath);
-  if (parsed.some((path) => path.length < 2)) {
+  const candidates = routes.flatMap((value): FreeRoutePreviewLeg[] => {
+    if (!value || typeof value !== "object") return [];
+    const route = value as OsrmRoute;
+    const distanceMeters = Number(route.distance);
+    if (!Number.isFinite(distanceMeters) || distanceMeters < 0 || !Array.isArray(route.legs) || route.legs.length !== 1) return [];
+    const path = legPath(route.legs[0]);
+    return path.length >= 2 ? [{ path, distanceMeters }] : [];
+  });
+  if (!candidates.length) {
     throw new Error("Free route service returned incomplete road geometry.");
   }
-  return parsed.map((path) => ({ path }));
+  return candidates.reduce((shortest, candidate) => candidate.distanceMeters < shortest.distanceMeters ? candidate : shortest);
 }

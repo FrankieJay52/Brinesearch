@@ -40,7 +40,8 @@ import { requestFreeRoutePreview, type FreeRoutePreviewLeg } from "./freeRoutePr
 import "./owner-google-verify.css";
 
 type MapState = "loading" | "ready" | "error";
-type PreviewState = "waiting_for_phone" | "waiting_for_anchor" | "routing" | "ready" | "error";
+type PreviewState = "waiting_for_anchor" | "routing" | "ready" | "error";
+type OwnerRouteControl = { kind: "anchor" } | { kind: "turn"; index: number };
 
 const approvedRoadSourceId = "owner-free-approved-roads";
 const approvedRoadCasingLayerId = "owner-free-approved-roads-casing";
@@ -49,7 +50,6 @@ const approvedStepSourceId = "owner-free-approved-steps";
 const approvedStepCasingLayerId = "owner-free-approved-steps-casing";
 const approvedStepLayerId = "owner-free-approved-steps-line";
 const previewSourceId = "owner-free-route-preview";
-const previewApproachLayerId = "owner-free-route-approach";
 const previewSectionCasingLayerId = "owner-free-route-sections-casing";
 const previewSectionLayerId = "owner-free-route-sections";
 
@@ -99,14 +99,6 @@ function ensureFreeVerifierLayers(map: MapLibreMap) {
     paint: { "line-color": "#2dd4bf", "line-opacity": 1, "line-width": ["interpolate", ["linear"], ["zoom"], 8, 5, 14, 10, 18, 13] as never },
     layout: { "line-cap": "round", "line-join": "round" },
   }, before);
-  if (!map.getLayer(previewApproachLayerId)) map.addLayer({
-    id: previewApproachLayerId,
-    type: "line",
-    source: previewSourceId,
-    filter: ["==", ["get", "kind"], "approach"] as never,
-    paint: { "line-color": "#64748b", "line-opacity": .86, "line-width": 4 },
-    layout: { "line-cap": "round", "line-join": "round" },
-  });
   if (!map.getLayer(previewSectionCasingLayerId)) map.addLayer({
     id: previewSectionCasingLayerId,
     type: "line",
@@ -149,7 +141,7 @@ function freeMapMarker(label: string, color: string, title: string) {
   return element;
 }
 
-function validPhonePoint(value: OwnerGoogleVerifyPoint) {
+function validCoordinatePoint(value: OwnerGoogleVerifyPoint) {
   return Number.isFinite(value.latitude)
     && value.latitude >= -90
     && value.latitude <= 90
@@ -165,7 +157,7 @@ function candidateEntranceFromInput(latitudeText: string, longitudeText: string)
   if (!latitudeValue && !longitudeValue) return { valid: true as const, point: null };
   if (!latitudeValue || !longitudeValue) return { valid: false as const, point: null };
   const point = { latitude: Number(latitudeValue), longitude: Number(longitudeValue) };
-  return validPhonePoint(point) && isInsideCoordinateServiceArea(point.latitude, point.longitude)
+  return validCoordinatePoint(point) && isInsideCoordinateServiceArea(point.latitude, point.longitude)
     ? { valid: true as const, point }
     : { valid: false as const, point: null };
 }
@@ -232,16 +224,14 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   const [mapRenderRevision, setMapRenderRevision] = useState(0);
   const [workflowOpen, setWorkflowOpen] = useState(false);
   const [draftPanelOpen, setDraftPanelOpen] = useState(false);
-  const [origin, setOrigin] = useState<OwnerGoogleVerifyPoint | null>(null);
-  const [locationState, setLocationState] = useState<"idle" | "locating" | "ready" | "error">("idle");
   const [anchor, setAnchor] = useState<OwnerGoogleVerifyPoint | null>(null);
   const [turnPins, setTurnPins] = useState<OwnerGoogleVerifyPoint[]>([]);
   const [routeLegs, setRouteLegs] = useState<FreeRoutePreviewLeg[]>([]);
   const [sectionMarks, setSectionMarks] = useState<OwnerGoogleVerifySectionMark[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState("");
   const [roadName, setRoadName] = useState("");
-  const [previewState, setPreviewState] = useState<PreviewState>("waiting_for_phone");
-  const [previewMessage, setPreviewMessage] = useState("Waiting for this phone's GPS.");
+  const [previewState, setPreviewState] = useState<PreviewState>("waiting_for_anchor");
+  const [previewMessage, setPreviewMessage] = useState("Tap a named public road to set the route's starting anchor.");
   const [notice, setNotice] = useState("First map tap sets the named-public-road anchor.");
   const [previewVersion, setPreviewVersion] = useState(0);
   const [draftId, setDraftId] = useState("");
@@ -297,12 +287,10 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
 
   useEffect(() => {
     invalidatePreview();
-    setOrigin(null);
-    setLocationState("idle");
     setAnchor(null);
     setTurnPins([]);
-    setPreviewState("waiting_for_phone");
-    setPreviewMessage("Waiting for this phone's GPS.");
+    setPreviewState("waiting_for_anchor");
+    setPreviewMessage("Tap a named public road to set the route's starting anchor.");
     setNotice("First map tap sets the named-public-road anchor.");
     setPreviewVersion(0);
     setDraftId("");
@@ -329,37 +317,19 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     setNotice(next.notice);
   };
 
-  const requestPhoneOrigin = useCallback(() => {
-    if (!navigator.geolocation) {
-      setLocationState("error");
-      setPreviewState("error");
-      setPreviewMessage("Phone GPS is unavailable. The origin cannot fall back to another place.");
+  const moveControlPoint = useCallback((control: OwnerRouteControl, point: OwnerGoogleVerifyPoint) => {
+    invalidatePreview();
+    dismissPhoneKeyboard();
+    setWorkflowOpen(false);
+    setDraftPanelOpen(false);
+    if (control.kind === "anchor") {
+      setAnchor(point);
+      setNotice("Anchor moved. The shortest available road preview is updating from this starting point.");
       return;
     }
-    invalidatePreview();
-    setLocationState("locating");
-    setPreviewState("waiting_for_phone");
-    setPreviewMessage("Locating this phone…");
-    navigator.geolocation.getCurrentPosition((position) => {
-      const nextOrigin = { latitude: position.coords.latitude, longitude: position.coords.longitude };
-      if (!validPhonePoint(nextOrigin)) {
-        setOrigin(null);
-        setLocationState("error");
-        setPreviewState("error");
-        setPreviewMessage("This phone did not return a valid GPS origin. No fallback origin will be used.");
-        return;
-      }
-      setOrigin(nextOrigin);
-      setLocationState("ready");
-      setPreviewState(anchor ? "routing" : "waiting_for_anchor");
-      setPreviewMessage(anchor ? "Updating free route preview…" : "Phone origin ready. Tap a named public road for the anchor.");
-    }, () => {
-      setOrigin(null);
-      setLocationState("error");
-      setPreviewState("error");
-      setPreviewMessage("Phone GPS permission is required. Cadiz or another fallback origin will never be used.");
-    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15_000 });
-  }, [anchor, invalidatePreview]);
+    setTurnPins((current) => current.map((candidate, index) => index === control.index ? point : candidate));
+    setNotice(`Turn pin ${control.index + 1} moved. The shortest available road preview is updating.`);
+  }, [invalidatePreview]);
 
   useEffect(() => {
     if (access.state !== "owner" || !pad || !destination || !mapHost.current) return;
@@ -569,13 +539,10 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   }, [access.state]);
 
   useEffect(() => {
-    if (access.state !== "owner" || mapState !== "ready" || !origin || !anchor || !destination) {
-      if (!origin) {
-        setPreviewState("waiting_for_phone");
-        setPreviewMessage("Waiting for this phone's GPS.");
-      } else if (!anchor) {
+    if (access.state !== "owner" || mapState !== "ready" || !anchor || !destination) {
+      if (!anchor) {
         setPreviewState("waiting_for_anchor");
-        setPreviewMessage("Tap a named public road to set the anchor.");
+        setPreviewMessage("Tap a named public road to set the route's starting anchor.");
       }
       return;
     }
@@ -584,14 +551,14 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     const controller = new AbortController();
     previewAbortRef.current = controller;
     setPreviewState("routing");
-    setPreviewMessage("Updating free OpenStreetMap route preview…");
-    requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal).then((legs) => {
+    setPreviewMessage("Finding the shortest available road route between each control point…");
+    requestFreeRoutePreview(anchor, turnPins, destination, controller.signal).then((legs) => {
       if (requestId !== previewRequestRef.current) return;
-      const expectedLegCount = turnPins.length + 2;
+      const expectedLegCount = turnPins.length + 1;
       if (legs.length !== expectedLegCount) throw new Error("Route response did not preserve every owner control point.");
       setRouteLegs(legs);
       setPreviewState("ready");
-      setPreviewMessage(`${legs.length - 1} route ${legs.length - 1 === 1 ? "section" : "sections"} ready after the anchor. Tap each line to approve or reject it.`);
+      setPreviewMessage(`${legs.length} shortest available route ${legs.length === 1 ? "section" : "sections"} ready from the anchor. Tap each line to approve or reject it.`);
       setSelectedSectionId("");
       const points = legs.flatMap((leg) => leg.path);
       if (points.length) {
@@ -606,7 +573,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     }).finally(() => {
       if (previewAbortRef.current === controller) previewAbortRef.current = null;
     });
-  }, [access.state, anchor, destination, mapState, origin, previewVersion, turnPins]);
+  }, [access.state, anchor, destination, mapState, previewVersion, turnPins]);
 
   const sections = useMemo(() => anchor && destination
     ? buildOwnerGoogleVerifySections(anchor, turnPins, destination, sectionMarks)
@@ -649,22 +616,31 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     if (!map || !styleReadyRef.current || !destination || !pad) return;
     clearOverlays();
     const markers = [
-      origin && { point: origin, color: "#2563eb", label: "YOU", title: "Current phone GPS", scale: 16, zIndex: 10 },
-      anchor && { point: anchor, color: "#f59e0b", label: "A", title: "Named-road anchor", scale: 17, zIndex: 12 },
-      ...turnPins.map((point, index) => ({ point, color: "#f8fafc", label: String(index + 1), title: `Turn pin ${index + 1}`, scale: 15, zIndex: 11 })),
+      anchor && { point: anchor, color: "#f59e0b", label: "A", title: "Named-road anchor — drag to move", scale: 17, zIndex: 12, control: { kind: "anchor" } as OwnerRouteControl },
+      ...turnPins.map((point, index) => ({ point, color: "#f8fafc", label: String(index + 1), title: `Turn pin ${index + 1} — drag to move`, scale: 15, zIndex: 11, control: { kind: "turn", index } as OwnerRouteControl })),
       candidateEntrancePoint && { point: candidateEntrancePoint, color: "#a855f7", label: "E", title: "Draft entrance candidate", scale: 16, zIndex: 13 },
       { point: destination, color: "#2dd4bf", label: "PAD", title: `${pad.padName} — saved pad GPS`, scale: 19, zIndex: 14 },
-    ].filter((value): value is { point: OwnerGoogleVerifyPoint; color: string; label: string; title: string; scale: number; zIndex: number } => Boolean(value));
+    ].filter((value): value is { point: OwnerGoogleVerifyPoint; color: string; label: string; title: string; scale: number; zIndex: number; control?: OwnerRouteControl } => Boolean(value));
     for (const item of markers) {
       const element = freeMapMarker(item.label, item.color, item.title);
       element.style.width = `${item.scale * 2}px`;
       element.style.height = `${item.scale * 2}px`;
       element.style.zIndex = String(item.zIndex);
-      markersRef.current.push(new Marker({ element, anchor: "center" }).setLngLat(mapPoint(item.point)).addTo(map));
+      if (item.control) element.classList.add("is-draggable");
+      const marker = new Marker({ element, anchor: "center", draggable: Boolean(item.control) }).setLngLat(mapPoint(item.point)).addTo(map);
+      if (item.control) {
+        const control = item.control;
+        marker.on("dragstart", () => { suppressMapClickRef.current = Date.now(); });
+        marker.on("dragend", () => {
+          suppressMapClickRef.current = Date.now();
+          const point = marker.getLngLat();
+          moveControlPoint(control, { latitude: point.lat, longitude: point.lng });
+        });
+      }
+      markersRef.current.push(marker);
     }
     const previewLines: Array<{ coordinates: [number, number][]; properties: Record<string, unknown> }> = [];
-    if (routeLegs[0]) previewLines.push({ coordinates: routeLegs[0].path, properties: { kind: "approach" } });
-    routeLegs.slice(1).forEach((leg, index) => {
+    routeLegs.forEach((leg, index) => {
       const section = sections[index];
       if (!section) return;
       previewLines.push({
@@ -678,13 +654,13 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       });
     });
     setSourceData(map, previewSourceId, lineCollection(previewLines));
-  }, [anchor, candidateEntrancePoint, clearOverlays, destination, mapRenderRevision, mapState, origin, pad, routeLegs, sectionMarks, sections, selectedSectionId, turnPins]);
+  }, [anchor, candidateEntrancePoint, clearOverlays, destination, mapRenderRevision, mapState, moveControlPoint, pad, routeLegs, sectionMarks, sections, selectedSectionId, turnPins]);
 
   function fitAll() {
     const map = mapRef.current;
     if (!map || !destination) return;
     const bounds = new LngLatBounds(mapPoint(destination), mapPoint(destination));
-    [origin, anchor, ...turnPins, candidateEntrancePoint].filter((point): point is OwnerGoogleVerifyPoint => Boolean(point)).forEach((point) => bounds.extend(mapPoint(point)));
+    [anchor, ...turnPins, candidateEntrancePoint].filter((point): point is OwnerGoogleVerifyPoint => Boolean(point)).forEach((point) => bounds.extend(mapPoint(point)));
     for (const route of approvedStepRoutes) for (const feature of route.geometry.features) {
       const paths = feature.geometry.type === "LineString" ? [feature.geometry.coordinates] : feature.geometry.coordinates;
       for (const path of paths) for (const point of path) bounds.extend(point);
@@ -851,19 +827,18 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     {mapState === "ready" && <aside className={`owner-google-verify-guide${workflowOpen ? " is-expanded" : ""}`} aria-label="Route setup controls">
       <button type="button" className="owner-workflow-toggle" aria-expanded={workflowOpen} aria-controls="owner-google-workflow-content" onClick={toggleWorkflowPanel}>
         <span className={`owner-workflow-indicator is-${outcome.state}`}/>
-        <span><strong>{outcome.label}</strong><small>{workflowOpen ? "Route setup and approved-road references" : origin ? anchor ? `${turnPins.length} turn ${turnPins.length === 1 ? "pin" : "pins"} · tap to manage route setup` : "Phone GPS ready · tap to set the road anchor" : "Tap to use phone GPS and set the road anchor"}</small></span>
+        <span><strong>{outcome.label}</strong><small>{workflowOpen ? "Route setup and approved-road references" : anchor ? `${turnPins.length} turn ${turnPins.length === 1 ? "pin" : "pins"} · tap to manage route setup` : "Tap to set the named-road starting anchor"}</small></span>
         <span className="owner-panel-toggle-action"><Icon name={workflowOpen ? "close" : "control"}/>{workflowOpen ? "Hide" : "Setup"}</span>
       </button>
       {workflowOpen && <div id="owner-google-workflow-content" className="owner-google-workflow-content" aria-live="polite">
         <div className={`owner-verify-outcome is-${outcome.state}`}><span/><strong>{outcome.label}</strong><small>{outcome.detail}</small></div>
-        <div className="owner-approved-road-status owner-free-map-status"><span/><strong>Free map and road preview</strong><small>Pick the anchor and turns here, then review the route line. The Google Driver Navigate link stays unchanged. If the community router is busy, keep your points and tap Refresh preview.</small></div>
+        <div className="owner-approved-road-status owner-free-map-status"><span/><strong>Free map and shortest available road preview</strong><small>The anchor is the starting point. This owner map never requests or uses phone GPS. It compares the road alternatives returned for every section and uses the shortest one. Drag A or any numbered pin to force a different road. Driver Navigate stays unchanged.</small></div>
         <div className={`owner-approved-road-status${companyRoads.error ? " is-error" : ""}`}><span/><strong>Public road reference overlay</strong><small>{companyRoads.loading ? "Loading reviewed public-road references…" : companyRoads.error || (companyRoads.overlay?.selection === "all" ? `${companyRoads.overlay.rows.length.toLocaleString()} reviewed public-road sections shown as references.` : companyRoads.availability.reason || "Public-road references unavailable; nothing was inferred.")}</small></div>
         <div className="owner-approved-road-status owner-approved-step-status"><span/><strong>Named-road display for {pad.padName}</strong><small>{currentApprovedStepState === "loading" ? "Checking this pad's reviewed named-road display geometry…" : currentApprovedStepState === "ready" ? `${approvedStepRoutes.reduce((count, route) => count + route.stepCount, 0).toLocaleString()} reviewed named-road steps highlighted in bright teal. Teal is display only; State-1 graph/public-Google authority is separate.` : "No reviewed named-road display geometry is available for this pad; no line was inferred."}</small></div>
         <ol>
-          <li className={origin ? "done" : "active"}><span>1</span><div><strong>Phone starting point</strong><small>{locationState === "ready" ? "Starting point ready · shows how the unchanged Google Navigate link will begin · not saved" : locationState === "error" ? previewMessage : "Use this phone only as the route starting point · not saved in drafts or exports"}</small></div>{locationState !== "locating" && <button type="button" onClick={() => { requestPhoneOrigin(); setWorkflowOpen(false); }}>Use phone GPS</button>}</li>
-          <li className={anchor ? "done" : origin ? "active" : ""}><span>2</span><div><strong>Anchor</strong><small>{anchor ? "Named public-road anchor set" : "Tap the map on a named public road"}</small></div></li>
-          <li className={routeLegs.length ? "done" : anchor ? "active" : ""}><span>3</span><div><strong>Turn pins</strong><small>{turnPins.length} of {maximumOwnerGoogleVerifyTurnPins} · preview updates after every tap</small></div></li>
-          <li className={outcome.state === "success" ? "done" : routeLegs.length ? "active" : ""}><span>4</span><div><strong>Review and approve</strong><small>{outcome.state === "success" ? "Every route section is approved for this draft" : "Tap each preview line, then approve the named road or mark it wrong / unnamed"}</small></div></li>
+          <li className={anchor ? "done" : "active"}><span>1</span><div><strong>Starting anchor</strong><small>{anchor ? "Named public-road start set · press and drag A to move it" : "Tap the map on the named public road where this route starts"}</small></div></li>
+          <li className={routeLegs.length ? "done" : anchor ? "active" : ""}><span>2</span><div><strong>Turn pins</strong><small>{turnPins.length} of {maximumOwnerGoogleVerifyTurnPins} · tap to add, press and drag a numbered pin to move it</small></div></li>
+          <li className={outcome.state === "success" ? "done" : routeLegs.length ? "active" : ""}><span>3</span><div><strong>Review and approve</strong><small>{outcome.state === "success" ? "Every route section is approved for this draft" : "Tap each preview line, then approve the named road or mark it wrong / unnamed"}</small></div></li>
         </ol>
         <p className="owner-verify-notice" role="status">{notice}</p>
         <p className={`owner-preview-state is-${previewState}`} role="status">{previewMessage}</p>
@@ -871,7 +846,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
           <button type="button" onClick={undo} disabled={!anchor}>Undo</button>
           <button type="button" onClick={clear} disabled={!anchor}>Clear</button>
           <button type="button" onClick={fitAll}>Fit all</button>
-          <button type="button" onClick={() => { invalidatePreview(); setPreviewVersion((value) => value + 1); }} disabled={!origin || !anchor || mapState !== "ready"}>Refresh preview</button>
+          <button type="button" onClick={() => { invalidatePreview(); setPreviewVersion((value) => value + 1); }} disabled={!anchor || mapState !== "ready"}>Refresh preview</button>
         </div>
       </div>}
     </aside>}

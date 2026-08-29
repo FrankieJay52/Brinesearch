@@ -35,6 +35,15 @@
   pointer-events: none;
 }
 
+.owner-free-map-marker.is-draggable {
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, .48), 0 4px 16px rgba(0, 0, 0, .52);
+}
+
+.owner-free-map-marker.is-draggable:active { cursor: grabbing; }
+
 .owner-free-map-marker[style*="#2563eb"],
 .owner-free-map-marker[style*="#a855f7"] { color: #fff; }
 

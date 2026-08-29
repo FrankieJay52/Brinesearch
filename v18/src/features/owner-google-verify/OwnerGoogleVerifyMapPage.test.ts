@@ -23,7 +23,7 @@ describe("owner free route verify map source contracts", () => {
     expect(resetStart).toBeGreaterThanOrEqual(0);
     expect(resetEnd).toBeGreaterThan(resetStart);
     for (const reset of [
-      "setOrigin(null)", "setAnchor(null)", "setTurnPins([])", "setDraftId(\"\")",
+      "setAnchor(null)", "setTurnPins([])", "setDraftId(\"\")",
       "setEntranceLatitude(\"\")", "setEntranceLongitude(\"\")",
     ]) expect(resetSource).toContain(reset);
   });
@@ -36,18 +36,21 @@ describe("owner free route verify map source contracts", () => {
     expect(routeSource).not.toMatch(/api[_-]?key|access[_-]?token|bearer/i);
   });
 
-  it("routes phone origin through the anchor and ordered turn pins to the locked saved destination", () => {
-    expect(pageSource).toContain("requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal)");
-    expect(pageSource).toContain("const expectedLegCount = turnPins.length + 2;");
+  it("starts at the anchor, preserves ordered turn pins, and locks the saved pad destination", () => {
+    expect(pageSource).toContain("requestFreeRoutePreview(anchor, turnPins, destination, controller.signal)");
+    expect(pageSource).toContain("const expectedLegCount = turnPins.length + 1;");
     expect(pageSource).toContain("addOwnerGoogleVerifyPoint(anchor, turnPins, point)");
     expect(pageSource).toContain("{turnPins.length} of {maximumOwnerGoogleVerifyTurnPins}");
     const routeCall = pageSource.slice(
-      pageSource.indexOf("requestFreeRoutePreview(origin"),
-      pageSource.indexOf(".then((legs)", pageSource.indexOf("requestFreeRoutePreview(origin")),
+      pageSource.indexOf("requestFreeRoutePreview(anchor"),
+      pageSource.indexOf(".then((legs)", pageSource.indexOf("requestFreeRoutePreview(anchor")),
     );
     expect(routeCall).not.toMatch(/candidateEntrance|entranceLatitude|entranceLongitude/);
-    expect(pageSource).toContain("shows how the unchanged Google Navigate link will begin");
-    expect(pageSource).toContain("Use this phone only as the route starting point");
+    expect(pageSource).toContain("The anchor is the starting point.");
+    expect(pageSource).toContain("This owner map never requests or uses phone GPS.");
+    expect(pageSource).not.toMatch(/navigator\.geolocation|getCurrentPosition|Use phone GPS|setOrigin\(/);
+    expect(routeSource).toContain('alternatives: "3"');
+    expect(routeSource).toContain("candidate.distanceMeters < shortest.distanceMeters");
   });
 
   it("draws every reviewed public-road reference in teal without turning display into authority", () => {
@@ -77,15 +80,13 @@ describe("owner free route verify map source contracts", () => {
     expect(pageSource).toContain('aria-label="Candidate entrance longitude"');
     expect(pageSource).toContain("candidateEntrance: parsedCandidateEntrance.point");
     expect(pageSource).toContain('candidateEntrancePoint && { point: candidateEntrancePoint, color: "#a855f7", label: "E"');
-    expect(pageSource).toContain("requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal)");
+    expect(pageSource).toContain("requestFreeRoutePreview(anchor, turnPins, destination, controller.signal)");
   });
 
-  it("keeps results draft-only and never substitutes Cadiz for phone GPS", () => {
+  it("keeps results draft-only and never introduces a phone or fallback starting point", () => {
     expect(pageSource).toContain("<strong>Draft only — driver Navigate unchanged.</strong>");
     expect(pageSource).toContain('setSaveMessage("Draft saved on this device. Driver Navigate is unchanged.");');
-    expect(pageSource).toContain("const nextOrigin = { latitude: position.coords.latitude, longitude: position.coords.longitude };");
-    expect(pageSource).toContain("Cadiz or another fallback origin will never be used.");
-    expect(pageSource).not.toMatch(/setOrigin\(\{\s*latitude:\s*-?\d/);
+    expect(pageSource).not.toMatch(/navigator\.geolocation|getCurrentPosition|setOrigin\(|Current phone GPS|label: "YOU"/);
     expect(`${pageSource}\n${routeSource}`).not.toMatch(/\bconsole\./);
   });
 
@@ -106,11 +107,13 @@ describe("owner free route verify map source contracts", () => {
     expect(pageCss).toMatch(/\.owner-google-draft-panel\s*\{[^}]*bottom:\s*max\(38px,/s);
   });
 
-  it("returns Back to Approved Roads and keeps pad, anchor, pins, and road labels obvious", () => {
+  it("returns Back to Approved Roads and keeps pad, movable anchor, pins, and road labels obvious", () => {
     expect(pageSource).toContain('<Link to="/?view=roads" replace className="icon-button" aria-label="Back to Approved Roads map">');
-    expect(pageSource).toContain('label: "YOU", title: "Current phone GPS"');
-    expect(pageSource).toContain('label: "A", title: "Named-road anchor"');
-    expect(pageSource).toContain('label: String(index + 1), title: `Turn pin ${index + 1}`');
+    expect(pageSource).toContain('label: "A", title: "Named-road anchor — drag to move"');
+    expect(pageSource).toContain('label: String(index + 1), title: `Turn pin ${index + 1} — drag to move`');
+    expect(pageSource).toContain('draggable: Boolean(item.control)');
+    expect(pageSource).toContain('marker.on("dragend"');
+    expect(pageCss).toContain(".owner-free-map-marker.is-draggable");
     expect(pageSource).toContain('label: "PAD", title: `${pad.padName} — saved pad GPS`');
     expect(pageSource).toContain('aria-label={`Find ${pad.padName} saved pad GPS`}');
     expect(pageSource).toContain('map.easeTo({ center: mapPoint(destination), zoom: 16, duration: 260 });');

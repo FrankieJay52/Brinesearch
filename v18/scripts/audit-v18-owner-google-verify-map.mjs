@@ -30,7 +30,10 @@ requireText(component, 'access.state !== "owner"', "owner gate before verifier r
 requireText(component, "map = new MapLibreMap({", "owner-only free MapLibre renderer");
 requireText(component, 'style: ownerRoadBasemapStyle("road")', "free OpenFreeMap road style");
 requireText(router, 'freeRoutePreviewEndpoint = "https://router.project-osrm.org/route/v1/driving"', "free OpenStreetMap route endpoint");
-requireText(component, "requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal)", "phone origin, ordered owner controls, and locked saved destination");
+requireText(component, "requestFreeRoutePreview(anchor, turnPins, destination, controller.signal)", "starting anchor, ordered owner controls, and locked saved destination");
+requireText(router, 'alternatives: "3"', "multiple free-road alternatives request");
+requireText(router, "candidate.distanceMeters < shortest.distanceMeters", "shortest returned road alternative selection");
+requireText(component, 'draggable: Boolean(item.control)', "movable anchor and turn-pin controls");
 requireText(model, "maximumOwnerGoogleVerifyTurnPins = 5", "five-turn-pin maximum");
 requireText(model, 'pad.coordinate.role === "saved_pad_destination"', "saved destination coordinate gate");
 requireText(model, 'pad.coordinate.role === "driver_entrance"', "verified driver-entrance coordinate gate");
@@ -48,7 +51,7 @@ requireText(component, 'Teal is display only; State-1 graph/public-Google author
 requireText(component, 'No reviewed named-road display geometry is available for this pad; no line was inferred.', "no inferred named-road geometry");
 requireText(component, "candidateEntrance: parsedCandidateEntrance.point", "draft-only candidate entrance capture");
 requireText(component, "Candidate entrance coordinates", "candidate entrance owner form");
-requireText(component, "requestFreeRoutePreview(origin, [anchor, ...turnPins], destination, controller.signal)", "candidate entrance cannot replace route destination");
+requireText(component, "requestFreeRoutePreview(anchor, turnPins, destination, controller.signal)", "candidate entrance cannot replace route destination");
 requireText(model, 'label: "Wrong road"', "wrong-road badge outcome");
 requireText(pad, "Verify route on free map", "pad owner verifier button");
 requireText(settings, "Last pad verified:", "Settings last-pad summary");
@@ -59,6 +62,7 @@ if ((pad.match(/<FixedNavigateAction\b/g) || []).length !== 1) errors.push("Pad 
 forbid(featureRuntime, /\b(?:ownerRpc|supabase|service[_-]?role)\b/i, "owner verifier gained server or privileged mutation wiring");
 forbid(featureRuntime, /\b(?:releasedGoogleHandoff|reviewedNavigationCandidates|googleRoute)\b/, "owner verifier imports reviewed/public route authority");
 forbid(featureRuntime, /\bgeocod(?:e|ing)\b|optimizeWaypointOrder:\s*true/i, "owner verifier contains geocoding or waypoint optimization");
+forbid(component, /navigator\.geolocation|getCurrentPosition|Use phone GPS|setOrigin\(/, "owner verifier uses phone GPS instead of the anchor as its starting point");
 forbid(component, /origin:\s*(?:["'`].*Cadiz|\{[^}]*Cadiz)/i, "owner verifier uses Cadiz as a route origin");
 forbid(featureRuntime, /console\.(?:log|info|warn|error|debug)/, "owner verifier logs runtime data");
 forbid(featureRuntime, /AIza[0-9A-Za-z_-]{25,}/, "Google API key-shaped literal appears in tracked verifier code");
