@@ -171,7 +171,7 @@ assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference 
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
 assert.match(appJavascript, /Reviewed Ascent route lines shown:/, "Built V18 app is missing the accessible all-55 Ascent route disclosure");
 assert.match(appJavascript, /Reviewed Ascent named roads · solid teal/, "Built V18 app is missing the solid reviewed-network key");
-assert.match(appJavascript, /GPS-only tether · thin solid neutral · not road geometry/, "Built V18 app is missing the solid neutral unapproved-GPS-tether key");
+assert.match(appJavascript, /PAD NAME lease road · teal to that pad's saved pin/, "Built V18 app is missing the pad-specific teal lease-road key");
 assert.match(appJavascript, /Measured last-highway approach/, "Built V18 app is missing measured highway-to-pad directions");
 assert.match(appJavascript, /Exact highway-road intersection start/, "Built V18 app is missing the exact-intersection start label");
 assert.match(appJavascript, /Bounded candidate point on the last named highway · not an approved handoff/, "Built V18 app presents a bounded candidate as an exact handoff");
@@ -179,15 +179,15 @@ assert.match(appJavascript, /Exact identity match · solid teal/, "Built V18 app
 assert.match(appJavascript, /Unnamed \/ unapproved · solid neutral/, "Built V18 app is missing the truthful unnamed batch-2 step authority");
 assert.match(appJavascript, /Unverified \/ unapproved · solid neutral/, "Built V18 app is missing the truthful unverified batch-2 step authority");
 assert.match(appJavascript, /Measured road sections:/, "Built V18 app is missing the batch-2 routed-section mileage total");
-assert.match(appJavascript, /No total-to-GPS mileage is shown/, "Built V18 app is missing the withheld GPS-total disclosure");
+assert.match(appJavascript, /lease road connector .* is shown in teal to the saved pin and is excluded from the public-road mileage total/, "Built V18 app is missing the separate lease-mileage disclosure");
 assert.match(appJavascript, /No candidate line, turn mileage, or route total is shown/, "Built V18 app exposes rejected batch-2 candidate evidence");
 assert.match(appJavascript, /No exact last Interstate, U\.S\., or state highway road identity is on file/, "Built V18 app misstates missing road identity as an exact handoff");
 assert.match(appJavascript, /No bounded highway start passed the identity and distance checks/, "Built V18 app misstates the bounded-start gate");
 assert.match(appJavascript, /The exact last-highway anchor was more than 25 air miles from the saved GPS/, "Built V18 app is missing the remote-start pin-only disclosure");
 assert.match(appJavascript, /Fail-closed and pin-only records add no line/, "Built V18 app is missing the batch-2 pin-only map boundary");
 assert.match(appJavascript, /No approach line or measured mileage is shown because this record failed closed/, "Built V18 app is missing selected batch-2 fail-closed disclosure");
-assert.match(appJavascript, /Straight GPS tether · not road geometry/, "Built V18 app is missing the separate batch-2 GPS tether label");
-assert.match(appJavascript, /unapproved_gps_tether/, "Built V18 app is missing the explicit GPS tether authority");
+assert.match(appJavascript, /Stored final connector to the saved pin · pad-specific, not a public-road identity/, "Built V18 app is missing the pad-specific final-connector boundary");
+assert.match(appJavascript, /pad_lease_road/, "Built V18 app is missing the explicit pad lease-road role");
 assert.match(appJavascript, /brinesearch-ascent-pad-road-lines/, "Built V18 app is missing the shared all-55 native source");
 assert.match(appJavascript, /No red continuation is drawn:/, "Built V18 app is missing the evidence-gated red-tail disclosure");
 assert.match(appJavascript, /State and U\.S\. routes remain teal/, "Built V18 app no longer guarantees highway routes stay teal");
@@ -197,8 +197,8 @@ assert.match(appJavascript, /OH-331 → Lafferty-Bannock Road \/ CR-10 → BANNO
 assert.match(appJavascript, /Red exit reference/, "Built V18 app is missing BANNOCK's red exit key");
 assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missing BANNOCK's red exit sequence");
 assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
-assert.match(appJavascript, /Any separate thin solid neutral road-to-GPS tether is unapproved and is not road geometry/, "Built V18 app is missing BANNOCK's GPS tether boundary");
-assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
+assert.match(appJavascript, /Any stored final connector to the pin is teal and named only for this pad as BANNOCK lease road/, "Built V18 app is missing BANNOCK's pad-specific teal lease boundary");
+assert.match(appJavascript, /Google Navigate link and public-road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
 assert.match(appJavascript, /BANNOCK via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
 assert.match(appJavascript, /BANNOCK's proven outbound reference is the one red feature, by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's only-red road-mode explanation");
 assert.match(appJavascript, /part of the same shared Ascent route layer/, "Built V18 app is missing BANNOCK's shared teal/red accessible description");
@@ -227,4 +227,4 @@ assert.doesNotMatch(appJavascript, /Measured total to saved GPS/, "Built V18 app
 assert.doesNotMatch(appJavascript, /brinesearch-bannock-road-reference/, "Built V18 app retained BANNOCK's duplicate standalone road source");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog are static and independently validated; exact solid teal prefixes, solid neutral unresolved remainders, and thin solid neutral GPS tethers remain distinct; BANNOCK is the only red exit; and no browser routing or privileged material is bundled.");
+console.log("Verified V18 built runtime: the frozen all-55 catalog and separate 192-record last-highway-to-pad catalog are static and independently validated; reviewed public-road prefixes and pad-specific final lease connectors render solid teal, unresolved access remains solid neutral, BANNOCK is the only red exit, and no browser routing or privileged material is bundled.");

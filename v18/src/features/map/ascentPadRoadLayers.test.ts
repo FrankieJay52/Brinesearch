@@ -91,7 +91,7 @@ function mapHarness() {
 }
 
 describe("Ascent native road-line layers", () => {
-  it("creates separate solid arrival and unapproved GPS-tether features", () => {
+  it("creates separate teal public-road and pad-specific lease features", () => {
     expect(ascentPadRoadCollection([display])).toEqual({
       type: "FeatureCollection",
       features: [
@@ -113,8 +113,8 @@ describe("Ascent native road-line layers", () => {
           properties: {
             padId: "pad-1",
             company: "Ascent",
-            colorRole: "gps",
-            label: "GPS tether",
+            colorRole: "teal",
+            label: "PAD ONE lease road",
           },
           geometry: {
             type: "LineString",
@@ -131,8 +131,8 @@ describe("Ascent native road-line layers", () => {
       padId: "pad-2",
       company: "Ascent",
       lines: [
-        { type: "LineString", colorRole: "teal", label: "OH-78", coordinates: [[-81.1, 40.1], [-81.11, 40.11]] },
-        { type: "LineString", colorRole: "unverified", label: "Unverified / unapproved access", coordinates: [[-81.11, 40.11], [-81.12, 40.12]] },
+        { type: "LineString", colorRole: "teal", lineRole: "named_public_road", label: "OH-78", coordinates: [[-81.1, 40.1], [-81.11, 40.11]] },
+        { type: "LineString", colorRole: "unverified", lineRole: "unverified_access", label: "Unverified / unapproved access", coordinates: [[-81.11, 40.11], [-81.12, 40.12]] },
       ],
     };
     const collection = ascentPadRoadCollection([display, approach]);
@@ -158,17 +158,13 @@ describe("Ascent native road-line layers", () => {
     ]);
   });
 
-  it("draws GPS tethers as zoom-scaled thin solid neutral lines", () => {
+  it("projects stored final connectors into the teal lease layer", () => {
     const harness = mapHarness();
     expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
-    const gpsLine = harness.layers.get(ascentPadRoadGpsLineLayerId) as {
-      filter: unknown;
-      paint: Record<string, unknown>;
-    };
-    expect(JSON.stringify(gpsLine.filter)).toContain("gps");
-    expect(gpsLine.paint["line-color"]).toBe("#94a3b8");
-    expect(gpsLine.paint).not.toHaveProperty("line-dasharray");
-    expect(gpsLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
+    const data = ascentPadRoadCollection([display]);
+    expect(data.features.some(({ properties }) => (
+      properties.colorRole === "teal" && properties.label === "PAD ONE lease road"
+    ))).toBe(true);
   });
 
   it("draws unresolved approach sections as wider solid neutral lines", () => {
@@ -180,6 +176,7 @@ describe("Ascent native road-line layers", () => {
       lines: [{
         type: "LineString",
         colorRole: "unverified",
+        lineRole: "unverified_access",
         label: "Unverified / unapproved access",
         coordinates: [[-81.11, 40.11], [-81.12, 40.12]],
       }],

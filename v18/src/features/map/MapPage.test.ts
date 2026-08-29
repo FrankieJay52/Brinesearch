@@ -235,8 +235,8 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("Red exit reference");
     expect(pageSource).toContain("BANNOCK road seam → Lafferty-Bannock / CR-10 → Black Oak Road → OH-149");
     expect(pageSource).toContain("Red is not a restriction or closure.");
-    expect(pageSource).toContain("Any separate thin solid neutral road-to-GPS tether is unapproved and is not road geometry");
-    expect(pageSource).toContain("Google Navigate link and road authority are unchanged");
+    expect(pageSource).toContain("Any stored final connector to the pin is teal and named only for this pad as BANNOCK lease road");
+    expect(pageSource).toContain("Google Navigate link and public-road authority are unchanged");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(appCss).toContain(".legend-line.exit");
   });
@@ -246,7 +246,8 @@ describe("map viewer authority boundary", () => {
 
     expect(redRoutes.map((route) => route.padName)).toEqual(["BANNOCK"]);
     expect(redRoutes[0]?.redContinuation?.colorRole).toBe("red");
-    expect(ascentLayerSource).toContain("[display.arrival, display.gpsLeg, display.redContinuation]");
+    expect(ascentLayerSource).toContain("`${display.padName} lease road`");
+    expect(ascentLayerSource).toContain('colorRole: "teal" as const');
     expect(ascentLayerSource).toContain('const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"]');
     expect(pageSource).toContain("ascentPadRoadLayerIdsInPaintOrder");
     expect(pageSource).not.toContain("bannockRoadReferenceSourceId");
@@ -306,7 +307,7 @@ describe("map viewer authority boundary", () => {
     expect(ascentLayerSource.match(/addSource\(/g)).toHaveLength(1);
     expect(pageSource).toContain("Measured last-highway approach");
     expect(pageSource).toContain("No approach line or measured mileage is shown because this record failed closed");
-    expect(pageSource).toContain("The straight GPS tether");
+    expect(pageSource).toContain("lease road connector");
     expect(pageSource).toContain("bounded candidate point on the last named highway; that point is not an approved handoff");
     expect(pageSource).toContain("begins at an exact highway-road intersection");
     expect(pageSource).toContain("const activeSelectedAscentPadApproach = !selectedFieldDirectionDisplay");
@@ -323,7 +324,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("!activeSelectedAscentPadApproachDisplay && (selectedRouteGeometry");
   });
 
-  it("renders GPS-only movement as a thin solid neutral tether, never a teal approved road", () => {
+  it("keeps frozen connector provenance while projecting pad-specific lease lines teal", () => {
     const gpsLegs = ascentArtifact.routes.flatMap((route) => route.gpsLeg ? [route.gpsLeg] : []);
 
     expect(gpsLegs.length).toBeGreaterThan(0);
@@ -341,7 +342,9 @@ describe("map viewer authority boundary", () => {
     expect(ascentLayerSource).toContain('"line-color": "#94a3b8"');
     expect(ascentLayerSource).not.toContain('"line-dasharray"');
     expect(ascentLayerSource).toContain('"line-width": ["interpolate", ["linear"], ["zoom"]');
-    expect(pageSource).toContain("GPS-only tether · thin solid neutral · not road geometry");
+    expect(ascentLayerSource).toContain('label: `${display.padName} lease road`');
+    expect(pageSource).toContain("PAD NAME lease road · teal to that pad's saved pin");
+    expect(pageSource).toContain("pad-specific, not a public-road identity");
     expect(pageSource).toContain("Graph-identified or unverified access · solid neutral · unapproved");
     expect(appCss).toContain(".legend-line.gps-tether");
     expect(appCss).toContain(".legend-line.unverified");

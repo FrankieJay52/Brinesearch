@@ -1,5 +1,6 @@
 import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 import type { PadSummary } from "@/data/types";
+import { ascentExistingIdentityNavigationBatch2 } from "@/data/ascentExistingIdentityNavigationBatch2";
 
 export type AscentPadApproachCoordinate = [number, number];
 export type AscentPadApproachStatus = "ROUTED_DISPLAY" | "ROUTED_FAIL_CLOSED" | "PIN_ONLY";
@@ -142,6 +143,7 @@ export interface AscentPadApproachRecord {
 export interface AscentPadApproachMapLine {
   type: "LineString";
   colorRole: "teal" | "unverified" | "gps";
+  lineRole: "named_public_road" | "unverified_access" | "pad_lease_road";
   label: string;
   coordinates: AscentPadApproachCoordinate[];
 }
@@ -1158,6 +1160,7 @@ function mergeMapLines(lines: AscentPadApproachMapLine[]) {
     const prior = merged.at(-1);
     if (prior
       && prior.colorRole === line.colorRole
+      && prior.lineRole === line.lineRole
       && sameCoordinate(prior.coordinates.at(-1) as AscentPadApproachCoordinate, line.coordinates[0])) {
       prior.coordinates.push(...line.coordinates.slice(1));
       if (line.label !== prior.label && !prior.label.includes(line.label)) prior.label += ` → ${line.label}`;
@@ -1168,23 +1171,50 @@ function mergeMapLines(lines: AscentPadApproachMapLine[]) {
   return merged;
 }
 
+const batch2HookRoadIdsByPadId = new Map(ascentExistingIdentityNavigationBatch2.map((contract) => [
+  contract.padId,
+  new Set(contract.roadIdentityHook.map(({ roadId }) => roadId)),
+]));
+
+function sectionUsesHookRoad(section: AscentPadApproachSection, hookRoadIds: ReadonlySet<string>) {
+  return (section.sourceRoadId !== null && hookRoadIds.has(section.sourceRoadId))
+    || (section.matchedSourceRoadId !== null && hookRoadIds.has(section.matchedSourceRoadId));
+}
+
 export function ascentPadApproachMapDisplay(record: AscentPadApproachRecord): AscentPadApproachMapDisplay | null {
   // Only successfully generated routed displays paint. Routes without an
   // exact graph prefix are still visible, but every section remains neutral
   // and explicitly unapproved rather than becoming teal.
   if (record.status !== "ROUTED_DISPLAY") return null;
-  const sectionLines = record.sections.flatMap((section): AscentPadApproachMapLine[] => {
+  const hookRoadIds = batch2HookRoadIdsByPadId.get(record.padId) || null;
+  let lastHookRoadSectionIndex = -1;
+  if (hookRoadIds) record.sections.forEach((section, index) => {
+    if (sectionUsesHookRoad(section, hookRoadIds)) lastHookRoadSectionIndex = index;
+  });
+  const leaseRoadLabel = `${record.padName} lease road`;
+  const sectionLines = record.sections.flatMap((section, sectionIndex): AscentPadApproachMapLine[] => {
     if (section.lineStyle === "none") return [];
     const coordinates = section.coordinates;
     if (coordinates.length < 2) return [];
-    const exact = section.colorRole === "teal";
+    const exact = section.colorRole === "teal"
+      || (hookRoadIds !== null && sectionUsesHookRoad(section, hookRoadIds));
+    const padLease = hookRoadIds !== null
+      && lastHookRoadSectionIndex >= 0
+      && sectionIndex > lastHookRoadSectionIndex;
+    // Once a reviewed hook exists, its map line contains only the existing
+    // named identities plus that pad's own terminal lease. Candidate geometry
+    // before the first hooked identity is not part of the finished handoff.
+    if (hookRoadIds !== null && !exact && !padLease) return [];
     const graphNamedNeutral = section.colorRole === "unverified"
       && section.sourceIdentityId !== null
       && section.sourceDisplayRoad !== null;
     return [{
       type: "LineString",
-      colorRole: exact ? "teal" : "unverified",
-      label: exact
+      colorRole: exact || padLease ? "teal" : "unverified",
+      lineRole: padLease ? "pad_lease_road" : exact ? "named_public_road" : "unverified_access",
+      label: padLease
+        ? leaseRoadLabel
+        : exact
         ? graphRoadDisplayName(section)
         : graphNamedNeutral
           ? graphRoadDisplayName(section)
@@ -1201,8 +1231,9 @@ export function ascentPadApproachMapDisplay(record: AscentPadApproachRecord): As
   if (record.gpsTether) {
     lines.push({
       type: "LineString",
-      colorRole: "gps",
-      label: "Straight GPS tether · not road geometry",
+      colorRole: "teal",
+      lineRole: "pad_lease_road",
+      label: leaseRoadLabel,
       coordinates: [...record.gpsTether.coordinates],
     });
   }

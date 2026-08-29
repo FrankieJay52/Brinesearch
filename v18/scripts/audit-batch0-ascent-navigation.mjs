@@ -8,6 +8,7 @@ const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const repositoryRoot = path.resolve(scriptDirectory, "../..");
 const outputCsv = path.join(repositoryRoot, "docs", "batch0-ascent-six-county-navigation-ledger-20260827.csv");
 const outputMarkdown = path.join(repositoryRoot, "docs", "batch0-ascent-six-county-navigation-ledger-20260827.md");
+const existingIdentityBatch2Path = path.join(repositoryRoot, "v18", "src", "data", "ascentExistingIdentityNavigationBatch2.json");
 const generatedAuditPaths = new Set([
   "docs/batch0-ascent-six-county-navigation-ledger-20260827.csv",
   "docs/batch0-ascent-six-county-navigation-ledger-20260827.md",
@@ -16,6 +17,13 @@ const frozenValidatorPaths = new Set([
   "v18/scripts/audit-batch0-ascent-navigation.mjs",
 ]);
 const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Noble"];
+const existingIdentityBatch2 = JSON.parse(await readFile(existingIdentityBatch2Path, "utf8"));
+assert(existingIdentityBatch2.schemaVersion === 1, "Existing-identity batch-2 schema drifted");
+assert(existingIdentityBatch2.productionWrites === 0, "Existing-identity batch-2 artifact claims a production write");
+assert(Array.isArray(existingIdentityBatch2.records) && existingIdentityBatch2.records.length === 26,
+  "Existing-identity batch-2 must contain exactly 26 reviewed hooks");
+assert(Array.isArray(existingIdentityBatch2.holds) && existingIdentityBatch2.holds.length === 0,
+  "Existing-identity batch-2 must have no remaining held candidate");
 
 // These legacy state/blocker values are frozen promotion-audit provenance.
 // They do not grade or block the everyday one-rule Navigate action below.
@@ -859,6 +867,31 @@ const explicitStates = new Map([
   }],
 ]);
 
+for (const contract of existingIdentityBatch2.records) {
+  assert(!explicitStates.has(contract.padId), `Existing-identity batch-2 duplicates ${contract.padId}`);
+  assert(Array.isArray(contract.roadIdentityHook) && contract.roadIdentityHook.length >= 1,
+    `Existing-identity batch-2 lacks identities for ${contract.padName}`);
+  assert(!Object.hasOwn(contract, "geometry") && !Object.hasOwn(contract, "ownerApproval"),
+    `Existing-identity batch-2 overclaims geometry or approval for ${contract.padName}`);
+  explicitStates.set(contract.padId, {
+    state: "reviewed_existing_identity_hook",
+    blocker: "",
+    receipt: `${contract.padName} exact existing Road Manager identities bound in written/reviewed order to saved GPS; lease/access, geometry, teal, graph, State 1, and public-Google authority remain unapproved`,
+    navigationLabel: "Named roads to saved pin",
+    reviewedBinding: {
+      padId: contract.padId,
+      legacyId: contract.legacyId,
+      recordRevision: contract.recordRevision,
+      company: contract.company,
+      padName: contract.padName,
+      state: contract.state,
+      county: contract.county,
+      structuredRoadSequence: contract.structuredRoadSequence,
+      directoryDestination: contract.directoryDestination,
+    },
+  });
+}
+
 function assert(condition, message) {
   if (!condition) throw new Error(message);
 }
@@ -883,6 +916,14 @@ export function reviewedActionDestinationForPad(padId) {
 
 export function explicitReceiptForPad(padId) {
   return explicitStates.get(padId)?.receipt || null;
+}
+
+export function existingIdentityBatch2PadIds() {
+  return existingIdentityBatch2.records.map((contract) => contract.padId);
+}
+
+export function existingIdentityBatch2Holds() {
+  return existingIdentityBatch2.holds;
 }
 
 export function reviewedBindingMatches(row, directoryDestination, binding) {
@@ -946,7 +987,7 @@ function countBy(rows, field) {
 // provenance. Everyday driver readiness has one rule: a reviewed ordered
 // named-road handoff is DONE; without one, the pad remains GPS_ONLY.
 export function driverRuleStatusForState(currentState) {
-  if (["1", "2", "reviewed_handoff_authority_held"].includes(currentState)) return "DONE";
+  if (["1", "2", "reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(currentState)) return "DONE";
   if (currentState === "3") return "GPS_ONLY";
   return "UNAVAILABLE";
 }
@@ -1261,7 +1302,7 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
+- 247 / ${driverStatuses.DONE || 0} DONE named-road handoffs / ${driverStatuses.GPS_ONLY || 0} GPS_ONLY
 - Production writes zero
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
@@ -1283,7 +1324,7 @@ ${countyRows}
 
 ## Parked promotion provenance
 
-The retained \`current_state\` values are audit provenance only: State 1 **${states["1"] || 0}**, State 2 **${states["2"] || 0}**, legacy GPS state **${states["3"] || 0}**, and reviewed-handoff / graph-held **${states.reviewed_handoff_authority_held || 0}**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says \`PROMOTE <PAD NAME> TO STATE 1\`.
+The retained \`current_state\` values are audit provenance only: State 1 **${states["1"] || 0}**, State 2 **${states["2"] || 0}**, legacy GPS state **${states["3"] || 0}**, reviewed-handoff / graph-held **${states.reviewed_handoff_authority_held || 0}**, and existing-identity driver hooks **${states.reviewed_existing_identity_hook || 0}**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says \`PROMOTE <PAD NAME> TO STATE 1\`.
 
 ## GPS source accounting
 
@@ -1295,10 +1336,10 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
-- The 55 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
-- After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- One build-time Ascent display catalog covers the exact 55 DONE pads: 46 immutable reviewed handoffs plus 9 existing database releases. It reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only that routable network; an optional thin solid neutral \`unapproved_gps_tether\` reaches the frozen GPS without a road name or approval. All 55 persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- The ${driverStatuses.DONE || 0} named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining ${driverStatuses.GPS_ONLY || 0} pads have no passing named-road handoff yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them. VANNELLE is DONE through the existing OH-9 endpoint and its pad-specific VANNELLE lease road to the saved GPS; the discarded Shepherdstown backtrack is not used.
+- After the last reviewed named public road, the existing stored connector to the destination pin is displayed in teal as \`<PAD NAME> lease road\`. That label is pad-specific display/navigation language, not a reusable public-road identity, and it cannot be shared with another pad.
+- The existing build-time Ascent display catalog remains scoped to its previously receipted 55 pads. Their stored final connectors and the final connectors on these reviewed hooks may display teal with the pad-specific lease label. No lease becomes a Road Manager identity or public-road approval. BANNOCK's separately proved exit remains the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
@@ -1385,7 +1426,7 @@ async function main() {
     assert(targets.some((row) => row.padId === padId), `Explicit state receipt target ${padId} is absent`);
   }
   for (const [padId, explicit] of explicitStates) {
-    if (explicit.state === "reviewed_handoff_authority_held") {
+    if (["reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(explicit.state)) {
       assert(explicit.reviewedBinding, `Reviewed handoff ${padId} lacks an exact audit binding`);
     }
   }
@@ -1393,7 +1434,7 @@ async function main() {
   const ledger = targets.map((row) => {
     const directoryDestination = trustedDirectoryDestination(row, references);
     const explicit = explicitStates.get(row.padId);
-    if (explicit?.state === "reviewed_handoff_authority_held") {
+    if (["reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].includes(explicit?.state)) {
       assert(
         reviewedBindingMatches(row, directoryDestination, explicit.reviewedBinding),
         `Reviewed handoff binding drifted for ${row.padId}`,
@@ -1445,11 +1486,12 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 192
-    && stateCounts.reviewed_handoff_authority_held === 46,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 166
+    && stateCounts.reviewed_handoff_authority_held === 46
+    && stateCounts.reviewed_existing_identity_hook === 26,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   const driverRuleCounts = countBy(ledger, "driver_rule_status");
-  assert(driverRuleCounts.DONE === 55 && driverRuleCounts.GPS_ONLY === 192,
+  assert(driverRuleCounts.DONE === 81 && driverRuleCounts.GPS_ONLY === 166,
     `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 

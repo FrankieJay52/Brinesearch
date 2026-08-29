@@ -24,7 +24,7 @@ PORTERFIELD GAS UNIT, PORTERFIELD B, ROCK RIDGE, CROWIE, CASTON, LAKE, THOMAS, T
 
 Both groups may display **Owner-approved directions** under the same everyday driver rule. The evidence description may still distinguish exact identities from a validated Google handoff, but that distinction does not withhold Navigate. One build-time catalog covers the full 55-pad DONE set: it reuses existing exact public graph geometry where present and performs offline routed reconstruction through frozen destinations and ordered controls for the remaining static reviewed contracts. It does not modify or replace any frozen Google URL, destination, or waypoint.
 
-The catalog's routable named-road portion is solid teal and display only. When a routable network line stops short of the frozen GPS, an optional thin solid neutral `unapproved_gps_tether` may reach the destination without asserting a road name, lease shape, or approval. In the current batch, 31 reconstructed handoffs stay solid through the network endpoint, 13 stop at the first unreviewed step and continue with solid neutral unapproved geometry, and BEETLE fails closed with no visible false-teal line because its candidate path left the reviewed road order. Exact database and frozen geometries are outside those reconstruction counts. All 55 entries persist on the All map and Ascent filter and brighten on selection; other-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation. Red beyond any other final pad remains held unless exact no-downstream-pad proof and exact geometry to the next highway junction are supplied. Interstate, U.S., and state routes are never red. None of these displays creates graph, public-Google, or approved-road-overlay authority.
+The catalog's routable named-road portion is solid teal and display only. When a stored final connector continues from the last reviewed road to the frozen GPS, it is solid teal and labeled `<PAD NAME> lease road`. That label is unique to the pad, cannot be shared, and is not a Road Manager public-road identity. In the current batch, 31 reconstructed handoffs stay solid through the network endpoint, 13 stop public-road teal at the first unreviewed step, and BEETLE fails closed with no visible false-teal candidate road because its candidate path left the reviewed road order. Exact database and frozen geometries are outside those reconstruction counts. All 55 entries persist on the All map and Ascent filter and brighten on selection; other-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation. Red beyond any other final pad remains held unless exact no-downstream-pad proof and exact geometry to the next highway junction are supplied. Interstate, U.S., and state routes are never red. None of these displays creates graph, public-Google, or approved-road-overlay authority.
 
 Each approval is frozen to the complete reviewed contract content: exact pad and legacy identities, record revision, company/county/name, saved structured sequence, trusted destination source and coordinates, action destination, waypoint order, Google URL, driver-facing sequence, and final-leg warning. The build-time display catalog consumes those immutable values; it cannot rewrite them. Any later change fails closed and removes the owner-approved presentation until a new receipt is explicitly reviewed.
 
@@ -60,13 +60,13 @@ identity.
 The exact road-identity or exact-alias-matched prefix may be solid teal. At the
 first mismatch, unresolved identity, private road, lease, or other unreviewed
 movement, the rest of the routed approach remains visible as solid neutral,
-unapproved access geometry and teal cannot resume. A truly unnamed first
+unapproved access geometry and public-road teal cannot resume. A truly unnamed first
 mismatch is labeled `Unnamed / unapproved access`; named identity mismatches
 and later unverified sections are labeled `Unverified / unapproved access`.
-Any separate straight tether from the routed endpoint to the frozen GPS is
-solid neutral destination context, is
-not road or navigation geometry, and is excluded from the section and total
-approach mileage.
+Any existing stored final connector from the routed endpoint to the frozen GPS
+is displayed in solid teal as `<PAD NAME> lease road`. It is pad-specific
+lease display/navigation geometry, not a reusable public-road identity, and is
+excluded from the section and total public-road approach mileage.
 
 For the measured Ascent approach catalog, a sealed graph-evidence receipt may
 split the preserved routed line into exact authoritative road runs. Exact graph
@@ -100,7 +100,7 @@ records omit route evidence from the driver presentation.
 - The saved reviewed sequence is shown as numbered items without inventing left/right, mileage, or geometry.
 - The route card distinguishes exact named-road evidence from validated Google-handoff evidence.
 - The route-status panel keeps route/graph/public-Google authority separate.
-- A reviewed GPS/private tail remains explicitly unapproved where the existing record says so.
+- A stored final connector is labeled only for its own pad as `<PAD NAME> lease road` and remains separate from public-road identity and approval.
 
 ## Frozen behavior
 

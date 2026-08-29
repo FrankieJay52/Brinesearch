@@ -733,8 +733,9 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain("Measured road sections:");
     expect(html).toContain("Unverified / unapproved access");
     expect(html).toContain("Unverified / unapproved · solid neutral");
-    expect(html).toContain("No total-to-GPS mileage is shown");
-    expect(html).toContain("is not road geometry and is excluded");
+    expect(html).toContain(`${approach?.padName} lease road`);
+    expect(html).toContain("Pad-specific lease · solid teal");
+    expect(html).toContain("is shown in teal to the saved pin and is excluded from the public-road mileage total");
     expect(html).not.toContain("Measured total to saved GPS");
 
     const graphNamed = catalog.records.find((record) => record.status === "ROUTED_DISPLAY"
