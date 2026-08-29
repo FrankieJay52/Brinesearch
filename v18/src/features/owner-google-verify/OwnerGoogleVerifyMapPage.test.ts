@@ -50,7 +50,8 @@ describe("owner free route verify map source contracts", () => {
     expect(pageSource).toContain("This owner map never requests or uses phone GPS.");
     expect(pageSource).not.toMatch(/navigator\.geolocation|getCurrentPosition|Use phone GPS|setOrigin\(/);
     expect(routeSource).toContain('alternatives: "3"');
-    expect(routeSource).toContain("candidate.distanceMeters < shortest.distanceMeters");
+    expect(routeSource).toContain("candidate.distanceMeters < current.distanceMeters");
+    expect(routeSource).toContain("leavesControlPoints || makesLargeLoop ? directUnmappedLeg(start, end) : shortest");
   });
 
   it("draws every reviewed public-road reference in teal without turning display into authority", () => {
@@ -70,6 +71,10 @@ describe("owner free route verify map source contracts", () => {
     expect(pageSource).toContain("No reviewed named-road display geometry is available for this pad; no line was inferred.");
     expect(pageSource).toContain(">Approve named road</button>");
     expect(pageSource).toContain(">Wrong road</button>");
+    expect(pageSource).toContain(">Lease / unmapped — use pin line</button>");
+    expect(pageSource).toContain('section.mark?.state === "lease_or_unnamed"');
+    expect(pageSource).toContain('routingMode: useDirectPinLine ? "direct_unmapped" : "road"');
+    expect(pageSource).toContain("gray line follows your pins directly instead of going around");
     expect(pageSource).toContain("<strong>Review and approve</strong>");
     expect(pageSource).toContain("Every route section is approved for this draft");
   });

@@ -32,7 +32,10 @@ requireText(component, 'style: ownerRoadBasemapStyle("road")', "free OpenFreeMap
 requireText(router, 'freeRoutePreviewEndpoint = "https://router.project-osrm.org/route/v1/driving"', "free OpenStreetMap route endpoint");
 requireText(component, "requestFreeRoutePreview(anchor, turnPins, destination, controller.signal)", "starting anchor, ordered owner controls, and locked saved destination");
 requireText(router, 'alternatives: "3"', "multiple free-road alternatives request");
-requireText(router, "candidate.distanceMeters < shortest.distanceMeters", "shortest returned road alternative selection");
+requireText(router, "candidate.distanceMeters < current.distanceMeters", "shortest returned road alternative selection");
+requireText(router, "leavesControlPoints || makesLargeLoop ? directUnmappedLeg(start, end) : shortest", "unmapped lease-road loop rejection");
+requireText(component, 'section.mark?.state === "lease_or_unnamed"', "owner lease-road direct pin-line control");
+requireText(component, 'routingMode: useDirectPinLine ? "direct_unmapped" : "road"', "gray direct lease-road rendering mode");
 requireText(component, 'draggable: Boolean(item.control)', "movable anchor and turn-pin controls");
 requireText(model, "maximumOwnerGoogleVerifyTurnPins = 5", "five-turn-pin maximum");
 requireText(model, 'pad.coordinate.role === "saved_pad_destination"', "saved destination coordinate gate");

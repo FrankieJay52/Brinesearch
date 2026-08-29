@@ -113,7 +113,7 @@ function ensureFreeVerifierLayers(map: MapLibreMap) {
     source: previewSourceId,
     filter: ["==", ["get", "kind"], "section"] as never,
     paint: {
-      "line-color": ["match", ["get", "state"], "approved_named_road", "#14b8a6", "not_approved", "#ef4444", "lease_or_unnamed", "#94a3b8", "#d7dee8"] as never,
+      "line-color": ["case", ["==", ["get", "routingMode"], "direct_unmapped"], "#94a3b8", ["match", ["get", "state"], "approved_named_road", "#14b8a6", "not_approved", "#ef4444", "lease_or_unnamed", "#94a3b8", "#d7dee8"]] as never,
       "line-opacity": 1,
       "line-width": ["case", ["==", ["get", "selected"], true], 9, 6] as never,
     },
@@ -558,7 +558,8 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       if (legs.length !== expectedLegCount) throw new Error("Route response did not preserve every owner control point.");
       setRouteLegs(legs);
       setPreviewState("ready");
-      setPreviewMessage(`${legs.length} shortest available route ${legs.length === 1 ? "section" : "sections"} ready from the anchor. Tap each line to approve or reject it.`);
+      const directSectionCount = legs.filter((leg) => leg.routingMode === "direct_unmapped").length;
+      setPreviewMessage(`${legs.length} route ${legs.length === 1 ? "section" : "sections"} ready from the anchor.${directSectionCount ? ` ${directSectionCount} unmapped or lease-road ${directSectionCount === 1 ? "section follows" : "sections follow"} your pins directly instead of going around.` : " Shortest available mapped roads are shown."} Tap each line to review it.`);
       setSelectedSectionId("");
       const points = legs.flatMap((leg) => leg.path);
       if (points.length) {
@@ -643,12 +644,14 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     routeLegs.forEach((leg, index) => {
       const section = sections[index];
       if (!section) return;
+      const useDirectPinLine = leg.routingMode === "direct_unmapped" || section.mark?.state === "lease_or_unnamed";
       previewLines.push({
-        coordinates: leg.path,
+        coordinates: useDirectPinLine ? [mapPoint(section.start), mapPoint(section.end)] : leg.path,
         properties: {
           kind: "section",
           sectionId: section.sectionId,
           state: section.mark?.state || "unreviewed",
+          routingMode: useDirectPinLine ? "direct_unmapped" : "road",
           selected: section.sectionId === selectedSectionId,
         },
       });
@@ -739,7 +742,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       end: selectedSection.end,
     };
     setSectionMarks((current) => [...current.filter((candidate) => candidate.sectionId !== mark.sectionId), mark]);
-    setNotice(state === "approved_named_road" ? `${name} approved for this draft section.` : state === "lease_or_unnamed" ? "Section marked unnamed or lease road." : "Section marked as the wrong road.");
+    setNotice(state === "approved_named_road" ? `${name} approved for this draft section.` : state === "lease_or_unnamed" ? "Section marked lease or unmapped and drawn directly between its control pins." : "Section marked as the wrong road.");
     dismissPhoneKeyboard();
     setRoadName("");
     setSelectedSectionId("");
@@ -832,7 +835,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       </button>
       {workflowOpen && <div id="owner-google-workflow-content" className="owner-google-workflow-content" aria-live="polite">
         <div className={`owner-verify-outcome is-${outcome.state}`}><span/><strong>{outcome.label}</strong><small>{outcome.detail}</small></div>
-        <div className="owner-approved-road-status owner-free-map-status"><span/><strong>Free map and shortest available road preview</strong><small>The anchor is the starting point. This owner map never requests or uses phone GPS. It compares the road alternatives returned for every section and uses the shortest one. Drag A or any numbered pin to force a different road. Driver Navigate stays unchanged.</small></div>
+        <div className="owner-approved-road-status owner-free-map-status"><span/><strong>Free map and shortest available road preview</strong><small>The anchor is the starting point. This owner map never requests or uses phone GPS. It compares mapped-road alternatives for every section. If a lease road is not in the free router, the gray line follows your pins directly instead of going around. Drag A or any numbered pin to shape it. Driver Navigate stays unchanged.</small></div>
         <div className={`owner-approved-road-status${companyRoads.error ? " is-error" : ""}`}><span/><strong>Public road reference overlay</strong><small>{companyRoads.loading ? "Loading reviewed public-road references…" : companyRoads.error || (companyRoads.overlay?.selection === "all" ? `${companyRoads.overlay.rows.length.toLocaleString()} reviewed public-road sections shown as references.` : companyRoads.availability.reason || "Public-road references unavailable; nothing was inferred.")}</small></div>
         <div className="owner-approved-road-status owner-approved-step-status"><span/><strong>Named-road display for {pad.padName}</strong><small>{currentApprovedStepState === "loading" ? "Checking this pad's reviewed named-road display geometry…" : currentApprovedStepState === "ready" ? `${approvedStepRoutes.reduce((count, route) => count + route.stepCount, 0).toLocaleString()} reviewed named-road steps highlighted in bright teal. Teal is display only; State-1 graph/public-Google authority is separate.` : "No reviewed named-road display geometry is available for this pad; no line was inferred."}</small></div>
         <ol>
@@ -855,11 +858,11 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       <button type="button" className="selection-close" onClick={() => setSelectedSectionId("")} aria-label="Close section editor"><Icon name="close"/></button>
       <span className="eyebrow">SECTION {selectedSection.ordinal}</span>
       <h2 id="owner-section-title">{sectionLabel(selectedSection.ordinal, turnPins.length)}</h2>
-      <p>Enter the public road name yourself. Your choice approves only this draft section; the map does not auto-name or auto-approve it.</p>
+      <p>Enter the public road name yourself. If the free router goes around an unmapped lease road, choose the lease option to draw this section directly between its control pins. Nothing is auto-named or auto-approved.</p>
       <label><span>Named public road</span><input value={roadName} maxLength={120} onChange={(event) => setRoadName(event.target.value)} placeholder="Example: Repik Ln / CR 9876" autoComplete="off"/></label>
       <div>
         <button type="button" className="section-approved" onClick={() => markSelected("approved_named_road")}>Approve named road</button>
-        <button type="button" onClick={() => markSelected("lease_or_unnamed")}>Unnamed / lease</button>
+        <button type="button" onClick={() => markSelected("lease_or_unnamed")}>Lease / unmapped — use pin line</button>
         <button type="button" className="section-not-approved" onClick={() => markSelected("not_approved")}>Wrong road</button>
       </div>
     </aside>}
