@@ -420,18 +420,56 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain("DO NOT ENTER from the east gate.");
     expect(html).toContain("Additional saved direction notes");
     expect(html).toContain("Saved written driving directions");
-    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeLessThan(html.indexOf("<ol"));
-    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!}");
+    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeGreaterThan(html.indexOf("<ol"));
+    expect(padPage).toContain("<SavedFieldDirections directionsClear={status.route.writtenDirections} writtenDirections={pad.writtenDirections}");
     expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
   });
 
-  it("keeps saved prose below exact routes and unresolved safety choices", () => {
+  it("keeps saved prose below exact routes, reviewed handoffs, and GPS-only states", () => {
     const base = { hasSafetyHold: false, namedSelectionRequired: false, displayedRouteStepCount: 0, hasWrittenDirections: true };
     expect(shouldShowSavedWrittenDirections(base)).toBe(true);
-    expect(shouldShowSavedWrittenDirections({ ...base, displayedRouteStepCount: 1 })).toBe(false);
+    const exactRouteState = { ...base, displayedRouteStepCount: 1 };
+    const unresolvedRouteChoiceState = { ...base, displayedRouteStepCount: 3, namedSelectionRequired: true };
+    expect(shouldShowSavedWrittenDirections(exactRouteState)).toBe(true);
+    expect(shouldShowSavedWrittenDirections(unresolvedRouteChoiceState)).toBe(true);
     expect(shouldShowSavedWrittenDirections({ ...base, hasSafetyHold: true })).toBe(false);
-    expect(shouldShowSavedWrittenDirections({ ...base, namedSelectionRequired: true })).toBe(false);
     expect(shouldShowSavedWrittenDirections({ ...base, hasWrittenDirections: false })).toBe(false);
+    expect(padPage).toContain("{hasSavedWrittenDirections && <SavedFieldDirections");
+    expect(padPage).not.toContain('activeAscentPadApproach?.status !== "ROUTED_DISPLAY"');
+  });
+
+  it("shows saved directions alongside exact displayed route steps", () => {
+    expect(shouldShowSavedWrittenDirections({ hasSafetyHold: false, hasWrittenDirections: true })).toBe(true);
+    const html = renderToStaticMarkup(createElement(SavedFieldDirections, {
+      directionsClear: "Step-by-step directions:\n1. Continue 1.2 miles.",
+    }));
+    expect(html).toContain("Saved field directions");
+    expect(html).toContain("Continue 1.2 miles.");
+  });
+
+  it("shows saved directions alongside a reviewed Google handoff", () => {
+    const html = renderToStaticMarkup(createElement(SavedFieldDirections, {
+      directionsClear: "Road sequence reference:\nOH-9 → Maynard Rd",
+      mayDifferFromReviewedRoute: true,
+    }));
+    expect(html).toContain("ROAD SEQUENCE");
+    expect(html).toContain("Reference only");
+  });
+
+  it("shows saved directions for a GPS-only pad", () => {
+    const html = renderToStaticMarkup(createElement(SavedFieldDirections, {
+      writtenDirections: "Turn at the saved field marker and continue 0.4 mile.",
+    }));
+    expect(html).toContain("Turn at the saved field marker and continue 0.4 mile.");
+    expect(html).toContain("Text only · no teal geometry");
+  });
+
+  it("does not render an empty saved-directions section", () => {
+    expect(renderToStaticMarkup(createElement(SavedFieldDirections, {}))).toBe("");
+  });
+
+  it("retains the genuine exact-record safety hold", () => {
+    expect(shouldShowSavedWrittenDirections({ hasSafetyHold: true, hasWrittenDirections: true })).toBe(false);
   });
 
   it("warns when older saved mileage may differ from a corrected reviewed handoff", () => {
@@ -760,7 +798,7 @@ describe("V18 pad legacy route fallback", () => {
   it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {
     expect(padPage).toContain("const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({");
     expect(padPage).toContain('<section className="saved-field-directions"');
-    expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
+    expect(padPage).toContain("<SavedFieldDirections directionsClear={status.route.writtenDirections} writtenDirections={pad.writtenDirections} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
     expect(padPage).toContain("Saved field directions");
     expect(padPage).toContain("Text only · no teal geometry");
     expect(padPage).toContain("Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.");
