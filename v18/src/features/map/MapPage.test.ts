@@ -202,15 +202,15 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('"Reviewed named roads highlighted to their handoff · saved pad GPS shown separately."');
   });
 
-  it("opens a single pad pin directly in Approved Roads while retaining the standard-map detail action", () => {
+  it("provides an explicit full-screen exit and pad-detail connection", () => {
     expect(pageSource).toContain('className="map-view-exit"');
     expect(pageSource).toContain('{!fullscreen && <button type="button" aria-pressed="false"');
     expect(pageSource).not.toContain('{fullscreen ? "Map" : "Full screen"}');
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
-    expect(pageSource).toContain('if (viewerModeRef.current === "roads") {');
-    expect(pageSource).toContain('navigate(`/pad/${encodeURIComponent(row.padId)}`);');
-    expect(pageSource).toContain("focusPad(row)");
+    expect(pageSource).toContain("focusPad(target.rows[0])");
+    expect(pageSource).not.toContain('if (viewerModeRef.current === "roads") {');
+    expect(pageSource).not.toContain('navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);');
     expect(pageSource).toContain('className="map-cluster-choice" onClick={() => focusPad(row)}');
     expect(pageSource).toContain('onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details');
   });
