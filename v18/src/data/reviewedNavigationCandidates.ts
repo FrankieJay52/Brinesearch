@@ -1,6 +1,7 @@
 import { parseCoordinatePair } from "./coordinates";
 import type { PadSummary } from "./types";
 import { trustedPadDestination, type PadDestinationSource } from "./googleDestination";
+import { ascentExistingIdentityNavigationBatch1 } from "./ascentExistingIdentityNavigationBatch1";
 
 export interface ReviewedNavigationCandidate {
   padId: string;
@@ -474,6 +475,7 @@ interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
 }
 
 const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
+  ...ascentExistingIdentityNavigationBatch1,
   {
     padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
     canonicalId: "143f5268-33e4-4598-8101-40220b5cfdc4",

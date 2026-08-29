@@ -159,10 +159,17 @@ proof, or an imprecise junction means no red continuation. Red is field
 orientation only; it is not a closure, restriction, route approval, or authority
 to infer a road.
 
-BANNOCK's separately proved exit to Black Oak Road and OH-149 is the only red
-continuation in this 55-pad catalog. Every other entry has no red continuation.
-DUKE remains teal because CRICKET is farther along the Lamborn Road corridor.
-Missing proof never turns another local road red.
+BANNOCK's separately proved exit to Black Oak Road and OH-149 remains the only
+red continuation inside the sealed 55-pad catalog. Every other catalog entry has
+no red continuation. Separately, an exact-record-bound CARLOS artifact shows the
+road after CARLOS in red along Airport Road / CR-82 to the exact shared US-40
+junction. CARLOS remains GPS_ONLY: the red reference does not replace its stale
+written Elm States/TR-82 label, change its Navigate URL, or approve the road.
+Its red line begins at the existing OSM road seam beside the saved GPS, with no
+colored connector across the GPS offset. Both red references remain visible in
+All/Ascent scope and hide for another company or disposal-only scope. DUKE
+remains teal because CRICKET is farther along the Lamborn Road corridor. Missing
+proof never turns another local road red.
 
 Independently, the current exact released approved-road overlay remains teal in
 every driver map view. The unified selector defaults to **All pads + all

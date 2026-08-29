@@ -98,14 +98,14 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(ledger).toHaveLength(247);
     expect(new Set(ledger.map((row) => row.record_id)).size).toBe(247);
     expect(new Set(ledger.map((row) => row.name)).size).toBe(247);
-    expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
+    expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 192, reviewed_handoff_authority_held: 46 });
+    ]))).toEqual({ "1": 1, "2": 8, "3": 188, reviewed_handoff_authority_held: 46, reviewed_existing_identity_hook: 4 });
     expect(Object.fromEntries(["DONE", "GPS_ONLY"].map((status) => [
       status,
       ledger.filter((row) => row.driver_rule_status === status).length,
-    ]))).toEqual({ DONE: 55, GPS_ONLY: 192 });
+    ]))).toEqual({ DONE: 59, GPS_ONLY: 188 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
@@ -118,9 +118,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       .every((row) => row.blocker === "No reviewed named-road sequence; use the trusted GPS destination only.")).toBe(true);
   });
 
-  it("keeps all 192 pads without a reviewed named sequence GPS-only", () => {
+  it("keeps all 188 pads without a reviewed named sequence GPS-only", () => {
     const gpsOnly = ledger.filter((row) => row.driver_rule_status === "GPS_ONLY");
-    expect(gpsOnly).toHaveLength(192);
+    expect(gpsOnly).toHaveLength(188);
     for (const row of gpsOnly) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -167,6 +167,18 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(evidenceCounts).toEqual({ exact_named_road_identities: 28, validated_google_handoff: 18 });
   });
 
+  it("resolves the four Google-checked existing-identity hooks without owner receipts", () => {
+    const hooks = ledger.filter((row) => row.current_state === "reviewed_existing_identity_hook");
+    expect(hooks.map((row) => row.name).sort()).toEqual(["DONNA", "HENDERSON", "LAVADA", "MATADOR"]);
+    for (const row of hooks) {
+      const candidate = reviewedNavigationCandidateForPad(padFromLedger(row));
+      expect(candidate?.ownerApproval, row.name).toBeUndefined();
+      expect(candidate?.routeUrl, row.name).toContain("dir_action=navigate");
+      expect(new URL(candidate!.routeUrl).searchParams.get("origin"), row.name).toBeNull();
+      expect(buildFixedNavigationAction(unavailableView, padFromLedger(row)).kind, row.name).toBe("reviewed_route");
+    }
+  });
+
   it("keeps GPS-only Navigate available before the six named approaches are chosen", () => {
     const namedPadIds = new Set([
       "185d9eb6-58af-4009-bf53-fdd23113a572",
@@ -189,7 +201,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("uses one label for all 55 DONE handoffs and GPS-only only where no sequence exists", () => {
+  it("uses one label for all 59 DONE handoffs and GPS-only only where no sequence exists", () => {
     expect([...new Set(ledger.filter((row) => row.driver_rule_status === "DONE")
       .map((row) => row.navigation_label))]).toEqual(["Named roads to saved pin"]);
     expect([...new Set(ledger.filter((row) => row.driver_rule_status === "GPS_ONLY")

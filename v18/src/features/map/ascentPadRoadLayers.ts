@@ -1,9 +1,10 @@
 import type { FilterSpecification, GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { firstSymbolLayerAfterLines, highwayReferenceCasingLayerId } from "./highwayReference";
 import type { AscentPadApproachMapDisplay } from "./ascentPadApproaches";
+import type { AscentPadPersistentRedDisplay } from "./ascentPadRedContinuations";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
 
-export type AscentPadRoadLayerDisplay = AscentPadRoadDisplay | AscentPadApproachMapDisplay;
+export type AscentPadRoadLayerDisplay = AscentPadRoadDisplay | AscentPadApproachMapDisplay | AscentPadPersistentRedDisplay;
 
 export const ascentPadRoadSourceId = "brinesearch-ascent-pad-road-lines";
 export const ascentPadRoadRedCasingLayerId = "brinesearch-ascent-pad-road-red-casing";

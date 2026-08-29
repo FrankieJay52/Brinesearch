@@ -16,6 +16,8 @@ const map = read("v18/src/features/map/MapPage.tsx");
 const fieldDirection = read("v18/src/features/map/selectedPadFieldDirectionDisplay.ts");
 const bannockRoadDisplay = JSON.parse(read("v18/src/features/map/bannockRoadDisplay.json"));
 const ascentPadRoadDisplays = read("v18/src/features/map/ascentPadRoadDisplays.ts");
+const ascentPadRedContinuations = read("v18/src/features/map/ascentPadRedContinuations.ts");
+const carlosRedArtifact = JSON.parse(read("v18/src/features/map/carlosRedContinuation.json"));
 const ascentPadRoadLayers = read("v18/src/features/map/ascentPadRoadLayers.ts");
 const ascentPadApproaches = read("v18/src/features/map/ascentPadApproaches.ts");
 const artifactImport = ascentPadRoadDisplays.match(/import artifactJson from "\.\/([^"\n]+\.json)";/u)?.[1];
@@ -82,7 +84,10 @@ requireText(contract, "other 16 successful routes are retained as\nsolid neutral
 requireText(contract, "All 111 successful routed results keep\ntheir road geometry, measured sections, and mileage", "successful route geometry and mileage are preserved");
 requireText(contract, "are always teal and are never red", "Interstate, U.S., and state roads never red");
 requireText(contract, "DUKE remains teal because CRICKET is farther", "DUKE downstream-pad red hold");
-requireText(contract, "the only red\ncontinuation in this 55-pad catalog", "BANNOCK-only red continuation");
+requireText(contract, "remains the only\nred continuation inside the sealed 55-pad catalog", "sealed BANNOCK catalog red continuation");
+requireText(contract, "exact-record-bound CARLOS artifact shows the\nroad after CARLOS in red along Airport Road / CR-82", "CARLOS exact red continuation");
+requireText(contract, "CARLOS remains GPS_ONLY", "CARLOS red does not promote Navigate");
+requireText(contract, "with no\ncolored connector across the GPS offset", "CARLOS red excludes GPS connector");
 requireText(contract, "exact released approved-road overlay remains teal", "persistent approved-road teal");
 requireText(contract, "defaults to **All pads + all\napproved roads**", "unified all-pads/all-approved-roads scope");
 requireText(contract, "one exact company", "single-company approved-road scope");
@@ -183,9 +188,10 @@ requireText(map, "selected ? selectedPadFieldDirectionDisplayForPad(selected) : 
 requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5)', "BANNOCK teal arrival stroke");
 requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef4444", 5)', "BANNOCK selected red exit stroke");
 requireText(map, "Red is not a restriction or closure.", "BANNOCK red legend authority boundary");
-requireText(map, "BANNOCK's proven outbound reference is the one red feature, by Black Oak Road to OH-149.", "BANNOCK shared-source red scope");
-requireText(map, "BANNOCK via Black Oak Road to OH-149 · red", "BANNOCK persistent red legend");
-requireText(map, "part of the same shared Ascent route layer", "BANNOCK shared teal/red accessible disclosure");
+requireText(map, "The proved red outbound references are BANNOCK by Black Oak Road to OH-149 and CARLOS by Airport Road / CR-82 to US-40.", "BANNOCK and CARLOS shared-source red scope");
+requireText(map, "BANNOCK to OH-149 + CARLOS via Airport Rd / CR-82 to US-40 · red", "persistent red legend");
+requireText(map, "Red outbound road references shown: BANNOCK by Black Oak Road to OH-149; CARLOS by Airport Road / CR-82 to US-40.", "shared red accessible disclosure");
+requireText(map, "ascentPadPersistentRedDisplaysForDirectory(snapshot?.rows || [])", "CARLOS red exact-directory binding");
 requireText(fieldDirection, 'padId: "333598ca-37b3-4b44-9411-a490cc3da672"', "exact BANNOCK field display identity");
 requireText(fieldDirection, 'legacyId: "ascent--bannock"', "BANNOCK legacy identity");
 requireText(fieldDirection, 'recordRevision: "1786744183028038"', "BANNOCK field display revision");
@@ -227,6 +233,10 @@ requireText(ascentPadRoadDisplays, "sameCoordinate(candidate.coordinates[0], exp
 requireText(ascentPadRoadDisplays, "sameCoordinate(proof.lastPadSavedGps, expectedSavedPin)", "BANNOCK red proof binds the frozen GPS");
 requireText(ascentPadRoadDisplays, "proof.redGeometrySha256 === candidate.geometrySha256", "BANNOCK red proof binds exact geometry");
 requireText(ascentPadRoadDisplays, 'nextHighway.roadClass === "interstate" || nextHighway.roadClass === "us" || nextHighway.roadClass === "state"', "red must end at an Interstate, U.S., or state junction");
+requireText(ascentPadRedContinuations, "pad.structuredRoadSequence === artifact.structuredRoadSequence", "CARLOS exact sequence binding");
+requireText(ascentPadRedContinuations, "displayCoordinate?.longitude === artifact.destination[0]", "CARLOS exact saved-GPS binding");
+requireText(ascentPadRedContinuations, "matches.length !== 1", "CARLOS unique record binding");
+requireText(ascentPadRedContinuations, "ascentRedContinuationIsEligible", "CARLOS shared red eligibility gate");
 requireText(ascentPadRoadLayers, 'const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"]', "Ascent teal role-only layer filter");
 requireText(ascentPadRoadLayers, 'const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"]', "Ascent neutral GPS role-only layer filter");
 requireText(ascentPadRoadLayers, 'const unverifiedFilter: FilterSpecification = ["==", ["get", "colorRole"], "unverified"]', "Ascent neutral unresolved-road role-only layer filter");
@@ -402,7 +412,27 @@ if (routes.filter((route) => route.gpsLeg).length !== 54) errors.push("Ascent ca
 if (!String(routes.find((route) => route.padName === "DUKE")?.redDecision?.reason || "").includes("CRICKET")) errors.push("DUKE red hold no longer identifies downstream CRICKET");
 if (routes.filter((route) => route.redContinuation !== null).length !== 1
   || routes.find((route) => route.padName === "BANNOCK")?.redContinuation === null) {
-  errors.push("BANNOCK's separately proved exit is no longer the sole red feature in the shared catalog");
+  errors.push("BANNOCK's separately proved exit is no longer the sole red feature in the sealed 55-pad catalog");
+}
+const carlosRed = carlosRedArtifact.redContinuation;
+if (carlosRedArtifact.padId !== "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb"
+  || carlosRedArtifact.recordRevision !== "1786265812046205"
+  || carlosRedArtifact.noConnectorToGps !== true
+  || carlosRedArtifact.source?.productionWrites !== 0
+  || JSON.stringify(carlosRedArtifact.source?.osmWays) !== JSON.stringify([1458533732, 1458533733, 19001996])
+  || carlosRedArtifact.source?.osmEndNodeId !== 196734938
+  || carlosRed?.pointCount !== 182
+  || carlosRed?.coordinates?.length !== 182
+  || !sameCoordinate(carlosRed?.coordinates?.[0], carlosRedArtifact.roadSeam)
+  || !sameCoordinate(carlosRed?.coordinates?.at(-1), [-80.966566, 40.0722464])
+  || !sameCoordinate(carlosRed?.nextHighway?.junction, [-80.966566, 40.0722464])
+  || carlosRed?.nextHighway?.designation !== "US-40"
+  || carlosRed?.exactRoadIdentity !== "Airport Road / CR-82"
+  || carlosRed?.noDownstreamPadsProof?.lastPadId !== carlosRedArtifact.padId
+  || !sameCoordinate(carlosRed?.noDownstreamPadsProof?.lastPadSavedGps, carlosRedArtifact.destination)
+  || carlosRed?.noDownstreamPadsProof?.redGeometrySha256 !== carlosRed?.geometrySha256
+  || carlosRed?.geometrySha256 !== sha256Json(carlosRed?.coordinates)) {
+  errors.push("CARLOS red continuation no longer has its exact record, OSM topology, no-downstream, and US-40 proof");
 }
 
 // Load the receipt-bound contracts through Vite so the audit compares the
