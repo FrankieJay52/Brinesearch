@@ -21,7 +21,7 @@
     "test": "vitest run --config vitest.config.ts",
     "verify:fast": "node scripts/verify-fast.mjs",
     "verify:full": "npm run verify:fallback && npm run verify:batch0-audit && npm run verify:data-status && npm run verify:ascent-approach-generator && npm run verify:ascent-batch2 && npm run verify:company-roads && npm run verify:owner-roads && npm run verify:owner-map && npm run typecheck && npm run test",
-    "verify": "npm run verify:full",
+    "verify": "npm run verify:fallback && npm run verify:batch0-audit && npm run verify:data-status && npm run verify:ascent-approach-generator && npm run verify:ascent-batch2 && npm run verify:company-roads && npm run verify:owner-roads && npm run verify:owner-map && npm run typecheck && npm run test",
     "build": "npm run verify:full && vite build --config vite.config.ts && node scripts/verify-built-runtime.mjs",
     "preview": "vite preview --config vite.config.ts"
   },
