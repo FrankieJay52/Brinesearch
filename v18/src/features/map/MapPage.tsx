@@ -570,6 +570,7 @@ export function MapPage() {
   const { origin: mapSearchOrigin, state: mapSearchLocationState, requestLocation: requestMapSearchLocation, retryLocation: retryMapSearchLocation } = usePadSearchLocation();
   const mapHost = useRef<HTMLDivElement | null>(null);
   const padOverlay = useRef<HTMLCanvasElement | null>(null);
+  const mapControlToggleRef = useRef<HTMLButtonElement | null>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const visibleRowsRef = useRef(snapshot?.rows || []);
   const selectedRouteRef = useRef<DriverRouteGeometry | null>(null);
@@ -733,7 +734,10 @@ export function MapPage() {
     setMapSearch(row.padName);
     setMapSearchOpen(false);
     setMapFiltersOpen(false);
-    if (window.matchMedia("(max-width: 760px)").matches) setMapControlsCollapsed(true);
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      setMapControlsCollapsed(true);
+      window.requestAnimationFrame(() => mapControlToggleRef.current?.focus({ preventScroll: true }));
+    }
     pendingRouteFitRef.current = true;
     const coordinate = mapDisplayCoordinate(row);
     if (coordinate && mapRef.current) {
@@ -1131,6 +1135,7 @@ export function MapPage() {
     </div>
     <div className={`map-control-stack${mapControlsCollapsed ? " is-collapsed" : ""}`}>
       <button
+        ref={mapControlToggleRef}
         type="button"
         className="map-control-toggle"
         aria-expanded={!mapControlsCollapsed}

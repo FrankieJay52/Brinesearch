@@ -253,6 +253,8 @@ describe("map viewer authority boundary", () => {
     expect(appCss).not.toMatch(/\.map-data-note\b/);
     expect(appCss).not.toMatch(/\.map-bannock-exit-note\b/);
     expect(pageSource).toContain('className="map-control-toggle"');
+    expect(pageSource).toContain("mapControlToggleRef.current?.focus({ preventScroll: true })");
+    expect(pageSource).toContain("ref={mapControlToggleRef}");
     expect(pageSource).toContain('aria-controls="map-primary-controls"');
     expect(pageSource).toContain("aria-expanded={!mapControlsCollapsed}");
     expect(pageSource).toContain('aria-label={mapControlsCollapsed ? "Show map controls" : "Collapse map controls to the left"}');
