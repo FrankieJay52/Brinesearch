@@ -193,6 +193,9 @@ function validateEogApproachSource(fixture) {
   const ids = new Set();
   const legacyIds = new Set();
   let exactDestinationCount = 0;
+  let savedGpsCount = 0;
+  let structuredSequenceCount = 0;
+  let writtenDirectionsCount = 0;
   let routePrepCount = 0;
   let exactHighwayCount = 0;
   let exactIntersectionEligibleCount = 0;
@@ -212,7 +215,8 @@ function validateEogApproachSource(fixture) {
       || !nonemptyText(record.padName)
       || normalizedCompany(record.company) !== "EOG"
       || record.state !== "Ohio"
-      || typeof record.structuredRoadSequence !== "string") {
+      || typeof record.structuredRoadSequence !== "string"
+      || typeof record.writtenDirectionsPresent !== "boolean") {
       fail(`${label} has an invalid exact directory binding`);
     }
     ids.add(record.padId);
@@ -227,8 +231,15 @@ function validateEogApproachSource(fixture) {
         fail(`${label} destination lacks explicit source provenance`);
       }
       exactDestinationCount += 1;
+      if (record.destinationGpsSource === "saved") savedGpsCount += 1;
     } else if (record.destinationGpsSource !== null || record.directoryCoordinateRole !== null) {
       fail(`${label} has destination provenance without a destination`);
+    }
+
+    if (nonemptyText(record.structuredRoadSequence)) structuredSequenceCount += 1;
+    if (record.writtenDirectionsPresent) writtenDirectionsCount += 1;
+    if (!nonemptyText(record.structuredRoadSequence) && record.routePrep !== null) {
+      fail(`${label} carries route prep without a current structured sequence`);
     }
 
     const route = validateRoutePrep(record);
@@ -240,8 +251,17 @@ function validateEogApproachSource(fixture) {
       || (!route.exactIntersectionStart && !route.candidateHighwayStart)) pinOnlyInputCount += 1;
   }
 
+  if (savedGpsCount !== baseline.savedGpsCount
+    || structuredSequenceCount !== baseline.structuredSequenceCount
+    || writtenDirectionsCount !== baseline.writtenDirectionsCount) {
+    fail("record contents do not reconcile to the frozen 214/286/296 baseline");
+  }
+
   return {
     sourcePadCount: value.records.length,
+    savedGpsCount,
+    structuredSequenceCount,
+    writtenDirectionsCount,
     exactDestinationCount,
     routePrepCount,
     exactHighwayCount,
