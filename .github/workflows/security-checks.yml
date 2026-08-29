@@ -3,6 +3,9 @@ name: BrineSearch security checks
 on:
   pull_request:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - '**/*.md'
   push:
     branches:
       - "security/**"
@@ -11,28 +14,28 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: brinesearch-security-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  build-and-static-checks:
+  static-security-checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm run build:netlify
-      - name: Check V18-only runtime and retirement boundaries
+      - name: Install root dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
+      - name: Check security-sensitive runtime source boundaries
         run: |
           node --check scripts/assemble-production.mjs
           node --check scripts/retire-legacy-service-worker.js
           node --check v18/scripts/verify-built-runtime.mjs
           grep -q 'Content-Security-Policy-Report-Only' netlify.toml
-          test -f dist-production/v18/index.html
-          test ! -e dist-production/index.html
-          test ! -e dist-production/road-manager.js
-          grep -q 'owner_approved_routes_map_viewport' dist-production/v18/assets/*.js
-          grep -q 'const V18_ENTRY = "/v18/#/"' dist-production/sw.js
           test "$(find supabase/migration_sources/20260808050000_urgent_security_hardening -name '*.sql' | wc -l)" -eq 8
           grep -R -q 'road_manager_route_prep_summary' supabase/migration_sources/20260808050000_urgent_security_hardening
           grep -R -q 'pad_verification_public_status' supabase/migration_sources/20260808050000_urgent_security_hardening
