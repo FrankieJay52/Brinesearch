@@ -8,7 +8,7 @@
     "verify:fallback": "node scripts/sanitize-pad-fallback-data.mjs --check && node --test scripts/sanitize-pad-fallback-data.test.mjs",
     "verify:data-status": "node scripts/audit-v18-named-road-navigation-contract.mjs",
     "verify:ascent-batch2": "node scripts/audit-ascent-pad-approaches-batch2.mjs",
-    "verify:eog-source": "node --test scripts/eog-pad-approach-source-contract.test.mjs",
+    "verify:eog-source": "node --test scripts/eog-pad-approach-source-contract.test.mjs scripts/generate-eog-pad-approaches.test.mjs",
     "verify:company-roads": "node scripts/audit-v18-public-company-road-overlay-contract.mjs",
     "verify:owner-roads": "node scripts/audit-v18-owner-approved-routes-map-issue108.mjs",
     "verify:owner-map": "node scripts/audit-v18-owner-google-verify-map.mjs",
