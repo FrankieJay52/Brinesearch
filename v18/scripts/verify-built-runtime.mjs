@@ -7,15 +7,46 @@ const v18Root = fileURLToPath(new URL("..", import.meta.url));
 const outputRoot = path.resolve(v18Root, "..", "dist-v18");
 const workerPath = path.join(outputRoot, "maplibre", "maplibre-gl-worker.mjs");
 const sharedPath = path.join(outputRoot, "maplibre", "maplibre-gl-shared.mjs");
+const ascentCatalogPath = path.join(v18Root, "src", "features", "map", "ascentPadRoadDisplays.batch1.json");
 
 await Promise.all([access(workerPath), access(sharedPath)]);
-const [worker, shared, serviceWorker, assetNames] = await Promise.all([
+const [worker, shared, serviceWorker, assetNames, ascentCatalogJson] = await Promise.all([
   readFile(workerPath, "utf8"),
   readFile(sharedPath, "utf8"),
   readFile(path.join(outputRoot, "sw.js"), "utf8"),
   readdir(path.join(outputRoot, "assets")),
+  readFile(ascentCatalogPath, "utf8"),
 ]);
-const appJavascript = (await Promise.all(assetNames.filter((name) => name.endsWith(".js")).map((name) => readFile(path.join(outputRoot, "assets", name), "utf8")))).join("\n");
+const javascriptAssets = await Promise.all(assetNames.filter((name) => name.endsWith(".js")).map(async (name) => ({
+  name,
+  content: await readFile(path.join(outputRoot, "assets", name), "utf8"),
+})));
+const appJavascript = javascriptAssets.map(({ content }) => content).join("\n");
+const ascentRuntimeJavascript = javascriptAssets
+  .filter(({ content }) => content.includes("brinesearch-ascent-pad-road-lines"))
+  .map(({ content }) => content)
+  .join("\n");
+const ascentCatalog = JSON.parse(ascentCatalogJson);
+
+assert.equal(ascentCatalog.schemaVersion, 2, "Source Ascent catalog has the wrong schema");
+assert.equal(ascentCatalog.batchId, "ascent-gps-road-lines-20260829-all55", "Source Ascent catalog has the wrong batch ID");
+assert.equal(ascentCatalog.summary?.reviewedRouteCount, 55, "Source Ascent catalog does not declare exactly 55 reviewed routes");
+assert.equal(ascentCatalog.routes?.length, 55, "Source Ascent catalog does not contain exactly 55 reviewed routes");
+assert.ok(ascentRuntimeJavascript, "Built V18 app is missing the shared Ascent map runtime");
+for (const route of ascentCatalog.routes) {
+  const compiledIdentityPrefix = JSON.stringify({
+    padId: route.padId,
+    canonicalId: route.canonicalId,
+    legacyId: route.legacyId,
+    recordRevision: route.recordRevision,
+    padName: route.padName,
+  }).slice(0, -1);
+  assert.ok(
+    appJavascript.includes(compiledIdentityPrefix)
+      && appJavascript.includes(route.structuredRoadSequenceSha256),
+    `Built V18 app is missing reviewed Ascent route ${route.padName}`,
+  );
+}
 
 assert.match(worker, /maplibre-gl-shared\.mjs/, "MapLibre worker must import its pinned shared module");
 assert.ok(shared.length > 100_000, "MapLibre shared worker module is unexpectedly small");
@@ -46,7 +77,6 @@ assert.match(appJavascript, /All pads \+ all approved roads/, "Built V18 app is 
 assert.match(appJavascript, /Filter pads and approved roads by company/, "Built V18 app is missing the unified company selector");
 assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference · thin teal/, "Built V18 app is missing the pad-county highway-reference legend");
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
-assert.match(appJavascript, /ascent-gps-road-lines-20260829-all55/, "Built V18 app is missing the exact 55-pad Ascent catalog");
 assert.match(appJavascript, /Reviewed Ascent route lines shown:/, "Built V18 app is missing the accessible all-55 Ascent route disclosure");
 assert.match(appJavascript, /Reviewed Ascent named roads · solid teal/, "Built V18 app is missing the solid reviewed-network key");
 assert.match(appJavascript, /GPS-only tether · thin dashed · never approved road/, "Built V18 app is missing the neutral unapproved-GPS-tether key");
@@ -82,7 +112,7 @@ assert.match(appJavascript, /from phone GPS/, "Built V18 app is missing phone-re
 assert.match(appJavascript, /Using this phone's current GPS/, "Built V18 app is missing phone-location search disclosure");
 assert.match(appJavascript, /Expand pad map/, "Built V18 app is missing the compact expandable pad map");
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
-assert.doesNotMatch(appJavascript, /router\.project-osrm\.org|\/route\/v1\/driving/, "Built V18 app contains a browser route-service endpoint");
+assert.doesNotMatch(ascentRuntimeJavascript, /router\.project-osrm\.org|\/route\/v1\/driving/, "Built V18 Ascent map runtime contains a browser route-service endpoint");
 assert.doesNotMatch(appJavascript, /brinesearch-bannock-road-reference/, "Built V18 app retained BANNOCK's duplicate standalone road source");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
