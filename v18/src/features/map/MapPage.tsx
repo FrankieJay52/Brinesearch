@@ -820,7 +820,12 @@ export function MapPage() {
         return;
       }
       if (target.rows.length === 1) {
-        focusPad(target.rows[0]);
+        const row = target.rows[0];
+        if (viewerModeRef.current === "roads") {
+          navigate(`/pad/${encodeURIComponent(row.padId)}`);
+          return;
+        }
+        focusPad(row);
         return;
       }
       if (coincidentLocationsNeedChooser(target.rows)) {
