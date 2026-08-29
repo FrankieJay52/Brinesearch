@@ -6,6 +6,7 @@ import {
   csv,
   driverRuleStatusForState,
   explicitReceiptForPad,
+  frozenDigestUsesHistoricalContent,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
   githubMainRefreshRequired,
@@ -276,7 +277,14 @@ test("frozen CI provenance ignores only Netlify's build workspace", () => {
   );
 });
 
-test("frozen provenance accepts the exact merged main but rejects branch base drift", () => {
+test("frozen digest pins validator code historically but checks route/runtime content from the current tree", () => {
+  assert.equal(frozenDigestUsesHistoricalContent("v18/scripts/audit-batch0-ascent-navigation.mjs"), true);
+  assert.equal(frozenDigestUsesHistoricalContent("v18\\scripts\\audit-batch0-ascent-navigation.mjs"), true);
+  assert.equal(frozenDigestUsesHistoricalContent("v18/src/features/map/MapPage.tsx"), false);
+  assert.equal(frozenDigestUsesHistoricalContent("v18/scripts/audit-batch0-ascent-navigation.test.mjs"), false);
+});
+
+test("frozen provenance distinguishes the original candidate from post-merge descendant branches", () => {
   const frozenBaseSha = "a".repeat(40);
   const mergedMainSha = "b".repeat(40);
   assert.equal(frozenProvenanceCheckoutMode({
@@ -289,16 +297,17 @@ test("frozen provenance accepts the exact merged main but rejects branch base dr
     originMainSha: frozenBaseSha,
     frozenBaseSha,
   }), "candidate-branch");
-  assert.throws(() => frozenProvenanceCheckoutMode({
+  assert.equal(frozenProvenanceCheckoutMode({
     headSha: "c".repeat(40),
     originMainSha: "d".repeat(40),
     frozenBaseSha,
-  }), /does not match current origin\/main/u);
+  }), "post-merge-descendant");
 });
 
-test("only candidate branches require the frozen base commit history", () => {
+test("only the original candidate branch requires the frozen base commit history", () => {
   assert.equal(frozenProvenanceNeedsBaseHistory("candidate-branch"), true);
   assert.equal(frozenProvenanceNeedsBaseHistory("merged-main"), false);
+  assert.equal(frozenProvenanceNeedsBaseHistory("post-merge-descendant"), false);
   assert.throws(() => frozenProvenanceNeedsBaseHistory("unknown"), /Unsupported frozen provenance checkout mode/u);
 });
 
