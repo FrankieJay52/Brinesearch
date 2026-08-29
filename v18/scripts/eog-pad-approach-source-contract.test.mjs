@@ -79,6 +79,12 @@ function fixture() {
     directoryContentSha256: "1".repeat(64),
     scope: EOG_SOURCE_SCOPE,
     authority: "Read-only exact source evidence; no route or approval is created.",
+    baseline: {
+      productionPadCount: 301,
+      savedGpsCount: 214,
+      structuredSequenceCount: 286,
+      writtenDirectionsCount: 296,
+    },
     rules: {
       primaryRouteOnly: true,
       exactHighwayStepRequiredForRouting: true,
@@ -155,6 +161,14 @@ test("rejects an exact intersection without an exact loaded next road", () => re
   },
   /exact intersection start lacks an exact loaded next road/u,
 ));
+
+test("allows a missing structured sequence only as pin-only input", () => {
+  const value = fixture();
+  value.records[0].structuredRoadSequence = "";
+  value.records[0].routePrep = null;
+  const result = validateEogApproachSource(value);
+  assert.equal(result.pinOnlyInputCount, 1);
+});
 
 test("allows a pin-only record but never invents route eligibility", () => {
   const value = fixture();
