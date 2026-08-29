@@ -47,6 +47,43 @@ export function hasSafeCoordinate(row: PadSummary) {
   return hasMapDisplayCoordinate(row);
 }
 
+export type MapOverlayMarkerState = "empty" | "offscreen" | "visible";
+
+export function mapOverlayMarkerState(inputCount: number, renderedCount: number): MapOverlayMarkerState {
+  if (inputCount <= 0) return "empty";
+  return renderedCount > 0 ? "visible" : "offscreen";
+}
+
+export interface MapRowsCoordinateExtent {
+  coordinateCount: number;
+  northEast: [number, number];
+  southWest: [number, number];
+}
+
+export function mapRowsCoordinateExtent(rows: PadSummary[]): MapRowsCoordinateExtent | null {
+  const coordinates = rows.flatMap((row) => {
+    const coordinate = mapDisplayCoordinate(row);
+    return coordinate ? [coordinate] : [];
+  });
+  if (!coordinates.length) return null;
+
+  let west = coordinates[0].longitude;
+  let east = west;
+  let south = coordinates[0].latitude;
+  let north = south;
+  for (const coordinate of coordinates.slice(1)) {
+    west = Math.min(west, coordinate.longitude);
+    east = Math.max(east, coordinate.longitude);
+    south = Math.min(south, coordinate.latitude);
+    north = Math.max(north, coordinate.latitude);
+  }
+  return {
+    coordinateCount: coordinates.length,
+    northEast: [east, north],
+    southWest: [west, south],
+  };
+}
+
 export function coincidentLocationsNeedChooser(rows: PadSummary[]) {
   if (rows.length < 2) return false;
   const first = mapDisplayCoordinate(rows[0]);

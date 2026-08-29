@@ -7,7 +7,9 @@ import {
   filterMapRows,
   mapGoogleHandoffState,
   mapMarkerVisualStyle,
+  mapOverlayMarkerState,
   mapPadSearchResults,
+  mapRowsCoordinateExtent,
   selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
 } from "./mapModel";
@@ -90,6 +92,27 @@ describe("emptyMapCoordinateNotice", () => {
   it("treats an unmapped directory filter as a data state instead of a renderer failure", () => {
     expect(emptyMapCoordinateNotice(45)).toBe("45 directory locations do not have a verified map coordinate yet. Use Search to open the directory record.");
     expect(emptyMapCoordinateNotice(0)).toBe("No locations match this map filter.");
+  });
+});
+
+describe("filtered company viewport", () => {
+  it("treats valid filtered pads outside the camera as offscreen, not a renderer failure", () => {
+    expect(mapOverlayMarkerState(54, 0)).toBe("offscreen");
+    expect(mapOverlayMarkerState(54, 12)).toBe("visible");
+    expect(mapOverlayMarkerState(0, 0)).toBe("empty");
+  });
+
+  it("builds an exact fit extent from the selected company's safe display coordinates", () => {
+    const northEast = pad("north-east", 40.4, -80.1);
+    const southWest = pad("south-west", 39.2, -81.6);
+    const unmapped = { ...pad("unmapped", 39.8, -80.8), coordinate: null };
+
+    expect(mapRowsCoordinateExtent([northEast, southWest, unmapped])).toEqual({
+      coordinateCount: 2,
+      northEast: [-80.1, 40.4],
+      southWest: [-81.6, 39.2],
+    });
+    expect(mapRowsCoordinateExtent([unmapped])).toBeNull();
   });
 });
 
@@ -340,6 +363,13 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("hitTargetsRef.current = [];");
     expect(pageSource).toContain("if (!overlayInteractionActive && overlayDirty)");
     expect(pageSource).toContain("drawOverlay();");
+  });
+
+  it("fits valid company pads after a company filter changes", () => {
+    expect(pageSource).toContain("mapRowsCoordinateExtent(companyScopedRows)");
+    expect(pageSource).toContain("mapRef.current.fitBounds(new LngLatBounds(extent.southWest, extent.northEast)");
+    expect(pageSource).toContain("previousCompanyFilterRef.current = companyFilter");
+    expect(pageSource).toContain("Filtered mapped locations are outside the current view. Zoom out or choose another company.");
   });
 });
 

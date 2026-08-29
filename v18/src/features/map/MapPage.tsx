@@ -38,7 +38,9 @@ import {
   mapDisplayCoordinate,
   mapGoogleHandoffState,
   mapMarkerVisualStyle,
+  mapOverlayMarkerState,
   mapRoadSelectionForCompany,
+  mapRowsCoordinateExtent,
   selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
   type MapViewerMode,
@@ -440,6 +442,7 @@ export function MapPage() {
   const companyRoadRenderFailedRef = useRef(false);
   const viewerModeRef = useRef<MapViewerMode>(viewerMode);
   const pendingRouteFitRef = useRef(false);
+  const previousCompanyFilterRef = useRef<"all" | string>(companyFilter);
   const navigate = useNavigate();
 
   const fullscreen = viewerMode !== "standard";
@@ -734,10 +737,11 @@ export function MapPage() {
       mapHost.current.dataset.padInputFeatures = String(result.inputCount);
       mapHost.current.dataset.padRenderedFeatures = String(result.renderedCount);
       mapHost.current.dataset.fallbackApplied = String(fallbackApplied);
-      if (result.inputCount === 0) {
+      const markerState = mapOverlayMarkerState(result.inputCount, result.renderedCount);
+      if (markerState === "empty") {
         setMapRenderState(fallbackApplied ? "degraded" : basemapReady ? "ready" : "loading");
         setMapNotice(emptyMapCoordinateNotice(visibleRowsRef.current.length));
-      } else if (result.renderedCount > 0) {
+      } else if (markerState === "visible") {
         if (companyRoadRenderFailedRef.current) {
           setMapRenderState("degraded");
           setMapNotice("Approved route roads could not be drawn. They were hidden; mapped locations remain available.");
@@ -750,8 +754,12 @@ export function MapPage() {
               : "Mapped locations ready; basemap detail is still loading.");
         }
       } else {
-        setMapRenderState("error");
-        setMapNotice("Mapped locations could not be rendered. Search remains available.");
+        // A filtered company can be valid but entirely outside the current
+        // camera after the driver inspected another operator. That is a normal
+        // viewport state, not a canvas failure; the company-change effect below
+        // fits these exact saved coordinates and moveend redraws them once.
+        setMapRenderState(fallbackApplied ? "degraded" : basemapReady ? "ready" : "loading");
+        setMapNotice("Filtered mapped locations are outside the current view. Zoom out or choose another company.");
       }
     };
 
@@ -923,6 +931,24 @@ export function MapPage() {
     });
     return () => window.cancelAnimationFrame(frame);
   }, [viewerMode]);
+
+  useEffect(() => {
+    const previousCompanyFilter = previousCompanyFilterRef.current;
+    previousCompanyFilterRef.current = companyFilter;
+    if (previousCompanyFilter === companyFilter || !mapRef.current) return;
+
+    const extent = mapRowsCoordinateExtent(companyScopedRows);
+    if (!extent) return;
+    if (extent.coordinateCount === 1) {
+      mapRef.current.easeTo({ center: extent.southWest, zoom: 13, duration: 420 });
+      return;
+    }
+    mapRef.current.fitBounds(new LngLatBounds(extent.southWest, extent.northEast), {
+      padding: fullscreen ? 64 : 84,
+      maxZoom: 11.5,
+      duration: 420,
+    });
+  }, [companyFilter, companyScopedRows, fullscreen]);
 
   if (loading) return <LoadingState message="Loading the field map…"/>;
   if (!snapshot || error) return <section className="page-state"><h1>Map unavailable</h1><p>{error || "No complete directory is available."}</p></section>;
