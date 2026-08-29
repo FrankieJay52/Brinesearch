@@ -223,24 +223,42 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toContain(".legend-line.exit");
   });
 
-  it("keeps the exact BANNOCK exit red on the all-pads and Ascent main map", () => {
+  it("keeps the exact BANNOCK arrival teal and exit red on the all-pads and Ascent main map", () => {
     expect(pageSource).toContain("bannockFieldDirectionDisplayForDirectory(snapshot?.rows || [])");
     expect(pageSource).toContain('companyFilter === "all" || companyFilter === bannockFieldDirectionDisplay.company');
     expect(pageSource).toContain('typeFilter !== "disposal"');
-    expect(pageSource).toContain("function syncBannockExitReferenceLayers(");
-    expect(pageSource).toContain("map.addSource(bannockExitReferenceSourceId");
-    expect(pageSource).toContain('role: "outbound-road-reference"');
-    expect(pageSource).toContain('paint: { "line-color": "#ef4444", "line-width": 4.5, "line-opacity": .98 }');
-    expect(pageSource).toContain("syncBannockExitReferenceLayers(map, bannockExitReferenceRef.current)");
-    expect(pageSource).toContain("map.moveLayer(bannockExitReferenceLineLayerId)");
-    expect(pageSource).toContain('map.setPaintProperty(bannockExitReferenceLineLayerId, "line-color", "#ef4444")');
-    expect(pageSource).toContain("BANNOCK exit via Black Oak Road to OH-149 · red");
-    expect(pageSource).toContain('className="map-bannock-exit-note"');
-    expect(pageSource).toContain("BANNOCK → Black Oak Road → OH-149");
-    expect(pageSource).toContain("Red is BANNOCK's exit reference by Black Oak Road to OH-149.");
+    expect(pageSource).toContain("function syncBannockRoadReferenceLayers(");
+    expect(pageSource).toContain("map.addSource(bannockRoadReferenceSourceId");
+    expect(pageSource).toContain("features: [display.inbound, display.outbound].map");
+    expect(pageSource).toContain('role: line.colorRole === "teal" ? "inbound-road-reference" : "outbound-road-reference"');
+    expect(pageSource).toContain("colorRole: line.colorRole");
+    expect(pageSource).toContain('["match", ["get", "colorRole"], "teal", "#52e4bd", "red", "#ef4444", "#52e4bd"]');
+    expect(pageSource).toContain("syncBannockRoadReferenceLayers(map, bannockRoadReferenceRef.current)");
+    expect(pageSource).toContain("map.moveLayer(bannockRoadReferenceLineLayerId)");
+    expect(pageSource).toContain('map.setPaintProperty(bannockRoadReferenceLineLayerId, "line-color", [');
+    expect(pageSource).toContain("OH-331 to BANNOCK · teal");
+    expect(pageSource).toContain("BANNOCK via Black Oak Road to OH-149 · red");
+    expect(pageSource).toContain("BANNOCK's field reference is teal from OH-331 to the pad and red by Black Oak Road to OH-149.");
+    expect(pageSource).toContain("BANNOCK road colors: teal from OH-331 to BANNOCK; red from BANNOCK by Black Oak Road to OH-149.");
+    expect(pageSource).toContain("[visibleBannockRoadReference, visibleCompanyRoadOverlay, viewerMode]");
     expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(pageSource).not.toContain('map.setPaintProperty(highwayReferenceLineLayerId, "line-color", "#ef4444")');
-    expect(appCss).toContain(".map-bannock-exit-note");
+  });
+
+  it("removes the two top badges and lets the map controls collapse to the left", () => {
+    expect(pageSource).not.toContain('className="map-data-note"');
+    expect(pageSource).not.toContain('className="map-bannock-exit-note"');
+    expect(pageSource).not.toContain("safe map points");
+    expect(pageSource).not.toContain("const visibleMappedCount");
+    expect(appCss).not.toMatch(/\.map-data-note\b/);
+    expect(appCss).not.toMatch(/\.map-bannock-exit-note\b/);
+    expect(pageSource).toContain('className="map-control-toggle"');
+    expect(pageSource).toContain('aria-controls="map-primary-controls"');
+    expect(pageSource).toContain("aria-expanded={!mapControlsCollapsed}");
+    expect(pageSource).toContain('aria-label={mapControlsCollapsed ? "Show map controls" : "Collapse map controls to the left"}');
+    expect(pageSource).toContain('id="map-primary-controls" className="map-primary-controls" hidden={mapControlsCollapsed}');
+    expect(appCss).toMatch(/\.map-control-toggle\s*\{[^}]*width:\s*44px;[^}]*min-height:\s*44px;/s);
+    expect(appCss).toMatch(/\.map-control-stack\.is-collapsed\s*\{[^}]*width:\s*fit-content;/s);
   });
 
   it("requires a named approach choice and binds its map line and navigation action together", () => {
@@ -310,8 +328,11 @@ describe("map viewer authority boundary", () => {
     expect(appCss).toMatch(/\.map-selection-card \.button-primary\s*\{[^}]*min-height:\s*48px;/s);
     expect(appCss).toMatch(/\.map-saved-road-sequence summary\s*\{[^}]*display:\s*flex;/s);
     expect(appCss).toMatch(/\.map-coordinate-reference\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);
-    expect(appCss).toContain("bottom: calc(var(--nav-height) + max(10px, env(safe-area-inset-bottom)) + 12px);");
-    expect(appCss).toMatch(/\.map-selection-card, \.map-cluster-chooser\s*\{[^}]*bottom:\s*calc\(var\(--nav-height\) \+ max\(10px, env\(safe-area-inset-bottom\)\) \+ 12px\);/s);
+    expect(appCss).toContain("--nav-bottom-offset: max(10px, env(safe-area-inset-bottom));");
+    expect(appCss).toContain("bottom: var(--nav-bottom-offset);");
+    expect(appCss).toContain("bottom: calc(var(--nav-height) + var(--nav-bottom-offset) + 12px);");
+    expect(appCss).toMatch(/\.map-selection-card, \.map-cluster-chooser\s*\{[^}]*bottom:\s*calc\(var\(--nav-height\) \+ var\(--nav-bottom-offset\) \+ 12px\);/s);
+    expect(appCss).toMatch(/@media \(max-width:\s*760px\)[\s\S]*?--nav-bottom-offset:\s*max\(2px, calc\(env\(safe-area-inset-bottom\) - 8px\)\);/s);
     expect(appCss).toMatch(/\.map-coordinate-reference > a\s*\{[^}]*min-height:\s*44px;/s);
     expect(appCss).toMatch(/\.map-route-status > summary\s*\{[^}]*min-height:\s*44px;/s);
     expect(appCss).toMatch(/\.map-control-stack\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\);/s);

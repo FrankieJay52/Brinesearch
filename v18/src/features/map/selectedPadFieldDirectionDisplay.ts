@@ -7,7 +7,7 @@ export type FieldDirectionColorRole = "teal" | "red";
 export interface SelectedPadFieldDirectionLineString<ColorRole extends FieldDirectionColorRole = FieldDirectionColorRole> {
   type: "LineString";
   colorRole: ColorRole;
-  visibility: ColorRole extends "teal" ? "selected-pad-only" : "main-map-all-and-ascent";
+  visibility: "main-map-all-and-ascent";
   label: string;
   coordinates: readonly FieldDirectionCoordinate[];
 }
@@ -20,7 +20,7 @@ export interface SelectedPadFieldDirectionTransition {
 export interface SelectedPadFieldDirectionDisplay {
   padId: string;
   company: "Ascent";
-  displayScope: "selected-pad-teal-and-persistent-red-exit";
+  displayScope: "persistent-main-map-teal-arrival-and-red-exit";
   displayAuthority: string;
   savedPin: FieldDirectionCoordinate;
   projectedSeam: FieldDirectionCoordinate;
@@ -120,7 +120,7 @@ function isTransitionList(value: unknown): value is Array<{ role: string; coordi
 
 function artifactMatchesContract(): boolean {
   if (artifact.schemaVersion !== 1
-    || artifact.displayScope !== "selected-pad-teal-and-persistent-red-exit"
+    || artifact.displayScope !== "persistent-main-map-teal-arrival-and-red-exit"
     || artifact.padId !== contract.padId
     || artifact.legacyId !== contract.legacyId
     || artifact.recordRevision !== contract.recordRevision
@@ -128,7 +128,7 @@ function artifactMatchesContract(): boolean {
     || artifact.company !== contract.company
     || artifact.noConnectorToGps !== true
     || artifact.inbound.colorRole !== "teal"
-    || artifact.inbound.visibility !== "selected-pad-only"
+    || artifact.inbound.visibility !== "main-map-all-and-ascent"
     || artifact.outbound.colorRole !== "red"
     || artifact.outbound.visibility !== "main-map-all-and-ascent"
     || artifact.inbound.pointCount !== contract.inboundPointCount
@@ -158,7 +158,7 @@ const display: SelectedPadFieldDirectionDisplay | null = artifactMatchesContract
   ? {
       padId: contract.padId,
       company: "Ascent",
-      displayScope: "selected-pad-teal-and-persistent-red-exit",
+      displayScope: "persistent-main-map-teal-arrival-and-red-exit",
       displayAuthority: artifact.displayAuthority,
       savedPin: [contract.longitude, contract.latitude],
       projectedSeam: contract.projectedSeam,
@@ -166,7 +166,7 @@ const display: SelectedPadFieldDirectionDisplay | null = artifactMatchesContract
       inbound: {
         type: "LineString",
         colorRole: "teal",
-        visibility: "selected-pad-only",
+        visibility: "main-map-all-and-ascent",
         label: artifact.inbound.label,
         coordinates: artifact.inbound.coordinates as FieldDirectionCoordinate[],
       },
@@ -184,9 +184,10 @@ const display: SelectedPadFieldDirectionDisplay | null = artifactMatchesContract
   : null;
 
 /**
- * Returns BANNOCK's selected-pad-only field display only for the exact frozen
- * directory record and entrance coordinate. This presentation never changes
- * the saved GPS or Google handoff and intentionally omits a GPS-to-road line.
+ * Returns BANNOCK's exact frozen field display only for the exact directory
+ * record and entrance coordinate. The same geometry can persist on the
+ * All/Ascent map and brighten when selected. It never changes the saved GPS
+ * or Google handoff and intentionally omits a GPS-to-road line.
  */
 export function selectedPadFieldDirectionDisplayForPad(
   pad: SelectedPadFieldDirectionPad,
@@ -209,8 +210,8 @@ export function selectedPadFieldDirectionDisplayForPad(
 
 /**
  * Finds one and only one exact BANNOCK record in the current directory. The
- * persistent red exit reference fails closed if the record is absent, stale,
- * or duplicated; a pad name or nearby coordinate is never enough.
+ * persistent teal arrival and red exit fail closed if the record is absent,
+ * stale, or duplicated; a pad name or nearby coordinate is never enough.
  */
 export function bannockFieldDirectionDisplayForDirectory(
   pads: readonly SelectedPadFieldDirectionPad[],

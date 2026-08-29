@@ -46,7 +46,7 @@ assert.match(appJavascript, /All pads \+ all approved roads/, "Built V18 app is 
 assert.match(appJavascript, /Filter pads and approved roads by company/, "Built V18 app is missing the unified company selector");
 assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference · thin teal/, "Built V18 app is missing the pad-county highway-reference legend");
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
-assert.match(appJavascript, /Selected-pad route color appears only after choosing a pad/, "Built V18 app is missing the selected-pad-only route-color disclosure");
+assert.match(appJavascript, /Pad-specific color normally appears only after choosing a pad/, "Built V18 app is missing the ordinary selected-pad route-color disclosure");
 assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only pad-route key");
 assert.match(appJavascript, /Teal arrival/, "Built V18 app is missing BANNOCK's selected teal arrival key");
 assert.match(appJavascript, /OH-331 → Lafferty-Bannock Road \/ CR-10 → BANNOCK/, "Built V18 app is missing BANNOCK's teal arrival sequence");
@@ -55,9 +55,13 @@ assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missi
 assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
 assert.match(appJavascript, /no road-to-pin connector is inferred/, "Built V18 app is missing BANNOCK's no-invented-connector boundary");
 assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
-assert.match(appJavascript, /BANNOCK exit via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
-assert.match(appJavascript, /Red is BANNOCK's exit reference by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's persistent road-mode explanation");
-assert.match(appJavascript, /BANNOCK → Black Oak Road → OH-149/, "Built V18 app is missing BANNOCK's mobile main-map red direction key");
+assert.match(appJavascript, /OH-331 to BANNOCK · teal/, "Built V18 app is missing BANNOCK's persistent main-map teal legend");
+assert.match(appJavascript, /BANNOCK via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
+assert.match(appJavascript, /BANNOCK's field reference is teal from OH-331 to the pad and red by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's persistent road-mode explanation");
+assert.match(appJavascript, /BANNOCK road colors: teal from OH-331 to BANNOCK; red from BANNOCK by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's accessible road-color description");
+assert.match(appJavascript, /Collapse map controls to the left/, "Built V18 app is missing the compact map-control action");
+assert.match(appJavascript, /Show map controls/, "Built V18 app is missing the map-control restore action");
+assert.doesNotMatch(appJavascript, /safe map points|Red exitBANNOCK/, "Built V18 app retained a removed top map badge");
 assert.doesNotMatch(appJavascript, /Checking for the highest-priority reviewed route|Live route check unavailable · no fallback opened/, "Built V18 app still withholds Navigate while optional State-1 checks settle");
 assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");
 assert.doesNotMatch(appJavascript, /Approved roads to handoff · GPS-only final leg/, "Built V18 app retained the superseded named state-2 label");
