@@ -54,6 +54,7 @@ import {
   libertyHighwayReferenceSource,
 } from "./highwayReference";
 import {
+  bannockFieldDirectionDisplayForDirectory,
   selectedPadFieldDirectionDisplayForPad,
   type SelectedPadFieldDirectionDisplay,
   type SelectedPadFieldDirectionLineString,
@@ -70,6 +71,9 @@ const mapStyleTimeoutMs = 8_000;
 const companyRoadSourceId = "brinesearch-company-roads";
 const companyRoadCasingLayerId = "brinesearch-company-roads-casing";
 const companyRoadLineLayerId = "brinesearch-company-roads-line";
+const bannockExitReferenceSourceId = "brinesearch-bannock-exit-reference";
+const bannockExitReferenceCasingLayerId = "brinesearch-bannock-exit-reference-casing";
+const bannockExitReferenceLineLayerId = "brinesearch-bannock-exit-reference-line";
 const roadModeFadeSourceId = "brinesearch-road-mode-fade";
 const roadModeFadeLayerId = "brinesearch-road-mode-fade-layer";
 
@@ -156,6 +160,76 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
   }
 }
 
+function bannockExitReferenceCollection(display: SelectedPadFieldDirectionDisplay) {
+  return {
+    type: "FeatureCollection" as const,
+    features: [{
+      type: "Feature" as const,
+      properties: {
+        padId: display.padId,
+        role: "outbound-road-reference",
+        label: display.outbound.label,
+      },
+      geometry: {
+        type: "LineString" as const,
+        coordinates: display.outbound.coordinates.map(([longitude, latitude]) => [longitude, latitude]),
+      },
+    }],
+  };
+}
+
+function clearBannockExitReferenceLayers(map: MapLibreMap) {
+  for (const layerId of [bannockExitReferenceLineLayerId, bannockExitReferenceCasingLayerId]) {
+    try {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+    } catch {
+      // Style replacement can remove the persistent source before cleanup.
+    }
+  }
+  try {
+    if (map.getSource(bannockExitReferenceSourceId)) map.removeSource(bannockExitReferenceSourceId);
+  } catch {
+    // The persistent reference fails closed if style cleanup races removal.
+  }
+}
+
+function syncBannockExitReferenceLayers(
+  map: MapLibreMap,
+  display: SelectedPadFieldDirectionDisplay | null,
+) {
+  clearBannockExitReferenceLayers(map);
+  if (!display) return true;
+  try {
+    map.addSource(bannockExitReferenceSourceId, {
+      type: "geojson",
+      data: bannockExitReferenceCollection(display),
+    });
+    if (!map.getSource(bannockExitReferenceSourceId)) throw new Error("BANNOCK exit-reference source was rejected");
+    const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
+    map.addLayer({
+      id: bannockExitReferenceCasingLayerId,
+      type: "line",
+      source: bannockExitReferenceSourceId,
+      paint: { "line-color": "rgba(7, 19, 31, .9)", "line-width": 8, "line-opacity": .96 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    map.addLayer({
+      id: bannockExitReferenceLineLayerId,
+      type: "line",
+      source: bannockExitReferenceSourceId,
+      paint: { "line-color": "#ef4444", "line-width": 4.5, "line-opacity": .98 },
+      layout: { "line-cap": "round", "line-join": "round" },
+    }, firstSymbolLayer);
+    if (!map.getLayer(bannockExitReferenceCasingLayerId) || !map.getLayer(bannockExitReferenceLineLayerId)) {
+      throw new Error("BANNOCK exit-reference layers were rejected");
+    }
+    return true;
+  } catch {
+    clearBannockExitReferenceLayers(map);
+    return false;
+  }
+}
+
 function clearHighwayReferenceLayers(map: MapLibreMap) {
   for (const layerId of [highwayReferenceLineLayerId, highwayReferenceCasingLayerId]) {
     try {
@@ -226,6 +300,8 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
       if (map.getLayer(highwayReferenceLineLayerId)) map.moveLayer(highwayReferenceLineLayerId);
       if (map.getLayer(companyRoadCasingLayerId)) map.moveLayer(companyRoadCasingLayerId);
       if (map.getLayer(companyRoadLineLayerId)) map.moveLayer(companyRoadLineLayerId);
+      if (map.getLayer(bannockExitReferenceCasingLayerId)) map.moveLayer(bannockExitReferenceCasingLayerId);
+      if (map.getLayer(bannockExitReferenceLineLayerId)) map.moveLayer(bannockExitReferenceLineLayerId);
     } else {
       clearRoadModeFade(map);
     }
@@ -238,6 +314,12 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
       // reviewed selected-pad route is the brighter canvas line above them.
       map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6");
       map.setPaintProperty(companyRoadLineLayerId, "line-opacity", .86);
+    }
+    if (map.getLayer(bannockExitReferenceLineLayerId)) {
+      // This exact BANNOCK exit reference stays red on the all-pads and Ascent
+      // main map. It is a dedicated source, never a generic basemap recolor.
+      map.setPaintProperty(bannockExitReferenceLineLayerId, "line-color", "#ef4444");
+      map.setPaintProperty(bannockExitReferenceLineLayerId, "line-opacity", .98);
     }
   } catch {
     clearRoadModeFade(map);
@@ -364,7 +446,7 @@ function drawSelectedPadFieldDirectionDisplay(
   drawSelectedPadFieldDirectionLine(context, map, display.inbound, "rgba(7, 19, 31, .88)", 9);
   drawSelectedPadFieldDirectionLine(context, map, display.outbound, "rgba(7, 19, 31, .88)", 9);
   drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5);
-  drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef7b7b", 5);
+  drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef4444", 5);
 }
 
 function drawApprovedRoadNetwork(
@@ -474,6 +556,7 @@ export function MapPage() {
   const [mapRenderState, setMapRenderState] = useState<MapRenderState>("loading");
   const [mapNotice, setMapNotice] = useState("Loading basemap and mapped locations…");
   const [highwayReferenceReady, setHighwayReferenceReady] = useState(false);
+  const [bannockExitReferenceReady, setBannockExitReferenceReady] = useState(false);
   const [companyRoadRenderFailed, setCompanyRoadRenderFailed] = useState(false);
   const { origin: mapSearchOrigin, state: mapSearchLocationState, requestLocation: requestMapSearchLocation, retryLocation: retryMapSearchLocation } = usePadSearchLocation();
   const mapHost = useRef<HTMLDivElement | null>(null);
@@ -482,6 +565,7 @@ export function MapPage() {
   const visibleRowsRef = useRef(snapshot?.rows || []);
   const selectedRouteRef = useRef<DriverRouteGeometry | null>(null);
   const selectedFieldDirectionDisplayRef = useRef<SelectedPadFieldDirectionDisplay | null>(null);
+  const bannockExitReferenceRef = useRef<SelectedPadFieldDirectionDisplay | null>(null);
   const companyRoadRowsRef = useRef<CompanyRoadOverlayRow[]>([]);
   const selectedIdRef = useRef<string | null>(null);
   const hitTargetsRef = useRef<PadHitTarget[]>([]);
@@ -520,6 +604,15 @@ export function MapPage() {
     () => filterMapRows(companyScopedRows, typeFilter, null),
     [companyScopedRows, typeFilter],
   );
+  const bannockFieldDirectionDisplay = useMemo(
+    () => bannockFieldDirectionDisplayForDirectory(snapshot?.rows || []),
+    [snapshot],
+  );
+  const visibleBannockExitReference = bannockFieldDirectionDisplay
+    && typeFilter !== "disposal"
+    && (companyFilter === "all" || companyFilter === bannockFieldDirectionDisplay.company)
+    ? bannockFieldDirectionDisplay
+    : null;
   const visibleMappedCount = useMemo(() => visibleRows.filter(hasSafeCoordinate).length, [visibleRows]);
   const companyRoadScopeStatus = companyRoadRenderFailed
     ? `Approved route roads could not be drawn and are hidden. ${selectedCompany ? `${selectedCompany} pads remain filtered.` : "All pads remain visible."} No route-road geometry was inferred.`
@@ -621,6 +714,7 @@ export function MapPage() {
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedRouteGeometry;
   selectedFieldDirectionDisplayRef.current = selectedFieldDirectionDisplay;
+  bannockExitReferenceRef.current = visibleBannockExitReference;
   companyRoadRowsRef.current = visibleCompanyRoadOverlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
@@ -840,12 +934,17 @@ export function MapPage() {
       // copy so the authorized rows are never double-painted.
       const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current;
       const failed = !syncCompanyRoadLayers(map, mapLibreRoadRows) && mapLibreRoadRows.length > 0;
+      const bannockExitSynced = syncBannockExitReferenceLayers(map, bannockExitReferenceRef.current);
+      setBannockExitReferenceReady(Boolean(bannockExitReferenceRef.current) && bannockExitSynced);
       syncMapPresentation(map, viewerModeRef.current === "roads");
       companyRoadRenderFailedRef.current = failed;
       setCompanyRoadRenderFailed(failed);
       if (failed) {
         setMapRenderState("degraded");
         setMapNotice("Approved route roads could not be drawn. They were hidden; mapped locations remain available.");
+      } else if (!bannockExitSynced) {
+        setMapRenderState("degraded");
+        setMapNotice("The BANNOCK exit reference could not be drawn and is hidden. Mapped locations remain available.");
       }
       scheduleOverlayDraw();
     };
@@ -885,6 +984,13 @@ export function MapPage() {
       scheduleOverlayDraw();
     });
     map.on("error", (event) => {
+      if ((event as typeof event & { sourceId?: string }).sourceId === bannockExitReferenceSourceId) {
+        clearBannockExitReferenceLayers(map);
+        setBannockExitReferenceReady(false);
+        setMapRenderState("degraded");
+        setMapNotice("The BANNOCK exit reference could not be drawn and is hidden. Mapped locations remain available.");
+        return;
+      }
       if ((event as typeof event & { sourceId?: string }).sourceId === companyRoadSourceId) {
         clearCompanyRoadLayers(map);
         const failed = companyRoadRowsRef.current.length > 0;
@@ -970,13 +1076,14 @@ export function MapPage() {
       syncCompanyRoadLayersRef.current = null;
       hitTargetsRef.current = [];
       clearHighwayReferenceLayers(map);
+      clearBannockExitReferenceLayers(map);
       clearRoadModeFade(map);
       map.remove();
       mapRef.current = null;
     };
   }, [focusPad, loading, navigate]);
 
-  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleCompanyRoadOverlay, selectedId, viewerMode]);
+  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleBannockExitReference, visibleCompanyRoadOverlay, selectedId, viewerMode]);
   useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedFieldDirectionDisplay, selectedId]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1050,7 +1157,7 @@ export function MapPage() {
           <div className="filter-row" aria-label="Map filters">
             {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
           </div>
-          {roadMode && companyRoads.availability.state === "ready" && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Highway reference + exact approved roads</strong><small>Thin teal is the basemap Interstate, U.S., and state highway reference inside counties with pads. Stronger teal is exact approved route geometry. Held, candidate, stale, guessed, and unpublished routes stay hidden.</small></span></div>}
+          {roadMode && companyRoads.availability.state === "ready" && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Highway reference + exact approved roads</strong><small>Thin teal is the basemap Interstate, U.S., and state highway reference inside counties with pads. Stronger teal is exact approved route geometry. Red is BANNOCK's exit reference by Black Oak Road to OH-149. Held, candidate, stale, guessed, and unpublished routes stay hidden.</small></span></div>}
           <label className="company-road-filter">
             <span><Icon name="company"/>Pads + approved roads</span>
             <select value={companyFilter} onChange={(event) => { setSelectedId(null); setLocationChoices(null); setCompanyFilter(event.target.value); }} aria-label="Filter pads and approved roads by company">
@@ -1063,6 +1170,7 @@ export function MapPage() {
         </div>
       </div>
       <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> safe map points · {(visibleRows.length - visibleMappedCount).toLocaleString()} still missing {selectedCompany ? `for ${selectedCompany}` : ""}</div>
+      {bannockExitReferenceReady && <div className="map-bannock-exit-note" role="note"><i className="legend-line exit"/><strong>Red exit</strong><span>BANNOCK → Black Oak Road → OH-149</span></div>}
       <div className={`map-render-notice map-render-${mapRenderState}`} role={mapRenderState === "error" ? "alert" : "status"} data-map-render-state={mapRenderState}>
         <span/>{mapNotice}
       </div>
@@ -1107,6 +1215,6 @@ export function MapPage() {
         {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
-    </article> : <aside className="map-legend-card"><strong>BrineSearch road layers</strong>{highwayReferenceReady && <span><i className="legend-line highway"/>Pad-county Interstate / U.S. / state reference · thin teal</span>}<span><i className="legend-line approved"/>Exact approved route road · stronger teal</span><span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
+    </article> : <aside className="map-legend-card"><strong>BrineSearch road layers</strong>{highwayReferenceReady && <span><i className="legend-line highway"/>Pad-county Interstate / U.S. / state reference · thin teal</span>}<span><i className="legend-line approved"/>Exact approved route road · stronger teal</span>{bannockExitReferenceReady && <span><i className="legend-line exit"/>BANNOCK exit via Black Oak Road to OH-149 · red</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;
 }

@@ -1,7 +1,10 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import type { SelectedPadFieldDirectionPad } from "./selectedPadFieldDirectionDisplay";
-import { selectedPadFieldDirectionDisplayForPad } from "./selectedPadFieldDirectionDisplay";
+import {
+  bannockFieldDirectionDisplayForDirectory,
+  selectedPadFieldDirectionDisplayForPad,
+} from "./selectedPadFieldDirectionDisplay";
 
 function bannock(overrides: Partial<SelectedPadFieldDirectionPad> = {}): SelectedPadFieldDirectionPad {
   return {
@@ -28,13 +31,21 @@ describe("selected BANNOCK field-direction display", () => {
     expect(display).not.toBeNull();
     expect(display).toMatchObject({
       padId: "333598ca-37b3-4b44-9411-a490cc3da672",
-      displayScope: "selected-pad-only",
+      company: "Ascent",
+      displayScope: "selected-pad-teal-and-persistent-red-exit",
       savedPin: [-81.002932, 40.111003],
       projectedSeam: [-81.0029984280781, 40.11094217212037],
       noConnectorToGps: true,
-      inbound: { type: "LineString", colorRole: "teal" },
-      outbound: { type: "LineString", colorRole: "red" },
+      inbound: { type: "LineString", colorRole: "teal", visibility: "selected-pad-only" },
+      outbound: { type: "LineString", colorRole: "red", visibility: "main-map-all-and-ascent" },
     });
+  });
+
+  it("exposes the persistent exit reference only from one exact directory record", () => {
+    expect(bannockFieldDirectionDisplayForDirectory([bannock()])?.outbound.colorRole).toBe("red");
+    expect(bannockFieldDirectionDisplayForDirectory([])).toBeNull();
+    expect(bannockFieldDirectionDisplayForDirectory([{ ...bannock(), recordRevision: "stale" }])).toBeNull();
+    expect(bannockFieldDirectionDisplayForDirectory([bannock(), bannock()])).toBeNull();
   });
 
   it.each([

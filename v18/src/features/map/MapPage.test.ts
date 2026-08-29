@@ -204,12 +204,12 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("fuzzy_name");
   });
 
-  it("draws BANNOCK's selected-only arrival teal and exit reference red without changing the pin", () => {
+  it("draws BANNOCK's selected arrival teal and brighter exit red without changing the pin", () => {
     expect(pageSource).toContain("selectedPadFieldDirectionDisplayForPad(selected)");
     expect(pageSource).toContain("selectedFieldDirectionDisplayRef.current = selectedFieldDirectionDisplay");
     expect(pageSource).toContain("selectedId === fieldDirectionDisplay?.padId ? fieldDirectionDisplay : null");
     expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5)');
-    expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef7b7b", 5)');
+    expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef4444", 5)');
     expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.inbound, "rgba(7, 19, 31, .88)", 9)');
     expect(pageSource).toContain("[selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]");
     expect(pageSource).toContain("Teal arrival");
@@ -219,8 +219,28 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("Red is not a restriction or closure.");
     expect(pageSource).toContain("no road-to-pin connector is inferred");
     expect(pageSource).toContain("Google Navigate link and road authority are unchanged");
-    expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef7b7b")');
+    expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
     expect(appCss).toContain(".legend-line.exit");
+  });
+
+  it("keeps the exact BANNOCK exit red on the all-pads and Ascent main map", () => {
+    expect(pageSource).toContain("bannockFieldDirectionDisplayForDirectory(snapshot?.rows || [])");
+    expect(pageSource).toContain('companyFilter === "all" || companyFilter === bannockFieldDirectionDisplay.company');
+    expect(pageSource).toContain('typeFilter !== "disposal"');
+    expect(pageSource).toContain("function syncBannockExitReferenceLayers(");
+    expect(pageSource).toContain("map.addSource(bannockExitReferenceSourceId");
+    expect(pageSource).toContain('role: "outbound-road-reference"');
+    expect(pageSource).toContain('paint: { "line-color": "#ef4444", "line-width": 4.5, "line-opacity": .98 }');
+    expect(pageSource).toContain("syncBannockExitReferenceLayers(map, bannockExitReferenceRef.current)");
+    expect(pageSource).toContain("map.moveLayer(bannockExitReferenceLineLayerId)");
+    expect(pageSource).toContain('map.setPaintProperty(bannockExitReferenceLineLayerId, "line-color", "#ef4444")');
+    expect(pageSource).toContain("BANNOCK exit via Black Oak Road to OH-149 · red");
+    expect(pageSource).toContain('className="map-bannock-exit-note"');
+    expect(pageSource).toContain("BANNOCK → Black Oak Road → OH-149");
+    expect(pageSource).toContain("Red is BANNOCK's exit reference by Black Oak Road to OH-149.");
+    expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef4444")');
+    expect(pageSource).not.toContain('map.setPaintProperty(highwayReferenceLineLayerId, "line-color", "#ef4444")');
+    expect(appCss).toContain(".map-bannock-exit-note");
   });
 
   it("requires a named approach choice and binds its map line and navigation action together", () => {

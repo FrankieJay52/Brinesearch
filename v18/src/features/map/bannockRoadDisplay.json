@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "displayScope": "selected-pad-only",
+  "displayScope": "selected-pad-teal-and-persistent-red-exit",
   "displayAuthority": "owner-requested field display; not a State 1 graph release",
   "padId": "333598ca-37b3-4b44-9411-a490cc3da672",
   "legacyId": "ascent--bannock",
@@ -19,6 +19,7 @@
   "noConnectorToGps": true,
   "inbound": {
     "colorRole": "teal",
+    "visibility": "selected-pad-only",
     "label": "OH-331 → Lafferty-Bannock Road / CR-10 → BANNOCK seam",
     "startJunction": [
       -80.977251,
@@ -412,6 +413,7 @@
   },
   "outbound": {
     "colorRole": "red",
+    "visibility": "main-map-all-and-ascent",
     "label": "BANNOCK seam → Lafferty/Harrah → Black Oak Road → OH-149 / OH-331",
     "endJunction": [
       -81.055906,

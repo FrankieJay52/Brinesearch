@@ -55,6 +55,9 @@ assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missi
 assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
 assert.match(appJavascript, /no road-to-pin connector is inferred/, "Built V18 app is missing BANNOCK's no-invented-connector boundary");
 assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
+assert.match(appJavascript, /BANNOCK exit via Black Oak Road to OH-149 · red/, "Built V18 app is missing BANNOCK's persistent main-map red legend");
+assert.match(appJavascript, /Red is BANNOCK's exit reference by Black Oak Road to OH-149/, "Built V18 app is missing BANNOCK's persistent road-mode explanation");
+assert.match(appJavascript, /BANNOCK → Black Oak Road → OH-149/, "Built V18 app is missing BANNOCK's mobile main-map red direction key");
 assert.doesNotMatch(appJavascript, /Checking for the highest-priority reviewed route|Live route check unavailable · no fallback opened/, "Built V18 app still withholds Navigate while optional State-1 checks settle");
 assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");
 assert.doesNotMatch(appJavascript, /Approved roads to handoff · GPS-only final leg/, "Built V18 app retained the superseded named state-2 label");

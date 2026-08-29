@@ -45,7 +45,9 @@ in teal, including when graph, State-1, or public-Google authority remains held.
 The highlight is presentation only. It does not create an official road,
 public-Google publication, graph membership, or route-release authority. This
 pad-bound highlight is drawn only while that exact pad is selected. Unselected
-pads never project their route color onto the map.
+pads never project their route color onto the map. The persistent BANNOCK red
+exit reference described below is a separately scoped field-orientation layer,
+not the selected pad's route color.
 
 Independently, the current exact released approved-road overlay remains teal in
 every driver map view. The unified selector defaults to **All pads + all
@@ -72,9 +74,14 @@ Road / CR-10 to the road projection beside the saved BANNOCK GPS. Red shows the
 exit reference from that same road projection along the remaining
 Lafferty-Bannock / CR-10 chain and Black Oak Road to OH-149. Red is not a
 restriction or closure. The entrance marker remains at the exact saved GPS and
-no road-to-pin connector is inferred. These selected-only colors do not change
-BANNOCK's byte-stable Google Navigate link, the saved entrance, the persistent
-released approved-road overlay, graph state, or public-Google authority.
+no road-to-pin connector is inferred. The teal arrival brightens only while
+BANNOCK is selected. The red exit reference remains visible on the main **All
+pads + all approved roads** map and on the Ascent-filtered map, so a driver can
+inspect the road connection before opening the pad. It hides under another
+company or disposal-only filter. The red line is a dedicated smooth-moving map
+layer, not a generic road recolor. Neither display changes BANNOCK's
+byte-stable Google Navigate link, the saved entrance, the persistent released approved-road
+overlay, graph state, or public-Google authority.
 
 If a pad has no verified named sequence, or its reviewed sequence has no
 supplied pad-bound geometry yet, its pad-specific display is the trusted
