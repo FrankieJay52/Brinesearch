@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `4a3b087c48eec43e46cbd718fb235090f05f2af2`
-- Candidate implementation HEAD: `8f4f1534539f1c4b0102555104f1885057b8925a`
-- Candidate content SHA-256: `cbe09311cbd8ee075c7352c4c397154b6d073efa6db1230539e4600851119f2e`
+- Base origin/main SHA: `3da085441471f847f089267b1d8747691ae65631`
+- Candidate implementation HEAD: `8b8e73b631baa747fa7708096e0a5eb2ceda85dc`
+- Candidate content SHA-256: `31841a44b809b2c19a80375347bc362c4a4520c6fe477174c25a40c99c05e6a5`
 - Uncommitted non-generated changes: **no**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
@@ -12,18 +12,23 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 - `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
 - `docs/issue97-owner-approved-directions-presentation-20260828.md`
-- `v18/scripts/audit-batch0-ascent-navigation.mjs`
+- `v18/package.json`
+- `v18/scripts/audit-ascent-pad-approaches-batch2.mjs`
 - `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
-- `v18/scripts/generate-ascent-pad-road-displays-batch1.mjs`
+- `v18/scripts/fixtures/ascent-pad-approach-source-20260829.json`
+- `v18/scripts/generate-ascent-pad-approaches-batch2.mjs`
+- `v18/scripts/generate-ascent-pad-approaches-batch2.test.mjs`
 - `v18/scripts/verify-built-runtime.mjs`
-- `v18/src/data/reviewedNavigationCandidates.ts`
 - `v18/src/features/map/MapPage.test.ts`
 - `v18/src/features/map/MapPage.tsx`
-- `v18/src/features/map/ascentPadRoadDisplays.batch1.json`
-- `v18/src/features/map/ascentPadRoadDisplays.test.ts`
-- `v18/src/features/map/ascentPadRoadDisplays.ts`
+- `v18/src/features/map/ascentPadApproaches.batch2.json`
+- `v18/src/features/map/ascentPadApproaches.test.ts`
+- `v18/src/features/map/ascentPadApproaches.ts`
 - `v18/src/features/map/ascentPadRoadLayers.test.ts`
 - `v18/src/features/map/ascentPadRoadLayers.ts`
+- `v18/src/features/pad/PadPage.test.ts`
+- `v18/src/features/pad/PadPage.tsx`
+- `v18/src/features/pad/PadPageLayout.css`
 - `v18/src/styles/app.css`
 
 ## Counts
