@@ -235,7 +235,6 @@ for (const route of routes) {
     || !validCoordinate(destination)
     || !validCoordinate(directoryCoordinate)
     || typeof route.structuredRoadSequence !== "string"
-    || !route.structuredRoadSequence
     || route.structuredRoadSequenceSha256 !== sha256Json(route.structuredRoadSequence)
     || arrival?.type !== "LineString"
     || arrival?.colorRole !== "teal"

@@ -127,8 +127,8 @@ BANNOCK is selected. Both hide under another company or disposal-only filter.
 The shared reviewed-Ascent catalog owns both BANNOCK's teal arrival and proved
 red continuation in the same native source; the legacy frozen evidence is not
 drawn again through a separate runtime source. Neither color is a generic road
-recolor. This field display changes neither BANNOCK's byte-stable Google
-Navigate link, saved destination, persistent released approved-road overlay,
+recolor. This field display changes neither BANNOCK's byte-stable Google Navigate link,
+saved destination, persistent released approved-road overlay,
 graph state, nor public-Google authority.
 
 If a pad is outside the 55-entry reviewed Ascent catalog and has no reviewed
