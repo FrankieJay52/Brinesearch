@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `96112fec02061f1f62bb539d6b440e0c4b2d584a`
-- Candidate implementation HEAD: `dc2dfc316f4e03be1a017e932163f26a85557e29`
-- Candidate content SHA-256: `6640094ee8c1e374c205c2127366c56697428241e804f2886c2a67ac969f7108`
+- Base origin/main SHA: `2d80635ff806230575e22318de40c04e9aa6c64b`
+- Candidate implementation HEAD: `21cf14e28aadfa75ac87a8034b583edbe44c8216`
+- Candidate content SHA-256: `92614ccdcdf7f2d39910a7f66929e753807bc09fdc90cff0a3ceec3e82c6e93f`
 - Uncommitted non-generated changes: **no**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
@@ -10,8 +10,19 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
+- `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
+- `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
+- `docs/issue97-owner-approved-directions-presentation-20260828.md`
+- `v18/scripts/audit-batch0-ascent-navigation.mjs`
+- `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
+- `v18/scripts/generate-ascent-pad-road-displays-batch1.mjs`
 - `v18/src/features/map/MapPage.test.ts`
 - `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/map/ascentPadRoadDisplays.batch1.json`
+- `v18/src/features/map/ascentPadRoadDisplays.test.ts`
+- `v18/src/features/map/ascentPadRoadDisplays.ts`
+- `v18/src/features/map/ascentPadRoadLayers.test.ts`
+- `v18/src/features/map/ascentPadRoadLayers.ts`
 
 ## Counts
 
@@ -46,7 +57,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - The 55 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
 - The remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- The exact released approved-road network remains teal and may show All approved routes or one exact company. A brighter pad-bound route appears only while that exact pad is selected. Missing pad geometry stays pin-only; neither display changes parked graph/public-Google promotion authority or everyday Navigate readiness.
+- The exact released approved-road network remains teal and may show All approved routes or one exact company. An exact-record pad-bound arrival may persist on All and its company only when the line ends at the current saved GPS; selecting that pad brightens it. Partial or handoff geometry remains selected-only, and missing geometry stays pin-only. Red beyond the last pad requires exact no-downstream-pad proof on a non-state local road and exact geometry to the next highway junction; Interstate, US, and state routes remain teal. None of these displays changes parked graph/public-Google promotion authority or everyday Navigate readiness.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
