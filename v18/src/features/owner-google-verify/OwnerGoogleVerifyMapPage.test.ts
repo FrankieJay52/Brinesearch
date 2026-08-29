@@ -141,6 +141,11 @@ describe("owner Google verify map source contracts", () => {
     expect(pageCss).not.toContain("details[open]");
   });
 
+  it("returns the verifier back arrow directly to the first Approved Roads map page", () => {
+    expect(pageSource).toContain('<Link to="/?view=roads" replace className="icon-button" aria-label="Back to Approved Roads map">');
+    expect(pageSource).not.toContain('aria-label={`Back to ${pad.padName}`}');
+  });
+
   it("keeps the pad, phone, anchor, and turn pins obvious while preserving visible road context", () => {
     expect(pageSource).toContain('maps.importLibrary("marker")');
     expect(pageSource).toContain('label: "YOU", title: "Current phone GPS"');

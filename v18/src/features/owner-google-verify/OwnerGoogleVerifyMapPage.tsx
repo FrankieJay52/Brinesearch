@@ -731,7 +731,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
     {mapState !== "ready" && <div className="owner-google-map-state" role={mapState === "error" ? "alert" : "status"}><Icon name="google"/><strong>{mapMessage}</strong>{mapState === "not_configured" && <small>Add VITE_GOOGLE_MAPS_API_KEY to the V18 environment. Never paste it into this page.</small>}</div>}
 
     <header className="owner-google-verify-topbar">
-      <Link to={`/pad/${encodeURIComponent(pad.padId)}`} className="icon-button" aria-label={`Back to ${pad.padName}`}><Icon name="back"/></Link>
+      <Link to="/?view=roads" replace className="icon-button" aria-label="Back to Approved Roads map"><Icon name="back"/></Link>
       <div><span className="eyebrow">OWNER · DRAFT ONLY</span><strong>{pad.padName}</strong><small>{pad.company} · revision {pad.recordRevision}</small></div>
       <nav className="owner-map-tools" aria-label="Map controls">
         <button type="button" className="owner-pad-focus" onClick={focusPad} disabled={mapState !== "ready"} aria-label={`Find ${pad.padName} saved pad GPS`}><Icon name="location"/>Pad</button>
