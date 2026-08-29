@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: brinesearch-v18-${{ github.ref }}
-  cancel-in-progress: true
+  group: brinesearch-v18-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-test-package:
@@ -52,6 +52,7 @@ jobs:
           test ! -e dist-production/road-database.js
           test ! -e dist-production/front-sign-scanner.js
           test ! -e dist-production/pad-fallback-data.json
+          grep -q 'owner_approved_routes_map_viewport' dist-production/v18/assets/*.js
           grep -q 'const V18_ENTRY = "/v18/#/"' dist-production/sw.js
 
       - name: Package BrineSearch V18
@@ -61,7 +62,7 @@ jobs:
           cd ..
           sha256sum BrineSearch-V18.zip > BrineSearch-V18.sha256
 
-      - name: Upload V18 release file
+      - name: Upload exact-head V18 artifact
         uses: actions/upload-artifact@v4
         with:
           name: BrineSearch-V18
@@ -69,4 +70,64 @@ jobs:
             BrineSearch-V18.zip
             BrineSearch-V18.sha256
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 7
+
+  browser-audit:
+    name: Browser-test exact built artifact on mobile and desktop
+    needs: build-test-package
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out repository scripts
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Download exact-head production artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: BrineSearch-V18
+          path: artifact
+
+      - name: Verify and unpack exact artifact
+        run: |
+          cd artifact
+          sha256sum -c BrineSearch-V18.sha256
+          cd ..
+          mkdir -p dist-production
+          unzip -q artifact/BrineSearch-V18.zip -d dist-production
+          test -f dist-production/v18/index.html
+          test -f dist-production/v18/sw.js
+          test -f dist-production/sw.js
+
+      - name: Install Playwright Chromium only
+        run: |
+          npm install --no-save --ignore-scripts playwright@1.62.1
+          npx playwright install --with-deps chromium
+
+      - name: Start exact built artifact
+        run: |
+          python3 -m http.server 4181 --bind 127.0.0.1 --directory dist-production > /tmp/brinesearch-v18-preview.log 2>&1 &
+          echo $! > /tmp/brinesearch-v18-preview.pid
+          for attempt in {1..60}; do
+            if curl --fail --silent http://127.0.0.1:4181/v18/ > /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/brinesearch-v18-preview.log
+          exit 1
+
+      - name: Audit V18 iPhone and desktop navigation
+        env:
+          V18_PREVIEW_URL: http://127.0.0.1:4181/v18/
+        run: node v18/scripts/browser-smoke.mjs
+
+      - name: Show preview log on failure
+        if: failure()
+        run: cat /tmp/brinesearch-v18-preview.log || true
