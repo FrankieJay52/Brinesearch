@@ -46,8 +46,12 @@ assert.match(appJavascript, /All pads \+ all approved roads/, "Built V18 app is 
 assert.match(appJavascript, /Filter pads and approved roads by company/, "Built V18 app is missing the unified company selector");
 assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference · thin teal/, "Built V18 app is missing the pad-county highway-reference legend");
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
-assert.match(appJavascript, /Pad-specific color normally appears only after choosing a pad/, "Built V18 app is missing the ordinary selected-pad route-color disclosure");
-assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only pad-route key");
+assert.match(appJavascript, /Exact Ascent road lines reaching saved GPS:/, "Built V18 app is missing the persistent exact-GPS Ascent line disclosure");
+assert.match(appJavascript, /Exact Ascent line to saved GPS · bright teal/, "Built V18 app is missing the exact-GPS Ascent line key");
+assert.match(appJavascript, /Teal to exact GPS/, "Built V18 app is missing the selected exact-GPS arrival key");
+assert.match(appJavascript, /No red continuation is drawn:/, "Built V18 app is missing the evidence-gated red-tail disclosure");
+assert.match(appJavascript, /State and U\.S\. routes remain teal/, "Built V18 app no longer guarantees highway routes stay teal");
+assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only partial-route key");
 assert.match(appJavascript, /Teal arrival/, "Built V18 app is missing BANNOCK's selected teal arrival key");
 assert.match(appJavascript, /OH-331 → Lafferty-Bannock Road \/ CR-10 → BANNOCK/, "Built V18 app is missing BANNOCK's teal arrival sequence");
 assert.match(appJavascript, /Red exit reference/, "Built V18 app is missing BANNOCK's red exit key");
@@ -78,4 +82,4 @@ assert.match(appJavascript, /Expand pad map/, "Built V18 app is missing the comp
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: named-road Navigate and teal display are available without optional State-1 gating, while GPS-only pads get no inferred line and no privileged material is bundled.");
+console.log("Verified V18 built runtime: exact-GPS arrivals may persist, partial routes remain selection-only, red tails require evidence, and no privileged material is bundled.");
