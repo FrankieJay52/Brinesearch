@@ -53,6 +53,11 @@ import {
   highwayReferenceLineLayerId,
   libertyHighwayReferenceSource,
 } from "./highwayReference";
+import {
+  selectedPadFieldDirectionDisplayForPad,
+  type SelectedPadFieldDirectionDisplay,
+  type SelectedPadFieldDirectionLineString,
+} from "./selectedPadFieldDirectionDisplay";
 import { padSearchResultsReadyForQuery, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
@@ -326,6 +331,42 @@ function drawRoute(
   stroke("#52e4bd", 5);
 }
 
+function drawSelectedPadFieldDirectionLine(
+  context: CanvasRenderingContext2D,
+  map: MapLibreMap,
+  line: SelectedPadFieldDirectionLineString,
+  color: string,
+  width: number,
+) {
+  context.beginPath();
+  line.coordinates.forEach((coordinate, index) => {
+    const point = map.project(coordinate);
+    if (index === 0) context.moveTo(point.x, point.y);
+    else context.lineTo(point.x, point.y);
+  });
+  context.strokeStyle = color;
+  context.lineWidth = width;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.stroke();
+}
+
+function drawSelectedPadFieldDirectionDisplay(
+  context: CanvasRenderingContext2D,
+  map: MapLibreMap,
+  display: SelectedPadFieldDirectionDisplay | null,
+) {
+  if (!display) return;
+  // Both legs are an owner-requested display bound to the selected BANNOCK
+  // record. Teal is arrival; red is the outbound road reference, never a
+  // closure or restriction. The saved GPS remains a separate marker and no
+  // straight connector is inferred across its offset from the road centerline.
+  drawSelectedPadFieldDirectionLine(context, map, display.inbound, "rgba(7, 19, 31, .88)", 9);
+  drawSelectedPadFieldDirectionLine(context, map, display.outbound, "rgba(7, 19, 31, .88)", 9);
+  drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5);
+  drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef7b7b", 5);
+}
+
 function drawApprovedRoadNetwork(
   context: CanvasRenderingContext2D,
   map: MapLibreMap,
@@ -362,6 +403,7 @@ function drawPadOverlay(
   rows: PadSummary[],
   approvedRoadRows: CompanyRoadOverlayRow[],
   geometry: DriverRouteGeometry | null,
+  fieldDirectionDisplay: SelectedPadFieldDirectionDisplay | null,
   selectedId: string | null,
 ) {
   const width = map.getContainer().clientWidth;
@@ -384,6 +426,11 @@ function drawPadOverlay(
   // Pad-bound route color is selection-only. The persistent teal road network
   // is the independently authorized company-road MapLibre layer below it.
   drawRoute(context, map, selectedId ? geometry : null);
+  drawSelectedPadFieldDirectionDisplay(
+    context,
+    map,
+    selectedId === fieldDirectionDisplay?.padId ? fieldDirectionDisplay : null,
+  );
 
   const safeRows = rows.flatMap((row) => {
     const coordinate = mapDisplayCoordinate(row);
@@ -434,6 +481,7 @@ export function MapPage() {
   const mapRef = useRef<MapLibreMap | null>(null);
   const visibleRowsRef = useRef(snapshot?.rows || []);
   const selectedRouteRef = useRef<DriverRouteGeometry | null>(null);
+  const selectedFieldDirectionDisplayRef = useRef<SelectedPadFieldDirectionDisplay | null>(null);
   const companyRoadRowsRef = useRef<CompanyRoadOverlayRow[]>([]);
   const selectedIdRef = useRef<string | null>(null);
   const hitTargetsRef = useRef<PadHitTarget[]>([]);
@@ -492,6 +540,7 @@ export function MapPage() {
     [companyScopedRows, mapSearch, mapSearchOrigin, mapSearchReady],
   );
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
+  const selectedFieldDirectionDisplay = selected ? selectedPadFieldDirectionDisplayForPad(selected) : null;
   const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
   const selectedPinUrl = selected ? padDestinationPinUrl(selected) : null;
   const selectedGpsNavigationUrl = selected ? padDestinationNavigationUrl(selected) : null;
@@ -571,6 +620,7 @@ export function MapPage() {
     : currentSelectedStatus?.route.geometry || null;
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedRouteGeometry;
+  selectedFieldDirectionDisplayRef.current = selectedFieldDirectionDisplay;
   companyRoadRowsRef.current = visibleCompanyRoadOverlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
@@ -663,15 +713,18 @@ export function MapPage() {
   }, [online, selected, snapshot?.sourceState]);
 
   useEffect(() => {
-    if (!currentSelectedStatus || !selected || !pendingRouteFitRef.current || !mapRef.current) return;
+    if (!selected || !pendingRouteFitRef.current || !mapRef.current) return;
+    if (!selectedFieldDirectionDisplay && !currentSelectedStatus) return;
     pendingRouteFitRef.current = false;
-    const lines = routeLines(selectedRouteGeometry);
+    const lines = selectedFieldDirectionDisplay
+      ? [selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]
+      : routeLines(selectedRouteGeometry);
     const coordinate = mapDisplayCoordinate(selected);
     if (!lines.length || !coordinate) return;
     const bounds = new LngLatBounds([coordinate.longitude, coordinate.latitude], [coordinate.longitude, coordinate.latitude]);
     for (const line of lines) for (const coordinate of line) bounds.extend(coordinate);
     mapRef.current.fitBounds(bounds, { padding: fullscreen ? 64 : 84, maxZoom: 15, duration: 520 });
-  }, [currentSelectedStatus, fullscreen, selected, selectedRouteGeometry]);
+  }, [currentSelectedStatus, fullscreen, selected, selectedFieldDirectionDisplay, selectedRouteGeometry]);
 
   useEffect(() => {
     if (!mapHost.current || !padOverlay.current || mapRef.current) return;
@@ -724,6 +777,7 @@ export function MapPage() {
           visibleRowsRef.current,
           fallbackApplied ? companyRoadRowsRef.current : [],
           selectedRouteRef.current,
+          selectedFieldDirectionDisplayRef.current,
           selectedIdRef.current,
         );
       } catch {
@@ -923,7 +977,7 @@ export function MapPage() {
   }, [focusPad, loading, navigate]);
 
   useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleCompanyRoadOverlay, selectedId, viewerMode]);
-  useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedId]);
+  useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedFieldDirectionDisplay, selectedId]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
       mapRef.current?.resize();
@@ -1038,10 +1092,17 @@ export function MapPage() {
            : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
       {selectedReviewedNavigationSafetyHold && <div className="inline-warning map-route-safety-alert" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>}
+      {selectedFieldDirectionDisplay && <div className="selected-pad-field-direction" role="note" aria-label="BANNOCK selected road directions">
+        <span><i className="legend-line selected"/><strong>Teal arrival</strong><small>OH-331 → Lafferty-Bannock Road / CR-10 → BANNOCK</small></span>
+        <span><i className="legend-line exit"/><strong>Red exit reference</strong><small>BANNOCK road seam → Lafferty-Bannock / CR-10 → Black Oak Road → OH-149</small></span>
+        <p>Red is not a restriction or closure. The marker stays at the exact saved GPS; no road-to-pin connector is inferred. Display only—the Google Navigate link and road authority are unchanged.</p>
+      </div>}
       <details className="map-route-status"><summary><strong>Route status</strong><span>View</span></summary><div className="map-route-status-content">
-        {selectedRouteGeometry && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Selected pad route · bright teal</strong></div>}
+        {!selectedFieldDirectionDisplay && selectedRouteGeometry && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Selected pad route · bright teal</strong></div>}
         <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label="Named-road status"/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? "Named roads ready" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Named roads ready"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label="Named roads ready"/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
-        {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · directed named roads highlighted to the reviewed handoff · unnamed final movement is not shown as a named road.` : `${selectedNamedApproach.approachLabel} · reviewed named roads highlighted to the saved pin.` : namedSelectionRequired ? "Choose one reviewed named-road approach. GPS destination navigation remains available; no teal line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Reviewed named roads highlighted to their handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Reviewed named roads highlighted · teal is display, not new authority.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no separately reviewed display geometry exists, so no teal line is inferred.` : "No reviewed named-road display geometry · no teal line inferred."}</p>}
+        {selectedFieldDirectionDisplay
+          ? <p className="selection-route-note is-ready">BANNOCK selected display: teal arrives from OH-331; red exits by Black Oak Road to OH-149. The color split occurs on the road projection beside the exact saved GPS, with no invented connector.</p>
+          : currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · directed named roads highlighted to the reviewed handoff · unnamed final movement is not shown as a named road.` : `${selectedNamedApproach.approachLabel} · reviewed named roads highlighted to the saved pin.` : namedSelectionRequired ? "Choose one reviewed named-road approach. GPS destination navigation remains available; no teal line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Reviewed named roads highlighted to their handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Reviewed named roads highlighted · teal is display, not new authority.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no separately reviewed display geometry exists, so no teal line is inferred.` : "No reviewed named-road display geometry · no teal line inferred."}</p>}
         {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? "Reviewed named-road sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
         {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>

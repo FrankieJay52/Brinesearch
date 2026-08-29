@@ -48,6 +48,13 @@ assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference 
 assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
 assert.match(appJavascript, /Selected-pad route color appears only after choosing a pad/, "Built V18 app is missing the selected-pad-only route-color disclosure");
 assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only pad-route key");
+assert.match(appJavascript, /Teal arrival/, "Built V18 app is missing BANNOCK's selected teal arrival key");
+assert.match(appJavascript, /OH-331 → Lafferty-Bannock Road \/ CR-10 → BANNOCK/, "Built V18 app is missing BANNOCK's teal arrival sequence");
+assert.match(appJavascript, /Red exit reference/, "Built V18 app is missing BANNOCK's red exit key");
+assert.match(appJavascript, /Black Oak Road → OH-149/, "Built V18 app is missing BANNOCK's red exit sequence");
+assert.match(appJavascript, /Red is not a restriction or closure/, "Built V18 app does not distinguish BANNOCK exit red from a closure");
+assert.match(appJavascript, /no road-to-pin connector is inferred/, "Built V18 app is missing BANNOCK's no-invented-connector boundary");
+assert.match(appJavascript, /Google Navigate link and road authority are unchanged/, "Built V18 app is missing BANNOCK's navigation-authority boundary");
 assert.doesNotMatch(appJavascript, /Checking for the highest-priority reviewed route|Live route check unavailable · no fallback opened/, "Built V18 app still withholds Navigate while optional State-1 checks settle");
 assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");
 assert.doesNotMatch(appJavascript, /Approved roads to handoff · GPS-only final leg/, "Built V18 app retained the superseded named state-2 label");

@@ -66,6 +66,16 @@ expected source/layer contract is absent, this reference fails closed. Exact
 released approved roads remain stronger teal above the reference and a selected
 pad's separately reviewed route remains brightest.
 
+For the exact frozen BANNOCK record, the selected-pad field display uses two
+direction colors. Teal shows the arrival from OH-331 along Lafferty-Bannock
+Road / CR-10 to the road projection beside the saved BANNOCK GPS. Red shows the
+exit reference from that same road projection along the remaining
+Lafferty-Bannock / CR-10 chain and Black Oak Road to OH-149. Red is not a
+restriction or closure. The entrance marker remains at the exact saved GPS and
+no road-to-pin connector is inferred. These selected-only colors do not change
+BANNOCK's byte-stable Google Navigate link, the saved entrance, the persistent
+released approved-road overlay, graph state, or public-Google authority.
+
 If a pad has no verified named sequence, or its reviewed sequence has no
 supplied pad-bound geometry yet, its pad-specific display is the trusted
 destination pin only and draws no substitute teal line for that pad. The independent

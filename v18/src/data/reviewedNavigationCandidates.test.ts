@@ -1734,6 +1734,11 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
+  it("keeps BANNOCK's working Google Navigate URL byte-stable while its map display changes", () => {
+    expect(BANNOCK_REVIEWED_GOOGLE_URL).toBe("https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.111003%2C-81.002932&waypoints=40.10871301297529%2C-80.97829303262223");
+    expect(reviewedNavigationCandidateForPad(bannock())?.routeUrl).toBe(BANNOCK_REVIEWED_GOOGLE_URL);
+  });
+
   it("fails the batch-6 reviewed routes closed on every record or destination drift", () => {
     for (const fixture of batch6ReviewedRouteFixtures()) {
       const exact = fixture.pad;

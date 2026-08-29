@@ -204,6 +204,25 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain("fuzzy_name");
   });
 
+  it("draws BANNOCK's selected-only arrival teal and exit reference red without changing the pin", () => {
+    expect(pageSource).toContain("selectedPadFieldDirectionDisplayForPad(selected)");
+    expect(pageSource).toContain("selectedFieldDirectionDisplayRef.current = selectedFieldDirectionDisplay");
+    expect(pageSource).toContain("selectedId === fieldDirectionDisplay?.padId ? fieldDirectionDisplay : null");
+    expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5)');
+    expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef7b7b", 5)');
+    expect(pageSource).toContain('drawSelectedPadFieldDirectionLine(context, map, display.inbound, "rgba(7, 19, 31, .88)", 9)');
+    expect(pageSource).toContain("[selectedFieldDirectionDisplay.inbound.coordinates, selectedFieldDirectionDisplay.outbound.coordinates]");
+    expect(pageSource).toContain("Teal arrival");
+    expect(pageSource).toContain("OH-331 → Lafferty-Bannock Road / CR-10 → BANNOCK");
+    expect(pageSource).toContain("Red exit reference");
+    expect(pageSource).toContain("Black Oak Road → OH-149");
+    expect(pageSource).toContain("Red is not a restriction or closure.");
+    expect(pageSource).toContain("no road-to-pin connector is inferred");
+    expect(pageSource).toContain("Google Navigate link and road authority are unchanged");
+    expect(pageSource).not.toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#ef7b7b")');
+    expect(appCss).toContain(".legend-line.exit");
+  });
+
   it("requires a named approach choice and binds its map line and navigation action together", () => {
     expect(pageSource).toContain("const currentNamedApproaches = currentSelectedStatus?.namedApproaches || []");
     expect(pageSource).toContain("currentNamedApproaches.length > 1 && !selectedNamedApproach");

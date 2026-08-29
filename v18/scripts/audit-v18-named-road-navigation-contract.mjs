@@ -9,6 +9,8 @@ const errors = [];
 
 const pad = read("v18/src/features/pad/PadPage.tsx");
 const map = read("v18/src/features/map/MapPage.tsx");
+const fieldDirection = read("v18/src/features/map/selectedPadFieldDirectionDisplay.ts");
+const bannockRoadDisplay = JSON.parse(read("v18/src/features/map/bannockRoadDisplay.json"));
 const highwayReference = read("v18/src/features/map/highwayReference.ts");
 const preview = read("v18/src/features/pad/PadMapPreview.tsx");
 const reviewed = read("v18/src/data/reviewedNavigationCandidates.ts");
@@ -37,6 +39,10 @@ requireText(contract, "one exact company", "single-company approved-road scope")
 requireText(contract, "thinner teal Interstate, U.S., and state highway reference", "structured highway-reference scope");
 requireText(contract, "clipped to the 39", "pad-county highway-reference scope");
 requireText(contract, "does not match road names", "no highway name matching");
+requireText(contract, "Teal shows the arrival from OH-331 along Lafferty-Bannock", "BANNOCK teal arrival rule");
+requireText(contract, "Red is not a\nrestriction or closure", "BANNOCK red exit-not-closure rule");
+requireText(contract, "no road-to-pin connector is inferred", "BANNOCK no invented connector rule");
+requireText(contract, "byte-stable Google Navigate link", "BANNOCK working URL remains stable");
 requireText(contract, "PROMOTE <PAD NAME> TO STATE 1", "explicit promotion trigger");
 
 requireText(pad, "Everyday driver navigation does not wait for State-1 receipt checks", "immediate everyday Navigate");
@@ -58,6 +64,15 @@ requireText(map, 'map.setPaintProperty(companyRoadLineLayerId, "line-color", "#1
 requireText(map, "fallbackApplied ? companyRoadRowsRef.current : []", "approved-road teal on basemap fallback");
 requireText(map, "const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current", "single approved-network renderer");
 requireText(map, "drawRoute(context, map, selectedId ? geometry : null)", "selected-pad-only display geometry");
+requireText(map, "selectedId === fieldDirectionDisplay?.padId ? fieldDirectionDisplay : null", "exact selected BANNOCK field display guard");
+requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.inbound, "#52e4bd", 5)', "BANNOCK teal arrival stroke");
+requireText(map, 'drawSelectedPadFieldDirectionLine(context, map, display.outbound, "#ef7b7b", 5)', "BANNOCK red exit stroke");
+requireText(map, "Red is not a restriction or closure.", "BANNOCK red legend authority boundary");
+requireText(map, "no road-to-pin connector is inferred", "BANNOCK no-connector disclosure");
+requireText(fieldDirection, 'padId: "333598ca-37b3-4b44-9411-a490cc3da672"', "exact BANNOCK field display identity");
+requireText(fieldDirection, 'legacyId: "ascent--bannock"', "BANNOCK legacy identity");
+requireText(fieldDirection, 'recordRevision: "1786744183028038"', "BANNOCK field display revision");
+requireText(fieldDirection, 'pad.coordinate.role !== "driver_entrance"', "BANNOCK exact entrance role");
 requireText(map, 'const [companyFilter, setCompanyFilter] = useState<"all" | string>("all")', "unified default company scope");
 requireText(map, 'aria-label="Filter pads and approved roads by company"', "unified pads/roads company selector");
 requireText(map, '<option value="all">All pads + all approved roads</option>', "unified all pads and roads option");
@@ -76,9 +91,15 @@ requireText(status, "State-1 and public-route authority remain held. Reviewed na
 requireText(reviewed, "byte-stable unless wrong-road evidence", "record-bound URL stability comment");
 requireText(reviewed, "intentionally carry no line geometry", "static candidate geometry boundary");
 
+if (bannockRoadDisplay.inbound?.pointCount !== 95 || bannockRoadDisplay.inbound?.coordinates?.length !== 95) errors.push("BANNOCK inbound field geometry is not the frozen 95-point line");
+if (bannockRoadDisplay.outbound?.pointCount !== 239 || bannockRoadDisplay.outbound?.coordinates?.length !== 239) errors.push("BANNOCK outbound field geometry is not the frozen 239-point line");
+if (JSON.stringify(bannockRoadDisplay.inbound?.coordinates?.at(-1)) !== JSON.stringify(bannockRoadDisplay.outbound?.coordinates?.[0])) errors.push("BANNOCK teal/red field geometry no longer shares one exact road seam");
+if (bannockRoadDisplay.noConnectorToGps !== true || bannockRoadDisplay.continuity?.gpsConnectorIncluded !== false) errors.push("BANNOCK field display includes or permits an invented GPS connector");
+
 forbid(`${pad}\n${map}`, /higherPriorityNavigationCheckState|navigationFallbackAfterHigherPriorityCheck|Live route check unavailable · no fallback opened/u, "runtime still contains State-1 fallback suppression");
 forbid(`${pad}\n${map}\n${preview}`, /selectedReviewedNavigation(?:Candidate)?\.geometry|nearest_road|fuzzy_name/u, "runtime can infer display geometry from an unverified candidate");
 forbid(map, /isolateSelectedRoute|rgba\(240, 180, 93, \.9\)|<option value="">Roads off|line-opacity", roadMode &&/u, "approved-road network is not persistently teal");
+forbid(map, /setPaintProperty\([^\n]*#ef7b7b/u, "BANNOCK exit red was applied to a generic MapLibre road layer");
 forbid(highwayReference, /\["get",\s*"(?:name|ref)"\]/u, "highway reference uses road-name or ref matching");
 forbid(`${pad}\n${map}\n${preview}\n${reviewed}`, /AIza[0-9A-Za-z_-]{25,}/u, "Google API key-shaped literal appears in tracked everyday navigation code");
 
