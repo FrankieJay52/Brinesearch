@@ -1,27 +1,14 @@
-name: Audit BrineSearch V18 preview
+name: Audit BrineSearch V18 preview (manual diagnostic)
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'v18/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'netlify.toml'
-      - '.github/workflows/v18-browser-audit.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'v18/**'
-      - 'scripts/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'netlify.toml'
-      - '.github/workflows/v18-browser-audit.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: brinesearch-v18-browser-manual-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   browser-audit:
