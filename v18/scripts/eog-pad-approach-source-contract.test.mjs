@@ -22,12 +22,13 @@ function record(index) {
     company: "EOG",
     state: "Ohio",
     county: "Harrison",
-    structuredRoadSequence: "OH-9 → Lease Road",
-    directoryCoordinateRole: "saved pad reference",
+    structuredRoadSequence: index < 286 ? "OH-9 → Lease Road" : "",
+    writtenDirectionsPresent: index < 296,
+    directoryCoordinateRole: index < 214 ? "saved pad reference" : "official pad reference",
     directoryCoordinate: [-81.1, 40.1],
-    destinationGpsSource: "saved",
+    destinationGpsSource: index < 214 ? "saved" : "ODNR pad",
     destination: [-81.1, 40.1],
-    routePrep: {
+    routePrep: index < 286 ? {
       pad_id: padId,
       route_prep_id: uuid(index + 1, "3"),
       highway_order: 1,
@@ -66,7 +67,7 @@ function record(index) {
         roadGeometryStatus: "official_centerline_loaded",
         stepGeometryStatus: "ready",
       }],
-    },
+    } : null,
   };
 }
 
@@ -109,12 +110,15 @@ test("accepts exactly 301 uniquely bound EOG Ohio records", () => {
   const result = validateEogApproachSource(fixture());
   assert.deepEqual(result, {
     sourcePadCount: 301,
+    savedGpsCount: 214,
+    structuredSequenceCount: 286,
+    writtenDirectionsCount: 296,
     exactDestinationCount: 301,
-    routePrepCount: 301,
-    exactHighwayCount: 301,
+    routePrepCount: 286,
+    exactHighwayCount: 286,
     exactIntersectionEligibleCount: 0,
-    candidateHighwayEligibleCount: 301,
-    pinOnlyInputCount: 0,
+    candidateHighwayEligibleCount: 286,
+    pinOnlyInputCount: 15,
     productionWrites: 0,
   });
 });
@@ -162,13 +166,15 @@ test("rejects an exact intersection without an exact loaded next road", () => re
   /exact intersection start lacks an exact loaded next road/u,
 ));
 
-test("allows a missing structured sequence only as pin-only input", () => {
-  const value = fixture();
-  value.records[0].structuredRoadSequence = "";
-  value.records[0].routePrep = null;
-  const result = validateEogApproachSource(value);
-  assert.equal(result.pinOnlyInputCount, 1);
-});
+test("rejects fixture fields that do not reconcile to the 214/286/296 production baseline", () => rejects(
+  (value) => { value.records[214].destinationGpsSource = "saved"; value.records[214].directoryCoordinateRole = "saved pad reference"; },
+  /do not reconcile to the frozen 214\/286\/296 baseline/u,
+));
+
+test("rejects route prep when the current structured sequence is empty", () => rejects(
+  (value) => { value.records[286].routePrep = structuredClone(value.records[0].routePrep); value.records[286].routePrep.pad_id = value.records[286].padId; },
+  /route prep without a current structured sequence/u,
+));
 
 test("allows a pin-only record but never invents route eligibility", () => {
   const value = fixture();
@@ -177,8 +183,10 @@ test("allows a pin-only record but never invents route eligibility", () => {
   value.records[0].destinationGpsSource = null;
   value.records[0].directoryCoordinateRole = null;
   value.records[0].routePrep = null;
+  value.records[214].destinationGpsSource = "saved";
+  value.records[214].directoryCoordinateRole = "saved pad reference";
   const result = validateEogApproachSource(value);
-  assert.equal(result.pinOnlyInputCount, 1);
+  assert.equal(result.pinOnlyInputCount, 16);
   assert.equal(result.exactDestinationCount, 300);
-  assert.equal(result.routePrepCount, 300);
+  assert.equal(result.routePrepCount, 285);
 });
