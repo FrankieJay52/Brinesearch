@@ -166,6 +166,7 @@ function validateRoutePrep(record) {
 function validateEogApproachSource(fixture) {
   const value = object(fixture);
   const rules = object(value.rules);
+  const baseline = object(value.baseline);
   if (value.schemaVersion !== 1
     || value.snapshotId !== "eog-ohio-approach-source-issue200"
     || value.scope !== EOG_SOURCE_SCOPE
@@ -180,6 +181,10 @@ function validateEogApproachSource(fixture) {
     || rules.firstMismatchStopsTealPermanently !== true
     || rules.gpsTetherIsUnapprovedAndExcludedFromMileage !== true
     || rules.productionWrites !== 0
+    || baseline.productionPadCount !== EXPECTED_EOG_PAD_COUNT
+    || baseline.savedGpsCount !== 214
+    || baseline.structuredSequenceCount !== 286
+    || baseline.writtenDirectionsCount !== 296
     || !Array.isArray(value.records)
     || value.records.length !== EXPECTED_EOG_PAD_COUNT) {
     fail("header or exact 301-pad scope is invalid");
@@ -207,7 +212,7 @@ function validateEogApproachSource(fixture) {
       || !nonemptyText(record.padName)
       || normalizedCompany(record.company) !== "EOG"
       || record.state !== "Ohio"
-      || !nonemptyText(record.structuredRoadSequence)) {
+      || typeof record.structuredRoadSequence !== "string") {
       fail(`${label} has an invalid exact directory binding`);
     }
     ids.add(record.padId);
@@ -231,7 +236,7 @@ function validateEogApproachSource(fixture) {
     if (route.exactHighway) exactHighwayCount += 1;
     if (route.exactIntersectionStart) exactIntersectionEligibleCount += 1;
     if (route.candidateHighwayStart) candidateHighwayEligibleCount += 1;
-    if (!hasDestination || !route.exactHighway
+    if (!hasDestination || !nonemptyText(record.structuredRoadSequence) || !route.exactHighway
       || (!route.exactIntersectionStart && !route.candidateHighwayStart)) pinOnlyInputCount += 1;
   }
 
