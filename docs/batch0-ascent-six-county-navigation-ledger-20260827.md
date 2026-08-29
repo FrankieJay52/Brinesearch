@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `3da085441471f847f089267b1d8747691ae65631`
-- Candidate implementation HEAD: `8b8e73b631baa747fa7708096e0a5eb2ceda85dc`
-- Candidate content SHA-256: `31841a44b809b2c19a80375347bc362c4a4520c6fe477174c25a40c99c05e6a5`
+- Base origin/main SHA: `f72424c8537204b12001155306b1b459e2b02c60`
+- Candidate implementation HEAD: `62356da495ad503eb388fdf89fa4a7b64f8fc81b`
+- Candidate content SHA-256: `45fda9f18a58e22fce46975e6b1fef3a6737c1539b55961879e3dae6c1f4f0f0`
 - Uncommitted non-generated changes: **no**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
@@ -12,23 +12,28 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 - `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
 - `docs/issue97-owner-approved-directions-presentation-20260828.md`
-- `v18/package.json`
 - `v18/scripts/audit-ascent-pad-approaches-batch2.mjs`
+- `v18/scripts/audit-batch0-ascent-navigation.mjs`
 - `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
-- `v18/scripts/fixtures/ascent-pad-approach-source-20260829.json`
+- `v18/scripts/fixtures/ascent-pad-graph-runs-20260829.json`
 - `v18/scripts/generate-ascent-pad-approaches-batch2.mjs`
 - `v18/scripts/generate-ascent-pad-approaches-batch2.test.mjs`
+- `v18/scripts/generate-ascent-pad-road-displays-batch1.mjs`
+- `v18/scripts/lib/ascent-pad-graph-evidence.mjs`
+- `v18/scripts/lib/ascent-pad-graph-evidence.test.mjs`
 - `v18/scripts/verify-built-runtime.mjs`
+- `v18/src/data/reviewedNavigationCandidates.ts`
 - `v18/src/features/map/MapPage.test.ts`
 - `v18/src/features/map/MapPage.tsx`
 - `v18/src/features/map/ascentPadApproaches.batch2.json`
 - `v18/src/features/map/ascentPadApproaches.test.ts`
 - `v18/src/features/map/ascentPadApproaches.ts`
+- `v18/src/features/map/ascentPadRoadDisplays.test.ts`
+- `v18/src/features/map/ascentPadRoadDisplays.ts`
 - `v18/src/features/map/ascentPadRoadLayers.test.ts`
 - `v18/src/features/map/ascentPadRoadLayers.ts`
 - `v18/src/features/pad/PadPage.test.ts`
 - `v18/src/features/pad/PadPage.tsx`
-- `v18/src/features/pad/PadPageLayout.css`
 - `v18/src/styles/app.css`
 
 ## Counts
@@ -64,7 +69,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - The 55 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
 - The remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- One build-time Ascent display catalog covers the exact 55 DONE pads: 46 immutable reviewed handoffs plus 9 existing database releases. It reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only that routable network; an optional thin neutral dashed `unapproved_gps_tether` reaches the frozen GPS without a road name or approval. All 55 persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- One build-time Ascent display catalog covers the exact 55 DONE pads: 46 immutable reviewed handoffs plus 9 existing database releases. It reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only that routable network; an optional thin solid neutral `unapproved_gps_tether` reaches the frozen GPS without a road name or approval. All 55 persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
