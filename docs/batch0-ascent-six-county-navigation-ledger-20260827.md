@@ -1,7 +1,7 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `a6738ccbef848315f81ab2243d60aea09da32279`
-- Candidate implementation HEAD: `2b6cdc36c008680372e93c4d987c34e0db34d48a`
-- Candidate content SHA-256: `cab0e288c279d5d4bb59bd482424b1b108a6d94ec7699f19f8a6f7dc6d3c1199`
+- Base origin/main SHA: `1ef3a09f39c621a6bdbe3f56e3fe55b902acb4c5`
+- Candidate implementation HEAD: `7749cd2f3e4e1b748d68cf4b5064efa84163327c`
+- Candidate content SHA-256: `a03a3e8987fb1b1968e60c37ea76ce018cb01cb096af4da047874f6edf60a6d6`
 - Uncommitted non-generated changes: **no**
 - 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
@@ -10,22 +10,19 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Candidate implementation files
 
-- `netlify.toml`
-- `v18/package.json`
-- `v18/scripts/audit-v18-owner-google-verify-map.mjs`
-- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.test.ts`
-- `v18/src/features/owner-google-verify/OwnerGoogleVerifyMapPage.tsx`
-- `v18/src/features/owner-google-verify/freeRoutePreview.test.ts`
-- `v18/src/features/owner-google-verify/freeRoutePreview.ts`
-- `v18/src/features/owner-google-verify/googleMapsLoader.ts`
-- `v18/src/features/owner-google-verify/owner-google-verify.css`
-- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.test.ts`
-- `v18/src/features/owner-google-verify/ownerGoogleVerifyModel.ts`
-- `v18/src/features/pad/PadPage.test.ts`
-- `v18/src/features/pad/PadPage.tsx`
-- `v18/src/features/settings/SettingsPage.test.ts`
-- `v18/src/features/settings/SettingsPage.tsx`
-- `v18/src/vite-env.d.ts`
+- `docs/ROAD_MANAGER_DIRECTION_POLICY.md`
+- `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
+- `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
+- `v18/scripts/verify-built-runtime.mjs`
+- `v18/src/features/map/MapCompanyFilter.test.ts`
+- `v18/src/features/map/MapPage.test.ts`
+- `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/map/highwayReference.test.ts`
+- `v18/src/features/map/highwayReference.ts`
+- `v18/src/features/map/mapModel.ts`
+- `v18/src/features/map/padCountyHighwayScope.json`
+- `v18/src/features/search/SearchOverlay.test.ts`
+- `v18/src/styles/app.css`
 
 ## Counts
 
