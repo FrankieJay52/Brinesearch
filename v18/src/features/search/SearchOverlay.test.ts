@@ -15,7 +15,7 @@ describe("V18 map search dropdown", () => {
     expect(app).toContain('function SearchOverlayRoute()');
     expect(app).toContain('<><MapPage/><SearchOverlay/></>');
     expect(app).not.toContain('path="/search" element={<SearchPage/>}');
-    expect(mapPage).toContain('closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7)');
+    expect(mapPage).toContain('closestPadSearchResults(companyScopedRows, mapSearch, mapSearchOrigin, 7)');
     expect(mapPage).toContain('placeholder="Search pads"');
     expect(mapPage).toContain('focusPad(searchResults[0])');
     expect(mapPage).toContain('mapSearchOpen && <div id="map-nearest-pad-results"');

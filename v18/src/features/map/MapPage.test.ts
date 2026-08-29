@@ -120,23 +120,40 @@ describe("map viewer authority boundary", () => {
   const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "utf8");
 
   it("keeps the published approved-road overlay teal and separable in every map mode", () => {
-    expect(pageSource).toContain('companyRoads.selectRoads("all")');
+    expect(pageSource).toContain("companyRoads.selectRoads(requestedRoadSelection)");
     expect(pageSource).toContain('companyRoads.availability.state === "ready"');
-    expect(pageSource).toContain('companyRoads.selection === null');
+    expect(pageSource).toContain("companyRoads.overlay?.selection === requestedRoadSelection");
     expect(pageSource).toContain('"line-color": "#14b8a6"');
     expect(pageSource).toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6")');
     expect(pageSource).toContain("function drawApprovedRoadNetwork(");
     expect(pageSource).toContain("fallbackApplied ? companyRoadRowsRef.current : []");
     expect(pageSource).toContain("const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current");
     expect(pageSource).toContain("This is a renderer fallback, not a geometry");
-    expect(pageSource).toContain('aria-label="Separate approved routes by company or show all routes"');
-    expect(pageSource).toContain('<option value="all">All approved routes</option>');
-    expect(pageSource).toContain("Select one company to separate its pads and routes");
-    expect(pageSource).toContain("Held, candidate, stale, guessed, and unpublished roads stay hidden.");
+    expect(pageSource).toContain('aria-label="Filter pads and approved roads by company"');
+    expect(pageSource).toContain('<option value="all">All pads + all approved roads</option>');
+    expect(pageSource).toContain("Only ${selectedCompany} pads and released approved roads are shown.");
+    expect(pageSource).toContain("Held, candidate, stale, guessed, and unpublished routes stay hidden.");
     expect(pageSource).not.toContain('option value="">Roads off');
     expect(pageSource).not.toContain('"rgba(240, 180, 93, .9)"');
     expect(pageSource).not.toContain("isolateSelectedRoute");
     expect(pageSource).not.toContain("loadOwnerRoadViewport");
+  });
+
+  it("adds only the Liberty structured highway reference beneath exact approved roads", () => {
+    expect(pageSource).toContain("function syncHighwayReferenceLayers(map: MapLibreMap)");
+    expect(pageSource).toContain("libertyHighwayReferenceSource(map.getStyle())");
+    expect(pageSource).toContain("const [casing, line] = highwayReferenceLayerSpecifications(source)");
+    expect(pageSource).toContain("const highwayReady = fallbackApplied ? false : syncHighwayReferenceLayers(map)");
+    expect(pageSource.indexOf("syncHighwayReferenceLayers(map)")).toBeLessThan(
+      pageSource.indexOf("syncCompanyRoadLayers(map, mapLibreRoadRows)"),
+    );
+    expect(pageSource).toContain("Pad-county Interstate / U.S. / state reference · thin teal");
+    expect(pageSource).toContain("Exact approved route road · stronger teal");
+    expect(pageSource).toContain("Selected pad route · bright teal");
+    expect(pageSource).toContain("no approved-route geometry is being claimed");
+    expect(pageSource).toContain("if (basemapReady || styleReady || fallbackApplied) return");
+    expect(pageSource).toContain("slow road tiles have not completed");
+    expect(appCss).toContain(".legend-line.highway");
   });
 
   it("draws a pad-specific bright route only from the selected pad's reviewed geometry", () => {
@@ -296,7 +313,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("const [mapFiltersOpen, setMapFiltersOpen] = useState(false)");
     expect(pageSource).toContain('placeholder="Search pads"');
     expect(pageSource).toContain("usePadSearchLocation()");
-    expect(pageSource).toContain("closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7)");
+    expect(pageSource).toContain("closestPadSearchResults(companyScopedRows, mapSearch, mapSearchOrigin, 7)");
     expect(pageSource).toContain("nearbyPadResultsHeading(mapSearch, mapSearchOrigin)");
     expect(pageSource).toContain("Using this phone's current GPS to find nearby pads");
     expect(pageSource).toContain('role="region" aria-label="Pad search results"');
@@ -304,7 +321,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain('role="listbox"');
     expect(pageSource).toContain('aria-controls="map-filter-panel"');
     expect(pageSource).toContain('hidden={!mapFiltersOpen}');
-    expect(pageSource).toContain('aria-label="Separate approved routes by company or show all routes"');
+    expect(pageSource).toContain('aria-label="Filter pads and approved roads by company"');
   });
 
   it("uses stable individual markers instead of moving numbered clusters", () => {

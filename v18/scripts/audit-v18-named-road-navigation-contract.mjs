@@ -9,6 +9,7 @@ const errors = [];
 
 const pad = read("v18/src/features/pad/PadPage.tsx");
 const map = read("v18/src/features/map/MapPage.tsx");
+const highwayReference = read("v18/src/features/map/highwayReference.ts");
 const preview = read("v18/src/features/pad/PadMapPreview.tsx");
 const reviewed = read("v18/src/data/reviewedNavigationCandidates.ts");
 const status = read("v18/src/data/status.ts");
@@ -31,9 +32,11 @@ requireText(contract, "draws no substitute teal line", "no fake teal rule");
 requireText(contract, "Every supplied, separately reviewed named-road geometry feature is highlighted", "all supplied named roads are teal");
 requireText(contract, "pad-bound highlight is drawn only while that exact pad is selected", "selected-pad-only route color");
 requireText(contract, "exact released approved-road overlay remains teal", "persistent approved-road teal");
-requireText(contract, "defaults to **All approved routes**", "all/company approved-road scope");
+requireText(contract, "defaults to **All pads + all\napproved roads**", "unified all-pads/all-approved-roads scope");
 requireText(contract, "one exact company", "single-company approved-road scope");
-requireText(contract, "does not recolor a basemap road class", "no generic basemap-road promotion");
+requireText(contract, "thinner teal Interstate, U.S., and state highway reference", "structured highway-reference scope");
+requireText(contract, "clipped to the 39", "pad-county highway-reference scope");
+requireText(contract, "does not match road names", "no highway name matching");
 requireText(contract, "PROMOTE <PAD NAME> TO STATE 1", "explicit promotion trigger");
 
 requireText(pad, "Everyday driver navigation does not wait for State-1 receipt checks", "immediate everyday Navigate");
@@ -55,9 +58,16 @@ requireText(map, 'map.setPaintProperty(companyRoadLineLayerId, "line-color", "#1
 requireText(map, "fallbackApplied ? companyRoadRowsRef.current : []", "approved-road teal on basemap fallback");
 requireText(map, "const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current", "single approved-network renderer");
 requireText(map, "drawRoute(context, map, selectedId ? geometry : null)", "selected-pad-only display geometry");
-requireText(map, 'companyRoads.selection === null', "default all without overriding a selected company");
-requireText(map, 'aria-label="Separate approved routes by company or show all routes"', "all/company approved-road selector");
-requireText(map, '<option value="all">All approved routes</option>', "all approved routes option");
+requireText(map, 'const [companyFilter, setCompanyFilter] = useState<"all" | string>("all")', "unified default company scope");
+requireText(map, 'aria-label="Filter pads and approved roads by company"', "unified pads/roads company selector");
+requireText(map, '<option value="all">All pads + all approved roads</option>', "unified all pads and roads option");
+requireText(map, "syncHighwayReferenceLayers(map)", "highway-reference presentation lifecycle");
+requireText(map, "Pad-county Interstate / U.S. / state reference · thin teal", "pad-county highway-reference legend");
+requireText(highwayReference, '["within", highwayReferencePadCountyScope]', "pad-county highway-reference clip");
+requireText(map, "Exact approved route road · stronger teal", "approved-road stronger-teal legend");
+requireText(highwayReference, '["get", "network"]', "structured highway network filter");
+for (const network of ["us-interstate", "us-highway", "us-state"]) requireText(highwayReference, `"${network}"`, `${network} highway identity`);
+requireText(highwayReference, 'sourceLayer: connected[0]["source-layer"]', "Liberty connected-road source-layer reuse");
 requireText(map, "selectedGpsNavigationUrl && selectedGpsDestination", "map GPS-only fallback");
 requireText(preview, "never replaced with prose, waypoints, straight lines, or nearest-road guesses", "preview no-inference rule");
 requireText(preview, "for (const line of lines)", "preview renders every supplied named-road line");
@@ -69,6 +79,7 @@ requireText(reviewed, "intentionally carry no line geometry", "static candidate 
 forbid(`${pad}\n${map}`, /higherPriorityNavigationCheckState|navigationFallbackAfterHigherPriorityCheck|Live route check unavailable · no fallback opened/u, "runtime still contains State-1 fallback suppression");
 forbid(`${pad}\n${map}\n${preview}`, /selectedReviewedNavigation(?:Candidate)?\.geometry|nearest_road|fuzzy_name/u, "runtime can infer display geometry from an unverified candidate");
 forbid(map, /isolateSelectedRoute|rgba\(240, 180, 93, \.9\)|<option value="">Roads off|line-opacity", roadMode &&/u, "approved-road network is not persistently teal");
+forbid(highwayReference, /\["get",\s*"(?:name|ref)"\]/u, "highway reference uses road-name or ref matching");
 forbid(`${pad}\n${map}\n${preview}\n${reviewed}`, /AIza[0-9A-Za-z_-]{25,}/u, "Google API key-shaped literal appears in tracked everyday navigation code");
 
 const scripts = packageJson.scripts || {};

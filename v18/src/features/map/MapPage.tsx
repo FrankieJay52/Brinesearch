@@ -34,13 +34,22 @@ import {
   filterMapRows,
   groupCoincidentProjectedPads,
   hasSafeCoordinate,
+  mapCompanyOptions,
   mapDisplayCoordinate,
   mapGoogleHandoffState,
+  mapRoadSelectionForCompany,
   selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
   type MapViewerMode,
 } from "./mapModel";
 import { MapApprovedRouteLink, MapDestinationPinLink, MapReviewedRouteLink } from "./MapApprovedRouteLink";
+import {
+  firstSymbolLayerAfterLines,
+  highwayReferenceCasingLayerId,
+  highwayReferenceLayerSpecifications,
+  highwayReferenceLineLayerId,
+  libertyHighwayReferenceSource,
+} from "./highwayReference";
 import { padSearchResultsReadyForQuery, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
@@ -112,7 +121,7 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
     map.addSource(companyRoadSourceId, { type: "geojson", data: companyRoadCollection(rows) });
     if (!map.getSource(companyRoadSourceId)) throw new Error("Company-road source was rejected");
 
-    const firstSymbolLayer = map.getStyle().layers?.find((layer) => layer.type === "symbol")?.id;
+    const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
     if (!map.getLayer(companyRoadCasingLayerId)) {
       map.addLayer({
         id: companyRoadCasingLayerId,
@@ -135,6 +144,36 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
     return true;
   } catch {
     clearCompanyRoadLayers(map);
+    return false;
+  }
+}
+
+function clearHighwayReferenceLayers(map: MapLibreMap) {
+  for (const layerId of [highwayReferenceLineLayerId, highwayReferenceCasingLayerId]) {
+    try {
+      if (map.getLayer(layerId)) map.removeLayer(layerId);
+    } catch {
+      // A style replacement can remove these presentation layers first. The
+      // reference owns no source because it reuses Liberty's vector source.
+    }
+  }
+}
+
+function syncHighwayReferenceLayers(map: MapLibreMap) {
+  clearHighwayReferenceLayers(map);
+  try {
+    const source = libertyHighwayReferenceSource(map.getStyle());
+    if (!source) return false;
+    const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
+    const [casing, line] = highwayReferenceLayerSpecifications(source);
+    map.addLayer(casing, firstSymbolLayer);
+    map.addLayer(line, firstSymbolLayer);
+    if (!map.getLayer(highwayReferenceCasingLayerId) || !map.getLayer(highwayReferenceLineLayerId)) {
+      throw new Error("Highway-reference layers were rejected");
+    }
+    return true;
+  } catch {
+    clearHighwayReferenceLayers(map);
     return false;
   }
 }
@@ -175,6 +214,8 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
           paint: { "fill-color": fadeColor, "fill-opacity": .62 },
         });
       }
+      if (map.getLayer(highwayReferenceCasingLayerId)) map.moveLayer(highwayReferenceCasingLayerId);
+      if (map.getLayer(highwayReferenceLineLayerId)) map.moveLayer(highwayReferenceLineLayerId);
       if (map.getLayer(companyRoadCasingLayerId)) map.moveLayer(companyRoadCasingLayerId);
       if (map.getLayer(companyRoadLineLayerId)) map.moveLayer(companyRoadLineLayerId);
     } else {
@@ -364,6 +405,7 @@ export function MapPage() {
   const [mapSearch, setMapSearch] = useState("");
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapFiltersOpen, setMapFiltersOpen] = useState(false);
+  const [companyFilter, setCompanyFilter] = useState<"all" | string>("all");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
@@ -375,6 +417,7 @@ export function MapPage() {
   const [typeFilter, setTypeFilter] = useState<"all" | "pad" | "disposal">("all");
   const [mapRenderState, setMapRenderState] = useState<MapRenderState>("loading");
   const [mapNotice, setMapNotice] = useState("Loading basemap and mapped locations…");
+  const [highwayReferenceReady, setHighwayReferenceReady] = useState(false);
   const [companyRoadRenderFailed, setCompanyRoadRenderFailed] = useState(false);
   const { origin: mapSearchOrigin, state: mapSearchLocationState, requestLocation: requestMapSearchLocation, retryLocation: retryMapSearchLocation } = usePadSearchLocation();
   const mapHost = useRef<HTMLDivElement | null>(null);
@@ -394,16 +437,49 @@ export function MapPage() {
 
   const fullscreen = viewerMode !== "standard";
   const roadMode = viewerMode === "roads";
-  const selectedRoadCompany = companyRoads.selection && companyRoads.selection !== "all" ? companyRoads.selection : null;
+  const selectedCompany = companyFilter === "all" ? null : companyFilter;
+  const companyOptions = useMemo(() => mapCompanyOptions(snapshot?.rows || []), [snapshot]);
+  const selectedCompanyHasApprovedRoads = companyFilter === "all"
+    || companyRoads.availability.companies.includes(companyFilter);
+  const requestedRoadSelection = mapRoadSelectionForCompany(
+    companyFilter,
+    companyRoads.availability.companies,
+    companyRoads.availability.state === "ready",
+  );
+  // A company filter is a pad filter even when that operator has zero
+  // released exact road rows. Suppress stale overlay data until its embedded
+  // selection matches this one unified pad-and-road scope.
+  const visibleCompanyRoadOverlay = requestedRoadSelection
+    && companyRoads.selection === requestedRoadSelection
+    && companyRoads.overlay?.selection === requestedRoadSelection
+    ? companyRoads.overlay
+    : null;
+  const companyScopedRows = useMemo(
+    () => filterMapRows(snapshot?.rows || [], "all", selectedCompany),
+    [selectedCompany, snapshot],
+  );
   const visibleRows = useMemo(
-    () => filterMapRows(snapshot?.rows || [], typeFilter, selectedRoadCompany),
-    [selectedRoadCompany, snapshot, typeFilter],
+    () => filterMapRows(companyScopedRows, typeFilter, null),
+    [companyScopedRows, typeFilter],
   );
   const visibleMappedCount = useMemo(() => visibleRows.filter(hasSafeCoordinate).length, [visibleRows]);
+  const companyRoadScopeStatus = companyRoadRenderFailed
+    ? `Approved route roads could not be drawn and are hidden. ${selectedCompany ? `${selectedCompany} pads remain filtered.` : "All pads remain visible."} No route-road geometry was inferred.`
+    : companyRoads.availability.state !== "ready"
+      ? `${selectedCompany ? `${selectedCompany} pads are shown.` : "All pads are shown."} ${companyRoads.availability.reason || "Approved route roads are unavailable; nothing was inferred."}`
+      : selectedCompany && !selectedCompanyHasApprovedRoads
+        ? `${selectedCompany} pads are shown. No released exact approved roads are available for this company; nothing was inferred.`
+        : companyRoads.loading || companyRoads.selection !== requestedRoadSelection
+          ? `Loading exact approved roads for ${selectedCompany || "all companies"}…`
+          : companyRoads.error
+            ? `${selectedCompany ? `${selectedCompany} pads remain filtered.` : "All pads remain visible."} ${companyRoads.error}`
+            : visibleCompanyRoadOverlay
+              ? `${visibleCompanyRoadOverlay.rows.length.toLocaleString()} exact approved route-road sections shown in teal for ${selectedCompany || "all available companies"}. ${selectedCompany ? `Only ${selectedCompany} pads and released approved roads are shown.` : "All pads and all released approved roads are shown."} Selected-pad route color appears only after choosing a pad. This is the released approved-route subset, not a complete statewide or company road inventory.`
+              : `${selectedCompany ? `${selectedCompany} pads are shown.` : "All pads are shown."} No released exact approved roads are available for this scope; nothing was inferred.`;
   const mapSearchReady = padSearchResultsReadyForQuery(mapSearchLocationState, mapSearchOrigin, mapSearch);
   const searchResults = useMemo(
-    () => mapSearchReady ? closestPadSearchResults(snapshot?.rows || [], mapSearch, mapSearchOrigin, 7) : [],
-    [mapSearch, mapSearchOrigin, mapSearchReady, snapshot],
+    () => mapSearchReady ? closestPadSearchResults(companyScopedRows, mapSearch, mapSearchOrigin, 7) : [],
+    [companyScopedRows, mapSearch, mapSearchOrigin, mapSearchReady],
   );
   const selected = snapshot?.rows.find((row) => row.padId === selectedId) || null;
   const selectedCoordinate = selected ? mapDisplayCoordinate(selected) : null;
@@ -485,7 +561,7 @@ export function MapPage() {
     : currentSelectedStatus?.route.geometry || null;
   visibleRowsRef.current = visibleRows;
   selectedRouteRef.current = selectedRouteGeometry;
-  companyRoadRowsRef.current = companyRoads.overlay?.rows || [];
+  companyRoadRowsRef.current = visibleCompanyRoadOverlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
 
@@ -527,13 +603,13 @@ export function MapPage() {
   }, [fullscreen]);
 
   useEffect(() => {
-    // The driver map begins with every exact approved route road visible.
-    // A deliberate company choice narrows both that layer and the pad list,
-    // and remains selected when switching between standard and Roads views.
-    if (companyRoads.availability.state === "ready" && companyRoads.selection === null) {
-      companyRoads.selectRoads("all");
+    // The single company choice always filters pads. It requests roads only
+    // when that exact company has released rows; otherwise the road scope is
+    // deliberately empty instead of leaking another company's overlay.
+    if (companyRoads.selection !== requestedRoadSelection) {
+      companyRoads.selectRoads(requestedRoadSelection);
     }
-  }, [companyRoads]);
+  }, [companyRoads.selection, companyRoads.selectRoads, requestedRoadSelection]);
 
   useEffect(() => {
     if (roadMode) setTypeFilter((current) => current === "pad" ? current : "pad");
@@ -662,6 +738,12 @@ export function MapPage() {
 
     const syncRoadLayers = () => {
       if (!styleReady) return;
+      // Thin connected highways come only from Liberty's transportation
+      // source/layer and its structured U.S. route-network identity, clipped
+      // to the confirmed pad-county footprint. They are context, never an
+      // approved BrineSearch route. Exact approved rows are added afterward.
+      const highwayReady = fallbackApplied ? false : syncHighwayReferenceLayers(map);
+      setHighwayReferenceReady(highwayReady);
       // A failed remote style uses the canvas network above. Clear MapLibre's
       // copy so the authorized rows are never double-painted.
       const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current;
@@ -678,7 +760,11 @@ export function MapPage() {
     syncCompanyRoadLayersRef.current = syncRoadLayers;
 
     const applyFallbackStyle = () => {
-      if (basemapReady || fallbackApplied) return;
+      // `style.load` proves the remote basemap contract is usable even when
+      // slow road tiles have not completed the broader MapLibre `load` event.
+      // Do not replace that valid, still-loading road network with the blank
+      // fallback merely because a phone connection needs more than 8 seconds.
+      if (basemapReady || styleReady || fallbackApplied) return;
       fallbackApplied = true;
       styleReady = false;
       setMapRenderState("degraded");
@@ -766,13 +852,14 @@ export function MapPage() {
       drawOverlayRef.current = null;
       syncCompanyRoadLayersRef.current = null;
       hitTargetsRef.current = [];
+      clearHighwayReferenceLayers(map);
       clearRoadModeFade(map);
       map.remove();
       mapRef.current = null;
     };
   }, [focusPad, loading, navigate]);
 
-  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [companyRoads.overlay, selectedId, viewerMode]);
+  useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleCompanyRoadOverlay, selectedId, viewerMode]);
   useEffect(() => { drawOverlayRef.current?.(); }, [visibleRows, selectedRouteGeometry, selectedId]);
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -792,7 +879,7 @@ export function MapPage() {
     </div>
     <div className="map-control-stack">
       <div className="map-view-toolbar" aria-label="Map view mode">
-        <span><Icon name={roadMode ? "route" : "map"}/><strong>{roadMode ? "Approved roads" : fullscreen ? "Full-screen map" : "Map viewer"}</strong></span>
+        <span><Icon name={roadMode ? "route" : "map"}/><strong>{roadMode ? "Road network" : fullscreen ? "Full-screen map" : "Map viewer"}</strong></span>
         <div>
           {!fullscreen && <button type="button" aria-pressed="false" onClick={() => changeViewerMode("fullscreen")}><Icon name="expand"/>Full screen</button>}
           <button type="button" className={roadMode ? "active" : ""} aria-pressed={roadMode} onClick={() => changeViewerMode("roads")}><Icon name="route"/>Roads</button>
@@ -810,7 +897,7 @@ export function MapPage() {
             aria-expanded={mapFiltersOpen}
             aria-controls="map-filter-panel"
             aria-label={`${mapFiltersOpen ? "Hide" : "Show"} map filters`}
-            data-active={typeFilter !== "all" || Boolean(selectedRoadCompany)}
+            data-active={typeFilter !== "all" || Boolean(selectedCompany)}
             onClick={() => setMapFiltersOpen((open) => !open)}
           ><Icon name="control"/><span>Filters</span></button>
         </form>
@@ -828,20 +915,19 @@ export function MapPage() {
           <div className="filter-row" aria-label="Map filters">
             {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
           </div>
-          {companyRoads.availability.state === "ready" && <>{roadMode && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div>}
+          {roadMode && companyRoads.availability.state === "ready" && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Highway reference + exact approved roads</strong><small>Thin teal is the basemap Interstate, U.S., and state highway reference inside counties with pads. Stronger teal is exact approved route geometry. Held, candidate, stale, guessed, and unpublished routes stay hidden.</small></span></div>}
           <label className="company-road-filter">
-            <span><Icon name="company"/>Approved roads</span>
-            <select value={companyRoads.selection || "all"} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value); }} aria-label="Separate approved routes by company or show all routes">
-              <option value="all">All approved routes</option>
-              {companyRoads.availability.companies.map((company) => <option key={company} value={company}>{company}</option>)}
+            <span><Icon name="company"/>Pads + approved roads</span>
+            <select value={companyFilter} onChange={(event) => { setSelectedId(null); setLocationChoices(null); setCompanyFilter(event.target.value); }} aria-label="Filter pads and approved roads by company">
+              <option value="all">All pads + all approved roads</option>
+              {companyOptions.map((company) => <option key={company} value={company}>{company}</option>)}
             </select>
           </label>
-          <p className="company-road-authority" role="status" aria-live="polite">{companyRoadRenderFailed ? "Approved route roads could not be drawn and are hidden. No route-road geometry was inferred." : companyRoads.loading ? "Loading exact approved roads…" : companyRoads.error || (companyRoads.overlay ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved route-road sections shown in teal for ${companyRoads.selection === "all" ? "all available companies" : companyRoads.selection}. Select one company to separate its pads and routes; selected-pad route color appears only after choosing a pad. This is the released approved-route subset, not a complete statewide or company road inventory.` : companyRoads.availability.reason || "Only exact server-approved route roads are shown in teal; held, stale, legacy-only, guessed, and unpublished roads remain hidden.")}</p>
-          </>}
-          {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>Approved-road layer unavailable</strong><small>{companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
+          <p className="company-road-authority" role="status" aria-live="polite">{companyRoadScopeStatus}</p>
+          {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>{highwayReferenceReady ? "Highway reference only" : "Road layers unavailable"}</strong><small>{highwayReferenceReady ? "Thin teal highways are basemap reference only; no approved-route geometry is being claimed." : companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
         </div>
       </div>
-      <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> safe map points · {(visibleRows.length - visibleMappedCount).toLocaleString()} still missing {selectedRoadCompany ? `for ${selectedRoadCompany}` : ""}</div>
+      <div className="map-data-note"><span className={`data-dot data-${snapshot.sourceState}`}/><strong>{visibleMappedCount.toLocaleString()}</strong> safe map points · {(visibleRows.length - visibleMappedCount).toLocaleString()} still missing {selectedCompany ? `for ${selectedCompany}` : ""}</div>
       <div className={`map-render-notice map-render-${mapRenderState}`} role={mapRenderState === "error" ? "alert" : "status"} data-map-render-state={mapRenderState}>
         <span/>{mapNotice}
       </div>
@@ -879,6 +965,6 @@ export function MapPage() {
         {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
-    </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong><span><i className="legend-line approved"/>Exact approved road · teal</span><span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
+    </article> : <aside className="map-legend-card"><strong>BrineSearch road layers</strong>{highwayReferenceReady && <span><i className="legend-line highway"/>Pad-county Interstate / U.S. / state reference · thin teal</span>}<span><i className="legend-line approved"/>Exact approved route road · stronger teal</span><span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;
 }

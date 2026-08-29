@@ -45,6 +45,22 @@ export function filterMapRows(rows: PadSummary[], typeFilter: "all" | "pad" | "d
   return rows.filter((row) => (!selectedCompany || row.company === selectedCompany) && (typeFilter === "all" || row.recordType === typeFilter));
 }
 
+export function mapCompanyOptions(rows: PadSummary[]) {
+  return [...new Set(rows.map((row) => row.company.trim()).filter(Boolean))]
+    .sort((left, right) => left.localeCompare(right, undefined, { sensitivity: "base" }));
+}
+
+export function mapRoadSelectionForCompany(
+  companyFilter: "all" | string,
+  approvedRoadCompanies: string[],
+  approvedRoadsReady: boolean,
+): "all" | string | null {
+  if (!approvedRoadsReady) return null;
+  return companyFilter === "all" || approvedRoadCompanies.includes(companyFilter)
+    ? companyFilter
+    : null;
+}
+
 export function emptyMapCoordinateNotice(visibleLocationCount: number) {
   return visibleLocationCount > 0
     ? `${visibleLocationCount.toLocaleString()} directory ${visibleLocationCount === 1 ? "location does" : "locations do"} not have a verified map coordinate yet. Use Search to open the directory record.`

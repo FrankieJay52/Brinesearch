@@ -359,6 +359,8 @@ h2 { letter-spacing: -.035em; }
 @media (max-width: 420px) {
   .map-inline-search button.map-filter-toggle { padding: 0 8px; }
   .map-inline-search button.map-filter-toggle span { display: none; }
+  .company-road-filter { align-items: stretch; flex-direction: column; }
+  .company-road-filter select { width: 100%; max-width: none; }
 }
 .map-data-note {
   justify-self: start;
@@ -498,6 +500,7 @@ h2 { letter-spacing: -.035em; }
 .legend-dot.review { background: var(--amber); }
 .legend-dot.disposal { background: var(--blue); }
 .legend-line { width: 18px; height: 4px; border-radius: 999px; background: #14b8a6; box-shadow: 0 0 0 2px rgba(7, 19, 31, .76); }
+.legend-line.highway { height: 2px; background: #159d91; opacity: .7; box-shadow: 0 0 0 1px rgba(7, 19, 31, .52); }
 .legend-line.selected { height: 5px; background: #52e4bd; box-shadow: 0 0 0 2px rgba(7, 19, 31, .88), 0 0 8px rgba(82, 228, 189, .28); }
 .selected-pad-route-key { margin-bottom: 8px; display: flex; align-items: center; gap: 9px; color: var(--teal-bright); font-size: .7rem; }
 .selected-pad-route-key .legend-line { flex: 0 0 18px; }

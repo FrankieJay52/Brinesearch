@@ -48,14 +48,22 @@ pad-bound highlight is drawn only while that exact pad is selected. Unselected
 pads never project their route color onto the map.
 
 Independently, the current exact released approved-road overlay remains teal in
-every driver map view. It defaults to **All approved routes** and may be narrowed
+every driver map view. The unified selector defaults to **All pads + all
+approved roads** and may narrow both pads and the released approved-road overlay
 to one exact company. That persistent network is an exact released road
-reference, not a route attributed to the selected pad; selecting a pad adds
-its brighter pad-bound display above the network. Interstate, U.S., state,
-county, or township roads
-are teal in this layer only when the released approved-road overlay supplies
-their exact geometry. V18 does not recolor a basemap road class or infer a
-company/route association.
+reference, not a route attributed to the selected pad; selecting a pad adds its
+brighter pad-bound display above the network.
+
+The map also draws a thinner teal Interstate, U.S., and state highway reference
+from the loaded OpenFreeMap Liberty vector source/layer, clipped to the 39
+confirmed Ohio, West Virginia, and Pennsylvania pad counties already frozen in
+the repository. It uses only the exact structured `network` identities
+`us-interstate`, `us-highway`, and `us-state`; it does not match road names,
+infer a company association, or become Navigate geometry. The presentation
+clip uses the U.S. Census Bureau 2025 1:20m county boundaries. If Liberty's
+expected source/layer contract is absent, this reference fails closed. Exact
+released approved roads remain stronger teal above the reference and a selected
+pad's separately reviewed route remains brightest.
 
 If a pad has no verified named sequence, or its reviewed sequence has no
 supplied pad-bound geometry yet, its pad-specific display is the trusted

@@ -42,10 +42,11 @@ assert.match(appJavascript, /GPS destination only · named roads not yet reviewe
 assert.match(appJavascript, /Named roads then unnamed access/, "Built V18 app is missing the named-road handoff boundary");
 assert.match(appJavascript, /No reviewed named-road display geometry · no teal line inferred/, "Built V18 app can no longer prove that missing display geometry produces no fake teal");
 assert.match(appJavascript, /teal is display, not new authority/, "Built V18 app is missing the named-road display authority boundary");
-assert.match(appJavascript, /All approved routes/, "Built V18 app is missing the persistent all-approved-routes scope");
-assert.match(appJavascript, /Separate approved routes by company or show all routes/, "Built V18 app is missing the all-routes or one-company selector");
-assert.match(appJavascript, /Exact approved road · teal/, "Built V18 app is missing the persistent approved-road teal legend");
-assert.match(appJavascript, /selected-pad route color appears only after choosing a pad/, "Built V18 app is missing the selected-pad-only route-color disclosure");
+assert.match(appJavascript, /All pads \+ all approved roads/, "Built V18 app is missing the unified all-pads/all-approved-roads scope");
+assert.match(appJavascript, /Filter pads and approved roads by company/, "Built V18 app is missing the unified company selector");
+assert.match(appJavascript, /Pad-county Interstate \/ U\.S\. \/ state reference · thin teal/, "Built V18 app is missing the pad-county highway-reference legend");
+assert.match(appJavascript, /Exact approved route road · stronger teal/, "Built V18 app is missing the stronger approved-road legend");
+assert.match(appJavascript, /Selected-pad route color appears only after choosing a pad/, "Built V18 app is missing the selected-pad-only route-color disclosure");
 assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only pad-route key");
 assert.doesNotMatch(appJavascript, /Checking for the highest-priority reviewed route|Live route check unavailable · no fallback opened/, "Built V18 app still withholds Navigate while optional State-1 checks settle");
 assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");

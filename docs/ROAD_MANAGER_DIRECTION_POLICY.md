@@ -78,5 +78,15 @@ public-Google authority.
     supplied pad-bound geometry, show that pad's pin only and draw no substitute
     pad route from text, control points, whole roads, basemap classes, or
     nearest-road results.
-13. Publishing this client-side handoff never changes graph activation, route
+13. The map may add a thin, connected highway-reference layer from the loaded
+    OpenFreeMap Liberty vector basemap only when its structured `network`
+    identity is exactly `us-interstate`, `us-highway`, or `us-state`. This is
+    public basemap context, not an approved BrineSearch route: never match by
+    road name, never turn it into Navigate geometry, and fail closed when the
+    Liberty source/layer contract is absent. Clip that presentation layer to
+    the repository's 39 confirmed pad counties using the compact U.S. Census
+    Bureau 2025 1:20m county boundary union; do not render it statewide. Draw
+    exact released approved roads in stronger teal above it and the selected
+    pad's separately reviewed route brightest above both.
+14. Publishing this client-side handoff never changes graph activation, route
     approval, the public-Google table, or cutover state.
