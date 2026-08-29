@@ -4,7 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
 import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
-import { buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
+import approachArtifact from "@/features/map/ascentPadApproaches.batch2.json";
+import { parseAscentPadApproachArtifact } from "@/features/map/ascentPadApproaches";
+import { AscentPadApproachDirections, buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -559,6 +561,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(currentStatusForPad(previous, { padId: "different-pad", recordRevision: previous.recordRevision })).toBeNull();
     expect(currentStatusForPad(previous, { padId: previous.padId, recordRevision: "different-revision" })).toBeNull();
     expect(currentStatusForPad(previous, { padId: previous.padId, recordRevision: previous.recordRevision })).toBe(previous);
+    expect(padPage).toContain("ascentPadApproach?.padId === pad.padId");
+    expect(padPage).toContain("ascentPadApproach.recordRevision === pad.recordRevision");
   });
 
   it("never carries reviewed well rows across a pad or record-revision change", () => {
@@ -711,6 +715,38 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain("The teal named-road display ends at the reviewed handoff. The saved pad GPS remains the separate destination.");
     expect(padPage).toContain("The unnamed final movement to the saved pin is not named or highlighted.");
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
+  });
+
+  it("shows bounded measured highway-to-GPS sections without adding the straight tether to mileage", () => {
+    const catalog = parseAscentPadApproachArtifact(approachArtifact);
+    const approach = catalog.records.find((record) => record.status === "ROUTED_DISPLAY"
+      && record.gpsTether?.nontrivial
+      && record.directions.some((direction) => direction.authority === "generic_unapproved_access"));
+    expect(approach).toBeDefined();
+    const html = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: approach! }));
+    expect(html).toContain("Measured last-highway approach");
+    expect(html).toContain(approach?.start?.authority === "exact_highway_next_road_intersection"
+      ? "Exact highway-road intersection start"
+      : "Bounded candidate point on the last named highway · not an approved handoff");
+    expect(html).toContain("Measured road sections:");
+    expect(html).toContain("Unnamed / unapproved access");
+    expect(html).toContain("Unnamed / unapproved · dashed");
+    expect(html).toContain("No total-to-GPS mileage is shown");
+    expect(html).toContain("is not road geometry and is excluded");
+    expect(html).not.toContain("Measured total to saved GPS");
+  });
+
+  it("renders routed-fail-closed and pin-only records as reason plus GPS pin only", () => {
+    const catalog = parseAscentPadApproachArtifact(approachArtifact);
+    for (const status of ["ROUTED_FAIL_CLOSED", "PIN_ONLY"] as const) {
+      const approach = catalog.records.find((record) => record.status === status);
+      expect(approach).toBeDefined();
+      const html = renderToStaticMarkup(createElement(AscentPadApproachDirections, { approach: approach! }));
+      expect(html).toContain("GPS pin only");
+      expect(html).toContain("No candidate line, turn mileage, or route total is shown");
+      expect(html).not.toContain("route-step-list");
+      expect(html).not.toMatch(/\d+\.\d+ mi/);
+    }
   });
 
   it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {

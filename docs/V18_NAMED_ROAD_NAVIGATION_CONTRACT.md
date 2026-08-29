@@ -77,6 +77,67 @@ performs no coordinate hashing, and does not rebuild the native source/layer
 family during ordinary pan, zoom, selection, or company-filter changes. It
 updates the existing source data and selection filter instead.
 
+## Remaining Ascent highway-to-pad approaches
+
+The separate batch-2 catalog covers the **192 remaining Ascent pads** without
+changing the frozen 55-pad catalog above. It is field display and direction
+evidence only. It does not replace any of the 46 immutable Google handoffs, the
+9 existing database releases, their URLs or controls, or any parked state or
+promotion receipt.
+
+Each batch-2 approach is deliberately bounded to the last Interstate, U.S., or
+state highway whose **road identity** is exactly supported by the stored ordered
+sequence, and it ends at that pad's exact frozen GPS. Exact road identity does
+not make the start coordinate an exact junction. Of the 95 displayed
+approaches, 28 start at a stored exact highway-to-next-road intersection and 67
+start at a build-time nearest-highway candidate that passed the bounded
+100-metre snap gate. A candidate start is only a routing/display seed; it does
+not assert or approve an intersection, handoff, road identity, or public route.
+Neither start mode describes or measures the driver's trip from the phone to
+that highway. Every routed section stores its raw distance in metres; those
+section measurements provide the turn-by-turn approach mileage without turning
+written directions into geometry or approval.
+
+An exact route number, normalized name, or alias is never sufficient by itself.
+Before any approach may display, its start evidence must bind to the exact
+master `roadId` of that record's last highway and the start must be no more than
+25 air miles from the frozen pad GPS. Fuzzy, nearest-road, name-only, or
+unanchored master-road matching fails closed. The bounded nearest-highway start
+mode does not select a road by proximity: it may choose a point only on the
+already exact-`roadId` highway, after the same 25-air-mile relevance gate.
+
+Teal is limited to the ordered prefix whose routed step names match the exact
+stored road identity or one of its exact aliases. At the first name mismatch,
+missing identity, private or lease step, or other unreviewed movement, solid
+teal stops. Any remaining routed movement is one generic dashed, unapproved
+access line. It carries no invented road name and cannot restart teal farther
+along the approach. A separate straight road-end-to-GPS tether, when needed to
+show the frozen destination, is also dashed and unapproved. That straight
+tether is display context only and is **excluded from all routed-section and
+approach mileage**.
+
+When the exact highway identity is missing, no bounded start candidate passes,
+routing fails, or no routed named prefix can be proved, the record fails closed
+to the frozen destination pin. Pin-only is a complete truthful result for that
+record: no teal line, no fabricated turn, no inferred highway connection, and
+no mileage from a straight-line guess. One malformed or stale batch-2 record is
+rejected independently and cannot suppress or modify the frozen batch-1
+records.
+
+The frozen batch-2 accounting is 95 routed displays, 16 internally rejected
+routing results, and 81 direct pin-only results. Five of those pin-only results
+are CENA, NOELLE, ROXY, SPORT, and TANNER: each proposed start was more than 25
+air miles from its frozen GPS and was rejected before routing. The farthest
+displayed start is 13.079406 air miles from its destination.
+`ROUTED_FAIL_CLOSED` retains
+only non-presentational rejection diagnostics: the reason, attempt accounting,
+and evidence hashes. Its candidate start, candidate geometry, routed sections,
+GPS tether, measured directions, and candidate mileage are stripped from the
+static artifact. The runtime independently fails every non-display status
+closed, so `ROUTED_FAIL_CLOSED` is presentation-equivalent to pin-only and can
+never be drawn or shown as measured directions. Thus 97 of the 192 records are
+pin-only in the driver presentation.
+
 After the final pad on a county, township, or other local named road, the
 remaining road may be displayed in red only when exact corridor evidence proves
 there is no farther pad on that road and exact geometry reaches the next
@@ -131,11 +192,12 @@ recolor. This field display changes neither BANNOCK's byte-stable Google Navigat
 saved destination, persistent released approved-road overlay,
 graph state, nor public-Google authority.
 
-If a pad is outside the 55-entry reviewed Ascent catalog and has no reviewed
-named sequence, its pad-specific map content is limited to its trusted
-destination marker. The independent approved-road overlay may remain visible
-underneath, but it never supplies a missing pad route. Written text, whole-road
-centerlines, and nearest-road results are never joined into a replacement line.
+If a pad is outside the 55-entry reviewed Ascent catalog and the separate
+batch-2 catalog cannot prove an exact highway-to-pad approach, its pad-specific
+map content is limited to its trusted destination marker. The independent
+approved-road overlay may remain visible underneath, but it never supplies a
+missing pad route. Written text, whole-road centerlines, and nearest-road
+results are never joined into a replacement line.
 
 ## State-1 promotion is parked
 

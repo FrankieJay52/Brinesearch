@@ -28,6 +28,61 @@ The catalog's routable named-road portion is solid teal and display only. When a
 
 Each approval is frozen to the complete reviewed contract content: exact pad and legacy identities, record revision, company/county/name, saved structured sequence, trusted destination source and coordinates, action destination, waypoint order, Google URL, driver-facing sequence, and final-leg warning. The build-time display catalog consumes those immutable values; it cannot rewrite them. Any later change fails closed and removes the owner-approved presentation until a new receipt is explicitly reviewed.
 
+## Separate remaining-pad approach evidence
+
+The additive batch-2 highway-to-pad catalog is not part of the 46 owner-approved
+Google handoffs or the 9 database releases. It covers the 192 remaining Ascent
+records as separate field display and direction evidence, while the original
+55-record catalog, URLs, controls, receipt hashes, database releases, and parked
+states remain unchanged.
+
+Every batch-2 record is limited to the last Interstate, U.S., or state highway
+whose road identity is exact in its stored ordered sequence, through the pad's
+exact frozen GPS. Exact road identity and start-coordinate authority stay
+separate. Of the 95 displayed approaches, 28 start at a stored exact
+highway-to-next-road intersection. The other 67 use a build-time
+nearest-highway candidate that passed the bounded 100-metre snap gate. That
+candidate is a routing/display seed, not an approved or exact intersection,
+handoff, road identity, or public route. Neither start mode stores the trip from
+the phone to that highway. Each routed section retains its raw distance in
+metres so the bounded approach can present measured step-by-step directions.
+Those measurements describe the routed sections only; they do not approve the
+roads or convert source prose into geometry.
+
+A matching route number, normalized name, or alias alone never establishes the
+highway. Every displayed start must bind to the exact master `roadId` for the
+record's last highway and must be within 25 air miles of that pad's frozen GPS.
+Fuzzy, nearest-road, name-only, and unanchored master-road matching are rejected.
+The bounded nearest-highway candidate mode finds a point only on a highway whose
+master identity is already exact; proximity cannot choose or create the road
+identity.
+
+The exact road-identity or exact-alias-matched prefix may be solid teal. At the
+first mismatch, unresolved identity, private road, lease, or other unreviewed
+movement, the rest of the routed approach becomes one generic dashed,
+unapproved access line and teal cannot resume. Any separate straight tether
+from the routed endpoint to the frozen GPS is dashed destination context, is
+not road or navigation geometry, and is excluded from the section and total
+approach mileage.
+
+Missing exact highway identity, no bounded start candidate, failed routing,
+stale record binding, or an empty exact named prefix fails that record closed to
+its frozen pin. Pin-only records have no teal, no fabricated turn, no
+straight-line mileage, and no borrowed road tail. Batch-2 evidence does not
+mint a Google route, public-road identity, graph occurrence, approved overlay,
+State-1 grade, or owner release.
+The fixed evidence file records 95 routed displays, 16 internally rejected
+routing candidates, and 81 direct pin-only results. CENA, NOELLE, ROXY, SPORT,
+and TANNER are five of the pin-only results because their proposed starts were
+more than 25 air miles from their frozen GPS. The farthest retained display
+start is 13.079406 air miles from its destination. The 16 rejected candidates
+retain only a rejection reason, attempt accounting, and evidence hashes. Their
+candidate start, geometry, routed sections, GPS tether, measured directions,
+and mileage are stripped from the fixed artifact. Runtime parsing independently
+fails every non-display status closed. The rejected records are therefore
+presentation-equivalent to pin-only, so 97 records show only their frozen
+destination pin.
+
 ## Driver presentation
 
 - The fixed and map-card action remains one button labelled `GET DIRECTIONS`.
@@ -53,4 +108,4 @@ Each approval is frozen to the complete reviewed contract content: exact pad and
 - Cutover change: zero.
 - Google Maps API key use: zero.
 - Browser route-service calls and browser coordinate hashing: zero. Catalog routing and validation finish before the app build.
-- No static reviewed handoff is injected into the authoritative public company-road or owner-road geometry overlays. The separate 55-pad display catalog is presentation only. The persistent released company-road overlay remains a different authority and may be shown for all available companies or separated by one exact company; it is never inferred from these handoffs.
+- No static reviewed handoff or batch-2 highway-to-pad approach is injected into the authoritative public company-road or owner-road geometry overlays. The separate 55-pad display catalog and the additive 192-pad approach catalog are presentation only. The persistent released company-road overlay remains a different authority and may be shown for all available companies or separated by one exact company; it is never inferred from these handoffs.

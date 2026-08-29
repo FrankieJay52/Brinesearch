@@ -601,6 +601,75 @@
   margin-top: 2px;
 }
 
+.ascent-measured-approach,
+.ascent-approach-hold {
+  overflow: hidden;
+  border: 1px solid var(--line-soft);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-raised) 84%, transparent);
+}
+
+.ascent-measured-approach > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.ascent-measured-approach > header div,
+.ascent-measured-approach > footer {
+  display: grid;
+  gap: 4px;
+}
+
+.ascent-measured-approach > header small,
+.ascent-measured-approach > footer span,
+.ascent-measured-approach > footer small {
+  color: var(--muted);
+  font-size: .68rem;
+  line-height: 1.45;
+}
+
+.ascent-measured-approach > header > span {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid color-mix(in srgb, var(--teal) 42%, var(--line));
+  border-radius: 999px;
+  color: var(--teal);
+  font-size: .62rem;
+  font-weight: 850;
+}
+
+.ascent-approach-step-list { padding: 0 16px; }
+
+.ascent-approach-step-list .route-step.is-unapproved .step-number {
+  color: var(--text);
+  background: var(--muted);
+}
+
+.ascent-approach-step-list .route-step.is-unapproved .designation-row b {
+  color: color-mix(in srgb, var(--amber) 78%, var(--text));
+}
+
+.ascent-measured-approach > footer {
+  padding: 13px 16px 15px;
+  border-top: 1px solid var(--line-soft);
+}
+
+.ascent-approach-hold {
+  padding: 15px 16px;
+  border-color: color-mix(in srgb, var(--amber) 38%, var(--line));
+}
+
+.ascent-approach-hold p {
+  margin: 6px 0 0;
+  color: var(--muted-strong);
+  font-size: .76rem;
+  line-height: 1.5;
+}
+
 .pad-fixed-navigation .navigate-action.is-unavailable {
   color: var(--muted);
   border-color: var(--line-soft);

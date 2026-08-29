@@ -23,6 +23,10 @@ import { loadPadWellRows } from "@/data/wellRows";
 import { buildPadIdentifierGroups, padIdentifierSummary } from "./padIdentifiers";
 import { PadMapPreview } from "./PadMapPreview";
 import { ownerGoogleVerifyDestination } from "@/features/owner-google-verify/ownerGoogleVerifyModel";
+import {
+  loadAscentPadApproachForPad,
+  type AscentPadApproachRecord,
+} from "@/features/map/ascentPadApproaches";
 import "./PadPageLayout.css";
 
 function StatusColumn({ icon, label, children, detail }: { icon: "route" | "graph" | "google"; label: string; children: ReactNode; detail: string }) {
@@ -415,6 +419,37 @@ export function displayedRouteForChoice(
   };
 }
 
+function approachHoldReason(reason: string) {
+  if (reason === "no_exact_last_interstate_us_or_state_highway") return "No exact last Interstate, U.S., or state highway road identity is on file.";
+  if (reason === "no_exact_intersection_or_candidate_highway_start") return "No bounded highway start passed the identity and distance checks.";
+  if (reason === "candidate_start_lacks_exact_master_last_highway_road_id_anchor") return "No candidate start had exact master last-highway road ID evidence.";
+  if (reason === "candidate_start_exceeds_25_air_miles_from_destination") return "The exact last-highway anchor was more than 25 air miles from the saved GPS.";
+  if (reason === "all_osrm_candidates_failed") return "No build-time route candidate passed the bounded approach checks.";
+  if (reason === "no_routed_section_matches_ordered_exact_master_roads") return "No routed section matched the ordered exact public-road identities.";
+  return "The stored approach did not pass the fail-closed display checks.";
+}
+
+export function AscentPadApproachDirections({ approach }: { approach: AscentPadApproachRecord }) {
+  if (approach.status !== "ROUTED_DISPLAY") return <div className="ascent-approach-hold" role="note">
+    <strong>GPS pin only</strong>
+    <p>{approachHoldReason(approach.reason)} No candidate line, turn mileage, or route total is shown.</p>
+    {approach.structuredRoadSequence && <p><strong>Saved road sequence · text only:</strong> {approach.structuredRoadSequence}</p>}
+  </div>;
+  return <section className="ascent-measured-approach" aria-label="Measured last-highway approach">
+    <header><div><strong>{approach.lastHighway?.displayRoad} → saved GPS</strong><small>{approach.start?.authority === "exact_highway_next_road_intersection" ? "Exact highway-road intersection start" : "Bounded candidate point on the last named highway · not an approved handoff"} · display only</small></div><span>{approach.directions.length} sections</span></header>
+    <ol className="route-step-list ascent-approach-step-list">{approach.directions.map((direction) => <li key={direction.directionOrder} className={`route-step${direction.authority === "generic_unapproved_access" ? " is-unapproved" : ""}`}>
+      <span className="step-number">{direction.directionOrder}</span>
+      <div><strong>{direction.displayName}</strong><p>{direction.instruction}</p><div className="designation-row"><b>{direction.authority === "named_public_road" ? "Exact identity match · solid teal" : "Unnamed / unapproved · dashed"}</b></div></div>
+      {direction.distanceMiles !== null && <small>{direction.distanceMiles.toFixed(2)} mi</small>}
+    </li>)}</ol>
+    <footer>
+      <strong>Measured road sections: {approach.mileage.roadDistanceMiles?.toFixed(2)} mi</strong>
+      <span>{approach.gpsTether?.nontrivial ? "No total-to-GPS mileage is shown." : "Road-section total only."} The separate straight GPS tether ({approach.gpsTether?.distanceMiles.toFixed(2)} mi) is not road geometry and is excluded.</span>
+      <small>Solid teal stops permanently at the first identity mismatch. Everything after that point stays generic, dashed, and unapproved.</small>
+    </footer>
+  </section>;
+}
+
 export function PadPage() {
   const { padId = "" } = useParams();
   const navigate = useNavigate();
@@ -428,6 +463,7 @@ export function PadPage() {
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
   const [selectedNamedApproachKey, setSelectedNamedApproachKey] = useState("");
   const [loadedWellRows, setLoadedWellRows] = useState<LoadedPadWellRows | null>(null);
+  const [ascentPadApproach, setAscentPadApproach] = useState<AscentPadApproachRecord | null>(null);
 
   useEffect(() => {
     if (!pad) return;
@@ -438,6 +474,7 @@ export function PadPage() {
     setSelectedRouteKey("");
     setSelectedNamedApproachKey("");
     setLoadedWellRows(null);
+    setAscentPadApproach(null);
     const recordKey = `${pad.padId}:${pad.recordRevision}`;
     saveRecent(pad).catch(() => undefined);
     // This optional frozen release supplies an existing promoted link only
@@ -467,12 +504,21 @@ export function PadPage() {
     loadPadWellRows(pad, snapshot?.sourceState).then((rows) => {
       if (!cancelled) setLoadedWellRows({ recordKey, rows });
     });
+    if (pad.company === "Ascent") {
+      loadAscentPadApproachForPad(pad).then((approach) => {
+        if (!cancelled) setAscentPadApproach(approach);
+      });
+    }
     return () => { cancelled = true; };
   }, [online, pad, snapshot?.sourceState]);
 
   if (loading) return <LoadingState message="Loading pad details…"/>;
   if (!pad) return <section className="page-state"><h1>Pad not found</h1><p>This link may refer to a removed or superseded record.</p><Link to="/search" className="button-primary">Return to Search</Link></section>;
   const currentResolvedStatus = currentStatusForPad(resolvedStatus, pad);
+  const currentAscentPadApproach = ascentPadApproach?.padId === pad.padId
+    && ascentPadApproach.recordRevision === pad.recordRevision
+    ? ascentPadApproach
+    : null;
   const padRecordKey = `${pad.padId}:${pad.recordRevision}`;
   const wellRows = loadedWellRows?.recordKey === padRecordKey ? loadedWellRows.rows : undefined;
   const status = currentResolvedStatus || buildPendingPadStatus(pad, snapshot?.sourceState);
@@ -532,6 +578,12 @@ export function PadPage() {
   const activeReviewedNavigationCandidate = eligibleReviewedNavigationCandidate;
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
   const hasReviewedRouteFallback = !reviewedNavigationSafetyHold && Boolean(activeReviewedNavigationCandidate?.reviewedRoadSequence) && displayedRouteSteps.length === 0;
+  const activeAscentPadApproach = !reviewedNavigationSafetyHold
+    && !namedSelectionRequired
+    && displayedRouteSteps.length === 0
+    && !hasReviewedRouteFallback
+    ? currentAscentPadApproach
+    : null;
   const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
   const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({
     hasSafetyHold: Boolean(reviewedNavigationSafetyHold),
@@ -582,18 +634,19 @@ export function PadPage() {
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? `Named roads · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Named roads to handoff" : "Named roads to saved pin" : namedSelectionRequired ? "Choose a reviewed approach" : hasReviewedRouteFallback ? activeReviewedNavigationCandidate?.ownerApproval ? activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions" : "Reviewed route sequence" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? `Named roads · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Named roads to handoff" : "Named roads to saved pin" : namedSelectionRequired ? "Choose a reviewed approach" : hasReviewedRouteFallback ? activeReviewedNavigationCandidate?.ownerApproval ? activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions" : "Reviewed route sequence" : activeAscentPadApproach ? "Last highway to saved GPS" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {reviewedNavigationSafetyHold ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{reviewedNavigationSafetyHold.detail}</strong> BILINOVICH navigation is GPS destination only while its replacement route is traced backward from the pad.</div>
         : displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
         : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. Until then, only GPS destination navigation is available.</p>
         : hasReviewedRouteFallback && activeReviewedNavigationCandidate ? <ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>
+        : activeAscentPadApproach ? <AscentPadApproachDirections approach={activeAscentPadApproach}/>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && !status.route.writtenDirections && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions remain text. They do not create teal geometry; GPS-only navigation may use Google-selected roads.</p></div>
         : <p className="card-empty">No reviewed named-road sequence is on file. Navigation uses the sourced GPS destination only, and no teal line is inferred.</p>}
       {displayedRouteSteps.length > 0 && (selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved"
         ? <div className="inline-warning" role="note"><Icon name="location"/>The teal named-road display ends at the reviewed handoff. The unnamed final movement to the saved pin is not named or highlighted.</div>
         : status.route.source === "exact_graph_handoff" ? <div className="inline-warning" role="note"><Icon name="location"/>The teal named-road display ends at the reviewed handoff. The saved pad GPS remains the separate destination.</div>
         : null)}
-      {hasSavedWrittenDirections && <SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>}
+      {hasSavedWrittenDirections && activeAscentPadApproach?.status !== "ROUTED_DISPLAY" && <SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>}
     </section>
 
     <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>

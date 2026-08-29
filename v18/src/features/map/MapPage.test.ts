@@ -143,6 +143,7 @@ describe("map viewer authority boundary", () => {
   const pageSource = readFileSync(new URL("./MapPage.tsx", import.meta.url), "utf8");
   const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "utf8");
   const ascentDisplaySource = readFileSync(new URL("./ascentPadRoadDisplays.ts", import.meta.url), "utf8");
+  const ascentApproachSource = readFileSync(new URL("./ascentPadApproaches.ts", import.meta.url), "utf8");
   const ascentLayerSource = readFileSync(new URL("./ascentPadRoadLayers.ts", import.meta.url), "utf8");
   const ascentArtifact = JSON.parse(
     readFileSync(new URL("./ascentPadRoadDisplays.batch1.json", import.meta.url), "utf8"),
@@ -197,10 +198,10 @@ describe("map viewer authority boundary", () => {
   });
 
   it("keeps partial canvas geometry selection-only while exact GPS arrivals use the native layer", () => {
-    expect(pageSource).toContain("selectedRouteRef.current = selectedAscentPadRoadDisplay ? null : selectedRouteGeometry");
+    expect(pageSource).toMatch(/selectedRouteRef\.current = selectedAscentPadRoadDisplay \|\| activeSelectedAscentPadApproach\s*\? null\s*: selectedRouteGeometry/);
     expect(pageSource).toContain("drawRoute(context, map, selectedId ? geometry : null)");
     expect(pageSource).toContain("Partial and handoff pad geometry rendered on this canvas is selection-only");
-    expect(pageSource).toContain("selectedAscentPadRoadDisplay ? null : selectedRouteGeometry");
+    expect(pageSource).toContain("selectedAscentPadRoadDisplay || activeSelectedAscentPadApproach");
     expect(pageSource).toContain("authorized company-road network remains separate");
     expect(pageSource).toContain('selectedRouteGeometry && <div className="selected-pad-route-key"');
     expect(pageSource).toContain("Selected pad route · bright teal");
@@ -291,6 +292,31 @@ describe("map viewer authority boundary", () => {
     expect(ascentLayerSource).toContain('"line-color": "#7ef8d8"');
     expect(pageSource).toContain("if (mapRef.current) syncAscentPadRoadSelection(mapRef.current, selectedId)");
     expect(pageSource).not.toContain("isolateSelectedRoute");
+  });
+
+  it("lazy-loads the approach catalog, uses it only as fallback, and waits before fitting an Ascent selection", () => {
+    expect(ascentApproachSource).toContain('import("./ascentPadApproaches.batch2.json")');
+    expect(ascentApproachSource).toContain("let catalogPromise");
+    expect(ascentApproachSource).toContain('if (record.status !== "ROUTED_DISPLAY") return null');
+    expect(pageSource).toContain("loadAscentPadApproachesForDirectory(snapshot.rows)");
+    expect(pageSource).toContain("ascentPadApproachMapDisplays(ascentPadApproaches)");
+    expect(pageSource).toContain("visibleAscentRoadLayerDisplays");
+    expect(pageSource).toContain("ascentPadRoadDisplaysRef.current = visibleAscentRoadLayerDisplays");
+    expect(ascentLayerSource).toContain("export type AscentPadRoadLayerDisplay = AscentPadRoadDisplay | AscentPadApproachMapDisplay");
+    expect(ascentLayerSource.match(/addSource\(/g)).toHaveLength(1);
+    expect(pageSource).toContain("Measured last-highway approach");
+    expect(pageSource).toContain("No approach line or measured mileage is shown because this record failed closed");
+    expect(pageSource).toContain("The straight GPS tether");
+    expect(pageSource).toContain("bounded candidate point on the last named highway; that point is not an approved handoff");
+    expect(pageSource).toContain("begins at an exact highway-road intersection");
+    expect(pageSource).toContain("const activeSelectedAscentPadApproach = !selectedFieldDirectionDisplay");
+    expect(pageSource).toContain("&& !selectedAscentPadRoadDisplay");
+    expect(pageSource).toContain("&& !selectedRouteGeometry");
+    expect(pageSource).toContain('if (selected.company === "Ascent" && !ascentPadApproachesLoaded) return');
+    expect(pageSource).toMatch(/: activeSelectedAscentPadApproach\s*\? activeSelectedAscentPadApproachDisplay\?\.lines\.map/);
+    expect(pageSource).toContain("(!lines.length && !activeSelectedAscentPadApproach)");
+    expect(pageSource).toContain("!activeSelectedAscentPadApproach && (selectedRouteGeometry");
+    expect(pageSource).not.toContain("!activeSelectedAscentPadApproachDisplay && (selectedRouteGeometry");
   });
 
   it("renders GPS-only movement as a neutral dashed unapproved tether, never a teal approved road", () => {

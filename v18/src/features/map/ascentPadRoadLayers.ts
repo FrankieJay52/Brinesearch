@@ -1,6 +1,9 @@
 import type { FilterSpecification, GeoJSONSource, Map as MapLibreMap } from "maplibre-gl";
 import { firstSymbolLayerAfterLines, highwayReferenceCasingLayerId } from "./highwayReference";
+import type { AscentPadApproachMapDisplay } from "./ascentPadApproaches";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
+
+export type AscentPadRoadLayerDisplay = AscentPadRoadDisplay | AscentPadApproachMapDisplay;
 
 export const ascentPadRoadSourceId = "brinesearch-ascent-pad-road-lines";
 export const ascentPadRoadRedCasingLayerId = "brinesearch-ascent-pad-road-red-casing";
@@ -27,10 +30,16 @@ const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"];
 const gpsFilter: FilterSpecification = ["==", ["get", "colorRole"], "gps"];
 const tealFilter: FilterSpecification = ["==", ["get", "colorRole"], "teal"];
 
-export function ascentPadRoadCollection(displays: readonly AscentPadRoadDisplay[]) {
+function displayLines(display: AscentPadRoadLayerDisplay) {
+  return "lines" in display
+    ? display.lines
+    : [display.arrival, display.gpsLeg, display.redContinuation].filter((line) => line !== null);
+}
+
+export function ascentPadRoadCollection(displays: readonly AscentPadRoadLayerDisplay[]) {
   return {
     type: "FeatureCollection" as const,
-    features: displays.flatMap((display) => [display.arrival, display.gpsLeg, display.redContinuation].flatMap((line) => line ? [{
+    features: displays.flatMap((display) => displayLines(display).map((line) => ({
       type: "Feature" as const,
       properties: {
         padId: display.padId,
@@ -42,7 +51,7 @@ export function ascentPadRoadCollection(displays: readonly AscentPadRoadDisplay[
         type: "LineString" as const,
         coordinates: line.coordinates.map(([longitude, latitude]) => [longitude, latitude] as [number, number]),
       },
-    }] : [])),
+    }))),
   };
 }
 
@@ -99,7 +108,7 @@ export function syncAscentPadRoadSelection(map: MapLibreMap, selectedPadId: stri
 
 export function syncAscentPadRoadLayers(
   map: MapLibreMap,
-  displays: readonly AscentPadRoadDisplay[],
+  displays: readonly AscentPadRoadLayerDisplay[],
   selectedPadId: string | null,
 ) {
   const data = ascentPadRoadCollection(displays);

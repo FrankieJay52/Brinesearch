@@ -1,5 +1,6 @@
 import type { Map as MapLibreMap } from "maplibre-gl";
 import { describe, expect, it, vi } from "vitest";
+import type { AscentPadApproachMapDisplay } from "./ascentPadApproaches";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
 import {
   ascentPadRoadCollection,
@@ -120,6 +121,24 @@ describe("Ascent native road-line layers", () => {
         },
       ],
     });
+  });
+
+  it("adds batch2 solid and dashed runs to the same native source", () => {
+    const approach: AscentPadApproachMapDisplay = {
+      kind: "batch2-approach",
+      padId: "pad-2",
+      company: "Ascent",
+      lines: [
+        { type: "LineString", colorRole: "teal", label: "OH-78", coordinates: [[-81.1, 40.1], [-81.11, 40.11]] },
+        { type: "LineString", colorRole: "gps", label: "Unnamed / unapproved access", coordinates: [[-81.11, 40.11], [-81.12, 40.12]] },
+      ],
+    };
+    const collection = ascentPadRoadCollection([display, approach]);
+    expect(collection.features).toHaveLength(4);
+    expect(collection.features.filter((feature) => feature.properties.padId === "pad-2")).toEqual([
+      expect.objectContaining({ properties: expect.objectContaining({ colorRole: "teal", label: "OH-78" }) }),
+      expect.objectContaining({ properties: expect.objectContaining({ colorRole: "gps", label: "Unnamed / unapproved access" }) }),
+    ]);
   });
 
   it("keeps red, GPS, teal, and selected pairs in required paint order", () => {
