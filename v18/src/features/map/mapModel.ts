@@ -6,6 +6,21 @@ export { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 
 export type MapViewerMode = "standard" | "fullscreen" | "roads";
 
+export function mapMarkerVisualStyle(zoom: number, selected: boolean) {
+  if (selected) return { radius: 8, opacity: 1, strokeWidth: 3, stackOffset: 3 };
+  // Keep every pad present and tappable, but stop regional views from becoming
+  // a wall of large outlined dots. The continuous scale avoids visible marker
+  // popping as the driver zooms.
+  const scale = Math.min(1, Math.max(0, (zoom - 7.25) / 4.25));
+  const radius = 2.75 + 2.75 * scale;
+  return {
+    radius,
+    opacity: 0.6 + 0.4 * scale,
+    strokeWidth: 1 + scale,
+    stackOffset: Math.max(1.5, radius * 0.55),
+  };
+}
+
 export function selectedMapRouteIsPrimary(
   namedApproachRouteGroup: "primary" | "alternate" | null,
   routeChoiceGroup: "primary" | "alternate" | null,

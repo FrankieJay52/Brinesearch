@@ -6,6 +6,7 @@ import {
   emptyMapCoordinateNotice,
   filterMapRows,
   mapGoogleHandoffState,
+  mapMarkerVisualStyle,
   mapPadSearchResults,
   selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
@@ -328,5 +329,33 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("groupCoincidentProjectedPads");
     expect(pageSource).toContain("stable double marker");
     expect(pageSource).not.toContain("fillText(group.rows.length");
+  });
+
+  it("defers all-pad canvas projection until mobile camera movement settles", () => {
+    expect(pageSource).toContain('map.on("movestart", () => {');
+    expect(pageSource).toContain('map.on("moveend", () => {');
+    expect(pageSource).not.toContain('map.on("move", scheduleOverlayDraw)');
+    expect(pageSource).toContain("if (overlayInteractionActive) return;");
+    expect(pageSource).toContain("clearOverlayForInteraction();");
+    expect(pageSource).toContain("hitTargetsRef.current = [];");
+    expect(pageSource).toContain("if (!overlayInteractionActive && overlayDirty)");
+    expect(pageSource).toContain("drawOverlay();");
+  });
+});
+
+describe("map marker visual density", () => {
+  it("keeps every pad tappable while shrinking regional-view dots continuously", () => {
+    const regional = mapMarkerVisualStyle(7.25, false);
+    const middle = mapMarkerVisualStyle(9, false);
+    const close = mapMarkerVisualStyle(11.5, false);
+    const selected = mapMarkerVisualStyle(7.25, true);
+
+    expect(regional).toMatchObject({ radius: 2.75, opacity: 0.6, strokeWidth: 1 });
+    expect(regional.stackOffset).toBeCloseTo(1.5125);
+    expect(middle.radius).toBeGreaterThan(regional.radius);
+    expect(middle.radius).toBeLessThan(close.radius);
+    expect(close).toMatchObject({ radius: 5.5, opacity: 1, strokeWidth: 2 });
+    expect(close.stackOffset).toBeCloseTo(3.025);
+    expect(selected).toEqual({ radius: 8, opacity: 1, strokeWidth: 3, stackOffset: 3 });
   });
 });

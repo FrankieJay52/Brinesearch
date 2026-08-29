@@ -46,7 +46,7 @@ describe("Liberty highway reference", () => {
     expect(libertyHighwayReferenceSource(mismatched)).toBeNull();
   });
 
-  it("uses structured U.S. route networks and stays weaker than exact approved routes", () => {
+  it("uses structured U.S. route networks and the dissolved pad-county scope", () => {
     const encodedFilter = JSON.stringify(highwayReferenceFilter);
     expect(encodedFilter).toContain('"network"');
     expect(encodedFilter).toContain('"us-interstate"');
@@ -56,13 +56,26 @@ describe("Liberty highway reference", () => {
     expect(encodedFilter).not.toContain('"ref"');
     expect(highwayReferenceFilter).toContainEqual(["within", highwayReferencePadCountyScope]);
     expect(highwayReferencePadCountyScope.type).toBe("MultiPolygon");
-    expect(highwayReferencePadCountyScope.coordinates).toHaveLength(39);
+    // The 39 county polygons are dissolved into two continuous regional
+    // components so routes stay connected across adjoining pad counties.
+    expect(highwayReferencePadCountyScope.coordinates).toHaveLength(2);
+    expect(highwayReferencePadCountyScope.coordinates.every((component) => component.length > 0)).toBe(true);
+  });
 
+  it("keeps the shared highway reference visible at zoom 7-13 but below exact and selected routes", () => {
     const [casing, line] = highwayReferenceLayerSpecifications({ source: "openmaptiles", sourceLayer: "transportation" });
     expect([casing.id, line.id]).toEqual([highwayReferenceCasingLayerId, highwayReferenceLineLayerId]);
-    expect(line.paint?.["line-color"]).toBe("#159d91");
-    expect(line.paint?.["line-opacity"]).toBe(0.62);
-    expect(line.paint?.["line-width"]).toEqual(["interpolate", ["linear"], ["zoom"], 5.5, 1.35, 9, 2.1, 13, 3]);
+    expect(casing.paint?.["line-opacity"]).toBe(0.62);
+    expect(casing.paint?.["line-width"]).toEqual(["interpolate", ["linear"], ["zoom"], 5.5, 3, 7, 4, 9, 5, 13, 6]);
+    expect(line.paint?.["line-color"]).toBe("#1aa99b");
+    expect(line.paint?.["line-opacity"]).toBe(0.78);
+    expect(line.paint?.["line-width"]).toEqual(["interpolate", ["linear"], ["zoom"], 5.5, 1.2, 7, 1.8, 9, 2.35, 13, 3.1]);
+
+    // Exact released roads are 4px/.86 and the selected route is 5px/1.
+    // Lock the reference beneath both hierarchy levels at its strongest stop.
+    expect(line.paint?.["line-opacity"]).toBeLessThan(0.86);
+    expect((line.paint?.["line-width"] as unknown[]).at(-1)).toBeLessThan(4);
+    expect((casing.paint?.["line-width"] as unknown[]).at(-1)).toBeLessThan(7);
   });
 
   it("inserts overlays after every basemap line while preserving labels above them", () => {

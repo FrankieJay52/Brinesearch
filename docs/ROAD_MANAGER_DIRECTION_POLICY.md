@@ -85,7 +85,8 @@ public-Google authority.
     road name, never turn it into Navigate geometry, and fail closed when the
     Liberty source/layer contract is absent. Clip that presentation layer to
     the repository's 39 confirmed pad counties using the compact U.S. Census
-    Bureau 2025 1:20m county boundary union; do not render it statewide. Draw
+    Bureau 2025 1:20m county boundary union. Dissolve shared county borders so
+    through-highways remain connected; do not render it statewide. Draw
     exact released approved roads in stronger teal above it and the selected
     pad's separately reviewed route brightest above both.
 14. Publishing this client-side handoff never changes graph activation, route

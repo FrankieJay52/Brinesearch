@@ -57,7 +57,8 @@ brighter pad-bound display above the network.
 The map also draws a thinner teal Interstate, U.S., and state highway reference
 from the loaded OpenFreeMap Liberty vector source/layer, clipped to the 39
 confirmed Ohio, West Virginia, and Pennsylvania pad counties already frozen in
-the repository. It uses only the exact structured `network` identities
+the repository. Shared county borders are dissolved so a through-highway stays
+connected across adjoining pad counties. It uses only the exact structured `network` identities
 `us-interstate`, `us-highway`, and `us-state`; it does not match road names,
 infer a company association, or become Navigate geometry. The presentation
 clip uses the U.S. Census Bureau 2025 1:20m county boundaries. If Liberty's

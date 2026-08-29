@@ -37,6 +37,7 @@ import {
   mapCompanyOptions,
   mapDisplayCoordinate,
   mapGoogleHandoffState,
+  mapMarkerVisualStyle,
   mapRoadSelectionForCompany,
   selectedMapRouteIsPrimary,
   mapViewerModeFromParam,
@@ -253,13 +254,15 @@ function drawStableLocationMarker(
   context: CanvasRenderingContext2D,
   group: ReturnType<typeof groupCoincidentProjectedPads>[number],
   selectedId: string | null,
+  zoom: number,
 ) {
   const selectedPoint = selectedId ? group.points.find((point) => point.row.padId === selectedId) : null;
   const point = selectedPoint || group.points[0];
   const row = point.row;
   const selected = Boolean(selectedPoint);
   const stacked = group.rows.length > 1;
-  const radius = selected ? 8 : 5.5;
+  const visual = mapMarkerVisualStyle(zoom, selected);
+  const radius = visual.radius;
 
   if (selected) {
     context.beginPath();
@@ -269,20 +272,23 @@ function drawStableLocationMarker(
   }
 
   const drawDot = (x: number, y: number, fill: string) => {
+    const previousAlpha = context.globalAlpha;
+    context.globalAlpha = visual.opacity;
     context.beginPath();
     context.arc(x, y, radius, 0, Math.PI * 2);
     context.fillStyle = fill;
     context.fill();
     context.strokeStyle = selected ? "#ffffff" : "#07131f";
-    context.lineWidth = selected ? 3 : 2;
+    context.lineWidth = visual.strokeWidth;
     context.stroke();
+    context.globalAlpha = previousAlpha;
   };
 
   if (stacked) {
     // Exact-coordinate duplicates use a stable double marker. It never
     // absorbs nearby locations or changes membership while the map moves.
-    drawDot(group.x - 3, group.y + 3, "#d9fbf5");
-    drawDot(group.x + 3, group.y - 3, pointColor(row, point.coordinate));
+    drawDot(group.x - visual.stackOffset, group.y + visual.stackOffset, "#d9fbf5");
+    drawDot(group.x + visual.stackOffset, group.y - visual.stackOffset, pointColor(row, point.coordinate));
   } else {
     drawDot(group.x, group.y, pointColor(row, point.coordinate));
   }
@@ -387,9 +393,10 @@ function drawPadOverlay(
   }).filter((point) => point.x >= -40 && point.x <= width + 40 && point.y >= -40 && point.y <= height + 40);
   const groups = groupCoincidentProjectedPads(projected);
   const targets: PadHitTarget[] = [];
+  const markerZoom = map.getZoom();
 
   for (const group of groups) {
-    const marker = drawStableLocationMarker(context, group, selectedId);
+    const marker = drawStableLocationMarker(context, group, selectedId, markerZoom);
     targets.push({ ...group, radius: marker.radius });
   }
 
@@ -683,9 +690,29 @@ export function MapPage() {
     let basemapReady = false;
     let fallbackApplied = false;
     let drawFrame: number | null = null;
+    let overlayInteractionActive = false;
+    let overlayDirty = true;
+
+    const clearOverlayForInteraction = () => {
+      const canvas = padOverlay.current;
+      if (!canvas) return;
+      const context = canvas.getContext("2d");
+      if (context) {
+        context.setTransform(1, 0, 0, 1, 0, 0);
+        context.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      // Targets are screen-space coordinates. Keeping them while the map is
+      // moving could open a pad that is no longer under the driver's finger.
+      hitTargetsRef.current = [];
+      map.getCanvas().style.cursor = "";
+    };
 
     const drawOverlay = () => {
       if (!padOverlay.current || !mapHost.current) return;
+      if (overlayInteractionActive) {
+        overlayDirty = true;
+        return;
+      }
       let result: ReturnType<typeof drawPadOverlay>;
       try {
         result = drawPadOverlay(
@@ -702,6 +729,7 @@ export function MapPage() {
         setMapNotice("Mapped locations could not be rendered. Search remains available.");
         return;
       }
+      overlayDirty = false;
       hitTargetsRef.current = result.targets;
       mapHost.current.dataset.padInputFeatures = String(result.inputCount);
       mapHost.current.dataset.padRenderedFeatures = String(result.renderedCount);
@@ -728,6 +756,8 @@ export function MapPage() {
     };
 
     const scheduleOverlayDraw = () => {
+      overlayDirty = true;
+      if (overlayInteractionActive) return;
       if (drawFrame !== null) window.cancelAnimationFrame(drawFrame);
       drawFrame = window.requestAnimationFrame(() => {
         drawFrame = null;
@@ -811,9 +841,34 @@ export function MapPage() {
         setMapNotice("Mapped locations ready; some basemap detail is still loading.");
       }
     });
-    map.on("move", scheduleOverlayDraw);
+    map.on("movestart", () => {
+      overlayInteractionActive = true;
+      overlayDirty = true;
+      if (drawFrame !== null) {
+        window.cancelAnimationFrame(drawFrame);
+        drawFrame = null;
+      }
+      // Projecting every directory row and repainting every marker on each
+      // phone pan/zoom frame competes with MapLibre's tile and road renderer.
+      // Remove the screen-space overlay once, let native roads move smoothly,
+      // then rebuild exact markers and hit targets after the camera settles.
+      clearOverlayForInteraction();
+    });
+    map.on("moveend", () => {
+      overlayInteractionActive = false;
+      scheduleOverlayDraw();
+    });
     map.on("resize", scheduleOverlayDraw);
     map.on("click", (event: MapMouseEvent) => {
+      // A tap can land after moveend but before its queued animation frame.
+      // Refresh synchronously so click selection always uses final coordinates.
+      if (!overlayInteractionActive && overlayDirty) {
+        if (drawFrame !== null) {
+          window.cancelAnimationFrame(drawFrame);
+          drawFrame = null;
+        }
+        drawOverlay();
+      }
       const target = [...hitTargetsRef.current].reverse().find((candidate) => Math.hypot(event.point.x - candidate.x, event.point.y - candidate.y) <= candidate.radius);
       if (!target) {
         setLocationChoices(null);

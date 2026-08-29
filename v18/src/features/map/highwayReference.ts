@@ -13,9 +13,10 @@ export const highwayReferenceLineLayerId = "brinesearch-highway-reference-line";
 // road names and must never be expanded with text, fuzzy, or nearest matching.
 export const highwayReferenceNetworks = ["us-interstate", "us-highway", "us-state"] as const;
 
-// Compact U.S. Census Bureau 2025 1:20m cartographic-boundary union for the
-// repository's existing 39-county confirmed pad footprint (OH/WV/PA). This
-// only clips presentation; it never supplies, edits, or infers road geometry.
+// Compact, dissolved U.S. Census Bureau 2025 1:20m cartographic-boundary union
+// for the repository's existing 39-county confirmed pad footprint (OH/WV/PA).
+// Dissolving shared county borders keeps through-highways connected. This only
+// clips presentation; it never supplies, edits, or infers road geometry.
 export const highwayReferencePadCountyScope = padCountyHighwayScope as MultiPolygon;
 
 const libertyConnectedRoadLayerIds = [
@@ -100,18 +101,21 @@ export function highwayReferenceLayerSpecifications(
       ...shared,
       id: highwayReferenceCasingLayerId,
       paint: {
-        "line-color": "rgba(7, 19, 31, .64)",
-        "line-opacity": 0.5,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5.5, 3, 9, 4.5, 13, 6],
+        "line-color": "rgba(7, 19, 31, .72)",
+        "line-opacity": 0.62,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5.5, 3, 7, 4, 9, 5, 13, 6],
       },
     },
     {
       ...shared,
       id: highwayReferenceLineLayerId,
       paint: {
-        "line-color": "#159d91",
-        "line-opacity": 0.62,
-        "line-width": ["interpolate", ["linear"], ["zoom"], 5.5, 1.35, 9, 2.1, 13, 3],
+        // On a phone, 1px-ish mid-zoom lines disappear under dense pad dots.
+        // This remains below exact approved roads (4px/.86) and the selected
+        // pad route (5px/1), while staying legible from regional zoom 7 onward.
+        "line-color": "#1aa99b",
+        "line-opacity": 0.78,
+        "line-width": ["interpolate", ["linear"], ["zoom"], 5.5, 1.2, 7, 1.8, 9, 2.35, 13, 3.1],
       },
     },
   ];
