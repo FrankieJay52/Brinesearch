@@ -5,6 +5,8 @@ import {
   candidateContentDigest,
   csv,
   driverRuleStatusForState,
+  existingIdentityBatch2Holds,
+  existingIdentityBatch2PadIds,
   explicitReceiptForPad,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
@@ -93,8 +95,28 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("1"), "DONE");
   assert.equal(driverRuleStatusForState("2"), "DONE");
   assert.equal(driverRuleStatusForState("reviewed_handoff_authority_held"), "DONE");
+  assert.equal(driverRuleStatusForState("reviewed_existing_identity_hook"), "DONE");
   assert.equal(driverRuleStatusForState("3"), "GPS_ONLY");
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
+});
+
+test("batch-2 adds twenty-five exact existing-identity bindings and holds VANNELLE fail-closed", () => {
+  const padIds = existingIdentityBatch2PadIds();
+  assert.equal(padIds.length, 25);
+  assert.equal(new Set(padIds).size, 25);
+  for (const padId of padIds) {
+    const binding = reviewedBindingForPad(padId);
+    assert.ok(binding, `missing batch-2 binding for ${padId}`);
+    assert.equal(reviewedBindingMatches(rowFor(binding), { ...binding.directoryDestination }, binding), true);
+    assert.match(explicitReceiptForPad(padId), /exact existing Road Manager identities/u);
+    assert.doesNotMatch(explicitReceiptForPad(padId), /approved (?:lease|geometry|public Google)|State 1 release/iu);
+  }
+  const holds = existingIdentityBatch2Holds();
+  assert.equal(holds.length, 1);
+  assert.equal(holds[0].padName, "VANNELLE");
+  assert.equal(holds[0].disposition, "GPS_ONLY");
+  assert.match(holds[0].reason, /return to OH-9/u);
+  assert.equal(reviewedBindingForPad(holds[0].padId), null);
 });
 
 test("all forty-six reviewed ledger states require every exact record and destination field", () => {
@@ -363,10 +385,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /55 DONE reviewed named-road handoffs \/ 192 GPS_ONLY/u);
+  assert.match(summary, /247 \/ 0 DONE named-road handoffs \/ 0 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 0 pads have no passing named-road handoff yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

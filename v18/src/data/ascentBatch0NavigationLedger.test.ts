@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import type { PadMapReferenceKind, PadSummary } from "./types";
 import { reviewedNavigationCandidateForPad } from "./reviewedNavigationCandidates";
+import {
+  ascentExistingIdentityNavigationBatch2,
+  ascentExistingIdentityNavigationBatch2Holds,
+} from "./ascentExistingIdentityNavigationBatch2";
 import { buildFixedNavigationAction, type GoogleHandoffView } from "@/features/pad/PadPage";
 
 const ledgerText = readFileSync(
@@ -98,14 +102,20 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(ledger).toHaveLength(247);
     expect(new Set(ledger.map((row) => row.record_id)).size).toBe(247);
     expect(new Set(ledger.map((row) => row.name)).size).toBe(247);
-    expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
+    expect(Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held", "reviewed_existing_identity_hook"].map((state) => [
       state,
       ledger.filter((row) => row.current_state === state).length,
-    ]))).toEqual({ "1": 1, "2": 8, "3": 192, reviewed_handoff_authority_held: 46 });
+    ]))).toEqual({
+      "1": 1,
+      "2": 8,
+      "3": 167,
+      reviewed_handoff_authority_held: 46,
+      reviewed_existing_identity_hook: 25,
+    });
     expect(Object.fromEntries(["DONE", "GPS_ONLY"].map((status) => [
       status,
       ledger.filter((row) => row.driver_rule_status === status).length,
-    ]))).toEqual({ DONE: 55, GPS_ONLY: 192 });
+    ]))).toEqual({ DONE: 80, GPS_ONLY: 167 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
@@ -118,9 +128,9 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       .every((row) => row.blocker === "No reviewed named-road sequence; use the trusted GPS destination only.")).toBe(true);
   });
 
-  it("keeps all 192 pads without a reviewed named sequence GPS-only", () => {
+  it("keeps all 167 pads without a passing named sequence GPS-only", () => {
     const gpsOnly = ledger.filter((row) => row.driver_rule_status === "GPS_ONLY");
-    expect(gpsOnly).toHaveLength(192);
+    expect(gpsOnly).toHaveLength(167);
     for (const row of gpsOnly) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
@@ -134,6 +144,32 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       expect(url.searchParams.get("destination"), row.name)
         .toBe(`${row.destination_latitude},${row.destination_longitude}`);
     }
+  });
+
+  it("resolves the 25 exact existing-identity hooks without geometry or owner approval", () => {
+    const expectedIds = new Set(ascentExistingIdentityNavigationBatch2.map(({ padId }) => padId));
+    const hooked = ledger.filter((row) => row.current_state === "reviewed_existing_identity_hook");
+    expect(hooked).toHaveLength(25);
+    expect(new Set(hooked.map(({ record_id }) => record_id))).toEqual(expectedIds);
+    for (const row of hooked) {
+      const candidate = reviewedNavigationCandidateForPad(padFromLedger(row));
+      expect(candidate?.ownerApproval, row.name).toBeUndefined();
+      expect(candidate?.roadIdentityHook?.length, row.name).toBeGreaterThanOrEqual(1);
+      expect(candidate?.finalLegNotice, row.name).toMatch(/creates no road identity, geometry, teal authority/u);
+      const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
+      expect(action.kind, row.name).toBe("reviewed_route");
+      const url = new URL(action.href!);
+      expect(url.searchParams.get("origin"), row.name).toBeNull();
+      expect(url.searchParams.get("destination"), row.name)
+        .toBe(`${row.destination_latitude},${row.destination_longitude}`);
+    }
+  });
+
+  it("keeps VANNELLE GPS-only because its recorded Shepherdstown control backtracks", () => {
+    const hold = ascentExistingIdentityNavigationBatch2Holds[0];
+    const row = ledger.find(({ record_id }) => record_id === hold.padId);
+    expect(row).toMatchObject({ name: "VANNELLE", current_state: "3", driver_rule_status: "GPS_ONLY" });
+    expect(reviewedNavigationCandidateForPad(padFromLedger(row!))).toBeNull();
   });
 
   it("resolves all forty-six exact-record reviewed handoffs without waiting on promotion state", () => {
@@ -189,7 +225,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("uses one label for all 55 DONE handoffs and GPS-only only where no sequence exists", () => {
+  it("uses one label for all 80 DONE handoffs and GPS-only only where no passing sequence exists", () => {
     expect([...new Set(ledger.filter((row) => row.driver_rule_status === "DONE")
       .map((row) => row.navigation_label))]).toEqual(["Named roads to saved pin"]);
     expect([...new Set(ledger.filter((row) => row.driver_rule_status === "GPS_ONLY")

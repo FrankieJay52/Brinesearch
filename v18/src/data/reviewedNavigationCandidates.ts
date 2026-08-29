@@ -1,6 +1,7 @@
 import { parseCoordinatePair } from "./coordinates";
 import type { PadSummary } from "./types";
 import { trustedPadDestination, type PadDestinationSource } from "./googleDestination";
+import { ascentExistingIdentityNavigationBatch2 } from "./ascentExistingIdentityNavigationBatch2";
 
 export interface ReviewedNavigationCandidate {
   padId: string;
@@ -8,8 +9,16 @@ export interface ReviewedNavigationCandidate {
   detail: string;
   routeUrl: string;
   reviewedRoadSequence?: string;
+  roadIdentityHook?: readonly ReviewedRoadIdentityHookEntry[];
   finalLegNotice?: string;
   ownerApproval?: OwnerApprovedNavigationPresentation;
+}
+
+export interface ReviewedRoadIdentityHookEntry {
+  roadId: string;
+  county: string;
+  roadName: string;
+  routeNumber: string;
 }
 
 // These record-bound handoffs are ordinary driver navigation once Google has
@@ -474,6 +483,7 @@ interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
 }
 
 const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
+  ...ascentExistingIdentityNavigationBatch2,
   {
     padId: "143f5268-33e4-4598-8101-40220b5cfdc4",
     canonicalId: "143f5268-33e4-4598-8101-40220b5cfdc4",
@@ -1638,6 +1648,7 @@ export function reviewedNavigationCandidateForPad(
     detail: contract.detail,
     routeUrl: contract.routeUrl,
     reviewedRoadSequence: contract.reviewedRoadSequence,
+    roadIdentityHook: contract.roadIdentityHook,
     finalLegNotice: contract.finalLegNotice,
     ownerApproval,
   };
