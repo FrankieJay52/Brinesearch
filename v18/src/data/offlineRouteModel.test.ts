@@ -136,6 +136,62 @@ describe("V18 offline route SQLite model", () => {
     expect(status?.routeSteps).toEqual(exactStatus().routeSteps);
   });
 
+  it.each([
+    ["exact graph", exactStatus],
+    ["exact graph handoff", immutableHandoffStatus],
+  ])("preserves sanitized saved directions beside a cacheable %s route", (_label, statusFactory) => {
+    const sourcePad = pad();
+    const sourceStatus = statusFactory();
+    sourceStatus.route.writtenDirections = "Road sequence reference:\nOH-7 → CR-10\n\nStep-by-step directions:\n1. Continue on CR-10.";
+    sourceStatus.route.writtenDirectionsSource = "directions_clear";
+    sourceStatus.route.writtenDirectionsSourceRevision = "2026-08-29T12:00:00.000Z";
+
+    const record = buildOfflineRouteRecord(sourcePad, sourceStatus, "2026-08-29T12:02:00.000Z");
+    expect(record?.contract).toMatchObject({
+      writtenDirections: sourceStatus.route.writtenDirections,
+      writtenDirectionsSource: "directions_clear",
+      writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+    });
+
+    const restored = restoreOfflinePadStatus(sourcePad, record);
+    expect(restored?.route).toMatchObject({
+      source: sourceStatus.route.source,
+      writtenDirections: sourceStatus.route.writtenDirections,
+      writtenDirectionsSource: "directions_clear",
+      writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+    });
+    expect(restored?.routeSteps).toEqual(sourceStatus.routeSteps);
+  });
+
+  it("requires a complete text, source, and revision triple for exact-route offline prose", () => {
+    const sourceStatus = exactStatus();
+    sourceStatus.route.writtenDirections = "Continue on the saved field road.";
+    expect(buildOfflineRouteRecord(pad(), sourceStatus)).toBeNull();
+
+    sourceStatus.route.writtenDirectionsSource = "written_directions";
+    expect(buildOfflineRouteRecord(pad(), sourceStatus)).toBeNull();
+
+    sourceStatus.route.writtenDirectionsSourceRevision = "2026-08-29T12:00:00.000Z";
+    const record = buildOfflineRouteRecord(pad(), sourceStatus)!;
+    expect(record).not.toBeNull();
+
+    const missingSource = copyRecord(record);
+    missingSource.contract.writtenDirectionsSource = null;
+    expect(restoreOfflinePadStatus(pad(), missingSource)).toBeNull();
+
+    const invalidRevision = copyRecord(record);
+    invalidRevision.contract.writtenDirectionsSourceRevision = "not-a-date";
+    expect(restoreOfflinePadStatus(pad(), invalidRevision)).toBeNull();
+  });
+
+  it("does not let saved text bypass the exact geometry cache gate", () => {
+    const status = exactStatus();
+    status.route.geometry = null;
+    status.route.writtenDirections = "1. Continue on the reviewed road.";
+    status.route.writtenDirectionsSource = "written_directions";
+    expect(buildOfflineRouteRecord(pad(), status)).toBeNull();
+  });
+
   it("restores a validated frozen core handoff without claiming an offline revocation check", () => {
     const sourcePad = pad();
     const status = immutableHandoffStatus();
@@ -191,6 +247,8 @@ describe("V18 offline route SQLite model", () => {
     const status = restoreOfflinePadStatus(sourcePad, record);
     expect(status?.route).toMatchObject({ state: "held", source: "legacy_written" });
     expect(status?.route.writtenDirections).toBe("Road sequence reference:\\n1. Continue on CR-10.");
+    expect(status?.route.writtenDirectionsSource).toBeNull();
+    expect(status?.route.writtenDirectionsSourceRevision).toBeNull();
     expect(status?.routeSteps).toEqual([]);
   });
 

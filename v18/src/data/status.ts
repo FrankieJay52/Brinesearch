@@ -1,4 +1,4 @@
-import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary } from "./types";
+import type { DirectorySourceState, DriverPadStatus, DriverRouteGeometry, DriverRouteStep, PadSummary, WrittenDirectionsSource } from "./types";
 import { buildCoreDestinationReleasePlan, buildGoogleRoutePublicPlan, buildNamedApproachReleaseSet } from "./googleRoute";
 import { parseCoordinatePair } from "./coordinates";
 import { trustedPadDestination } from "./googleDestination";
@@ -12,6 +12,7 @@ const routeStates = new Set<DriverPadStatus["route"]["state"]>(["ready", "writte
 const routeSources = new Set<DriverPadStatus["route"]["source"]>(["exact_graph", "exact_graph_handoff", "reviewed_written", "legacy_written", "destination_only", "none"]);
 const graphStates = new Set<DriverPadStatus["graph"]["state"]>(["active_current", "verified_release", "stale", "held", "unavailable"]);
 const googleStates = new Set<DriverPadStatus["google"]["publicState"]>(["ready", "held", "not_published", "stale", "unavailable"]);
+const writtenDirectionsSources = new Set<WrittenDirectionsSource>(["directions_clear", "written_directions"]);
 const maxPublicRouteSteps = 500;
 const maxPublicRouteLinePoints = 20_000;
 const maxPublicRoutePoints = 50_000;
@@ -82,6 +83,15 @@ function safeEnum<T extends string>(value: unknown, allowed: Set<T>, fallback: T
   return typeof value === "string" && allowed.has(value as T) ? (value as T) : fallback;
 }
 
+function safeNullableEnum<T extends string>(value: unknown, allowed: Set<T>): T | null {
+  return typeof value === "string" && allowed.has(value as T) ? value as T : null;
+}
+
+function nullableDate(value: unknown) {
+  const text = nullableText(value);
+  return text && !Number.isNaN(Date.parse(text)) ? text : null;
+}
+
 function isEnumValue<T extends string>(value: unknown, allowed: Set<T>): value is T {
   return typeof value === "string" && allowed.has(value as T);
 }
@@ -127,6 +137,8 @@ function fallbackStatus(pad: PadSummary, sourceState?: DirectorySourceState): Dr
       safeReason: "No current public route status is available.",
       lastVerifiedAt: null,
       writtenDirections: null,
+      writtenDirectionsSource: null,
+      writtenDirectionsSourceRevision: null,
     },
     graph: { state: "unavailable", county: pad.county || null, publicSource: null, lastVerifiedAt: null },
     google: { publicState: "not_published", routeUrl: null, safeReason: "No exact Google handoff is available." },
@@ -278,6 +290,24 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
       : "The approved route response failed exact public validation and cannot be used."
     : nullableText(route.safeReason ?? row.route_safe_reason);
   const steps = displayProjection?.steps || [];
+  const candidateWrittenDirections = nullableText(route.writtenDirections ?? row.written_directions) ?? base.route.writtenDirections;
+  const candidateWrittenDirectionsSource = candidateWrittenDirections
+    ? safeNullableEnum(
+      route.writtenDirectionsSource ?? row.written_directions_source,
+      writtenDirectionsSources,
+    )
+    : null;
+  const candidateWrittenDirectionsSourceRevision = candidateWrittenDirections
+    ? nullableDate(route.writtenDirectionsSourceRevision ?? row.written_directions_source_revision)
+    : null;
+  const exactDirectionProvenanceValid = candidateWrittenDirections === null
+    || candidateWrittenDirectionsSource !== null && candidateWrittenDirectionsSourceRevision !== null;
+  const acceptWrittenDirections = safeRouteSource !== "exact_graph"
+    && safeRouteSource !== "exact_graph_handoff"
+    || exactDirectionProvenanceValid;
+  const writtenDirections = acceptWrittenDirections ? candidateWrittenDirections : null;
+  const writtenDirectionsSource = acceptWrittenDirections ? candidateWrittenDirectionsSource : null;
+  const writtenDirectionsSourceRevision = acceptWrittenDirections ? candidateWrittenDirectionsSourceRevision : null;
   const claimedGoogleState = safeEnum(googleState, googleStates, base.google.publicState);
   const safeGoogleState = claimedGoogleState === "ready" && !exactResponseReady ? "stale" : claimedGoogleState;
   return {
@@ -294,7 +324,9 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
       geometry: displayProjection?.geometry || null,
       safeReason: routeSafeReason,
       lastVerifiedAt: nullableText(route.lastVerifiedAt ?? row.route_last_verified_at),
-      writtenDirections: nullableText(route.writtenDirections ?? row.written_directions) ?? base.route.writtenDirections,
+      writtenDirections,
+      writtenDirectionsSource,
+      writtenDirectionsSourceRevision,
     },
     graph: {
       state: safeGraphState,

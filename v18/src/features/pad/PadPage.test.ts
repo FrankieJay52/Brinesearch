@@ -3,10 +3,11 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
+import { parseSavedDirectionReference } from "@/data/savedDirectionReference";
 import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import approachArtifact from "@/features/map/ascentPadApproaches.batch2.json";
 import { parseAscentPadApproachArtifact } from "@/features/map/ascentPadApproaches";
-import { AscentPadApproachDirections, buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
+import { AscentPadApproachDirections, buildFixedNavigationAction, buildGoogleHandoffView, currentStatusForPad, destinationPinUrl, displayedRouteForChoice, FixedNavigateAction, PadGpsActions, padRouteConnectionState, ReviewedRouteFallback, ReviewedWrittenDirections, SavedFieldDirections, savedDirectionReferenceInputs, savedDirectionsNeedReviewedRouteWarning, shouldShowSavedWrittenDirections } from "./PadPage";
 
 const padPage = readFileSync(new URL("./PadPage.tsx", import.meta.url), "utf8");
 const padMapPreview = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
@@ -420,8 +421,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain("DO NOT ENTER from the east gate.");
     expect(html).toContain("Additional saved direction notes");
     expect(html).toContain("Saved written driving directions");
-    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeGreaterThan(html.indexOf("<ol"));
-    expect(padPage).toContain("<SavedFieldDirections directionsClear={status.route.writtenDirections} writtenDirections={pad.writtenDirections}");
+    expect(html.indexOf("DO NOT ENTER from the east gate.")).toBeLessThan(html.indexOf("<ol"));
+    expect(padPage).toContain("<SavedFieldDirections {...savedDirectionInputs}");
     expect(padPage).not.toContain('<details className="detail-card" open><summary><span><strong>Written field directions</strong>');
   });
 
@@ -445,6 +446,30 @@ describe("V18 pad legacy route fallback", () => {
     }));
     expect(html).toContain("Saved field directions");
     expect(html).toContain("Continue 1.2 miles.");
+  });
+
+  it("routes exact-route text through its declared saved-direction source", () => {
+    const sourceText = "Road sequence reference:\nOH-7 → CR-10\n\nStep-by-step directions:\n1. Continue on CR-10.";
+    const clearInputs = savedDirectionReferenceInputs({
+      writtenDirections: sourceText,
+      writtenDirectionsSource: "directions_clear",
+    }, "Private raw fallback must not win.");
+    const writtenInputs = savedDirectionReferenceInputs({
+      writtenDirections: sourceText,
+      writtenDirectionsSource: "written_directions",
+    }, "Private raw fallback must not win.");
+
+    expect(clearInputs).toEqual({ directionsClear: sourceText });
+    expect(writtenInputs).toEqual({ writtenDirections: sourceText });
+    expect(parseSavedDirectionReference(clearInputs)?.source).toBe("directions_clear");
+    expect(parseSavedDirectionReference(writtenInputs)?.source).toBe("written_directions");
+
+    const clearHtml = renderToStaticMarkup(createElement(SavedFieldDirections, clearInputs));
+    const writtenHtml = renderToStaticMarkup(createElement(SavedFieldDirections, writtenInputs));
+    expect(clearHtml).toContain("Saved written driving directions");
+    expect(writtenHtml).toContain('class="written-directions"');
+    expect(writtenHtml).not.toContain("Saved written driving directions");
+    expect(`${clearHtml}${writtenHtml}`).not.toContain("Private raw fallback must not win.");
   });
 
   it("shows saved directions alongside a reviewed Google handoff", () => {
@@ -477,16 +502,24 @@ describe("V18 pad legacy route fallback", () => {
     const ordinary = renderToStaticMarkup(createElement(SavedFieldDirections, { value }));
     const alongsideReviewed = renderToStaticMarkup(createElement(SavedFieldDirections, { value, mayDifferFromReviewedRoute: true }));
 
-    expect(ordinary).not.toContain("may not match the reviewed Google handoff");
+    expect(ordinary).not.toContain("may not match the route display or Google handoff");
     expect(alongsideReviewed).toContain("Reference only");
-    expect(alongsideReviewed).toContain("may not match the reviewed Google handoff");
+    expect(alongsideReviewed).toContain("may not match the route display or Google handoff");
     expect(alongsideReviewed).toContain("Text only · no teal geometry");
   });
 
   it("warns for an active reviewed candidate even when it has no display road sequence", () => {
-    expect(savedDirectionsNeedReviewedRouteWarning(null)).toBe(false);
-    expect(savedDirectionsNeedReviewedRouteWarning({ padId: "lawson-reviewed-candidate-without-display-sequence" })).toBe(true);
-    expect(padPage).toContain("savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)");
+    expect(savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: null, displayedRouteStepCount: 0, namedApproach: null, hasMeasuredDisplayRoute: false })).toBe(false);
+    expect(savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: { padId: "lawson-reviewed-candidate-without-display-sequence" }, displayedRouteStepCount: 0, namedApproach: null, hasMeasuredDisplayRoute: false })).toBe(true);
+  });
+
+  it("warns whenever saved directions coexist with exact steps or a named approach", () => {
+    expect(savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: null, displayedRouteStepCount: 2, namedApproach: null, hasMeasuredDisplayRoute: false })).toBe(true);
+    expect(savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: null, displayedRouteStepCount: 0, namedApproach: { approachKey: "reviewed-named-approach" }, hasMeasuredDisplayRoute: false })).toBe(true);
+    expect(savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: null, displayedRouteStepCount: 0, namedApproach: null, hasMeasuredDisplayRoute: true })).toBe(true);
+    expect(padPage).toContain("displayedRouteStepCount: displayedRouteSteps.length");
+    expect(padPage).toContain("namedApproach: selectedNamedApproach");
+    expect(padPage).toContain('hasMeasuredDisplayRoute: activeAscentPadApproach?.status === "ROUTED_DISPLAY"');
   });
 
   it("labels a handoff route as an approved road core plus a separate GPS destination", () => {
@@ -798,7 +831,7 @@ describe("V18 pad legacy route fallback", () => {
   it("shows saved written directions with mileage in the main road sequence without claiming approval", () => {
     expect(padPage).toContain("const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({");
     expect(padPage).toContain('<section className="saved-field-directions"');
-    expect(padPage).toContain("<SavedFieldDirections directionsClear={status.route.writtenDirections} writtenDirections={pad.writtenDirections} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
+    expect(padPage).toContain("<SavedFieldDirections {...savedDirectionInputs} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: activeReviewedNavigationCandidate, displayedRouteStepCount: displayedRouteSteps.length, namedApproach: selectedNamedApproach, hasMeasuredDisplayRoute: activeAscentPadApproach?.status === \"ROUTED_DISPLAY\" })}/>");
     expect(padPage).toContain("Saved field directions");
     expect(padPage).toContain("Text only · no teal geometry");
     expect(padPage).toContain("Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.");

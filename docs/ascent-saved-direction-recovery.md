@@ -33,7 +33,7 @@ This checkpoint changes no map geometry, route release, Road Manager mapping, gr
 - normalizes only Unicode form, case, and whitespace for comparison;
 - does not equate aliases such as `OH-78` and `SR-78`, `Maynard` and `Maynard Road`, or any nearest/fuzzy/name-only match;
 - compares numbered saved steps only when route prep explicitly stores the exact saved text it matched;
-- reports attached road IDs, identity work still pending, generic/ambiguous steps, private/lease steps, and exact blockers; and
+- reports attached road IDs, identity work still pending, clear-vs-structured sequence conflicts, generic/ambiguous steps, private/lease steps, forbidden match methods, Road-ID/status contradictions, and exact blockers; and
 - keeps output order deterministic by county, pad name, and pad ID.
 
 The script contains a read-only export query. It can be printed with:
@@ -79,14 +79,19 @@ The deterministic exact-source pass classified the 247 rows as:
 | `GENERIC_OR_AMBIGUOUS` | 0 |
 | `PRIVATE_ACCESS_PENDING` | 0 |
 
-The classification is a single deterministic primary category. Concurrent blocker fields remain populated even when an earlier category wins. Across the same active prep rows, those concurrent counts are:
+The classification is a single deterministic primary category. Concurrent blocker fields remain populated even when an earlier category wins. The step-level counts below come from the 223 active prep rows; the clear-vs-structured conflict count comes from the 243 pads carrying both saved sequence representations.
 
 | Concurrent blocker/evidence | Count |
 | --- | ---: |
 | Public-road steps needing an official identity match | 211 |
+| Exact `directions_clear` / `structured_road_sequence` conflicts | 240 |
 | Generic or ambiguous steps | 42 |
 | Private or lease steps | 153 |
+| Forbidden fuzzy/name-only/nearest/semantic match methods | 0 |
+| Unreviewed or missing exact-status match methods | 0 |
 | Road-ID / match-status contradictions | 5 |
+
+The forbidden-method count was rechecked read-only at **2026-08-29 23:14:14.091016+00:00** after that fail-closed audit rule was added. The reviewed exact-method allowlist had zero unknown exact-status methods at **2026-08-29 23:20:24.124166+00:00**. The cross-source sequence comparison was rechecked at **2026-08-29 23:17:02.049625+00:00**: 243 pads had both fields, 240 differed under the audit's exact normalization, and 3 matched exactly. A conflict records two preserved source representations; it does not choose one by fuzzy equivalence.
 
 `SOURCE_STEP_DROPPED` does not mean the saved directions were deleted. It means the current prep representation does not exactly preserve the saved ordered source under the deliberately strict comparison. Those rows are the future reconciliation queue; no alias inference or geometry promotion was used to make them appear complete.
 
@@ -96,6 +101,6 @@ The classification is a single deterministic primary category. Concurrent blocke
 - The 222 pads with both cleaned source and active prep still have at least one exact ordered source/prep mismatch.
 - Numbered saved instructions often lack an explicit per-step `matched_from_saved_text` link, so the audit reports that relationship unresolved instead of comparing prose semantically.
 - Public road identities, generic steps, and private access remain separate concurrent work queues shown above.
-- The current exact-ready public status contract can return no saved prose for some ready records. This frontend checkpoint displays both layers whenever exact-pad-bound saved text is supplied; changing the public data projection would require a separately authorized contract/migration task outside this file scope.
+- The additive migration in this checkpoint attaches exact-pad sanitized saved text to both exact-ready status paths without changing their status-revision, route, graph, geometry, or Google-release bytes. It also limits the `written_directions` fallback to the measured Ascent Ohio six-county scope. The migration is committed for review only and has not been applied to production.
 
 Production writes: **0**. Graph changes: **0**. Public Google changes: **0**. Cutover changes: **0**.

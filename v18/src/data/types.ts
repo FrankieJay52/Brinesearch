@@ -10,6 +10,7 @@ export type CoordinateRole = "driver_entrance" | "saved_pad_destination" | "lega
 
 export type RouteState = "ready" | "written_only" | "held" | "stale" | "unavailable";
 export type RouteSource = "exact_graph" | "exact_graph_handoff" | "reviewed_written" | "legacy_written" | "destination_only" | "none";
+export type WrittenDirectionsSource = "directions_clear" | "written_directions";
 export type GraphState = "active_current" | "verified_release" | "stale" | "held" | "unavailable";
 export type PublicGoogleState = "ready" | "held" | "not_published" | "stale" | "unavailable";
 
@@ -194,6 +195,8 @@ export interface DriverPadStatus {
     safeReason: string | null;
     lastVerifiedAt: string | null;
     writtenDirections: string | null;
+    writtenDirectionsSource?: WrittenDirectionsSource | null;
+    writtenDirectionsSourceRevision?: string | null;
   };
   graph: {
     state: GraphState;

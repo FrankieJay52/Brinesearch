@@ -84,6 +84,7 @@ describe("saved direction reference parser", () => {
     expect(parsed?.roadSequenceReference).toBe("US-250 → CR-10 → Pad");
     expect(parsed?.orderedSteps.map((step) => step.number)).toEqual([1, 2]);
     expect(parsed?.additionalNotes).toEqual(["Approach from the north.", "Do not use the south gate."]);
+    expect(parsed?.orderedBlocks.map((block) => block.kind)).toEqual(["notes", "sequence", "steps", "notes"]);
   });
 
   it("does not invent missing numbered steps and leaves malformed numbering as a note", () => {
@@ -101,6 +102,7 @@ describe("saved direction reference parser", () => {
       { number: 3, instruction: "Turn at the signed gate." },
     ]);
     expect(parsed?.additionalNotes).toEqual(["2) This malformed line stays saved text."]);
+    expect(parsed?.orderedBlocks.map((block) => block.kind)).toEqual(["steps", "notes", "steps"]);
   });
 
   it("normalizes actual and encoded newline formatting only for display", () => {

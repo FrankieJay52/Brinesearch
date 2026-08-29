@@ -25,6 +25,41 @@ export const CLASSIFICATIONS = Object.freeze([
   "SOURCE_ONLY_UNSTRUCTURED",
 ]);
 
+const FORBIDDEN_MATCH_METHODS = new Set([
+  "NAME_ONLY",
+  "FUZZY_NAME",
+  "NEAREST_ROAD",
+  "SPATIAL_NEAREST",
+  "NEAREST_POINT",
+  "ROUTE_NUMBER_ONLY",
+  "CLOSEST_ANCHOR",
+  "SEMANTIC_SIMILARITY",
+]);
+
+// Exact status is not sufficient by itself. These are the explicit, currently
+// stored exact methods observed in the six-county source contract. A new or
+// blank method stays unresolved until it is reviewed and added deliberately.
+const PROVEN_EXACT_MATCH_METHODS = new Set([
+  "EXACT_ROAD_MANAGER_NAME_OR_ALIAS",
+  "EXPLICIT_HIGHWAY_MASTER_RECORD",
+  "ISSUE70_EXACT_CR12_IDENTITY_SPLIT",
+  "ISSUE97_EXACT_SOURCE_BOUNDARY_CONTINUATION",
+  "ISSUE97_OWNER_REVIEWED_EXACT_SOURCE_IDENTITY",
+  "OFFICIAL_LBRS_EXACT_CATALOG_GAP_ISSUE70",
+  "OFFICIAL_LBRS_SOURCE_CONFLICT_CORRECTION_ISSUE70",
+  "OFFICIAL_ODOT_CENTERLINE",
+  "OFFICIAL_ODOT_EXACT_NAME_OR_ROUTE_NUMBER",
+  "OFFICIAL_ODOT_EXACT_NAME_SPATIAL_CONTEXT",
+  "OFFICIAL_ODOT_EXACT_SPACING_ALIAS",
+  "OFFICIAL_ODOT_EXACT_SUFFIX_ISSUE70",
+  "OFFICIAL_ODOT_ISSUE70_STRICT_CONTEXT",
+  "OFFICIAL_ODOT_ISSUE70_UNIQUE_EXACT",
+  "ROAD_MANAGER_EXACT_CURRENT_ALIAS_ISSUE70",
+  "ROAD_MANAGER_EXACT_EXISTING_ALIAS_ISSUE70",
+  "SAVED_CLEAR_EXPLICIT_ALIAS_ISSUE70",
+  "V17312_EVIDENCE_BACKED_GENERIC_ROUTE_RESOLUTION",
+]);
+
 // This query is intentionally export-only. It opens a read-only transaction,
 // selects the exact original six-county Ascent scope, and rolls back. The audit
 // never contains a database mutation or a production credential.
@@ -161,15 +196,42 @@ function isGenericOrAmbiguousStep(step) {
     || ["AMBIGUOUS", "GENERIC", "HELD_SOURCE_CONFLICT"].includes(status);
 }
 
+function usesForbiddenMatchMethod(step) {
+  return FORBIDDEN_MATCH_METHODS.has(
+    normalizeExplicitSourceToken(step?.match_method).replaceAll(" ", "_"),
+  );
+}
+
+function hasExactMatchStatus(step) {
+  return ["EXACT", "EXACT_MASTER", "MATCHED", "VERIFIED"].includes(
+    normalizeExplicitSourceToken(step?.match_status).replaceAll(" ", "_"),
+  );
+}
+
+function usesUnresolvedExactMatchMethod(step) {
+  if (!hasExactMatchStatus(step) || usesForbiddenMatchMethod(step)) return false;
+  return !PROVEN_EXACT_MATCH_METHODS.has(
+    normalizeExplicitSourceToken(step?.match_method).replaceAll(" ", "_"),
+  );
+}
+
+function hasExactRoadManagerIdentity(step) {
+  return Boolean(text(step?.road_id))
+    && hasExactMatchStatus(step)
+    && !usesUnresolvedExactMatchMethod(step)
+    && !usesForbiddenMatchMethod(step)
+    && !isPrivateOrLeaseStep(step)
+    && !isGenericOrAmbiguousStep(step);
+}
+
 function needsOfficialIdentity(step) {
   if (isPrivateOrLeaseStep(step)) return false;
-  if (normalizeExplicitSourceToken(step?.match_status).replaceAll(" ", "_") === "NEEDS_OFFICIAL_MATCH") return true;
-  if (text(step?.road_id)) return false;
   const kind = normalizeExplicitSourceToken(step?.step_kind).replaceAll(" ", "_");
-  return [
+  const isPublicRoadStep = [
     "INTERSTATE", "US_HIGHWAY", "US_ROUTE", "STATE_HIGHWAY", "STATE_ROUTE",
     "COUNTY_ROAD", "TOWNSHIP_ROAD", "LOCAL_ROAD", "PUBLIC_ROAD", "HIGHWAY",
   ].includes(kind);
+  return isPublicRoadStep && !hasExactRoadManagerIdentity(step);
 }
 
 function sourceStepTexts(reference) {
@@ -182,14 +244,20 @@ function prepStepTexts(steps) {
     : "").filter(Boolean);
 }
 
-function primaryClassification({ reference, prep, sequenceExactMatch, missing, unsupported, identityPending, generic, privateSteps }) {
+function primaryClassification({ reference, prep, sequenceExactMatch, missing, unsupported, identityPending, generic, privateSteps, forbiddenMatchMethods, unresolvedExactMatchMethods, savedSequenceConflict, reconciliationEvidencePending, contradictions, duplicatePrimary }) {
   if (!reference) return "SOURCE_ONLY_UNSTRUCTURED";
   if (!reference.roadSequenceReference && reference.orderedSteps.length === 0) return "SOURCE_ONLY_UNSTRUCTURED";
   if (!prep) return "SOURCE_PRESENT_PREP_MISSING";
+  if (duplicatePrimary) return "ROAD_IDENTITY_PENDING";
   if (missing.length > 0) return "SOURCE_STEP_DROPPED";
   if (unsupported.length > 0) return "PREP_STEP_NOT_IN_SAVED_SOURCE";
+  if (savedSequenceConflict) return "GENERIC_OR_AMBIGUOUS";
+  if (forbiddenMatchMethods.length > 0) return "GENERIC_OR_AMBIGUOUS";
+  if (unresolvedExactMatchMethods.length > 0) return "GENERIC_OR_AMBIGUOUS";
   if (generic.length > 0) return "GENERIC_OR_AMBIGUOUS";
+  if (contradictions.length > 0) return "ROAD_IDENTITY_PENDING";
   if (identityPending.length > 0) return "ROAD_IDENTITY_PENDING";
+  if (reconciliationEvidencePending) return "ROAD_IDENTITY_PENDING";
   if (privateSteps.length > 0) return "PRIVATE_ACCESS_PENDING";
   return sequenceExactMatch ? "EXACT_SOURCE_PRESERVED" : "ROAD_IDENTITY_PENDING";
 }
@@ -204,7 +272,21 @@ export function reconcileSavedDirectionRow(input) {
     : null;
   const activePrimaryPrepCount = Number(input.active_primary_prep_count ?? (prep ? 1 : 0));
   const steps = prepSteps(prep);
-  const savedSequence = reference?.roadSequenceReference || text(input.structured_road_sequence) || null;
+  const clearSequence = reference?.source === "directions_clear"
+    ? reference.roadSequenceReference
+    : null;
+  const structuredSequence = text(input.structured_road_sequence) || null;
+  const savedSequenceConflict = clearSequence && structuredSequence
+    && !arraysExactlyMatch(
+      splitExplicitSequence(clearSequence),
+      splitExplicitSequence(structuredSequence),
+    )
+    ? {
+      directions_clear: clearSequence,
+      structured_road_sequence: structuredSequence,
+    }
+    : null;
+  const savedSequence = reference?.roadSequenceReference || structuredSequence || null;
   const prepSequence = text(prep?.source_sequence) || null;
   const savedSequenceTokens = splitExplicitSequence(savedSequence);
   const prepSequenceTokens = splitExplicitSequence(prepSequence);
@@ -228,7 +310,7 @@ export function reconcileSavedDirectionRow(input) {
     ...sequenceDifferences.rightOnly.map((value) => `sequence: ${value}`),
     ...stepDifferences.rightOnly.map((value) => `step: ${value}`),
   ];
-  const roadIds = [...new Set(steps.map((step) => text(step.road_id)).filter(Boolean))].sort();
+  const roadIds = [...new Set(steps.filter(hasExactRoadManagerIdentity).map((step) => text(step.road_id)))].sort();
   const identityPending = steps.filter(needsOfficialIdentity).map((step) => ({
     step_order: Number(step.step_order ?? 0),
     text: text(step.raw_text) || text(step.normalized_text),
@@ -241,6 +323,16 @@ export function reconcileSavedDirectionRow(input) {
     step_order: Number(step.step_order ?? 0),
     text: text(step.raw_text) || text(step.normalized_text),
   }));
+  const forbiddenMatchMethods = steps.filter(usesForbiddenMatchMethod).map((step) => ({
+    step_order: Number(step.step_order ?? 0),
+    text: text(step.raw_text) || text(step.normalized_text),
+    match_method: text(step.match_method),
+  }));
+  const unresolvedExactMatchMethods = steps.filter(usesUnresolvedExactMatchMethod).map((step) => ({
+    step_order: Number(step.step_order ?? 0),
+    text: text(step.raw_text) || text(step.normalized_text),
+    match_method: text(step.match_method) || null,
+  }));
   const blockers = [];
   if (activePrimaryPrepCount > 1) blockers.push("duplicate active primary route prep records");
   if (!reference) blockers.push("saved direction source absent");
@@ -250,7 +342,11 @@ export function reconcileSavedDirectionRow(input) {
   if (identityPending.length) blockers.push("official Road Manager identity pending");
   if (generic.length) blockers.push("generic or ambiguous route-prep step");
   if (privateSteps.length) blockers.push("private/lease/access step remains non-identity source text");
-  if (prep && savedInstructions.length > 0 && prepInstructions.length === 0) {
+  if (savedSequenceConflict) blockers.push("directions_clear and structured_road_sequence disagree");
+  if (forbiddenMatchMethods.length) blockers.push("forbidden fuzzy/name-only/nearest/semantic match method");
+  if (unresolvedExactMatchMethods.length) blockers.push("exact-status match method is unreviewed or missing");
+  const reconciliationEvidencePending = Boolean(prep && savedInstructions.length > 0 && prepInstructions.length === 0);
+  if (reconciliationEvidencePending) {
     blockers.push("saved numbered steps lack explicit route-prep reconciliation evidence");
   }
   const contradictions = steps.filter((step) => {
@@ -281,6 +377,10 @@ export function reconcileSavedDirectionRow(input) {
     steps_needing_official_identity_match: identityPending,
     generic_or_ambiguous_steps: generic,
     private_or_lease_steps: privateSteps,
+    saved_sequence_source_conflict: savedSequenceConflict,
+    forbidden_match_method_steps: forbiddenMatchMethods,
+    unresolved_exact_match_method_steps: unresolvedExactMatchMethods,
+    road_id_match_status_contradictions: contradictions,
     exact_blocker: blockers.length ? blockers.join("; ") : null,
     classification: primaryClassification({
       reference,
@@ -291,6 +391,12 @@ export function reconcileSavedDirectionRow(input) {
       identityPending,
       generic,
       privateSteps,
+      forbiddenMatchMethods,
+      unresolvedExactMatchMethods,
+      savedSequenceConflict,
+      reconciliationEvidencePending,
+      contradictions,
+      duplicatePrimary: activePrimaryPrepCount > 1,
     }),
   };
 }
@@ -339,6 +445,10 @@ export function summarizeReconciliationRows(rows) {
     steps_needing_official_identity_match: rows.reduce((sum, row) => sum + row.steps_needing_official_identity_match.length, 0),
     generic_or_ambiguous_steps: rows.reduce((sum, row) => sum + row.generic_or_ambiguous_steps.length, 0),
     private_or_lease_steps: rows.reduce((sum, row) => sum + row.private_or_lease_steps.length, 0),
+    pads_with_saved_sequence_source_conflict: rows.filter((row) => row.saved_sequence_source_conflict !== null).length,
+    forbidden_match_method_steps: rows.reduce((sum, row) => sum + row.forbidden_match_method_steps.length, 0),
+    unresolved_exact_match_method_steps: rows.reduce((sum, row) => sum + row.unresolved_exact_match_method_steps.length, 0),
+    road_id_match_status_contradictions: rows.reduce((sum, row) => sum + row.road_id_match_status_contradictions.length, 0),
   };
 }
 

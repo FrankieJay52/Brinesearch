@@ -1,9 +1,16 @@
-export type SavedDirectionSource = "directions_clear" | "written_directions";
+import type { WrittenDirectionsSource } from "./types";
+
+export type SavedDirectionSource = WrittenDirectionsSource;
 
 export interface SavedDirectionStep {
   number: number;
   instruction: string;
 }
+
+export type SavedDirectionBlock =
+  | { kind: "sequence"; sourceIndex: number; value: string }
+  | { kind: "steps"; sourceIndex: number; steps: SavedDirectionStep[] }
+  | { kind: "notes"; sourceIndex: number; values: string[] };
 
 export interface SavedDirectionReference {
   rawText: string;
@@ -11,6 +18,7 @@ export interface SavedDirectionReference {
   roadSequenceReference: string | null;
   orderedSteps: SavedDirectionStep[];
   additionalNotes: string[];
+  orderedBlocks: SavedDirectionBlock[];
   source: SavedDirectionSource;
   structured: boolean;
   preservedSourceText: {
@@ -78,6 +86,7 @@ export function parseSavedDirectionReference({
       roadSequenceReference: null,
       orderedSteps: [],
       additionalNotes: [displayText],
+      orderedBlocks: [{ kind: "notes", sourceIndex: 0, values: [displayText] }],
       source,
       structured: false,
       preservedSourceText,
@@ -87,26 +96,38 @@ export function parseSavedDirectionReference({
   const lines = displayText.split("\n");
   const orderedSteps: SavedDirectionStep[] = [];
   const additionalNotes: string[] = [];
+  const orderedBlocks: SavedDirectionBlock[] = [];
+  let pendingNotes: string[] = [];
+  let pendingNotesSourceIndex = 0;
   let roadSequenceReference: string | null = null;
   let structured = false;
   let insideStepSection = false;
+
+  const flushNotes = () => {
+    if (pendingNotes.length === 0) return;
+    orderedBlocks.push({ kind: "notes", sourceIndex: pendingNotesSourceIndex, values: pendingNotes });
+    pendingNotes = [];
+  };
 
   for (let index = 0; index < lines.length; index += 1) {
     const line = lines[index];
     if (!line.trim()) continue;
 
     if (line === ROAD_SEQUENCE_HEADER) {
+      flushNotes();
       structured = true;
       insideStepSection = false;
       const candidate = lines[index + 1] ?? "";
       if (candidate.trim() && !isSectionHeader(candidate) && parsedStep(candidate) === null) {
-        roadSequenceReference = candidate;
+        roadSequenceReference ??= candidate;
+        orderedBlocks.push({ kind: "sequence", sourceIndex: index, value: candidate });
         index += 1;
       }
       continue;
     }
 
     if (line === STEP_BY_STEP_HEADER) {
+      flushNotes();
       structured = true;
       insideStepSection = true;
       continue;
@@ -114,12 +135,19 @@ export function parseSavedDirectionReference({
 
     const step = insideStepSection ? parsedStep(line) : null;
     if (step !== null) {
+      flushNotes();
       orderedSteps.push(step);
+      const previous = orderedBlocks.at(-1);
+      if (previous?.kind === "steps") previous.steps.push(step);
+      else orderedBlocks.push({ kind: "steps", sourceIndex: index, steps: [step] });
       continue;
     }
 
+    if (pendingNotes.length === 0) pendingNotesSourceIndex = index;
+    pendingNotes.push(line);
     additionalNotes.push(line);
   }
+  flushNotes();
 
   if (!structured) {
     return {
@@ -128,6 +156,7 @@ export function parseSavedDirectionReference({
       roadSequenceReference: null,
       orderedSteps: [],
       additionalNotes: [displayText],
+      orderedBlocks: [{ kind: "notes", sourceIndex: 0, values: [displayText] }],
       source,
       structured: false,
       preservedSourceText,
@@ -140,6 +169,7 @@ export function parseSavedDirectionReference({
     roadSequenceReference,
     orderedSteps,
     additionalNotes,
+    orderedBlocks,
     source,
     structured,
     preservedSourceText,

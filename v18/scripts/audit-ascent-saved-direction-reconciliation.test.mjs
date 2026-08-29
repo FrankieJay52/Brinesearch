@@ -24,8 +24,8 @@ function pad(overrides = {}) {
       id: "prep-a",
       source_sequence: "OH-9 → Maynard Rd",
       steps: [
-        { step_order: 1, raw_text: "Start on OH-9.", step_kind: "state_route", road_id: "road-9", match_status: "exact" },
-        { step_order: 2, raw_text: "Turn onto Maynard Rd.", step_kind: "county_road", road_id: "road-maynard", match_status: "exact" },
+        { step_order: 1, raw_text: "Start on OH-9.", step_kind: "state_route", road_id: "road-9", match_status: "exact", match_method: "explicit_highway_master_record", source_details: { matched_from_saved_text: "Start on OH-9." } },
+        { step_order: 2, raw_text: "Turn onto Maynard Rd.", step_kind: "county_road", road_id: "road-maynard", match_status: "exact", match_method: "exact_road_manager_name_or_alias", source_details: { matched_from_saved_text: "Turn onto Maynard Rd." } },
       ],
     },
     ...overrides,
@@ -49,6 +49,7 @@ test("detects a dropped source step", () => {
   assert.equal(row.classification, "SOURCE_STEP_DROPPED");
   assert.deepEqual(row.saved_roads_or_steps_missing_from_prep, [
     "sequence: Maynard Rd",
+    "step: Turn onto Maynard Rd.",
   ]);
 });
 
@@ -71,13 +72,22 @@ test("detects a pending official road identity", () => {
   assert.deepEqual(row.steps_needing_official_identity_match, [{ step_order: 2, text: "Turn onto Maynard Rd." }]);
 });
 
+test("does not count a road ID with a non-exact status as an exact attachment", () => {
+  const input = pad();
+  input.active_primary_prep.steps[0].match_status = "no_match";
+  const row = reconcileSavedDirectionRow(input);
+  assert.equal(row.classification, "ROAD_IDENTITY_PENDING");
+  assert.deepEqual(row.exact_road_manager_road_ids_already_attached, ["road-maynard"]);
+  assert.deepEqual(row.steps_needing_official_identity_match, [{ step_order: 1, text: "Start on OH-9." }]);
+});
+
 test("keeps private access private and does not request a road identity", () => {
   const input = pad({
     directions_clear: "Road sequence reference:\nOH-9 → Lease Road\n\nStep-by-step directions:\n1. Start on OH-9.\n2. Continue on Lease Road through Gate to Pad.",
     structured_road_sequence: "OH-9 → Lease Road",
   });
   input.active_primary_prep.source_sequence = "OH-9 → Lease Road";
-  input.active_primary_prep.steps[1] = { step_order: 2, raw_text: "Continue on Lease Road through Gate to Pad.", step_kind: "access", road_id: null, match_status: "private" };
+  input.active_primary_prep.steps[1] = { step_order: 2, raw_text: "Continue on Lease Road through Gate to Pad.", step_kind: "access", road_id: null, match_status: "private", source_details: { matched_from_saved_text: "Continue on Lease Road through Gate to Pad." } };
   const row = reconcileSavedDirectionRow(input);
   assert.equal(row.classification, "PRIVATE_ACCESS_PENDING");
   assert.equal(row.private_or_lease_steps.length, 1);
@@ -94,6 +104,40 @@ test("never accepts fuzzy or name-only equivalence", () => {
   assert.equal(row.classification, "SOURCE_STEP_DROPPED");
 });
 
+test("never treats a forbidden nearest, fuzzy, or name-only match method as exact", () => {
+  const input = pad();
+  input.active_primary_prep.steps[1].match_method = "nearest_road";
+  const row = reconcileSavedDirectionRow(input);
+  assert.equal(row.sequence_exact_match, true);
+  assert.equal(row.classification, "GENERIC_OR_AMBIGUOUS");
+  assert.deepEqual(row.forbidden_match_method_steps, [{
+    step_order: 2,
+    text: "Turn onto Maynard Rd.",
+    match_method: "nearest_road",
+  }]);
+  assert.match(row.exact_blocker, /forbidden fuzzy\/name-only\/nearest/u);
+});
+
+test("never treats semantic similarity or an unknown exact-status method as proof", () => {
+  for (const method of ["semantic_similarity", "future_unreviewed_method"]) {
+    const input = pad();
+    input.active_primary_prep.steps[1].match_method = method;
+    const row = reconcileSavedDirectionRow(input);
+    assert.equal(row.classification, "GENERIC_OR_AMBIGUOUS");
+    assert.deepEqual(row.exact_road_manager_road_ids_already_attached, ["road-9"]);
+    if (method === "semantic_similarity") {
+      assert.equal(row.forbidden_match_method_steps[0].match_method, method);
+    } else {
+      assert.deepEqual(row.unresolved_exact_match_method_steps, [{
+        step_order: 2,
+        text: "Turn onto Maynard Rd.",
+        match_method: method,
+      }]);
+      assert.match(row.exact_blocker, /unreviewed or missing/u);
+    }
+  }
+});
+
 test("never normalizes state-route aliases into equality", () => {
   const input = pad();
   input.active_primary_prep.source_sequence = "SR-9 → Maynard Rd";
@@ -102,12 +146,44 @@ test("never normalizes state-route aliases into equality", () => {
   assert.equal(row.classification, "SOURCE_STEP_DROPPED");
 });
 
+test("reports an exact conflict between directions_clear and structured_road_sequence", () => {
+  const row = reconcileSavedDirectionRow(pad({
+    structured_road_sequence: "OH-9 → Kagg Hill Rd",
+  }));
+  assert.equal(row.sequence_exact_match, true);
+  assert.equal(row.classification, "GENERIC_OR_AMBIGUOUS");
+  assert.deepEqual(row.saved_sequence_source_conflict, {
+    directions_clear: "OH-9 → Maynard Rd",
+    structured_road_sequence: "OH-9 → Kagg Hill Rd",
+  });
+  assert.match(row.exact_blocker, /directions_clear and structured_road_sequence disagree/u);
+});
+
 test("fails closed on duplicate primaries and road-id status contradictions", () => {
   const input = pad({ active_primary_prep_count: 2 });
   input.active_primary_prep.steps[0].match_status = "needs_official_match";
   const row = reconcileSavedDirectionRow(input);
   assert.match(row.exact_blocker, /duplicate active primary/u);
   assert.match(row.exact_blocker, /road_id\/match_status contradiction/u);
+  assert.deepEqual(row.exact_road_manager_road_ids_already_attached, ["road-maynard"]);
+  assert.deepEqual(row.steps_needing_official_identity_match, [{ step_order: 1, text: "Start on OH-9." }]);
+  assert.deepEqual(row.road_id_match_status_contradictions, ["step 1 road_id/match_status contradiction"]);
+  assert.equal(row.classification, "ROAD_IDENTITY_PENDING");
+});
+
+test("never classifies duplicate active primary prep records as exact", () => {
+  const row = reconcileSavedDirectionRow(pad({ active_primary_prep_count: 2 }));
+  assert.equal(row.classification, "ROAD_IDENTITY_PENDING");
+  assert.match(row.exact_blocker, /duplicate active primary/u);
+});
+
+test("does not classify numbered saved steps as exact without explicit prep reconciliation evidence", () => {
+  const input = pad();
+  for (const step of input.active_primary_prep.steps) delete step.source_details;
+  const row = reconcileSavedDirectionRow(input);
+  assert.equal(row.sequence_exact_match, true);
+  assert.equal(row.classification, "ROAD_IDENTITY_PENDING");
+  assert.match(row.exact_blocker, /lack explicit route-prep reconciliation evidence/u);
 });
 
 test("emits deterministic county/name/id order and only allowed classifications", () => {
@@ -138,6 +214,10 @@ test("emits deterministic county/name/id order and only allowed classifications"
     steps_needing_official_identity_match: 0,
     generic_or_ambiguous_steps: 0,
     private_or_lease_steps: 0,
+    pads_with_saved_sequence_source_conflict: 0,
+    forbidden_match_method_steps: 0,
+    unresolved_exact_match_method_steps: 0,
+    road_id_match_status_contradictions: 0,
   });
 });
 
