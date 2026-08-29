@@ -14,6 +14,7 @@ import {
   DUKE_REVIEWED_GOOGLE_URL,
   DUTTON_REVIEWED_GOOGLE_URL,
   ECHO_REVIEWED_GOOGLE_URL,
+  GEOFLO_REVIEWED_GOOGLE_URL,
   GILCHER_REVIEWED_GOOGLE_URL,
   GIL_REVIEWED_GOOGLE_URL,
   HASTINGS_REVIEWED_GOOGLE_URL,
@@ -154,6 +155,23 @@ function porterfield(): PadSummary {
     township: "Richland",
     structuredRoadSequence: "I-70 → Exit 215 → US-40 → Vineyard Rd → OR → OH-331 → US-40 → Vineyard Rd",
     mapReference: { latitude: 40.090431, longitude: -80.928503, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function geoflo(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "ed1df007-6cd9-4704-9d48-f72209cefa29",
+    canonicalId: "ed1df007-6cd9-4704-9d48-f72209cefa29",
+    legacyId: "ascent--geoflo",
+    recordRevision: "1786265812046205",
+    padName: "GEOFLO",
+    county: "Belmont",
+    township: "WHEELING",
+    address: "",
+    structuredRoadSequence: "Exit 216 → OH-9 → Maynard Rd → Kagg Hill Rd → Fairpoint-maynard Rd → Lease Road",
+    coordinate: null,
+    mapReference: { latitude: 40.120221, longitude: -80.921817, role: "reference", kind: "saved_pad_reference" },
   };
 }
 
@@ -1236,6 +1254,72 @@ describe("reviewed navigation candidates", () => {
     fourWaypoints.searchParams.set("waypoints", [...orderedWaypoints, { latitude: 40.24, longitude: -80.94 }]
       .map(({ latitude, longitude }) => `${latitude},${longitude}`).join("|"));
     expect(reviewedNavigationUrlMatchesContract(fourWaypoints.toString(), destination, orderedWaypoints)).toBe(false);
+  });
+
+  it("binds only GEOFLO to the three supplied existing Belmont identities and saved GPS", () => {
+    const candidate = reviewedNavigationCandidateForPad(geoflo());
+
+    expect(candidate).toMatchObject({
+      padId: "ed1df007-6cd9-4704-9d48-f72209cefa29",
+      title: "Navigate named roads",
+      detail: "OH-9 → Maynard → Kagg Hill → Fairpoint Maynard → saved GPS",
+      routeUrl: GEOFLO_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "OH-9 → Maynard Rd / CR-56 → Kagg Hill Rd / TR-431 → Fairpoint Maynard Rd / CR-10 → saved GEOFLO GPS",
+      roadIdentityHook: [
+        {
+          roadId: "2f974a5a-a9da-4be1-8110-efa64a226b44",
+          county: "Belmont",
+          roadName: "Maynard Rd",
+          routeNumber: "CR-56",
+        },
+        {
+          roadId: "c19792f3-aeb4-423c-8c65-70f16266f9bd",
+          county: "Belmont",
+          roadName: "Kagg Hill Rd",
+          routeNumber: "TR-431",
+        },
+        {
+          roadId: "22274ee1-8377-44b7-b395-3c511f8e720e",
+          county: "Belmont",
+          roadName: "Fairpoint Maynard Rd",
+          routeNumber: "CR-10",
+        },
+      ],
+    });
+    expect(candidate!.ownerApproval).toBeUndefined();
+    expect(candidate!.finalLegNotice).toMatch(/creates no line and rebuilds no graph/u);
+    expect(candidate).not.toHaveProperty("geometry");
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("destination")).toBe("40.120221,-80.921817");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.109237274184004,-80.91325906265725",
+      "40.115672477696755,-80.91308332822535",
+      "40.12014725394503,-80.91847966433866",
+    ]);
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+  });
+
+  it.each([
+    ["padId", "not-geoflo"],
+    ["canonicalId", "not-geoflo"],
+    ["legacyId", "ascent--other"],
+    ["recordRevision", "changed"],
+    ["company", "Other"],
+    ["padName", "GEOFLO EAST"],
+    ["state", "West Virginia"],
+    ["county", "Harrison"],
+    ["structuredRoadSequence", "OH-9 → nearest road → GEOFLO"],
+  ] as const)("fails the GEOFLO existing-identity hook closed when %s diverges", (field, value) => {
+    expect(reviewedNavigationCandidateForPad({ ...geoflo(), [field]: value })).toBeNull();
+  });
+
+  it("fails the GEOFLO hook closed when the saved GPS drifts", () => {
+    expect(reviewedNavigationCandidateForPad({
+      ...geoflo(),
+      mapReference: { latitude: 40.120222, longitude: -80.921817, role: "reference", kind: "saved_pad_reference" },
+    })).toBeNull();
   });
 
   it("pins the exact owner-approved pad membership and every current receipt", () => {
