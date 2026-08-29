@@ -119,21 +119,46 @@ describe("map viewer authority boundary", () => {
   const pageSource = readFileSync(new URL("./MapPage.tsx", import.meta.url), "utf8");
   const appCss = readFileSync(new URL("../../styles/app.css", import.meta.url), "utf8");
 
-  it("loads only the published approved-road overlay in road mode", () => {
+  it("keeps the published approved-road overlay teal and separable in every map mode", () => {
     expect(pageSource).toContain('companyRoads.selectRoads("all")');
     expect(pageSource).toContain('companyRoads.availability.state === "ready"');
+    expect(pageSource).toContain('companyRoads.selection === null');
+    expect(pageSource).toContain('"line-color": "#14b8a6"');
+    expect(pageSource).toContain('map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6")');
+    expect(pageSource).toContain("function drawApprovedRoadNetwork(");
+    expect(pageSource).toContain("fallbackApplied ? companyRoadRowsRef.current : []");
+    expect(pageSource).toContain("const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current");
+    expect(pageSource).toContain("This is a renderer fallback, not a geometry");
+    expect(pageSource).toContain('aria-label="Separate approved routes by company or show all routes"');
+    expect(pageSource).toContain('<option value="all">All approved routes</option>');
+    expect(pageSource).toContain("Select one company to separate its pads and routes");
     expect(pageSource).toContain("Held, candidate, stale, guessed, and unpublished roads stay hidden.");
+    expect(pageSource).not.toContain('option value="">Roads off');
+    expect(pageSource).not.toContain('"rgba(240, 180, 93, .9)"');
+    expect(pageSource).not.toContain("isolateSelectedRoute");
     expect(pageSource).not.toContain("loadOwnerRoadViewport");
   });
 
-  it("draws a selected inbound route only from the fail-closed driver status geometry", () => {
+  it("draws a pad-specific bright route only from the selected pad's reviewed geometry", () => {
     expect(pageSource).toContain("selectedRouteRef.current = selectedRouteGeometry");
+    expect(pageSource).toContain("drawRoute(context, map, selectedId ? geometry : null)");
+    expect(pageSource).toContain("Pad-bound route color is selection-only");
+    expect(pageSource).toContain("persistent teal road network");
+    expect(pageSource).toContain('selectedRouteGeometry && <div className="selected-pad-route-key"');
+    expect(pageSource).toContain("Selected pad route · bright teal");
+    const unselectedLegend = pageSource.slice(pageSource.indexOf('<aside className="map-legend-card">'));
+    expect(unselectedLegend).not.toContain("Selected pad route · bright teal");
     expect(pageSource).toContain('selectedRouteChoice?.routeGroup === "alternate"');
     expect(pageSource).toContain("currentSelectedStatus?.route.geometry || null");
+    expect(pageSource).toContain("? selectedNamedApproach.geometry");
     expect(pageSource).toContain("loadDriverRouteChoices(selected)");
-    expect(pageSource).toContain("No approved inbound route is public · no route line inferred.");
+    expect(pageSource).toContain("With no reviewed geometry, draw no teal.");
+    expect(pageSource).toContain("working static Google handoff never");
+    expect(pageSource).not.toContain(": selectedReviewedNavigation ? null");
+    expect(pageSource).toContain("No reviewed named-road display geometry · no teal line inferred.");
     expect(pageSource).not.toContain("selectedReviewedNavigation.ownerApproval.geometry");
     expect(pageSource).not.toContain("selectedReviewedNavigation.ownerApproval.routeGeometry");
+    expect(pageSource).not.toContain("selectedReviewedNavigationCandidate.geometry");
     expect(pageSource).not.toContain("nearest_road");
     expect(pageSource).not.toContain("fuzzy_name");
   });
@@ -145,21 +170,19 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("selectedNamedApproach.geometry");
     expect(pageSource).toContain('aria-label="Choose reviewed named approach"');
     expect(pageSource).toContain("setSelectedNamedApproachKey(approach.approachKey)");
-    expect(pageSource).toContain("Choose one reviewed approach to enable approved-road navigation");
-    expect(pageSource).toContain("GPS destination-only navigation remains available; no approved route line is selected.");
-    expect(pageSource).toContain("GPS-only final leg is not approved road geometry.");
-    expect(pageSource).toContain("This GPS destination is the separate unapproved final leg.");
+    expect(pageSource).toContain("Choose one reviewed named-road approach");
+    expect(pageSource).toContain("GPS destination navigation remains available; no teal line is selected.");
+    expect(pageSource).toContain("unnamed final movement is not shown as a named road");
     expect(pageSource).toContain("approachLabel={selectedNamedApproach?.approachLabel}");
     expect(pageSource).toContain('`${selectedNamedApproach.approachLabel} core + GPS`');
     expect(pageSource).toContain('`${selectedNamedApproach.approachLabel} ready`');
   });
 
-  it("labels a released core plus GPS handoff without implying an end-to-end Google route", () => {
-    expect(pageSource).toContain('? "Approved core + GPS"');
-    expect(pageSource).toContain('? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"');
-    expect(pageSource).toContain(': "Reviewed approved route"');
+  it("labels a released core plus GPS handoff as named-road display", () => {
+    expect(pageSource).toContain('? "Directed named roads to the handoff, then an unnamed GPS final leg"');
+    expect(pageSource).toContain(': "Reviewed named roads to the saved pin"');
     expect(pageSource).toContain('currentSelectedStatus?.route.source === "exact_graph_handoff"');
-    expect(pageSource).toContain('"Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately."');
+    expect(pageSource).toContain('"Reviewed named roads highlighted to their handoff · saved pad GPS shown separately."');
   });
 
   it("provides an explicit full-screen exit and pad-detail connection", () => {
@@ -169,15 +192,14 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('changeViewerMode("standard")');
     expect(pageSource).toContain("Open pad details");
     expect(pageSource).toContain("focusPad(target.rows[0])");
-    expect(pageSource).toContain('if (viewerModeRef.current === "roads") {');
-    expect(pageSource).toContain('navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);');
+    expect(pageSource).not.toContain('if (viewerModeRef.current === "roads") {');
+    expect(pageSource).not.toContain('navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);');
+    expect(pageSource).toContain('className="map-cluster-choice" onClick={() => focusPad(row)}');
     expect(pageSource).toContain('onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details');
   });
 
   it("keeps the selected-pad driver card compact without dropping route context", () => {
-    const pendingAction = pageSource.indexOf("Checking for the highest-priority reviewed route…");
-    const failedAction = pageSource.indexOf("Live route check unavailable · no fallback opened", pendingAction);
-    const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}", failedAction);
+    const approvedAction = pageSource.indexOf("<MapApprovedRouteLink routeUrl={approvedNavigationUrl}");
     const reviewedAction = pageSource.indexOf("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}", approvedAction);
     const pinAction = pageSource.indexOf("<MapDestinationPinLink pinUrl={selectedGpsNavigationUrl}", reviewedAction);
     const disabledAction = pageSource.indexOf("No trusted GPS destination", pinAction);
@@ -190,14 +212,15 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain('selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "")');
     expect(pageSource).not.toContain('eligibleReviewedNavigation?.reviewedRoadSequence');
     expect(pageSource).toContain("{selectedRoadSequence}");
-    expect(pageSource).toContain('selectedReviewedNavigation.ownerApproval ? "Owner-approved route sequence" : "Reviewed route sequence"');
+    expect(pageSource).toContain('selectedReviewedNavigation ? "Reviewed named-road sequence" : "Saved road sequence"');
     expect(pageSource).toContain('selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"');
-    expect(pageSource).toContain("const selectedReviewedNavigation = navigationFallbackAfterHigherPriorityCheck(");
+    expect(pageSource).toContain("const selectedReviewedNavigation = eligibleReviewedNavigation;");
+    expect(pageSource).not.toContain("navigationFallbackAfterHigherPriorityCheck");
+    expect(pageSource).not.toContain("Checking for the highest-priority reviewed route…");
+    expect(pageSource).not.toContain("Live route check unavailable · no fallback opened");
     expect(pageSource).not.toContain("selectedReviewedNavigationCandidate ? <MapReviewedRouteLink");
     expect(pageSource).toContain("Open pad details");
-    expect([pendingAction, failedAction, approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
-    expect(pendingAction).toBeLessThan(failedAction);
-    expect(failedAction).toBeLessThan(approvedAction);
+    expect([approvedAction, reviewedAction, pinAction, disabledAction, sequenceDisclosure, referenceWarning].every((index) => index >= 0)).toBe(true);
     expect(approvedAction).toBeLessThan(reviewedAction);
     expect(reviewedAction).toBeLessThan(pinAction);
     expect(pinAction).toBeLessThan(disabledAction);
@@ -233,9 +256,11 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("reviewedNavigationSafetyHoldForPad(selected)");
     expect(pageSource).toContain("<MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl}");
     expect(pageSource).toContain("ownerApproval={selectedReviewedNavigation.ownerApproval}");
-    expect(pageSource).toContain("statusRequestSettled: !selected || currentStatusAuthorityCheck !== null");
-    expect(pageSource).toContain("releaseRequestSettled: !selected || currentReleasedHandoffLoadResult !== null");
-    expect(pageSource).toContain("Owner-reviewed Google directions are available for this exact pad.");
+    expect(pageSource).toContain("const selectedReviewedNavigation = eligibleReviewedNavigation;");
+    expect(pageSource).toContain("without gating the ordinary named-road");
+    expect(pageSource).not.toContain("statusRequestSettled:");
+    expect(pageSource).not.toContain("releaseRequestSettled:");
+    expect(pageSource).toContain("Reviewed Google directions are available for this exact pad.");
     expect(pageSource).toContain("padDestinationPinUrl(selected)");
     expect(pageSource).toContain("padDestinationNavigationUrl(selected)");
     expect(pageSource).toContain("trustedPadDestination(selected)");
@@ -244,7 +269,7 @@ describe("map viewer authority boundary", () => {
       pageSource.indexOf("namedSelectionRequired ? <small", pageSource.indexOf("selectedGpsNavigationUrl && selectedGpsDestination")),
     );
     expect(pageSource).toContain('className="map-coordinate-pin"');
-    expect(pageSource).toContain("destination pin only, not an approved route");
+    expect(pageSource).toContain("destination pin only, no reviewed named-road sequence");
     expect(pageSource).not.toContain("Copy GPS");
     expect(pageSource).not.toContain("navigator.clipboard.writeText");
     expect(pageSource).not.toContain("google.com/maps/search");
@@ -279,7 +304,7 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).not.toContain('role="listbox"');
     expect(pageSource).toContain('aria-controls="map-filter-panel"');
     expect(pageSource).toContain('hidden={!mapFiltersOpen}');
-    expect(pageSource).toContain('aria-label="Show approved route roads by company"');
+    expect(pageSource).toContain('aria-label="Separate approved routes by company or show all routes"');
   });
 
   it("uses stable individual markers instead of moving numbered clusters", () => {

@@ -44,13 +44,14 @@ requireText(drafts, "driverNavigateChanged: false", "driver Navigate unchanged e
 requireText(component, 'strokeColor: approved ? "#14b8a6" : "#94a3b8"', "teal/gray section rendering");
 requireText(component, 'companyRoads.selectRoads("all")', "all exact approved roads selection");
 requireText(component, 'strokeColor: "#14b8a6"', "all-approved-road teal overlay");
-requireText(component, 'ownerGoogleVerifyApprovedStepRoutes(status)', "selected-pad approved step authority");
-requireText(component, 'strokeColor: "#2dd4bf"', "selected-pad approved step highlight");
-requireText(component, 'Interstates, U.S. routes, state routes, county, township, and local roads are all included when present.', "all approved step road classes");
+requireText(component, 'ownerGoogleVerifyNamedRoadRoutes(status)', "selected-pad named-road display geometry");
+requireText(component, 'strokeColor: "#2dd4bf"', "selected-pad named-road display highlight");
+requireText(component, 'Teal is display only; State-1 graph/public-Google authority is separate.', "display geometry authority boundary");
+requireText(component, 'No reviewed named-road display geometry is available for this pad; no line was inferred.', "no inferred named-road geometry");
 requireText(component, "candidateEntrance: parsedCandidateEntrance.point", "draft-only candidate entrance capture");
 requireText(component, "Candidate entrance coordinates", "candidate entrance owner form");
 requireText(component, "destination: googlePoint(destination)", "candidate entrance cannot replace route destination");
-requireText(model, 'label: "Off approved road"', "off-approved-road badge outcome");
+requireText(model, 'label: "Wrong road"', "wrong-road badge outcome");
 requireText(pad, "Verify route on Google", "pad owner verifier button");
 requireText(settings, "Last pad verified:", "Settings last-pad summary");
 requireText(settings, "Verify route on Google", "Settings verifier button");

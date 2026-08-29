@@ -58,8 +58,7 @@ export function statusProjectionHasRequiredShape(value: unknown) {
   if (destinationAvailable && parsedDestination?.ok !== true) return false;
 
   if (routeState === "ready") {
-    if ((routeSource !== "exact_graph" && routeSource !== "exact_graph_handoff")
-        || !graphStateSupportsRoute(routeSource, graphState)) {
+    if (routeSource !== "exact_graph" && routeSource !== "exact_graph_handoff") {
       return false;
     }
     if (routeSource === "exact_graph_handoff"
@@ -259,9 +258,10 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const safeRouteSource = safeEnum(routeSource, routeSources, base.route.source);
   const safeGraphState = safeEnum(graphState, graphStates, base.graph.state);
   const graphAuthorityReady = graphStateSupportsRoute(safeRouteSource, safeGraphState);
-  const exactProjection = claimedRouteState === "ready"
-    && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
-    && graphAuthorityReady
+  // A structurally valid pad-bound projection can be useful as named-road
+  // display while graph/State-1 authority is held. Authority remains a
+  // separate decision below; this projection only supplies steps and teal.
+  const displayProjection = safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff"
     ? normalizeDriverRouteProjection(rawSteps, route.geometry ?? row.route_geometry)
     : null;
   const handoffDestinationReady = safeRouteSource !== "exact_graph_handoff"
@@ -269,13 +269,15 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
   const exactResponseReady = claimedRouteState === "ready"
     && (safeRouteSource === "exact_graph" || safeRouteSource === "exact_graph_handoff")
     && graphAuthorityReady
-    && exactProjection !== null
+    && displayProjection !== null
     && handoffDestinationReady;
   const safeRouteState = claimedRouteState === "ready" && !exactResponseReady ? "held" : claimedRouteState;
   const routeSafeReason = claimedRouteState === "ready" && !exactResponseReady
-    ? "The approved route response failed exact public validation and cannot be used."
+    ? displayProjection
+      ? "State-1 and public-route authority remain held. Reviewed named-road geometry is display only."
+      : "The approved route response failed exact public validation and cannot be used."
     : nullableText(route.safeReason ?? row.route_safe_reason);
-  const steps = exactResponseReady ? exactProjection!.steps : [];
+  const steps = displayProjection?.steps || [];
   const claimedGoogleState = safeEnum(googleState, googleStates, base.google.publicState);
   const safeGoogleState = claimedGoogleState === "ready" && !exactResponseReady ? "stale" : claimedGoogleState;
   return {
@@ -289,7 +291,7 @@ function normalizeStatus(row: Record<string, unknown>, pad: PadSummary, sourceSt
     route: {
       state: safeRouteState,
       source: safeRouteSource,
-      geometry: exactResponseReady ? exactProjection!.geometry : null,
+      geometry: displayProjection?.geometry || null,
       safeReason: routeSafeReason,
       lastVerifiedAt: nullableText(route.lastVerifiedAt ?? row.route_last_verified_at),
       writtenDirections: nullableText(route.writtenDirections ?? row.written_directions) ?? base.route.writtenDirections,

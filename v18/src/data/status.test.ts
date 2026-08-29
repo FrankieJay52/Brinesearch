@@ -983,7 +983,33 @@ describe("public driver status boundary", () => {
     expect(status.google).toMatchObject({ publicState: "stale", routeUrl: null });
   });
 
-  it("discards supplied route geometry unless route and graph authority are both current", async () => {
+  it("keeps structurally valid pad-bound geometry as display while State-1 authority is held", async () => {
+    publicResponse({
+      route: {
+        state: "ready",
+        source: "exact_graph",
+        steps: exactSteps(),
+        geometry: exactGeometry(),
+      },
+      graph: { state: "held" },
+      google: { publicState: "ready", routeUrl: "https://example.invalid/must-not-open" },
+      destination: { available: true, role: "driver_entrance", latitude: 40.1, longitude: -80.9 },
+    });
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({
+      state: "held",
+      source: "exact_graph",
+      safeReason: "State-1 and public-route authority remain held. Reviewed named-road geometry is display only.",
+    });
+    expect(status.route.geometry?.features).toHaveLength(2);
+    expect(status.routeSteps).toEqual(exactSteps());
+    expect(status.graph.state).toBe("held");
+    expect(status.google).toMatchObject({ publicState: "stale", routeUrl: null });
+  });
+
+  it("discards geometry that is not bound to an exact route projection", async () => {
     publicResponse({
       route: {
         state: "held",

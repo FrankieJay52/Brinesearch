@@ -31,10 +31,10 @@ import {
   addOwnerGoogleVerifyPoint,
   buildOwnerGoogleVerifySections,
   maximumOwnerGoogleVerifyTurnPins,
-  ownerGoogleVerifyApprovedStepRoutes,
+  ownerGoogleVerifyNamedRoadRoutes,
   ownerGoogleVerifyDestination,
   ownerGoogleVerifyOutcome,
-  type OwnerGoogleVerifyApprovedStepRoute,
+  type OwnerGoogleVerifyNamedRoadRoute,
 } from "./ownerGoogleVerifyModel";
 import "./owner-google-verify.css";
 
@@ -151,7 +151,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
   const [saveMessage, setSaveMessage] = useState("");
   const [entranceLatitude, setEntranceLatitude] = useState("");
   const [entranceLongitude, setEntranceLongitude] = useState("");
-  const [loadedApprovedStepRoutes, setLoadedApprovedStepRoutes] = useState<OwnerGoogleVerifyApprovedStepRoute[]>([]);
+  const [loadedApprovedStepRoutes, setLoadedApprovedStepRoutes] = useState<OwnerGoogleVerifyNamedRoadRoute[]>([]);
   const [loadedApprovedStepRecordKey, setLoadedApprovedStepRecordKey] = useState("");
   const [approvedStepState, setApprovedStepState] = useState<"loading" | "ready" | "unavailable">("loading");
   const approvedStepRecordKey = pad ? `${pad.padId}:${pad.recordRevision}` : "";
@@ -330,7 +330,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
         setApprovedStepState("unavailable");
         return;
       }
-      const routes = ownerGoogleVerifyApprovedStepRoutes(status);
+      const routes = ownerGoogleVerifyNamedRoadRoutes(status);
       setLoadedApprovedStepRoutes(routes);
       setApprovedStepState(routes.length ? "ready" : "unavailable");
     }).catch(() => {
@@ -654,7 +654,7 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       end: selectedSection.end,
     };
     setSectionMarks((current) => [...current.filter((candidate) => candidate.sectionId !== mark.sectionId), mark]);
-    setNotice(state === "approved_named_road" ? `${name} marked approved.` : state === "lease_or_unnamed" ? "Section marked unnamed or lease road." : "Section marked off approved road.");
+    setNotice(state === "approved_named_road" ? `${name} marked as a directed named road.` : state === "lease_or_unnamed" ? "Section marked unnamed or lease road." : "Section marked as the wrong road.");
     dismissPhoneKeyboard();
     setRoadName("");
     setSelectedSectionId("");
@@ -747,8 +747,8 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       </button>
       {workflowOpen && <div id="owner-google-workflow-content" className="owner-google-workflow-content" aria-live="polite">
         <div className={`owner-verify-outcome is-${outcome.state}`}><span/><strong>{outcome.label}</strong><small>{outcome.detail}</small></div>
-        <div className={`owner-approved-road-status${companyRoads.error ? " is-error" : ""}`}><span/><strong>All approved roads</strong><small>{companyRoads.loading ? "Loading exact approved-road overlay…" : companyRoads.error || (companyRoads.overlay?.selection === "all" ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved road sections highlighted in teal.` : companyRoads.availability.reason || "Approved roads unavailable; nothing was inferred.")}</small></div>
-        <div className="owner-approved-road-status owner-approved-step-status"><span/><strong>Approved steps for {pad.padName}</strong><small>{currentApprovedStepState === "loading" ? "Checking this pad's current approved step geometry…" : currentApprovedStepState === "ready" ? `${approvedStepRoutes.reduce((count, route) => count + route.stepCount, 0).toLocaleString()} exact approved route steps highlighted in bright teal. Interstates, U.S. routes, state routes, county, township, and local roads are all included when present.` : "No current exact approved step geometry is available for this pad; no line was inferred."}</small></div>
+        <div className={`owner-approved-road-status${companyRoads.error ? " is-error" : ""}`}><span/><strong>Public road reference overlay</strong><small>{companyRoads.loading ? "Loading reviewed public-road references…" : companyRoads.error || (companyRoads.overlay?.selection === "all" ? `${companyRoads.overlay.rows.length.toLocaleString()} reviewed public-road sections shown as references.` : companyRoads.availability.reason || "Public-road references unavailable; nothing was inferred.")}</small></div>
+        <div className="owner-approved-road-status owner-approved-step-status"><span/><strong>Named-road display for {pad.padName}</strong><small>{currentApprovedStepState === "loading" ? "Checking this pad's reviewed named-road display geometry…" : currentApprovedStepState === "ready" ? `${approvedStepRoutes.reduce((count, route) => count + route.stepCount, 0).toLocaleString()} reviewed named-road steps highlighted in bright teal. Teal is display only; State-1 graph/public-Google authority is separate.` : "No reviewed named-road display geometry is available for this pad; no line was inferred."}</small></div>
         <ol>
           <li className={origin ? "done" : "active"}><span>1</span><div><strong>Phone origin</strong><small>{locationState === "ready" ? "Current phone GPS ready · never stored" : locationState === "error" ? previewMessage : "Tap to share this phone's GPS with Google for this preview · never stored or exported"}</small></div>{locationState !== "locating" && <button type="button" onClick={() => { requestPhoneOrigin(); setWorkflowOpen(false); }}>Use phone GPS</button>}</li>
           <li className={anchor ? "done" : origin ? "active" : ""}><span>2</span><div><strong>Anchor</strong><small>{anchor ? "Named public-road anchor set" : "Tap the map on a named public road"}</small></div></li>
@@ -772,9 +772,9 @@ function OwnerGoogleVerifyMapSession({ padId }: { padId: string }) {
       <p>Enter a public road name yourself. Google does not name or approve this section.</p>
       <label><span>Named public road</span><input value={roadName} maxLength={120} onChange={(event) => setRoadName(event.target.value)} placeholder="Example: Repik Ln / CR 9876" autoComplete="off"/></label>
       <div>
-        <button type="button" className="section-approved" onClick={() => markSelected("approved_named_road")}>Approved named road</button>
+        <button type="button" className="section-approved" onClick={() => markSelected("approved_named_road")}>Directed named road</button>
         <button type="button" onClick={() => markSelected("lease_or_unnamed")}>Unnamed / lease</button>
-        <button type="button" className="section-not-approved" onClick={() => markSelected("not_approved")}>Not approved</button>
+        <button type="button" className="section-not-approved" onClick={() => markSelected("not_approved")}>Wrong road</button>
       </div>
     </aside>}
 

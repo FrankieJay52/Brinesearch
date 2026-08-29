@@ -4,6 +4,7 @@ import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
+  driverRuleStatusForState,
   explicitReceiptForPad,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
@@ -86,6 +87,14 @@ test("CSV output neutralizes formula strings but keeps numeric longitudes numeri
   }
   assert.equal(csv(-80.913577), "-80.913577");
   assert.equal(csv("ordinary text"), "ordinary text");
+});
+
+test("everyday driver status treats all reviewed named-road handoffs as DONE", () => {
+  assert.equal(driverRuleStatusForState("1"), "DONE");
+  assert.equal(driverRuleStatusForState("2"), "DONE");
+  assert.equal(driverRuleStatusForState("reviewed_handoff_authority_held"), "DONE");
+  assert.equal(driverRuleStatusForState("3"), "GPS_ONLY");
+  assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
 test("all forty-six reviewed ledger states require every exact record and destination field", () => {
@@ -354,9 +363,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /46 owner-approved handoffs with graph held/u);
-  assert.match(summary, /Twenty-eight have exact named-road identity evidence; eighteen retain validated Google-handoff evidence/u);
-  assert.match(summary, /does not create graph geometry, a public-Google release, or an approved-road overlay/u);
+  assert.match(summary, /55 DONE reviewed named-road handoffs \/ 192 GPS_ONLY/u);
+  assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
+  assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
+  assert.match(summary, /remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

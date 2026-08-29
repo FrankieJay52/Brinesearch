@@ -1,6 +1,9 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it, vi } from "vitest";
 import type { DriverRouteGeometry } from "@/data/types";
 import { collapseCompactAttribution, padMapFrameOptions, padMapFramePoints, routePoints } from "./PadMapPreview";
+
+const previewSource = readFileSync(new URL("./PadMapPreview.tsx", import.meta.url), "utf8");
 
 const geometry: DriverRouteGeometry = {
   type: "FeatureCollection",
@@ -60,5 +63,14 @@ describe("V18 compact pad map framing", () => {
     expect(host.querySelector).toHaveBeenCalledWith(".maplibregl-ctrl-attrib");
     expect(removeAttribute).toHaveBeenCalledWith("open");
     expect(remove).toHaveBeenCalledWith("maplibregl-compact-show");
+  });
+
+  it("draws only supplied named-road geometry and never invents teal", () => {
+    expect(previewSource).toContain("drawNamedRoadOverlay(map, routeOverlay.current, routeGeometry)");
+    expect(previewSource).toContain("Missing geometry is");
+    expect(previewSource).toContain("never replaced with prose, waypoints, straight lines, or nearest-road guesses.");
+    expect(previewSource).toContain("Named-road detail could not be drawn. No substitute line was inferred.");
+    expect(previewSource).toContain("GPS destination only; no named-road display geometry was supplied.");
+    expect(previewSource).not.toContain("drawApprovedRouteOverlay");
   });
 });

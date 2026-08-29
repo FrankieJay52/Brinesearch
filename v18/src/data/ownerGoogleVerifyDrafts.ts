@@ -9,6 +9,11 @@ export interface OwnerGoogleVerifyPoint {
   longitude: number;
 }
 
+/**
+ * `approved_named_road` is the immutable v1 storage token. In everyday V18 it
+ * means an owner-marked directed named-road section; it does not confer a
+ * State-1 graph release, public-Google authority, or production approval.
+ */
 export type OwnerGoogleVerifySectionState =
   | "approved_named_road"
   | "lease_or_unnamed"

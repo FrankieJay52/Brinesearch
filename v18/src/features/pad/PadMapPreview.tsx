@@ -20,8 +20,8 @@ export function routePoints(geometry: DriverRouteGeometry | null): MapPoint[] {
 
 /**
  * Frames only reviewed geometry and the already-selected display coordinate.
- * Adding the marker to the frame keeps a verified entrance visible without
- * extending, snapping, or otherwise changing the approved route.
+ * Adding the marker to the frame keeps the selected destination visible
+ * without extending, snapping, or otherwise changing the named-road display.
  */
 export function padMapFramePoints(geometry: DriverRouteGeometry | null, marker: MapPoint | null): MapPoint[] {
   const points = routePoints(geometry);
@@ -62,11 +62,11 @@ function routeLines(geometry: DriverRouteGeometry | null): MapPoint[][] {
 }
 
 /**
- * Draws the reviewed geometry above the basemap canvas. Keeping this small
- * overlay independent of the tile/style worker means the exact line remains
- * visible even when the optional basemap has to use its offline background.
+ * Draws only separately reviewed display geometry above the basemap canvas.
+ * Teal is presentation, not graph/public-Google authority. Missing geometry is
+ * never replaced with prose, waypoints, straight lines, or nearest-road guesses.
  */
-function drawApprovedRouteOverlay(map: MapLibreMap, canvas: HTMLCanvasElement | null, geometry: DriverRouteGeometry | null) {
+function drawNamedRoadOverlay(map: MapLibreMap, canvas: HTMLCanvasElement | null, geometry: DriverRouteGeometry | null) {
   if (!canvas) return 0;
   const width = map.getContainer().clientWidth;
   const height = map.getContainer().clientHeight;
@@ -166,7 +166,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     map.on("sourcedata", settleAutomaticAttribution);
     settleAutomaticAttribution();
     const drawRouteOverlay = () => {
-      const renderedLines = drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry);
+      const renderedLines = drawNamedRoadOverlay(map, routeOverlay.current, routeGeometry);
       if (host.current) host.current.dataset.routeOverlayReady = String(renderedLines > 0);
     };
     let overlayFrame: number | null = null;
@@ -200,7 +200,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
         scheduleRouteOverlay();
       } catch {
         if (host.current) host.current.dataset.routeOverlayReady = "false";
-        setMapError("Approved route detail could not be drawn. No substitute route was inferred.");
+        setMapError("Named-road detail could not be drawn. No substitute line was inferred.");
       }
     };
     const recoverMissingStyle = () => {
@@ -247,7 +247,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
         : displayCoordinate ? [displayCoordinate.longitude, displayCoordinate.latitude] as MapPoint : null;
       framePadMap(map, padMapFramePoints(routeGeometry, destination), expanded);
       map.triggerRepaint();
-      const renderedLines = drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry);
+      const renderedLines = drawNamedRoadOverlay(map, routeOverlay.current, routeGeometry);
       if (host.current) host.current.dataset.routeOverlayReady = String(renderedLines > 0);
       if (!expanded) collapseCompactAttribution(attributionHost.current);
     });
@@ -261,7 +261,7 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
     data-status-route-features={status.route.geometry?.features.length || 0}
     data-route-steps={status.routeSteps.length}
   >
-    <div className="pad-map-preview" aria-label={`Map preview and approved route for ${pad.padName}`}>
+    <div className="pad-map-preview" aria-label={`Map preview and named-road highlight for ${pad.padName}`}>
       <div className="pad-map-renderer" ref={host}/>
       <canvas className="pad-map-route-overlay" ref={routeOverlay} aria-hidden="true"/>
     </div>
@@ -272,8 +272,8 @@ export function PadMapPreview({ pad, status, routeGeometry = status.route.geomet
       </button>
     </div>
     {status.destination.role === "saved_pad_destination"
-      ? <div className="pad-map-warning" role="note">Saved pad GPS. The approved road core ends at its handoff; lease access is destination-only.</div>
-      : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. GPS destination only; Google chooses the roads. Not a BrineSearch-approved route.</div>}
+      ? <div className="pad-map-warning" role="note">Saved pad GPS. The named-road highlight ends at its reviewed handoff; unnamed access remains unlabelled.</div>
+      : mapDisplayCoordinate(pad)?.role === "reference" && <div className="pad-map-warning" role="note">{mapDisplayCoordinateLabel(pad)}. GPS destination only; no named-road display geometry was supplied.</div>}
     {mapError && <div className="pad-map-warning" role="alert">{mapError}</div>}
   </section>;
 }

@@ -20,10 +20,12 @@ runtime assets are not included in either production deployment.
 - The pad screen always separates route source, road-graph state, and public
   Google availability.
 
-Google is renderer-only. An approved Google action is built exclusively from a
-current public BrineSearch manifest. A destination pin is labeled separately
-and requires a validated `driver_entrance`; null, partial, invalid, or `0,0`
-coordinates never enable navigation.
+Google is the navigation renderer. The one driver Navigate action uses the
+phone's current location and the pad's saved GPS, except for an ODNR destination
+already frozen for that exact pad. A verified named-road handoff does not need a
+State-1 manifest or a `driver_entrance`. Null, partial, invalid, or `0,0`
+coordinates never enable navigation. The complete everyday rule is in
+[`../docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`](../docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md).
 
 ## Data boundaries
 
@@ -35,10 +37,17 @@ coordinates never enable navigation.
   submitter, provenance, internal route fields, and legacy written directions
   are not bundled. Written directions remain unavailable until a separately
   reviewed public-safe projection exists.
-- Exact route cards and geometry come from the Issue #97 occurrence,
-  transition, and geometry receipts—not from legacy pad route snapshots.
-- Shared-road and name-change presentation requires explicit graph receipts;
-  names, aliases, or proximity never create those semantics.
+- State-1 route authority still comes from the Issue #97 occurrence,
+  transition, and geometry receipts—not from legacy pad route snapshots. Those
+  receipts do not gate everyday named-road Navigate or its display highlight.
+- An everyday highlight may show a verified directed sequence of explicitly
+  named interstate, U.S., state, county, or township roads. It is presentation
+  only and creates no graph, official-road, or public-Google authority. Names,
+  aliases, fuzzy matching, or proximity never create a directed sequence.
+- The driver map keeps the exact released approved-road network teal and lets
+  the driver show all approved routes or separate them by exact company. A
+  pad-bound route is a brighter selection-only display; unselected pads add no
+  per-pad route color. Basemap road classes are never promoted into this layer.
 - Identity merges and tombstones are not projected in this release. A live
   directory is accepted only when `identityEventCount` is zero; fallback rows
   remain non-authoritative for route navigation. A safe public identity-state
@@ -56,11 +65,17 @@ npm run build
 npm run dev
 ```
 
-`npm run verify` checks the fallback artifact, the driver directory/status and
-company-road SQL/static contracts, TypeScript, and unit tests. The production
-build is written to `../dist-v18`.
+`npm run verify` checks the fallback artifact, the everyday named-road driver
+contract, company-road and owner-map boundaries, TypeScript, and unit tests. It
+does not run per-pad State-1 receipt gates. The production build is written to
+`../dist-v18`.
 
 ## Release gates
+
+The gates below protect the V18 platform release. Per-pad State-1 promotion is
+parked and is not part of default verification. It runs only after an explicit
+`PROMOTE <PAD NAME> TO STATE 1` instruction with
+`npm run verify:state1-promotion` from this directory.
 
 The migration at
 `../supabase/migrations/20260823002719_v18_driver_directory_status_contract.sql`

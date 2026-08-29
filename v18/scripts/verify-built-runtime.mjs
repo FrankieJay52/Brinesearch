@@ -32,14 +32,22 @@ assert.match(appJavascript, /Selected pad held · no teal route/, "Built V18 app
 assert.match(appJavascript, /Ends at selected pad road projection/, "Built V18 app is missing the per-pad endpoint boundary label");
 assert.match(appJavascript, /Gold inspection road/, "Built V18 app is missing the selected-road inspection legend");
 assert.match(appJavascript, /Reviewed field directions/, "Built V18 app is missing reviewed directions in the owner map");
-assert.match(appJavascript, /Reviewed approved route/, "Built V18 app is missing the single fixed approved-route action");
-assert.match(appJavascript, /Navigate the reviewed approved route in Google Maps/, "Built V18 app does not label the approved-route handoff");
-assert.match(appJavascript, /Approval begins at its verified ingress/, "Built V18 app does not disclose the Google-selected approach boundary");
-assert.match(appJavascript, /Use the BrineSearch map and approved steps; no single exact Google Maps handoff is available/, "Built V18 app is missing the in-app-only exact-route fallback");
+assert.match(appJavascript, /Named roads to saved pin/, "Built V18 app is missing the single fixed named-road action");
+assert.match(appJavascript, /reviewed named-road controls/, "Built V18 app does not label the named-road handoff");
+assert.match(appJavascript, /One reviewed named-road handoff is bound to this exact pad and destination/, "Built V18 app does not disclose the reviewed named-road binding");
+assert.match(appJavascript, /Use the BrineSearch map and named-road steps; no single Google Maps handoff is available/, "Built V18 app is missing the in-app-only named-road fallback");
 assert.match(appJavascript, /GPS destination only/, "Built V18 app is missing the always-present destination-pin navigation fallback");
-assert.match(appJavascript, /destination pin only, not an approved route/, "Built V18 app is missing clickable verified GPS coordinates");
-assert.match(appJavascript, /GPS destination only · not an approved route/, "Built V18 app is missing the compact GPS authority boundary");
-assert.match(appJavascript, /Approved roads then GPS/, "Built V18 app is missing the exact state-2 navigation label");
+assert.match(appJavascript, /destination pin only, no reviewed named-road sequence/, "Built V18 app is missing clickable GPS coordinates with the named-road boundary");
+assert.match(appJavascript, /GPS destination only · named roads not yet reviewed/, "Built V18 app is missing the compact GPS named-road boundary");
+assert.match(appJavascript, /Named roads then unnamed access/, "Built V18 app is missing the named-road handoff boundary");
+assert.match(appJavascript, /No reviewed named-road display geometry · no teal line inferred/, "Built V18 app can no longer prove that missing display geometry produces no fake teal");
+assert.match(appJavascript, /teal is display, not new authority/, "Built V18 app is missing the named-road display authority boundary");
+assert.match(appJavascript, /All approved routes/, "Built V18 app is missing the persistent all-approved-routes scope");
+assert.match(appJavascript, /Separate approved routes by company or show all routes/, "Built V18 app is missing the all-routes or one-company selector");
+assert.match(appJavascript, /Exact approved road · teal/, "Built V18 app is missing the persistent approved-road teal legend");
+assert.match(appJavascript, /selected-pad route color appears only after choosing a pad/, "Built V18 app is missing the selected-pad-only route-color disclosure");
+assert.match(appJavascript, /Selected pad route · bright teal/, "Built V18 app is missing the selection-only pad-route key");
+assert.doesNotMatch(appJavascript, /Checking for the highest-priority reviewed route|Live route check unavailable · no fallback opened/, "Built V18 app still withholds Navigate while optional State-1 checks settle");
 assert.doesNotMatch(appJavascript, /Approved road core · GPS destination/, "Built V18 app retained the superseded state-2 label");
 assert.doesNotMatch(appJavascript, /Approved roads to handoff · GPS-only final leg/, "Built V18 app retained the superseded named state-2 label");
 assert.match(appJavascript, /No trusted GPS destination/, "Built V18 app is missing the disabled navigation state");
@@ -55,4 +63,4 @@ assert.match(appJavascript, /Expand pad map/, "Built V18 app is missing the comp
 assert.doesNotMatch(appJavascript, /Current public Google route|Open route \d+ of|route-chunk-list/, "Built V18 app exposes a multipart or generic public-Google driver action");
 assert.doesNotMatch(appJavascript, /brinesearch\.editorSession\.v1|https?:\/\/brinesearch\.com\/index\.html#|private_review_notes|service[_-]?role/i, "Built V18 app contains an old-app bridge, private review fields, or privileged key material");
 
-console.log("Verified V18 built runtime: native sign-in, public Field Updates, reviewed directions, and owner-only exact-road highlights with per-pad endpoint boundaries are present without old-app bridges, private fields, or privileged material.");
+console.log("Verified V18 built runtime: named-road Navigate and teal display are available without optional State-1 gating, while GPS-only pads get no inferred line and no privileged material is bundled.");

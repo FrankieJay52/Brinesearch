@@ -497,7 +497,10 @@ h2 { letter-spacing: -.035em; }
 .legend-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
 .legend-dot.review { background: var(--amber); }
 .legend-dot.disposal { background: var(--blue); }
-.legend-line { width: 18px; height: 4px; border-radius: 999px; background: var(--teal); box-shadow: 0 0 0 2px rgba(7, 19, 31, .76); }
+.legend-line { width: 18px; height: 4px; border-radius: 999px; background: #14b8a6; box-shadow: 0 0 0 2px rgba(7, 19, 31, .76); }
+.legend-line.selected { height: 5px; background: #52e4bd; box-shadow: 0 0 0 2px rgba(7, 19, 31, .88), 0 0 8px rgba(82, 228, 189, .28); }
+.selected-pad-route-key { margin-bottom: 8px; display: flex; align-items: center; gap: 9px; color: var(--teal-bright); font-size: .7rem; }
+.selected-pad-route-key .legend-line { flex: 0 0 18px; }
 
 .inline-warning, .stale-banner {
   display: flex;

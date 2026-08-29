@@ -215,7 +215,9 @@ export interface DriverPadStatus {
   routeSteps: DriverRouteStep[];
   /**
    * Separately reviewed named approaches returned atomically with this pad
-   * status. Older offline records omit this additive field.
+   * status. Their geometry may be shown as teal everyday display without a
+   * State-1 stamp; it remains display only and cannot create road authority.
+   * Older offline records omit this additive field.
    */
   namedApproaches?: DriverNamedApproach[];
 }

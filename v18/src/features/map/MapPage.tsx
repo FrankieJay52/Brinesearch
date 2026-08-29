@@ -19,10 +19,7 @@ import { readPadDirectionsOffline } from "@/data/offlineRoutes";
 import { mapDisplayCoordinateLabel } from "@/data/mapDisplayCoordinates";
 import {
   currentReleasedGoogleHandoff,
-  currentReleasedGoogleHandoffLoad,
-  higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
-  navigationFallbackAfterHigherPriorityCheck,
   releasedGoogleNavigationUrl,
   type ReleasedGoogleHandoffLoad,
 } from "@/data/releasedGoogleHandoff";
@@ -121,7 +118,7 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
         id: companyRoadCasingLayerId,
         type: "line",
         source: companyRoadSourceId,
-        paint: { "line-color": "rgba(7, 19, 31, .76)", "line-width": 7, "line-opacity": 1 },
+        paint: { "line-color": "rgba(7, 19, 31, .76)", "line-width": 7, "line-opacity": .82 },
         layout: { "line-cap": "round", "line-join": "round" },
       }, firstSymbolLayer);
     }
@@ -130,7 +127,7 @@ function syncCompanyRoadLayers(map: MapLibreMap, rows: CompanyRoadOverlayRow[]) 
         id: companyRoadLineLayerId,
         type: "line",
         source: companyRoadSourceId,
-        paint: { "line-color": "rgba(240, 180, 93, .9)", "line-width": 3.5, "line-opacity": 1 },
+        paint: { "line-color": "#14b8a6", "line-width": 4, "line-opacity": .86 },
         layout: { "line-cap": "round", "line-join": "round" },
       }, firstSymbolLayer);
     }
@@ -155,7 +152,7 @@ function clearRoadModeFade(map: MapLibreMap) {
   }
 }
 
-function syncMapPresentation(map: MapLibreMap, roadMode: boolean, isolateSelectedRoute: boolean) {
+function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
   try {
     if (roadMode) {
       if (!map.getSource(roadModeFadeSourceId)) map.addSource(roadModeFadeSourceId, {
@@ -185,11 +182,13 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean, isolateSelecte
     }
 
     if (map.getLayer(companyRoadCasingLayerId)) {
-      map.setPaintProperty(companyRoadCasingLayerId, "line-opacity", roadMode && isolateSelectedRoute ? .22 : 1);
+      map.setPaintProperty(companyRoadCasingLayerId, "line-opacity", .82);
     }
     if (map.getLayer(companyRoadLineLayerId)) {
-      map.setPaintProperty(companyRoadLineLayerId, "line-color", roadMode ? "#52e4bd" : "rgba(240, 180, 93, .9)");
-      map.setPaintProperty(companyRoadLineLayerId, "line-opacity", roadMode && isolateSelectedRoute ? .16 : 1);
+      // Exact released roads stay teal in every map view. The separately
+      // reviewed selected-pad route is the brighter canvas line above them.
+      map.setPaintProperty(companyRoadLineLayerId, "line-color", "#14b8a6");
+      map.setPaintProperty(companyRoadLineLayerId, "line-opacity", .86);
     }
   } catch {
     clearRoadModeFade(map);
@@ -255,6 +254,8 @@ function drawRoute(
   map: MapLibreMap,
   geometry: DriverRouteGeometry | null,
 ) {
+  // Teal is a display of separately reviewed named-road geometry. Rendering
+  // this line does not create graph, road, or public-Google authority.
   const lines = routeLines(geometry);
   if (!lines.length) return;
   const stroke = (color: string, width: number) => {
@@ -276,10 +277,41 @@ function drawRoute(
   stroke("#52e4bd", 5);
 }
 
+function drawApprovedRoadNetwork(
+  context: CanvasRenderingContext2D,
+  map: MapLibreMap,
+  rows: CompanyRoadOverlayRow[],
+) {
+  if (!rows.length) return;
+  context.beginPath();
+  for (const row of rows) {
+    const lines = row.geometry.type === "LineString" ? [row.geometry.coordinates] : row.geometry.coordinates;
+    for (const line of lines) {
+      line.forEach((coordinate, index) => {
+        const point = map.project(coordinate);
+        if (index === 0) context.moveTo(point.x, point.y);
+        else context.lineTo(point.x, point.y);
+      });
+    }
+  }
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.strokeStyle = "rgba(7, 19, 31, .76)";
+  context.lineWidth = 7;
+  context.globalAlpha = .82;
+  context.stroke();
+  context.strokeStyle = "#14b8a6";
+  context.lineWidth = 4;
+  context.globalAlpha = .86;
+  context.stroke();
+  context.globalAlpha = 1;
+}
+
 function drawPadOverlay(
   map: MapLibreMap,
   canvas: HTMLCanvasElement,
   rows: PadSummary[],
+  approvedRoadRows: CompanyRoadOverlayRow[],
   geometry: DriverRouteGeometry | null,
   selectedId: string | null,
 ) {
@@ -296,7 +328,13 @@ function drawPadOverlay(
   if (!context) return { inputCount: 0, renderedCount: 0, targets: [] as PadHitTarget[] };
   context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
   context.clearRect(0, 0, width, height);
-  drawRoute(context, map, geometry);
+  // If the remote basemap style fails, render the same validated released
+  // rows on the existing canvas. This is a renderer fallback, not a geometry
+  // fallback; MapLibre and canvas never draw the network at the same time.
+  drawApprovedRoadNetwork(context, map, approvedRoadRows);
+  // Pad-bound route color is selection-only. The persistent teal road network
+  // is the independently authorized company-road MapLibre layer below it.
+  drawRoute(context, map, selectedId ? geometry : null);
 
   const safeRows = rows.flatMap((row) => {
     const coordinate = mapDisplayCoordinate(row);
@@ -330,7 +368,6 @@ export function MapPage() {
   const [locationChoices, setLocationChoices] = useState<PadSummary[] | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<DriverPadStatus | null>(null);
   const [releasedHandoff, setReleasedHandoff] = useState<ReleasedGoogleHandoffLoad | undefined>(undefined);
-  const [statusAuthorityCheck, setStatusAuthorityCheck] = useState<{ recordKey: string; checked: boolean } | null>(null);
   const [routeChoices, setRouteChoices] = useState<DriverRouteChoice[]>([]);
   const [routeChoicesRecordKey, setRouteChoicesRecordKey] = useState<string | null>(null);
   const [selectedRouteKey, setSelectedRouteKey] = useState("");
@@ -352,10 +389,7 @@ export function MapPage() {
   const syncCompanyRoadLayersRef = useRef<(() => void) | null>(null);
   const companyRoadRenderFailedRef = useRef(false);
   const viewerModeRef = useRef<MapViewerMode>(viewerMode);
-  const isolateSelectedRouteRef = useRef(false);
   const pendingRouteFitRef = useRef(false);
-  const previousRoadSelectionRef = useRef<"all" | string | null>(null);
-  const roadModeWasActiveRef = useRef(false);
   const navigate = useNavigate();
 
   const fullscreen = viewerMode !== "standard";
@@ -395,7 +429,6 @@ export function MapPage() {
     selectedNamedApproach?.routeGroup || null,
     selectedRouteChoice?.routeGroup || null,
   );
-  const currentReleasedHandoffLoadResult = currentReleasedGoogleHandoffLoad(releasedHandoff, selected);
   const currentReleasedHandoffPlan = currentReleasedGoogleHandoff(releasedHandoff, selected);
   const liveApprovedNavigationUrl = !currentNamedApproaches.length && selectedRouteIsPrimary
     && currentSelectedStatus?.route.state === "ready"
@@ -404,37 +437,30 @@ export function MapPage() {
     && currentSelectedStatus.google.publicState === "ready"
     ? currentSelectedStatus.google.routeUrl
     : null;
-  const approvedNavigationUrl = online ? selectedNamedApproach?.navigationUrl || (!currentNamedApproaches.length
-    ? liveApprovedNavigationUrl || releasedGoogleNavigationUrl(
-      currentReleasedHandoffPlan,
-      selectedRouteIsPrimary ? "primary" : "alternate",
-    )
-    : null) : null;
-  const currentStatusAuthorityCheck = selectedRecordKey && statusAuthorityCheck?.recordKey === selectedRecordKey
-    ? statusAuthorityCheck
+  const promotedNavigationUrl = online && !currentNamedApproaches.length
+      ? liveApprovedNavigationUrl || releasedGoogleNavigationUrl(
+        currentReleasedHandoffPlan,
+        selectedRouteIsPrimary ? "primary" : "alternate",
+      )
+      : null;
+  const eligibleReviewedNavigation = selectedRouteIsPrimary && !selectedNamedApproach && !namedSelectionRequired
+    ? selectedReviewedNavigationCandidate
     : null;
-  const higherPriorityNavigationState = higherPriorityNavigationCheckState({
-    online,
-    approvedRouteAvailable: Boolean(currentReleasedHandoffPlan)
-      || Boolean(currentStatusAuthorityCheck?.checked && (selectedNamedApproach?.navigationUrl || liveApprovedNavigationUrl)),
-    statusRequestSettled: !selected || currentStatusAuthorityCheck !== null,
-    statusChecked: !selected || currentStatusAuthorityCheck?.checked === true,
-    releaseRequestSettled: !selected || currentReleasedHandoffLoadResult !== null,
-    releaseChecked: !selected || currentReleasedHandoffLoadResult?.checked === true,
-  });
-  const eligibleReviewedNavigation = selectedRouteIsPrimary && !approvedNavigationUrl && !namedSelectionRequired ? selectedReviewedNavigationCandidate : null;
-  const selectedReviewedNavigation = navigationFallbackAfterHigherPriorityCheck(
-    higherPriorityNavigationState,
-    eligibleReviewedNavigation,
-  );
+  // Frozen named-road navigation is an everyday driver artifact, not a
+  // State-1 fallback. Keep it available while optional live status loads.
+  const selectedReviewedNavigation = eligibleReviewedNavigation;
+  // Preserve an already-working record-bound URL. Promoted release metadata
+  // may supply Cologie's existing link, but it never replaces a reviewed link.
+  const approvedNavigationUrl = selectedNamedApproach?.navigationUrl
+    || (!selectedReviewedNavigation ? promotedNavigationUrl : null);
   const selectedRoadSequence = selectedReviewedNavigation?.reviewedRoadSequence || (!approvedNavigationUrl ? selected?.structuredRoadSequence || "" : "");
   const approvedNavigationDetail = selectedNamedApproach
     ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved"
-      ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
-      : "Reviewed approved route"
+      ? "Directed named roads to the handoff, then an unnamed GPS final leg"
+      : "Reviewed named roads to the saved pin"
     : liveApprovedNavigationUrl && currentSelectedStatus?.route.source === "exact_graph_handoff"
-      ? "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry"
-      : "Reviewed approved route";
+      ? "Directed named roads to the handoff, then an unnamed GPS final leg"
+      : "Reviewed named roads to the saved pin";
   const selectedGoogleState = currentNamedApproaches.length
     ? selectedNamedApproach ? "ready" : "unavailable"
     : currentSelectedStatus
@@ -446,8 +472,11 @@ export function MapPage() {
       : `${selectedNamedApproach.approachLabel} ready`
     : namedSelectionRequired ? "Choose approach"
     : currentSelectedStatus?.route.source === "exact_graph_handoff" && selectedGoogleState === "ready"
-      ? "Approved core + GPS"
+      ? "Named roads + GPS"
       : selectedGoogleState ? `Google ${selectedGoogleState.replaceAll("_", " ")}` : "";
+  // Every supplied reviewed named-road feature is displayable while graph and
+  // public-Google authority remain held. A working static Google handoff never
+  // suppresses separately supplied pad-bound geometry. With no reviewed geometry, draw no teal.
   const selectedRouteGeometry = selectedNamedApproach
     ? selectedNamedApproach.geometry
     : namedSelectionRequired ? null
@@ -459,7 +488,6 @@ export function MapPage() {
   companyRoadRowsRef.current = companyRoads.overlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
-  isolateSelectedRouteRef.current = roadMode && Boolean(selectedId);
 
   const focusPad = useCallback((row: PadSummary) => {
     setLocationChoices(null);
@@ -499,24 +527,13 @@ export function MapPage() {
   }, [fullscreen]);
 
   useEffect(() => {
-    if (roadMode && !roadModeWasActiveRef.current) {
-      previousRoadSelectionRef.current = companyRoads.selection;
-      roadModeWasActiveRef.current = true;
-      return;
-    }
-    if (!roadMode && roadModeWasActiveRef.current) {
-      roadModeWasActiveRef.current = false;
-      const previousSelection = previousRoadSelectionRef.current;
-      previousRoadSelectionRef.current = null;
-      if (companyRoads.selection !== previousSelection) companyRoads.selectRoads(previousSelection);
-    }
-  }, [companyRoads, roadMode]);
-
-  useEffect(() => {
-    if (roadMode && companyRoads.availability.state === "ready" && companyRoads.selection !== "all") {
+    // The driver map begins with every exact approved route road visible.
+    // A deliberate company choice narrows both that layer and the pad list,
+    // and remains selected when switching between standard and Roads views.
+    if (companyRoads.availability.state === "ready" && companyRoads.selection === null) {
       companyRoads.selectRoads("all");
     }
-  }, [companyRoads, roadMode]);
+  }, [companyRoads]);
 
   useEffect(() => {
     if (roadMode) setTypeFilter((current) => current === "pad" ? current : "pad");
@@ -526,13 +543,13 @@ export function MapPage() {
     let cancelled = false;
     setSelectedStatus(null);
     setReleasedHandoff(undefined);
-    setStatusAuthorityCheck(null);
     setRouteChoices([]);
     setRouteChoicesRecordKey(null);
     setSelectedRouteKey("");
     setSelectedNamedApproachKey("");
     if (selected) {
-      const recordKey = `${selected.padId}:${selected.recordRevision}`;
+      // Load promoted frozen releases without gating the ordinary named-road
+      // candidate or GPS destination while this optional request is pending.
       loadReleasedGoogleHandoff(selected).then((result) => {
         if (!cancelled) setReleasedHandoff(result);
       });
@@ -544,10 +561,6 @@ export function MapPage() {
       loadPadStatus(selected, snapshot?.sourceState).then((status) => {
         if (cancelled) return;
         setSelectedStatus(status);
-        setStatusAuthorityCheck({
-          recordKey,
-          checked: !selected.canonicalId || status.loadProvenance === "live_response" || status.loadProvenance === "session_cache",
-        });
         const namedApproaches = status.namedApproaches || [];
         setSelectedNamedApproachKey(namedApproaches.length === 1 ? namedApproaches[0].approachKey : "");
         if (!namedApproaches.length && online && status.dataState === "live" && status.route.state === "ready" && status.route.source === "exact_graph" && status.graph.state === "active_current") {
@@ -599,7 +612,14 @@ export function MapPage() {
       if (!padOverlay.current || !mapHost.current) return;
       let result: ReturnType<typeof drawPadOverlay>;
       try {
-        result = drawPadOverlay(map, padOverlay.current, visibleRowsRef.current, selectedRouteRef.current, selectedIdRef.current);
+        result = drawPadOverlay(
+          map,
+          padOverlay.current,
+          visibleRowsRef.current,
+          fallbackApplied ? companyRoadRowsRef.current : [],
+          selectedRouteRef.current,
+          selectedIdRef.current,
+        );
       } catch {
         hitTargetsRef.current = [];
         setMapRenderState("error");
@@ -642,8 +662,11 @@ export function MapPage() {
 
     const syncRoadLayers = () => {
       if (!styleReady) return;
-      const failed = !syncCompanyRoadLayers(map, companyRoadRowsRef.current) && companyRoadRowsRef.current.length > 0;
-      syncMapPresentation(map, viewerModeRef.current === "roads", isolateSelectedRouteRef.current);
+      // A failed remote style uses the canvas network above. Clear MapLibre's
+      // copy so the authorized rows are never double-painted.
+      const mapLibreRoadRows = fallbackApplied ? [] : companyRoadRowsRef.current;
+      const failed = !syncCompanyRoadLayers(map, mapLibreRoadRows) && mapLibreRoadRows.length > 0;
+      syncMapPresentation(map, viewerModeRef.current === "roads");
       companyRoadRenderFailedRef.current = failed;
       setCompanyRoadRenderFailed(failed);
       if (failed) {
@@ -711,10 +734,6 @@ export function MapPage() {
         return;
       }
       if (target.rows.length === 1) {
-        if (viewerModeRef.current === "roads") {
-          navigate(`/pad/${encodeURIComponent(target.rows[0].padId)}`);
-          return;
-        }
         focusPad(target.rows[0]);
         return;
       }
@@ -791,7 +810,7 @@ export function MapPage() {
             aria-expanded={mapFiltersOpen}
             aria-controls="map-filter-panel"
             aria-label={`${mapFiltersOpen ? "Hide" : "Show"} map filters`}
-            data-active={typeFilter !== "all" || Boolean(companyRoads.selection)}
+            data-active={typeFilter !== "all" || Boolean(selectedRoadCompany)}
             onClick={() => setMapFiltersOpen((open) => !open)}
           ><Icon name="control"/><span>Filters</span></button>
         </form>
@@ -809,15 +828,15 @@ export function MapPage() {
           <div className="filter-row" aria-label="Map filters">
             {roadMode ? <button type="button" className="active" aria-pressed="true">Field pads</button> : (["all", "pad", "disposal"] as const).map((filter) => <button key={filter} className={typeFilter === filter ? "active" : ""} aria-pressed={typeFilter === filter} onClick={() => { setLocationChoices(null); setTypeFilter(filter); }}>{filter === "all" ? "All locations" : filter === "pad" ? "Pads" : "Disposals"}</button>)}
           </div>
-          {companyRoads.availability.state === "ready" && <>{roadMode ? <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div> : <label className="company-road-filter">
-            <span><Icon name="company"/>Approved route roads by company</span>
-            <select value={companyRoads.selection || ""} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value ? event.target.value : null); }} aria-label="Show approved route roads by company">
-              <option value="">Roads off</option>
-              <option value="all">All approved route roads</option>
+          {companyRoads.availability.state === "ready" && <>{roadMode && <div className="map-road-mode-authority"><Icon name="route"/><span><strong>Exact approved roads only</strong><small>Background roads are faded. Held, candidate, stale, guessed, and unpublished roads stay hidden.</small></span></div>}
+          <label className="company-road-filter">
+            <span><Icon name="company"/>Approved roads</span>
+            <select value={companyRoads.selection || "all"} onChange={(event) => { setSelectedId(null); setLocationChoices(null); companyRoads.selectRoads(event.target.value); }} aria-label="Separate approved routes by company or show all routes">
+              <option value="all">All approved routes</option>
               {companyRoads.availability.companies.map((company) => <option key={company} value={company}>{company}</option>)}
             </select>
-          </label>}
-          <p className="company-road-authority" role="status" aria-live="polite">{companyRoadRenderFailed ? "Approved route roads could not be drawn and are hidden. No route-road geometry was inferred." : companyRoads.loading ? "Loading exact approved roads… Choose Roads off to cancel." : companyRoads.error || (companyRoads.overlay ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved route-road sections shown for ${companyRoads.selection === "all" ? "all available companies" : companyRoads.selection}. This is the released route-ready subset, not a complete company road inventory.` : companyRoads.availability.reason || "Choose one company or All. Only exact server-approved route roads are shown; held, stale, legacy-only, guessed, and unpublished roads remain hidden.")}</p>
+          </label>
+          <p className="company-road-authority" role="status" aria-live="polite">{companyRoadRenderFailed ? "Approved route roads could not be drawn and are hidden. No route-road geometry was inferred." : companyRoads.loading ? "Loading exact approved roads…" : companyRoads.error || (companyRoads.overlay ? `${companyRoads.overlay.rows.length.toLocaleString()} exact approved route-road sections shown in teal for ${companyRoads.selection === "all" ? "all available companies" : companyRoads.selection}. Select one company to separate its pads and routes; selected-pad route color appears only after choosing a pad. This is the released approved-route subset, not a complete statewide or company road inventory.` : companyRoads.availability.reason || "Only exact server-approved route roads are shown in teal; held, stale, legacy-only, guessed, and unpublished roads remain hidden.")}</p>
           </>}
           {roadMode && companyRoads.availability.state !== "ready" && <div className="map-road-mode-authority is-held"><Icon name="route"/><span><strong>Approved-road layer unavailable</strong><small>{companyRoads.availability.reason || "Nothing was inferred or substituted."}</small></span></div>}
         </div>
@@ -830,7 +849,7 @@ export function MapPage() {
     {locationChoices ? <aside className="map-cluster-chooser" role="dialog" aria-modal="false" aria-labelledby="map-cluster-title">
       <header><div><span className="selection-kicker">SAME EXACT POINT</span><h2 id="map-cluster-title">Choose one of {locationChoices.length}</h2></div><button className="selection-close" onClick={() => setLocationChoices(null)} aria-label="Close location chooser"><Icon name="close"/></button></header>
       <p>These records share the same stored coordinate. Select the exact pad or disposal you want to review.</p>
-      <div className="map-cluster-list">{locationChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => roadMode ? navigate(`/pad/${encodeURIComponent(row.padId)}`) : focusPad(row)}>
+      <div className="map-cluster-list">{locationChoices.map((row) => <button key={row.padId} type="button" className="map-cluster-choice" onClick={() => focusPad(row)}>
         <span><small>{row.recordType === "disposal" ? "DISPOSAL" : row.company || "FIELD PAD"}</small><strong>{row.padName}</strong><span>{[row.county, row.state].filter(Boolean).join(", ") || "Location not listed"}</span></span><b>Select</b>
       </button>)}</div>
     </aside> : selected ? <article className="map-selection-card">
@@ -843,24 +862,23 @@ export function MapPage() {
       {!currentNamedApproaches.length && currentRouteChoices.length > 1 && <div className="map-route-choice" aria-label="Choose exact approved route">{currentRouteChoices.map((choice) => <button key={choice.routeKey} type="button" className={choice.routeKey === selectedRouteChoice?.routeKey ? "is-selected" : ""} aria-pressed={choice.routeKey === selectedRouteChoice?.routeKey} onClick={() => { pendingRouteFitRef.current = true; setSelectedRouteKey(choice.routeKey); }}><strong>{choice.label}</strong><small>{choice.steps.length} exact steps</small></button>)}</div>}
       {selectedCoordinate && <div className="map-coordinate-reference">
         <span><strong>{mapDisplayCoordinateLabel(selected)}</strong>{selectedPinUrl
-          ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, not an approved route`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
+          ? <a className="map-coordinate-pin" href={selectedPinUrl} target="_blank" rel="noreferrer" aria-label={`Open ${selectedCoordinate.latitude.toFixed(6)}, ${selectedCoordinate.longitude.toFixed(6)} in Google Maps; destination pin only, no reviewed named-road sequence`}>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</a>
           : <small>{selectedCoordinate.latitude.toFixed(6)}, {selectedCoordinate.longitude.toFixed(6)}</small>}</span>
-        {higherPriorityNavigationState === "checking" ? <small className="map-google-link-state">Checking for the highest-priority reviewed route…</small>
-          : higherPriorityNavigationState === "unavailable" ? <small className="map-google-link-state">Live route check unavailable · no fallback opened</small>
-          : approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
+        {approvedNavigationUrl ? <MapApprovedRouteLink routeUrl={approvedNavigationUrl} padName={selected.padName} detail={approvedNavigationDetail} approachLabel={selectedNamedApproach?.approachLabel}/>
           : selectedReviewedNavigation ? <MapReviewedRouteLink routeUrl={selectedReviewedNavigation.routeUrl} padName={selected.padName} detail={selectedReviewedNavigation.detail} ownerApproval={selectedReviewedNavigation.ownerApproval}/>
           : selectedGpsNavigationUrl && selectedGpsDestination ? <MapDestinationPinLink pinUrl={selectedGpsNavigationUrl} padName={selected.padName} sourceLabel={selectedGpsDestination.label}/>
-           : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed approach to enable approved-road navigation</small>
+          : namedSelectionRequired ? <small className="map-google-link-state">Choose one reviewed named-road approach</small>
            : <small className="map-google-link-state">No trusted GPS destination</small>}
       </div>}
       {selectedReviewedNavigationSafetyHold && <div className="inline-warning map-route-safety-alert" role="alert"><Icon name="location"/><strong>{selectedReviewedNavigationSafetyHold.title}.</strong> {selectedReviewedNavigationSafetyHold.detail}. GPS destination only until corrected.</div>}
       <details className="map-route-status"><summary><strong>Route status</strong><span>View</span></summary><div className="map-route-status-content">
-        <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label={currentSelectedStatus.route.source.replaceAll("_", " ")}/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? selectedReviewedNavigation.ownerApproval ? "Owner-approved directions" : "Reviewed directions" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Released route"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label={selectedReviewedNavigation.ownerApproval ? "Owner-approved directions" : "Reviewed directions"}/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
-        {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · approved roads highlighted to the exact handoff · GPS-only final leg is not approved road geometry.` : `${selectedNamedApproach.approachLabel} · exact approved route highlighted.` : namedSelectionRequired ? "Choose one reviewed approach to use approved roads. GPS destination-only navigation remains available; no approved route line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Approved public-road core highlighted to its exact handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Approved inbound route highlighted · other approved roads subdued.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no graph route line, public-Google release, or approved-road overlay was created.` : "No approved inbound route is public · no route line inferred."}</p>}
-        {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? selectedReviewedNavigation.ownerApproval ? "Owner-approved route sequence" : "Reviewed route sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
-        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Owner-reviewed Google directions are available for this exact pad. The map point remains a saved GPS reference, not a verified public-road entrance or approved graph endpoint." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses exact approved roads to its reviewed handoff. This GPS destination is the separate unapproved final leg.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The approved public-road line stops at its exact handoff; the final lease/private access is not represented as an approved public road." : selected.mapReference?.kind === "official_wellhead_reference" ? "This exact ODNR wellhead GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This exact ODNR pad GPS is a destination reference only. It is not an entrance or an approved route; Google chooses the GPS-only path." : selectedCoordinate ? "This exact saved pad GPS is a destination reference only. It is not a verified entrance or an approved route; Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
+        {selectedRouteGeometry && <div className="selected-pad-route-key"><i className="legend-line selected"/><strong>Selected pad route · bright teal</strong></div>}
+        <div className="selection-statuses">{currentSelectedStatus && selectedGoogleState ? <><StatusBadge status={currentSelectedStatus.route.state} label="Named-road status"/><StatusBadge status={selectedReviewedNavigation ? "ready" : selectedGoogleState} label={selectedReviewedNavigation ? "Named roads ready" : selectedGoogleLabel}/></> : approvedNavigationUrl ? <><StatusBadge status="ready" label="Named roads ready"/><StatusBadge status="ready" label="Google ready"/></> : selectedReviewedNavigation ? <StatusBadge status="ready" label="Named roads ready"/> : <span className="mini-badge muted">Checking selected pad status…</span>}</div>
+        {currentSelectedStatus && <p className={`selection-route-note${selectedRouteGeometry ? " is-ready" : " is-held"}`}>{selectedNamedApproach ? selectedNamedApproach.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} · directed named roads highlighted to the reviewed handoff · unnamed final movement is not shown as a named road.` : `${selectedNamedApproach.approachLabel} · reviewed named roads highlighted to the saved pin.` : namedSelectionRequired ? "Choose one reviewed named-road approach. GPS destination navigation remains available; no teal line is selected." : selectedRouteGeometry ? currentSelectedStatus.route.source === "exact_graph_handoff" ? "Reviewed named roads highlighted to their handoff · saved pad GPS shown separately." : `${selectedRouteChoice?.label ? `${selectedRouteChoice.label} · ` : ""}Reviewed named roads highlighted · teal is display, not new authority.` : selectedReviewedNavigation?.ownerApproval ? `${selectedReviewedNavigation.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved Google directions"} · no separately reviewed display geometry exists, so no teal line is inferred.` : "No reviewed named-road display geometry · no teal line inferred."}</p>}
+        {!selectedReviewedNavigationSafetyHold && selectedRoadSequence && <details className="map-saved-road-sequence"><summary><strong>{selectedReviewedNavigation ? "Reviewed named-road sequence" : "Saved road sequence"}</strong><span>View</span></summary><p>{selectedRoadSequence}</p></details>}
+        {selectedCoordinate?.role !== "driver_entrance" && <div className="inline-warning"><Icon name="location"/>{selectedReviewedNavigation ? selectedReviewedNavigation.finalLegNotice || "Reviewed Google directions are available for this exact pad. The map point remains the saved destination; no entrance or graph authority is inferred." : selectedNamedApproach?.finalLegMode === "google_to_saved_gps_unapproved" ? `${selectedNamedApproach.approachLabel} uses reviewed named roads to its handoff. The remaining movement to this GPS destination is unnamed and not highlighted.` : currentSelectedStatus?.route.source === "exact_graph_handoff" && currentSelectedStatus.destination.role === "saved_pad_destination" ? "This is the saved pad GPS destination. The named-road highlight stops at its reviewed handoff; the final unnamed access is not highlighted." : selected.mapReference?.kind === "official_wellhead_reference" ? "This frozen ODNR wellhead GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selected.mapReference?.kind === "official_pad_reference" ? "This frozen ODNR pad GPS is the destination reference. With no reviewed named-road sequence, Google chooses the GPS-only path." : selectedCoordinate ? "This saved pad GPS is the destination. With no reviewed named-road sequence, Google chooses the GPS-only path." : "No safe GPS is available for this record. Nothing was inferred or placed on the map."}</div>}
       </div></details>
       <button className="button-primary" onClick={() => navigate(`/pad/${encodeURIComponent(selected.padId)}`)}>Open pad details <span>→</span></button>
-    </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong>{roadMode && <span><i className="legend-line approved"/>Exact approved route road</span>}<span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
+    </article> : <aside className="map-legend-card"><strong>BrineSearch road truth</strong><span><i className="legend-line approved"/>Exact approved road · teal</span><span><i className="legend-dot ready"/>Verified entrance</span><span><i className="legend-dot review"/>Reference point · not an entrance</span><span><i className="legend-dot disposal"/>Disposal</span></aside>}
   </section>;
 }

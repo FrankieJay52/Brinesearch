@@ -1,5 +1,11 @@
 # Road Manager Direction Readiness Policy
 
+The everyday V18 driver law is
+[`V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`](V18_NAMED_ROAD_NAVIGATION_CONTRACT.md).
+It applies equally to every pad: a working Google link that preserves the
+verified directed named roads in order to the trusted pin is done. Cologie is an
+example, not a higher grade.
+
 ## Non-negotiable rule
 
 BrineSearch never guesses a local-road route.
@@ -10,7 +16,11 @@ BrineSearch never guesses a local-road route.
 - A state-route estimate remains inside Road Manager and never becomes live Pad directions until the Owner reviews it.
 - No background process automatically changes `directions_clear`.
 
-## Road Manager workflow
+## Future State-1 promotion workflow
+
+This graph-authority workflow is parked. It is not a prerequisite for an
+everyday Navigate action or named-road display highlight, and it is used only
+after an explicit `PROMOTE <PAD NAME> TO STATE 1` instruction.
 
 1. Queue pads that have GPS and a structured road sequence.
 2. Match every named road to an official source or an Owner-confirmed master-road record.
@@ -21,28 +31,30 @@ BrineSearch never guesses a local-road route.
 
 The database enforces the state-route-only estimate exception and rejects estimated local-road segments.
 
-## Current-location Google handoff standard
+## Everyday current-location Google handoff standard
 
-This handoff makes a reviewed local-road sequence usable from the driver's
-current phone location without turning it into graph or public-Google authority.
+This handoff makes a verified directed named-road sequence usable from the
+driver's current phone location without turning it into graph, road, or
+public-Google authority.
 
 1. Bind the candidate to the exact pad UUID, canonical/legacy IDs, record
    revision, company, name, state, county, stored road sequence, trusted
    coordinate, and coordinate source. Any drift removes the candidate.
-2. Treat the explicitly sourced saved coordinate as the destination. Keep its
-   real role visible: verified entrance, saved pad reference, official pad
-   reference, or official wellhead reference. A pad/well point is not silently
-   promoted to a public-road entrance.
-3. Work backward only through the pad's reviewed named local-road sequence to
-   the first proven connected state, U.S., or interstate road. A nearby town
-   may be displayed as a reference; it is not a fixed Google origin.
+2. Treat the explicitly sourced saved coordinate as the destination. Use an
+   ODNR destination only when it is already frozen for that exact pad. Keep the
+   coordinate's real role visible; a pad/well point is not silently promoted to
+   a public-road entrance or required to sit on the visible white pad deck.
+3. Use only the pad's verified directed interstate, U.S., state, county, and
+   township roads, in order, to the trusted pin. A nearby town may be displayed
+   as a reference; it is not a fixed Google origin.
 4. Omit `origin` from the Google URL so the phone supplies the driver's current
    location. Require HTTPS, `api=1`, driving mode, and navigate action.
-5. Put shaping points just inside the reviewed local roads after their turns.
+5. Put shaping points just inside the verified named roads after their turns.
    Do not put the first control beyond a state-road turn in a way that forces a
    driver approaching from the other direction to pass the turn and backtrack.
-6. Use at most three ordered mobile waypoints. Split a longer route only at a
-   reviewed continuous handoff; never drop a required local-road turn.
+6. Use the minimum ordered controls needed for Google to keep every required
+   named-road turn. Never reorder or optimize them. Preserve an already-working
+   URL byte-for-byte unless evidence proves that it takes the wrong road.
 7. A shaping point controls the renderer. It does not approve a road, create
    graph geometry, verify a lease road, or authorize travel beyond the pad's
    own destination.
@@ -51,5 +63,20 @@ current phone location without turning it into graph or public-Google authority.
 9. Independently route-check the ordered controls and visually inspect Google
    for backtracking, skipped roads, wrong-side approaches, and shortcuts before
    deployment. Until then, the link remains a candidate.
-10. Publishing this client-side handoff never changes graph activation, route
+10. Success means Google stays on the directed named roads in order and then
+    reaches the pin. A different road before that sequence ends is failure. An
+    unnamed lease or dirt tail is allowed only after the final named road; do
+    not name or approve it.
+11. Show one driver Navigate button. Written directions remain text and do not
+    become geometry.
+12. Highlight every supplied, separately reviewed named-road geometry feature
+    in bright teal only while its exact pad is selected, even while graph,
+    State-1, or public-Google authority is held. Stop at the last named road or
+    pin. The independent exact released approved-road network remains teal and
+    may be separated by company or shown as All approved routes; it is never
+    attributed to a selected pad. With no verified named sequence or no
+    supplied pad-bound geometry, show that pad's pin only and draw no substitute
+    pad route from text, control points, whole roads, basemap classes, or
+    nearest-road results.
+13. Publishing this client-side handoff never changes graph activation, route
     approval, the public-Google table, or cutover state.

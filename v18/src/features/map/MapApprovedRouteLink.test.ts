@@ -3,7 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { MapApprovedRouteLink, MapDestinationPinLink, MapReviewedRouteLink } from "./MapApprovedRouteLink";
 
-describe("map approved route link", () => {
+describe("map named-road navigation link", () => {
   it("renders exactly one clearly labelled reviewed Google handoff", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.25403%2C-80.913577";
     const html = renderToStaticMarkup(createElement(MapApprovedRouteLink, { routeUrl, padName: "COLOGIE" }));
@@ -11,7 +11,7 @@ describe("map approved route link", () => {
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(html).toContain(">GET DIRECTIONS<");
-    expect(html).toContain("Navigate the reviewed approved route to COLOGIE in Google Maps");
+    expect(html).toContain("Navigate the reviewed named roads to the saved pin to COLOGIE in Google Maps");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("reviewed reviewed");
     expect(html).toContain('target="_blank"');
@@ -25,19 +25,18 @@ describe("map approved route link", () => {
       routeUrl,
       padName: "SPROULL",
       approachLabel: "Via Freeport",
-      detail: "Approved roads to the handoff, then GPS-only final leg; final GPS leg is not approved road geometry",
+      detail: "Directed named roads to the handoff, then an unnamed GPS final leg",
     }));
 
     expect(html).toContain("GET DIRECTIONS");
-    expect(html).not.toContain("Via Freeport · Approved roads");
-    expect(html).toContain("GPS-only final leg");
-    expect(html).toContain("final GPS leg is not approved road geometry");
+    expect(html).not.toContain("Via Freeport · Directed named roads");
+    expect(html).toContain("unnamed GPS final leg");
     expect(html).toContain("use only its reviewed BrineSearch controls");
     expect(html).not.toContain("<small");
     expect(html.match(/<a\b/g)).toHaveLength(1);
   });
 
-  it("keeps GPS-only navigation explicitly separate from approved route authority", () => {
+  it("keeps GPS-only navigation explicit when no reviewed named-road sequence exists", () => {
     const pinUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.25403%2C-80.913577";
     const html = renderToStaticMarkup(createElement(MapDestinationPinLink, { pinUrl, padName: "BANNOCK", sourceLabel: "Saved pad GPS" }));
 
@@ -46,7 +45,7 @@ describe("map approved route link", () => {
     expect(html).toContain(">GET DIRECTIONS<");
     expect(html).toContain("GPS destination only");
     expect(html).toContain("saved pad gps");
-    expect(html).toContain("not an approved route");
+    expect(html).toContain("no reviewed named-road sequence");
     expect(html).not.toContain("<small");
   });
 
@@ -56,7 +55,7 @@ describe("map approved route link", () => {
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain("Owner-reviewed Google directions");
-    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
+    expect(html).toContain("display geometry and State-1 authority remain separate");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("Google ready");
@@ -78,7 +77,7 @@ describe("map approved route link", () => {
     expect(html.match(/<a\b/g)).toHaveLength(1);
     expect(html).toContain("GET DIRECTIONS");
     expect(html).toContain("owner-approved named-road directions for BEETLE");
-    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
+    expect(html).toContain("display geometry and State-1 authority remain separate");
     expect(html).not.toContain("Google ready");
     expect(html).not.toContain("<small");
   });
@@ -93,7 +92,7 @@ describe("map approved route link", () => {
 
     expect(html).toContain("GET DIRECTIONS");
     expect(html).toContain("Reviewed road core → saved GPS · graph status separate");
-    expect(html).toContain("graph route lines, public Google release, and approved-road overlays remain separate");
+    expect(html).toContain("display geometry and State-1 authority remain separate");
     expect(html).not.toContain("Approved route");
     expect(html).not.toContain("<small");
   });

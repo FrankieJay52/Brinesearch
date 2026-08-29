@@ -12,6 +12,12 @@ export interface ReviewedNavigationCandidate {
   ownerApproval?: OwnerApprovedNavigationPresentation;
 }
 
+// These record-bound handoffs are ordinary driver navigation once Google has
+// been checked against the ordered named roads. Their working URLs remain
+// byte-stable unless wrong-road evidence requires a new review. They are not
+// State-1 grades, and intentionally carry no line geometry that a map could
+// guess or infer.
+
 export interface OwnerApprovedNavigationPresentation {
   kind: "owner_approved_directions";
   evidence: "exact_named_road_identities" | "validated_google_handoff";
@@ -1582,9 +1588,9 @@ export function reviewedNavigationSafetyHoldForPad(
 
 /**
  * Returns a route only when the current directory record is the exact reviewed
- * record. This is intentionally separate from graph/public-Google authority:
- * it exposes the owner's reviewed mobile handoff without manufacturing route
- * steps, geometry, or a public Google release.
+ * record. This is intentionally separate from optional State-1 graph/public-
+ * Google promotion: it exposes the reviewed mobile handoff without
+ * manufacturing route steps, display geometry, or a new public road identity.
  */
 export function reviewedNavigationCandidateForPad(
   pad: PadSummary,

@@ -14,6 +14,8 @@ const generatedAuditPaths = new Set([
 ]);
 const counties = ["Belmont", "Guernsey", "Harrison", "Jefferson", "Monroe", "Noble"];
 
+// These legacy state/blocker values are frozen promotion-audit provenance.
+// They do not grade or block the everyday one-rule Navigate action below.
 const explicitStates = new Map([
   ["d7898e8c-1bb6-48f8-b5e0-87bc1898420e", {
     state: "reviewed_handoff_authority_held",
@@ -933,6 +935,15 @@ function countBy(rows, field) {
   }, {});
 }
 
+// The legacy state token is retained only as parked State-1-promotion
+// provenance. Everyday driver readiness has one rule: a reviewed ordered
+// named-road handoff is DONE; without one, the pad remains GPS_ONLY.
+export function driverRuleStatusForState(currentState) {
+  if (["1", "2", "reviewed_handoff_authority_held"].includes(currentState)) return "DONE";
+  if (currentState === "3") return "GPS_ONLY";
+  return "UNAVAILABLE";
+}
+
 function git(...args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
 }
@@ -1201,22 +1212,22 @@ function trustedDirectoryDestination(row, references) {
 
 export function markdownSummary({ provenance, snapshot, rows, referenceDigest, csvDigest }) {
   const states = countBy(rows, "current_state");
+  const driverStatuses = countBy(rows, "driver_rule_status");
   const sources = countBy(rows, "gps_source");
   const directorySources = countBy(rows, "directory_gps_source");
   const countyRows = counties.map((county) => {
     const matching = rows.filter((row) => row.county === county);
-    const counts = countBy(matching, "current_state");
+    const counts = countBy(matching, "driver_rule_status");
     const noGps = matching.filter((row) => row.gps_source === "missing").length;
-    return `| ${county} | ${matching.length} | ${counts["1"] || 0} | ${counts["2"] || 0} | ${counts["3"] || 0} | ${counts.reviewed_handoff_authority_held || 0} | ${noGps} |`;
+    return `| ${county} | ${matching.length} | ${counts.DONE || 0} | ${counts.GPS_ONLY || 0} | ${noGps} |`;
   }).join("\n");
   return `# Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: \`${provenance.baseMainSha}\`
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 1 graph-approved / 8 approved-core+GPS / 192 GPS-only / 46 owner-approved handoffs with graph held
+- 247 / 55 DONE reviewed named-road handoffs / 192 GPS_ONLY
 - Production writes zero
-- ALBATROSS + ATHENA + BAKOS + BANNOCK + BEETLE + BILINOVICH + BRAVO + CASTON + CIRCLE-OAKS + CROWIE + DUKE + DUTTON + ECHO + GIL + GILCHER + HASTINGS + HOOP + JACKALOPE + JEFFCO + KUNGLE A + KUNGLE B + LAKE + LAWSON + LODESTAR + LODGE + LORRAINE + MALDON + MATUSEK + MOONSTONE + NORTH STAR + PANG + PICKENS + PORTERFIELD B + PORTERFIELD GAS UNIT + ROCK RIDGE + RUTH + SADLER + SKULL FORK + THOMAS + TOWE + TROYER + TRUCHAN NE + TRUCHAN NW + WHEELING VALLEY + WINSTON SMITH + WITHEY: \`reviewed_handoff_authority_held\`
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
@@ -1226,16 +1237,18 @@ ${provenance.implementationPaths.map((value) => `- \`${value}\``).join("\n")}
 
 ## Counts
 
-- State 1 — Reviewed approved route: **${states["1"] || 0}**
-- State 2 — Approved roads then GPS: **${states["2"] || 0}**
-- State 3 — GPS destination only: **${states["3"] || 0}**
-- Owner-approved directions with graph/public authority held: **${states.reviewed_handoff_authority_held || 0}**
+- DONE — reviewed ordered named roads to the saved or frozen destination pin: **${driverStatuses.DONE || 0}**
+- GPS_ONLY — no reviewed named-road sequence yet: **${driverStatuses.GPS_ONLY || 0}**
 - No trusted GPS: **${rows.filter((row) => row.gps_source === "missing").length}**
 - Exactly one navigation action destination: **${rows.filter((row) => row.gps_source !== "missing").length}**
 
-| County | Pads | State 1 | State 2 | State 3 | Owner-approved / graph-held | No GPS |
-| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| County | Pads | DONE | GPS_ONLY | No GPS |
+| --- | ---: | ---: | ---: | ---: |
 ${countyRows}
+
+## Parked promotion provenance
+
+The retained \`current_state\` values are audit provenance only: State 1 **${states["1"] || 0}**, State 2 **${states["2"] || 0}**, legacy GPS state **${states["3"] || 0}**, and reviewed-handoff / graph-held **${states.reviewed_handoff_authority_held || 0}**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says \`PROMOTE <PAD NAME> TO STATE 1\`.
 
 ## GPS source accounting
 
@@ -1245,15 +1258,16 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 ## Authority boundary
 
-- The phone's current location is the origin. State 3 URLs contain no origin or waypoint.
-- State 1 is limited to Cologie's exact clipped public route and reviewed Google handoff.
-- State 2 draws approved public-road geometry only to its exact handoff. Its lease/pin leg is GPS-only.
-- State 3 uses an exact saved or ODNR coordinate without approving Google's chosen roads.
-- The owner explicitly approved the 46 exact-record Google direction handoffs on 2026-08-28. Twenty-eight have exact named-road identity evidence; eighteen retain validated Google-handoff evidence while their exact graph-line receipts are completed. This owner-approved presentation does not create graph geometry, a public-Google release, or an approved-road overlay.
+- The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
+- One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
+- The 55 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
+- After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
+- The exact released approved-road network remains teal and may show All approved routes or one exact company. A brighter pad-bound route appears only while that exact pad is selected. Missing pad geometry stays pin-only; neither display changes parked graph/public-Google promotion authority or everyday Navigate readiness.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- ALBATROSS, ATHENA, BAKOS, BANNOCK, BEETLE, BILINOVICH, BRAVO, CASTON, CIRCLE-OAKS, CROWIE, DUKE, DUTTON, ECHO, GIL, GILCHER, HASTINGS, HOOP, JACKALOPE, JEFFCO, KUNGLE A, KUNGLE B, LAKE, LAWSON, LODESTAR, LODGE, LORRAINE, MALDON, MATUSEK, MOONSTONE, NORTH STAR, PANG, PICKENS, PORTERFIELD B, PORTERFIELD GAS UNIT, ROCK RIDGE, RUTH, SADLER, SKULL FORK, THOMAS, TOWE, TROYER, TRUCHAN NE, TRUCHAN NW, WHEELING VALLEY, WINSTON SMITH, and WITHEY display owner-approved directions while retaining the fail-closed technical state \`reviewed_handoff_authority_held\`: their exact record-bound handoffs remain separate from graph/public-Google authority. That presentation approval does not promote graph geometry or public-Google authority.
+- The legacy \`reviewed_handoff_authority_held\` token remains parked provenance for 46 record-bound handoffs. It does not hold everyday Navigate or make those working handoffs a lower grade.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1350,20 +1364,15 @@ async function main() {
     }
     const actionDestination = explicit?.actionDestination || directoryDestination;
     const currentState = explicit?.state || (actionDestination ? "3" : "unknown");
-    const navigationLabel = currentState === "reviewed_handoff_authority_held"
-      ? "Owner-approved directions in Google Maps"
-      : explicit?.navigationLabel || {
-      "1": "Reviewed approved route",
-      "2": "Approved roads then GPS",
-      "3": "GPS destination only",
-    }[currentState] || "";
-    const blocker = explicit ? currentState === "reviewed_handoff_authority_held"
-      ? explicit.blocker.replace("owner-reviewed", "owner-approved")
-      : explicit.blocker : currentState === "3"
-      ? row.structuredRoadSequence
-        ? "No state-1/2 clipped-route and mobile-handoff receipt is released; use the trusted GPS destination only."
-        : "No reviewed exact public-road sequence is released; use the trusted GPS destination only."
-      : "Trusted GPS destination is missing.";
+    const driverRuleStatus = driverRuleStatusForState(currentState);
+    const navigationLabel = driverRuleStatus === "DONE"
+      ? "Named roads to saved pin"
+      : driverRuleStatus === "GPS_ONLY" ? "GPS destination only" : "Navigation unavailable";
+    const blocker = driverRuleStatus === "DONE"
+      ? ""
+      : driverRuleStatus === "GPS_ONLY"
+        ? "No reviewed named-road sequence; use the trusted GPS destination only."
+        : "Trusted GPS destination is missing.";
     return {
       record_id: row.padId,
       legacy_id: row.legacyId || "",
@@ -1373,6 +1382,7 @@ async function main() {
       county: row.county,
       structured_road_sequence: row.structuredRoadSequence || "",
       current_state: currentState,
+      driver_rule_status: driverRuleStatus,
       gps_source: actionDestination?.gpsSource || "missing",
       destination_latitude: actionDestination?.latitude ?? "",
       destination_longitude: actionDestination?.longitude ?? "",
@@ -1393,6 +1403,9 @@ async function main() {
   assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 192
     && stateCounts.reviewed_handoff_authority_held === 46,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
+  const driverRuleCounts = countBy(ledger, "driver_rule_status");
+  assert(driverRuleCounts.DONE === 55 && driverRuleCounts.GPS_ONLY === 192,
+    `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 
   const headers = Object.keys(ledger[0]);
@@ -1424,6 +1437,7 @@ async function main() {
     sourceRevision: snapshot.sourceRevision,
     targetCount: ledger.length,
     stateCounts,
+    driverRuleCounts,
     gpsSourceCounts: countBy(ledger, "gps_source"),
     directoryGpsSourceCounts: countBy(ledger, "directory_gps_source"),
     outputCsv: process.argv.includes("--write") ? outputCsv : null,

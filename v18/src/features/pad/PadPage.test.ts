@@ -133,20 +133,20 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain("Google publication remains a separate safety gate.");
   });
 
-  it("keeps the fallback explicitly unverified and held behind route approval", () => {
-    expect(padPage).toContain("They are not verified structured geometry; GPS-only navigation may use Google-selected roads and is not an approved route.");
+  it("keeps saved prose separate from named-road display geometry", () => {
+    expect(padPage).toContain("Saved BrineSearch directions remain text. They do not create teal geometry; GPS-only navigation may use Google-selected roads.");
     expect(padPage).toContain("<StatusBadge status={status.route.state}/>");
     expect(padPage).toContain('status.google.publicState === "ready"');
     expect(padPage).toContain("Boolean(status.google.routeUrl)");
   });
 
-  it("offers one exact approved-route action and never exposes route chunks as choices", () => {
-    expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad} higherPriorityCheckState={higherPriorityNavigationState}/>");
+  it("offers one named-road navigation action and never exposes route chunks as choices", () => {
+    expect(padPage).toContain("<FixedNavigateAction view={googleHandoff} pad={pad}/>");
     expect(padPage.match(/<FixedNavigateAction\b/g)).toHaveLength(1);
     expect(padPage).toContain('<span><strong>{action.title}</strong></span>');
     expect(padPage).not.toContain('<small>{action.detail}</small>');
-    expect(padPage).toContain('"Approved roads then GPS" : "Reviewed approved route"');
-    expect(padPage).toContain("Approval begins at its verified ingress.");
+    expect(padPage).toContain('"Named roads then unnamed access" : "Named roads to saved pin"');
+    expect(padPage).toContain("One reviewed named-road handoff is bound to this exact pad and destination.");
     expect(padPage).not.toContain("Current public Google route");
     expect(padPage).not.toContain("status.google.safeReason ||");
     expect(padPage).not.toMatch(/Open route .* of/);
@@ -185,13 +185,12 @@ describe("V18 pad legacy route fallback", () => {
     expect(selectedRoute.geometry).toBe(approach.geometry);
     expect(padPage).toContain("const displayedMapStatus = selectedNamedApproach ?");
     expect(padPage).toContain("status={displayedMapStatus} routeGeometry={displayedRouteGeometry}");
-    expect(padPage).toContain('`Approved road core · ${selectedNamedApproach.approachLabel}`');
-    expect(padPage).toContain('`Approved route · ${selectedNamedApproach.approachLabel}`');
+    expect(padPage).toContain('`Named roads · ${selectedNamedApproach.approachLabel}`');
     expect(selected).toMatchObject({ available: true, mode: "named_approach", approachLabel: "Via Freeport", routeUrl: approach.navigationUrl });
     expect(selectedAction).toMatchObject({
       kind: "approved_route",
       title: "GET DIRECTIONS",
-      detail: "Via Freeport · approved roads then GPS",
+      detail: "Via Freeport · named roads then unnamed access",
       href: approach.navigationUrl,
     });
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: selected, pad: mappedPad() }));
@@ -208,7 +207,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(availableHtml.match(/<a\b/g)).toHaveLength(1);
     expect(availableHtml).toContain(`href="${routeUrl.replaceAll("&", "&amp;")}"`);
     expect(availableHtml).toContain(">GET DIRECTIONS<");
-    expect(availableHtml).toContain("Navigate the reviewed approved route");
+    expect(availableHtml).toContain("Navigate the reviewed named roads to the saved pin");
     expect(availableHtml).not.toContain("<small");
     expect(availableHtml).toContain('data-navigation-kind="approved_route"');
     expect(availableHtml).toContain('class="pad-fixed-navigation"');
@@ -218,7 +217,7 @@ describe("V18 pad legacy route fallback", () => {
     const missingHtml = renderToStaticMarkup(createElement(FixedNavigateAction, { view: missingView, pad }));
     expect(missingView.state).toBe("unavailable");
     expect(missingHtml).toContain('data-navigation-kind="destination_pin"');
-    expect(missingHtml).toContain("GPS destination only, not a BrineSearch-approved route");
+    expect(missingHtml).toContain("GPS destination only because no reviewed named-road sequence is available");
     expect(missingHtml).not.toContain("<small");
     expect(missingHtml).toContain("google.com/maps/dir");
     expect(missingHtml).toContain("destination=40.25403%2C-80.913577");
@@ -307,7 +306,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(summary).not.toContain("US-250");
     expect(padPage).toContain('activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions"');
     expect(padPage).toContain("<ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>");
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = eligibleReviewedNavigationCandidate;");
+    expect(padPage).not.toContain("navigationFallbackAfterHigherPriorityCheck");
     expect(padPage).toContain("eligibleReviewedNavigationCandidate");
   });
 
@@ -330,43 +330,42 @@ describe("V18 pad legacy route fallback", () => {
     expect(buildFixedNavigationAction(selectedView, pad)).toMatchObject({
       kind: "approved_route",
       href: approach.navigationUrl,
-      detail: "Via Freeport · approved roads then GPS",
+      detail: "Via Freeport · named roads then unnamed access",
     });
   });
 
-  it("shows one disabled GET DIRECTIONS action while higher-priority route checks are pending", () => {
+  it("keeps a reviewed named-road action available without waiting for State-1 receipt checks", () => {
     const pad = beetlePad();
     const heldView = buildGoogleHandoffView(statusWithGoogle(null), false, true);
-    const action = buildFixedNavigationAction(heldView, pad, reviewedNavigationCandidateForPad(pad), "checking");
-    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad, higherPriorityCheckState: "checking" }));
+    const action = buildFixedNavigationAction(heldView, pad, reviewedNavigationCandidateForPad(pad));
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad }));
 
     expect(action).toMatchObject({
-      kind: "unavailable",
-      href: null,
+      kind: "reviewed_route",
+      href: BEETLE_REVIEWED_GOOGLE_URL,
       title: "GET DIRECTIONS",
-      detail: "Checking for the highest-priority reviewed route…",
     });
-    expect(html.match(/<button\b/g)).toHaveLength(1);
-    expect(html).toContain("disabled");
-    expect(html).not.toContain("google.com/maps/dir");
-    expect(padPage).toContain("statusRequestSettled: currentStatusAuthorityCheck !== null");
-    expect(padPage).toContain("releaseRequestSettled: currentReleasedHandoffLoadResult !== null");
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
+    expect(html.match(/<a\b/g)).toHaveLength(1);
+    expect(html).toContain("google.com/maps/dir");
+    expect(html).not.toContain("disabled");
+    expect(padPage).toContain("Everyday driver navigation does not wait for State-1 receipt checks.");
+    expect(padPage).not.toContain("higherPriorityNavigationCheckState");
   });
 
-  it("keeps every fallback disabled when a live authority check fails", () => {
-    const pad = beetlePad();
+  it("keeps sourced GPS navigation available when no reviewed named-road sequence exists", () => {
+    const pad = mappedPad();
     const heldView = buildGoogleHandoffView(statusWithGoogle(null), false, true);
-    const action = buildFixedNavigationAction(heldView, pad, reviewedNavigationCandidateForPad(pad), "unavailable");
-    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad, higherPriorityCheckState: "unavailable" }));
+    const action = buildFixedNavigationAction(heldView, pad, null);
+    const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view: heldView, pad }));
 
     expect(action).toMatchObject({
-      kind: "unavailable",
-      href: null,
-      detail: "Live route check unavailable · no fallback opened",
+      kind: "destination_pin",
+      href: expect.stringContaining("destination=40.25403%2C-80.913577"),
+      detail: "GPS destination only · Verified driver entrance · no reviewed named-road sequence",
     });
-    expect(html).not.toContain("google.com/maps/dir");
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
+    expect(html).toContain("google.com/maps/dir");
+    expect(html).not.toContain("disabled");
+    expect(padPage).not.toContain("Live route check unavailable · no fallback opened");
   });
 
   it("keeps the disabled named-choice state under the universal GET DIRECTIONS label", () => {
@@ -379,17 +378,18 @@ describe("V18 pad legacy route fallback", () => {
     });
   });
 
-  it("keeps an approved route above the BEETLE reviewed fallback everywhere", () => {
+  it("keeps BEETLE's already-working reviewed URL above later promotion metadata", () => {
     const pad = beetlePad();
     const approvedUrl = "https://www.google.com/maps/dir/?api=1&destination=40.185403%2C-80.922718&waypoints=40.1871547%2C-80.9192191";
     const approvedView = buildGoogleHandoffView(statusWithGoogle(approvedUrl), true, true);
 
     expect(reviewedNavigationCandidateForPad(pad)).not.toBeNull();
     expect(buildFixedNavigationAction(approvedView, pad)).toMatchObject({
-      kind: "approved_route",
-      href: approvedUrl,
+      kind: "reviewed_route",
+      href: BEETLE_REVIEWED_GOOGLE_URL,
     });
-    expect(padPage).toContain("const activeReviewedNavigationCandidate = navigationFallbackAfterHigherPriorityCheck(");
+    expect(buildFixedNavigationAction(approvedView, pad).href).not.toBe(approvedUrl);
+    expect(padPage).toContain("const activeReviewedNavigationCandidate = eligibleReviewedNavigationCandidate;");
     expect(padPage).toContain("detail={activeReviewedNavigationCandidate ?");
     expect(padPage).not.toContain("detail={reviewedNavigationCandidate ?");
   });
@@ -440,7 +440,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(ordinary).not.toContain("may not match the reviewed Google handoff");
     expect(alongsideReviewed).toContain("Reference only");
     expect(alongsideReviewed).toContain("may not match the reviewed Google handoff");
-    expect(alongsideReviewed).toContain("Not an approved route");
+    expect(alongsideReviewed).toContain("Text only · no teal geometry");
   });
 
   it("warns for an active reviewed candidate even when it has no display road sequence", () => {
@@ -461,7 +461,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(view.mode).toBe("exact_core_destination");
     expect(action).toMatchObject({
       kind: "approved_route",
-      detail: "Approved roads then GPS",
+      detail: "Named roads then unnamed access",
     });
   });
 
@@ -495,7 +495,7 @@ describe("V18 pad legacy route fallback", () => {
     const html = renderToStaticMarkup(createElement(FixedNavigateAction, { view, pad: referencePad }));
 
     expect(action).toMatchObject({ kind: "destination_pin", href: expect.stringContaining("/maps/dir/") });
-    expect(html).toContain("GPS destination only, not a BrineSearch-approved route");
+    expect(html).toContain("GPS destination only because no reviewed named-road sequence is available");
     expect(html).toContain("ODNR official pad GPS · not an entrance".toLowerCase());
     expect(html).not.toContain("<small");
     expect(html).not.toContain("disabled");
@@ -581,8 +581,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain('class="pad-gps-coordinate-link mono"');
     expect(html).toContain('target="_blank"');
     expect(html).toContain('rel="noreferrer"');
-    expect(html).toContain("GPS destination only · not an approved route");
-    expect(html).toContain("destination pin only, not an approved route");
+    expect(html).toContain("GPS destination only · named roads not yet reviewed");
+    expect(html).toContain("destination pin only, no reviewed named-road sequence");
     expect(html).not.toContain("Reviewed approved route");
     expect(html).not.toContain("/maps/dir/");
   });
@@ -605,7 +605,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).toContain('class="pad-gps-copy-pill"');
     expect(html).toContain('class="pad-gps-copy-status" role="status" aria-live="polite"');
     expect(html).toContain("ODNR official pad GPS · not an entrance");
-    expect(html).toContain("GPS destination only · not an approved route");
+    expect(html).toContain("GPS destination only · named roads not yet reviewed");
     expect(html).toContain("pad-gps-coordinate-link");
     expect(html).toContain("google.com/maps/search");
   });
@@ -696,8 +696,8 @@ describe("V18 pad legacy route fallback", () => {
     expect(padMapPreview).toContain('map.off("styledata", settleAutomaticAttribution)');
     expect(padMapPreview).toContain('target.closest(".maplibregl-ctrl")');
     expect(padMapPreview).toContain('className="pad-map-route-overlay"');
-    expect(padMapPreview).toContain("drawApprovedRouteOverlay(map, routeOverlay.current, routeGeometry)");
-    expect(padMapPreview).toContain("GPS destination only; Google chooses the roads. Not a BrineSearch-approved route.");
+    expect(padMapPreview).toContain("drawNamedRoadOverlay(map, routeOverlay.current, routeGeometry)");
+    expect(padMapPreview).toContain("GPS destination only; no named-road display geometry was supplied.");
     expect(padMapPreview).not.toContain("Display only; it cannot launch navigation.");
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-preview\s*\{[^}]*aspect-ratio:\s*4\s*\/\s*3;/s);
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-compact \.pad-map-warning\[role="note"\]\s*\{[^}]*display:\s*none;/s);
@@ -706,10 +706,10 @@ describe("V18 pad legacy route fallback", () => {
     expect(padLayoutCss).toMatch(/\.pad-page \.pad-map-shell\.is-expanded\s*\{[^}]*position:\s*fixed;/s);
   });
 
-  it("labels exact numbered road instructions as one approved route", () => {
-    expect(padPage).toContain('status.route.source === "exact_graph_handoff" ? "Approved road sequence" : "Approved route"');
-    expect(padPage).toContain("The remaining lease access to the saved pad GPS is shown as a separate destination");
-    expect(padPage).toContain("The remaining GPS-only final leg is a destination handoff, not approved road geometry.");
+  it("labels exact numbered road instructions as named-road display geometry", () => {
+    expect(padPage).toContain('status.route.source === "exact_graph_handoff" ? "Named roads to handoff" : "Named roads to saved pin"');
+    expect(padPage).toContain("The teal named-road display ends at the reviewed handoff. The saved pad GPS remains the separate destination.");
+    expect(padPage).toContain("The unnamed final movement to the saved pin is not named or highlighted.");
     expect(padPage).not.toContain('`${selectedRouteChoice ? `${selectedRouteChoice.label} · ` : ""}${displayedRouteSteps.length} route steps`');
   });
 
@@ -718,7 +718,7 @@ describe("V18 pad legacy route fallback", () => {
     expect(padPage).toContain('<section className="saved-field-directions"');
     expect(padPage).toContain("<SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>");
     expect(padPage).toContain("Saved field directions");
-    expect(padPage).toContain("Not an approved route");
+    expect(padPage).toContain("Text only · no teal geometry");
     expect(padPage).toContain("Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.");
     expect(padPage).not.toContain('status.route.writtenDirections && <details className="detail-card"');
     expect(padLayoutCss).toMatch(/\.reviewed-written-directions\s*\{/);

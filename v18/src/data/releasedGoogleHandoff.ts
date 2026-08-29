@@ -14,8 +14,6 @@ export interface ReleasedGoogleHandoffLoad {
   plan: ReleasedGoogleHandoffPlan | null;
 }
 
-export type HigherPriorityNavigationCheckState = "checking" | "checked" | "unavailable";
-
 const releasedHandoffRequests = new Map<string, Promise<ReleasedGoogleHandoffLoad>>();
 const releasedHandoffCache = new Map<string, ReleasedGoogleHandoffPlan>();
 let releasedHandoffCacheGeneration = 0;
@@ -133,34 +131,6 @@ export function currentReleasedGoogleHandoffLoad(
     && load.requestedRecordRevision === pad.recordRevision
     ? load
     : null;
-}
-
-export function higherPriorityNavigationCheckState({
-  online,
-  approvedRouteAvailable,
-  statusRequestSettled,
-  statusChecked,
-  releaseRequestSettled,
-  releaseChecked,
-}: {
-  online: boolean;
-  approvedRouteAvailable: boolean;
-  statusRequestSettled: boolean;
-  statusChecked: boolean;
-  releaseRequestSettled: boolean;
-  releaseChecked: boolean;
-}): HigherPriorityNavigationCheckState {
-  if (!online || approvedRouteAvailable) return "checked";
-  if (!statusRequestSettled || !releaseRequestSettled) return "checking";
-  return statusChecked && releaseChecked ? "checked" : "unavailable";
-}
-
-/** Keeps every lower-priority fallback closed until the live authority checks complete. */
-export function navigationFallbackAfterHigherPriorityCheck<T>(
-  state: HigherPriorityNavigationCheckState,
-  fallback: T | null,
-) {
-  return state === "checked" ? fallback : null;
 }
 
 export function releasedGoogleNavigationUrl(

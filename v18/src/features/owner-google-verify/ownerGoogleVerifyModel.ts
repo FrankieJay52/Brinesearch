@@ -2,7 +2,6 @@ import type {
   OwnerGoogleVerifyPoint,
   OwnerGoogleVerifySectionMark,
 } from "@/data/ownerGoogleVerifyDrafts";
-import { graphStateSupportsRoute } from "@/data/status";
 import type { DriverPadStatus, DriverRouteGeometry, PadSummary } from "@/data/types";
 
 export const maximumOwnerGoogleVerifyTurnPins = 5;
@@ -26,7 +25,7 @@ export type OwnerGoogleVerifyOutcome = {
   detail: string;
 };
 
-export type OwnerGoogleVerifyApprovedStepRoute = {
+export type OwnerGoogleVerifyNamedRoadRoute = {
   geometry: DriverRouteGeometry;
   stepCount: number;
 };
@@ -69,23 +68,21 @@ export function ownerGoogleVerifyDestination(pad: PadSummary): OwnerGoogleVerify
 }
 
 /**
- * Returns only current, already-approved step geometry for the selected pad.
- * Road class is deliberately not filtered: interstates, U.S. routes, state
- * routes, county/township roads, and local roads all remain eligible when the
- * existing route authority includes their exact geometry.
+ * Returns separately reviewed named-road display geometry for the selected pad.
+ * Named approaches and valid pad-bound route projections do not need a
+ * State-1 graph/public-Google stamp to render. Every supplied feature is
+ * returned; missing geometry is never inferred from names or control points.
  */
-export function ownerGoogleVerifyApprovedStepRoutes(
+export function ownerGoogleVerifyNamedRoadRoutes(
   status: DriverPadStatus | null,
-): OwnerGoogleVerifyApprovedStepRoute[] {
+): OwnerGoogleVerifyNamedRoadRoute[] {
   if (!status || status.dataState !== "live") return [];
   const namedApproaches = status.namedApproaches || [];
   if (namedApproaches.length) return namedApproaches.map((approach) => ({
     geometry: approach.geometry,
     stepCount: approach.steps.length,
   }));
-  if (status.route.state !== "ready"
-    || !status.route.geometry
-    || !graphStateSupportsRoute(status.route.source, status.graph.state)) return [];
+  if (!status.route.geometry || !status.routeSteps.length) return [];
   return [{ geometry: status.route.geometry, stepCount: status.routeSteps.length }];
 }
 
@@ -141,8 +138,8 @@ export function ownerGoogleVerifyOutcome(
 ): OwnerGoogleVerifyOutcome {
   if (sections.some((section) => section.mark?.state === "not_approved")) return {
     state: "off_approved_road",
-    label: "Off approved road",
-    detail: "At least one reviewed section leaves the approved named-road sequence.",
+    label: "Wrong road",
+    detail: "At least one reviewed section leaves the directed named-road sequence.",
   };
   if (!sections.length || sections.some((section) => section.mark === null)) return {
     state: "review",
@@ -160,24 +157,24 @@ export function ownerGoogleVerifyOutcome(
     if (section.mark?.state === "approved_named_road") {
       if (trailingLeaseStarted || !section.mark.roadName?.trim()) return {
         state: "off_approved_road",
-        label: "Off approved road",
-        detail: "The preview returns to a named road after an unnamed or lease section, or an approved section has no owner-entered road name.",
+        label: "Wrong road",
+        detail: "The preview returns to a named road after an unnamed or lease section, or a directed section has no owner-entered road name.",
       };
       approvedCount += 1;
     }
   }
   if (!approvedCount) return {
     state: "off_approved_road",
-    label: "Off approved road",
-    detail: "No approved named-road section was recorded after the anchor.",
+    label: "Wrong road",
+    detail: "No directed named-road section was recorded after the anchor.",
   };
   return trailingLeaseStarted ? {
     state: "success",
     label: "Named roads then saved pin",
-    detail: "Approved named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
+    detail: "Directed named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
   } : {
     state: "success",
-    label: "On approved named roads",
-    detail: "Every post-anchor section is marked as an approved named road.",
+    label: "Named roads to saved pin",
+    detail: "Every post-anchor section is marked as a directed named road.",
   };
 }

@@ -1,9 +1,10 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
-const pageSource = readFileSync(new URL("./OwnerGoogleVerifyMapPage.tsx", import.meta.url), "utf8");
-const loaderSource = readFileSync(new URL("./googleMapsLoader.ts", import.meta.url), "utf8");
-const pageCss = readFileSync(new URL("./owner-google-verify.css", import.meta.url), "utf8");
+const normalizedSource = (url: URL) => readFileSync(url, "utf8").replace(/\r\n/g, "\n");
+const pageSource = normalizedSource(new URL("./OwnerGoogleVerifyMapPage.tsx", import.meta.url));
+const loaderSource = normalizedSource(new URL("./googleMapsLoader.ts", import.meta.url));
+const pageCss = normalizedSource(new URL("./owner-google-verify.css", import.meta.url));
 
 describe("owner Google verify map source contracts", () => {
   it("checks owner access before dynamically loading Google Maps", () => {
@@ -55,7 +56,7 @@ describe("owner Google verify map source contracts", () => {
     expect(pageSource).toContain("{turnPins.length} of {maximumOwnerGoogleVerifyTurnPins}");
   });
 
-  it("selects and draws every exact approved road as a teal non-clickable reference overlay", () => {
+  it("selects and draws the reviewed public-road reference overlay as non-clickable teal", () => {
     expect(pageSource).toContain('import { useCompanyRoads } from "@/data/CompanyRoadsContext";');
     expect(pageSource).toContain("const companyRoads = useCompanyRoads();");
     expect(pageSource).toContain('companyRoads.selection !== "all") companyRoads.selectRoads("all");');
@@ -70,22 +71,23 @@ describe("owner Google verify map source contracts", () => {
     expect(overlaySource).toContain('strokeColor: "#14b8a6"');
     expect(overlaySource).toContain("clickable: false");
     expect(overlaySource).not.toContain("addListener");
-    expect(pageSource).toContain("<strong>All approved roads</strong>");
-    expect(pageSource).toContain("Loading exact approved-road overlay…");
-    expect(pageSource).toContain("exact approved road sections highlighted in teal.");
-    expect(pageSource).toContain("Approved roads unavailable; nothing was inferred.");
+    expect(pageSource).toContain("<strong>Public road reference overlay</strong>");
+    expect(pageSource).toContain("Loading reviewed public-road references…");
+    expect(pageSource).toContain("reviewed public-road sections shown as references.");
+    expect(pageSource).toContain("Public-road references unavailable; nothing was inferred.");
   });
 
-  it("adds every current pad-specific approved step geometry without filtering highways or state routes", () => {
+  it("adds pad-specific named-road geometry without requiring a State-1 stamp", () => {
     expect(pageSource).toContain('import { loadPadStatus } from "@/data/status";');
-    expect(pageSource).toContain("ownerGoogleVerifyApprovedStepRoutes(status)");
+    expect(pageSource).toContain("ownerGoogleVerifyNamedRoadRoutes(status)");
     expect(pageSource).toContain("loadedApprovedStepRecordKey === approvedStepRecordKey");
     expect(pageSource).toContain("for (const route of approvedStepRoutes)");
     expect(pageSource).toContain("for (const feature of route.geometry.features)");
     expect(pageSource).toContain('strokeColor: "#2dd4bf"');
     expect(pageSource).toContain("clickable: false");
-    expect(pageSource).toContain("Interstates, U.S. routes, state routes, county, township, and local roads are all included when present.");
-    expect(pageSource).toContain("No current exact approved step geometry is available for this pad; no line was inferred.");
+    expect(pageSource).toContain("reviewed named-road steps highlighted in bright teal. Teal is display only; State-1 graph/public-Google authority is separate.");
+    expect(pageSource).toContain("No reviewed named-road display geometry is available for this pad; no line was inferred.");
+    expect(pageSource).toContain(">Wrong road</button>");
   });
 
   it("captures optional draft-only entrance coordinates without changing the route destination", () => {

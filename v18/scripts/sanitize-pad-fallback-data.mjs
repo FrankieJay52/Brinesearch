@@ -571,7 +571,11 @@ async function main() {
     const actualText = await readFile(sanitizedFallbackPath, "utf8");
     const actual = JSON.parse(actualText);
     auditSanitizedFallback(actual, rawSource);
-    if (actualText !== expectedText) fail("artifact bytes are not in deterministic generated form; run with --write");
+    // Git may materialize tracked text with CRLF on Windows. The JSON content
+    // and every non-newline byte must still equal the deterministic LF form.
+    if (actualText.replace(/\r\n/g, "\n") !== expectedText) {
+      fail("artifact bytes are not in deterministic generated form; run with --write");
+    }
   }
 
   if (mode === "--report") {

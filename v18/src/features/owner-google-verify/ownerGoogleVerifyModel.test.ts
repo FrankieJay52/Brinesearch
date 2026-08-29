@@ -9,7 +9,7 @@ import {
   addOwnerGoogleVerifyPoint,
   buildOwnerGoogleVerifySections,
   maximumOwnerGoogleVerifyTurnPins,
-  ownerGoogleVerifyApprovedStepRoutes,
+  ownerGoogleVerifyNamedRoadRoutes,
   ownerGoogleVerifyDestination,
   ownerGoogleVerifyOutcome,
   ownerGoogleVerifySectionId,
@@ -173,21 +173,61 @@ describe("owner Google verify saved destination", () => {
   });
 });
 
-describe("owner Google verify approved step overlays", () => {
-  it("keeps every current exact approved route step eligible regardless of road class", () => {
-    expect(ownerGoogleVerifyApprovedStepRoutes(status())).toEqual([{
+describe("owner Google verify named-road display overlays", () => {
+  it("keeps an already-promoted exact route eligible regardless of road class", () => {
+    expect(ownerGoogleVerifyNamedRoadRoutes(status())).toEqual([{
       geometry: exactStepGeometry,
       stepCount: 1,
     }]);
   });
 
-  it("fails closed for stale, written-only, or unsupported graph authority", () => {
-    expect(ownerGoogleVerifyApprovedStepRoutes(status({ dataState: "stale" }))).toEqual([]);
-    expect(ownerGoogleVerifyApprovedStepRoutes(status({
-      route: { ...status().route, state: "written_only", geometry: null },
-    }))).toEqual([]);
-    expect(ownerGoogleVerifyApprovedStepRoutes(status({
+  it("draws separately reviewed named-approach geometry without State-1 route or graph receipts", () => {
+    const held = status({
+      route: { ...status().route, state: "held", geometry: null },
       graph: { ...status().graph, state: "held" },
+      namedApproaches: [{
+        approachKey: "via-stumptown",
+        approachLabel: "OH-519 → Stumptown",
+        routeGroup: "primary",
+        variantIndex: 0,
+        releaseVersion: "v18-named-approach-v1",
+        routeRevision: 1,
+        steps: status().routeSteps,
+        geometry: exactStepGeometry,
+        ingress: { role: "exact_approved_ingress", label: "OH-519", latitude: 40.18, longitude: -80.96 },
+        coreEnd: { role: "exact_approved_handoff", label: "Saved pin", latitude: 40.19, longitude: -80.95 },
+        destination: { role: "saved_pad_destination", label: "Saved pin", latitude: 40.19, longitude: -80.95 },
+        finalLegMode: "full_approved_route",
+        handoff: { originMode: "current_location_to_named_ingress", handoffMode: "full_geometry_endpoints", waypoints: [] },
+        lastVerifiedAt: "2026-08-28T00:00:00.000Z",
+        statusRevision: "revision-1",
+        releaseDigest: "reviewed-display-digest",
+        publishedAt: "2026-08-28T00:00:00.000Z",
+        navigationUrl: "https://www.google.com/maps/dir/?api=1&destination=40.19%2C-80.95&travelmode=driving",
+      }],
+    });
+
+    expect(ownerGoogleVerifyNamedRoadRoutes(held)).toEqual([{
+      geometry: exactStepGeometry,
+      stepCount: 1,
+    }]);
+  });
+
+  it("draws every supplied exact route feature while graph authority is held", () => {
+    const held = status({
+      route: { ...status().route, state: "held" },
+      graph: { ...status().graph, state: "held" },
+    });
+    expect(ownerGoogleVerifyNamedRoadRoutes(held)).toEqual([{
+      geometry: exactStepGeometry,
+      stepCount: 1,
+    }]);
+  });
+
+  it("fails closed for stale data or absent reviewed geometry", () => {
+    expect(ownerGoogleVerifyNamedRoadRoutes(status({ dataState: "stale" }))).toEqual([]);
+    expect(ownerGoogleVerifyNamedRoadRoutes(status({
+      route: { ...status().route, state: "written_only", geometry: null },
     }))).toEqual([]);
   });
 });
@@ -248,25 +288,25 @@ describe("owner Google verify outcome", () => {
     ])).toMatchObject({ state: "review", label: "Review route sections" });
   });
 
-  it("immediately reports off approved road when an explicit negative mark precedes an unreviewed section", () => {
+  it("immediately reports the wrong road when an explicit negative mark precedes an unreviewed section", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "not_approved"),
       section(2, null),
-    ])).toMatchObject({ state: "off_approved_road", label: "Off approved road" });
+    ])).toMatchObject({ state: "off_approved_road", label: "Wrong road" });
   });
 
-  it("succeeds when every section remains on a named approved road", () => {
+  it("succeeds when every section remains on the directed named roads", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "approved_named_road", "County Road 10"),
       section(2, "approved_named_road", "State Route 519"),
     ])).toEqual({
       state: "success",
-      label: "On approved named roads",
-      detail: "Every post-anchor section is marked as an approved named road.",
+      label: "Named roads to saved pin",
+      detail: "Every post-anchor section is marked as a directed named road.",
     });
   });
 
-  it("allows only a trailing unnamed or lease movement after contiguous approved named roads", () => {
+  it("allows only a trailing unnamed or lease movement after contiguous directed named roads", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "approved_named_road", "County Road 10"),
       section(2, "approved_named_road", "State Route 519"),
@@ -275,36 +315,36 @@ describe("owner Google verify outcome", () => {
     ])).toEqual({
       state: "success",
       label: "Named roads then saved pin",
-      detail: "Approved named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
+      detail: "Directed named roads stay contiguous, followed only by a trailing unnamed or lease movement to the saved pad GPS.",
     });
   });
 
-  it("reports off approved road for an explicit negative mark", () => {
+  it("reports the wrong road for an explicit negative mark", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "approved_named_road", "County Road 10"),
       section(2, "not_approved"),
-    ])).toMatchObject({ state: "off_approved_road", label: "Off approved road" });
+    ])).toMatchObject({ state: "off_approved_road", label: "Wrong road" });
   });
 
-  it("reports off approved road when a named road resumes after lease movement", () => {
+  it("reports the wrong road when a named road resumes after lease movement", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "approved_named_road", "County Road 10"),
       section(2, "lease_or_unnamed"),
       section(3, "approved_named_road", "County Road 12"),
     ])).toEqual({
       state: "off_approved_road",
-      label: "Off approved road",
-      detail: "The preview returns to a named road after an unnamed or lease section, or an approved section has no owner-entered road name.",
+      label: "Wrong road",
+      detail: "The preview returns to a named road after an unnamed or lease section, or a directed section has no owner-entered road name.",
     });
   });
 
-  it("reports off approved road when no named approved section exists or its name is blank", () => {
+  it("reports the wrong road when no directed named-road section exists or its name is blank", () => {
     expect(ownerGoogleVerifyOutcome([
       section(1, "lease_or_unnamed"),
       section(2, "lease_or_unnamed"),
     ])).toMatchObject({
       state: "off_approved_road",
-      detail: "No approved named-road section was recorded after the anchor.",
+      detail: "No directed named-road section was recorded after the anchor.",
     });
     expect(ownerGoogleVerifyOutcome([
       section(1, "approved_named_road", "   "),

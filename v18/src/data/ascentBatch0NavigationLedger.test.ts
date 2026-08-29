@@ -94,7 +94,7 @@ function padFromLedger(row: Record<string, string>): PadSummary {
 }
 
 describe("Batch 0 six-county Ascent navigation ledger", () => {
-  it("contains the exact 247 identities and honest state/source accounting", () => {
+  it("contains the exact 247 identities and one-rule driver accounting", () => {
     expect(ledger).toHaveLength(247);
     expect(new Set(ledger.map((row) => row.record_id)).size).toBe(247);
     expect(new Set(ledger.map((row) => row.name)).size).toBe(247);
@@ -102,6 +102,10 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       state,
       ledger.filter((row) => row.current_state === state).length,
     ]))).toEqual({ "1": 1, "2": 8, "3": 192, reviewed_handoff_authority_held: 46 });
+    expect(Object.fromEntries(["DONE", "GPS_ONLY"].map((status) => [
+      status,
+      ledger.filter((row) => row.driver_rule_status === status).length,
+    ]))).toEqual({ DONE: 55, GPS_ONLY: 192 });
     expect(Object.fromEntries(["saved", "ODNR pad", "ODNR wellhead", "missing"].map((source) => [
       source,
       ledger.filter((row) => row.gps_source === source).length,
@@ -109,13 +113,15 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     expect(ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held").map((row) => row.name).sort())
       .toEqual(["ALBATROSS", "ATHENA", "BAKOS", "BANNOCK", "BEETLE", "BILINOVICH", "BRAVO", "CASTON", "CIRCLE-OAKS", "CROWIE", "DUKE", "DUTTON", "ECHO", "GIL", "GILCHER", "HASTINGS", "HOOP", "JACKALOPE", "JEFFCO", "KUNGLE A", "KUNGLE B", "LAKE", "LAWSON", "LODESTAR", "LODGE", "LORRAINE", "MALDON", "MATUSEK", "MOONSTONE", "NORTH STAR", "PANG", "PICKENS", "PORTERFIELD B", "PORTERFIELD GAS UNIT", "ROCK RIDGE", "RUTH", "SADLER", "SKULL FORK", "THOMAS", "TOWE", "TROYER", "TRUCHAN NE", "TRUCHAN NW", "WHEELING VALLEY", "WINSTON SMITH", "WITHEY"]);
     expect(ledger.every((row) => row.origin === "phone current location")).toBe(true);
-    expect(ledger.filter((row) => row.current_state !== "1").every((row) => row.blocker.length > 0)).toBe(true);
+    expect(ledger.filter((row) => row.driver_rule_status === "DONE").every((row) => row.blocker === "")).toBe(true);
+    expect(ledger.filter((row) => row.driver_rule_status === "GPS_ONLY")
+      .every((row) => row.blocker === "No reviewed named-road sequence; use the trusted GPS destination only.")).toBe(true);
   });
 
-  it("gives all 192 remaining state-3 pads one exact GPS-only Navigate with no route authority", () => {
-    const stateThree = ledger.filter((row) => row.current_state === "3");
-    expect(stateThree).toHaveLength(192);
-    for (const row of stateThree) {
+  it("keeps all 192 pads without a reviewed named sequence GPS-only", () => {
+    const gpsOnly = ledger.filter((row) => row.driver_rule_status === "GPS_ONLY");
+    expect(gpsOnly).toHaveLength(192);
+    for (const row of gpsOnly) {
       const action = buildFixedNavigationAction(unavailableView, padFromLedger(row));
       expect(action.kind, row.name).toBe("destination_pin");
       expect(action.title, row.name).toBe("GET DIRECTIONS");
@@ -130,7 +136,7 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("resolves all forty-six exact-record reviewed handoffs through the real page action builder", () => {
+  it("resolves all forty-six exact-record reviewed handoffs without waiting on promotion state", () => {
     const reviewed = ledger.filter((row) => row.current_state === "reviewed_handoff_authority_held");
     expect(reviewed).toHaveLength(46);
     const evidenceCounts = { exact_named_road_identities: 0, validated_google_handoff: 0 };
@@ -147,7 +153,6 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
       const action = buildFixedNavigationAction(unavailableView, pad);
       expect(action.kind, row.name).toBe("reviewed_route");
       expect(action.title, row.name).toBe("GET DIRECTIONS");
-      expect(action.detail, row.name).toMatch(/^Owner-approved (?:named-road directions|directions) in Google Maps ·/u);
       const url = new URL(action.href!);
       expect(url.origin, row.name).toBe("https://www.google.com");
       expect(url.searchParams.get("origin"), row.name).toBeNull();
@@ -184,16 +189,10 @@ describe("Batch 0 six-county Ascent navigation ledger", () => {
     }
   });
 
-  it("uses only the frozen three-state labels and the two unchanged reviewed-held labels", () => {
-    const labels = Object.fromEntries(["1", "2", "3", "reviewed_handoff_authority_held"].map((state) => [
-      state,
-      [...new Set(ledger.filter((row) => row.current_state === state).map((row) => row.navigation_label))],
-    ]));
-    expect(labels).toEqual({
-      "1": ["Reviewed approved route"],
-      "2": ["Approved roads then GPS"],
-      "3": ["GPS destination only"],
-      reviewed_handoff_authority_held: ["Owner-approved directions in Google Maps"],
-    });
+  it("uses one label for all 55 DONE handoffs and GPS-only only where no sequence exists", () => {
+    expect([...new Set(ledger.filter((row) => row.driver_rule_status === "DONE")
+      .map((row) => row.navigation_label))]).toEqual(["Named roads to saved pin"]);
+    expect([...new Set(ledger.filter((row) => row.driver_rule_status === "GPS_ONLY")
+      .map((row) => row.navigation_label))]).toEqual(["GPS destination only"]);
   });
 });

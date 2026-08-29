@@ -4,9 +4,7 @@ import {
   clearReleasedGoogleHandoffCache,
   currentReleasedGoogleHandoff,
   currentReleasedGoogleHandoffLoad,
-  higherPriorityNavigationCheckState,
   loadReleasedGoogleHandoff,
-  navigationFallbackAfterHigherPriorityCheck,
   releasedGoogleNavigationUrl,
 } from "./releasedGoogleHandoff";
 
@@ -152,71 +150,5 @@ describe("released Google handoff loader", () => {
     expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
     expect(await loadReleasedGoogleHandoff(pad(id))).toMatchObject({ checked: false, plan: null });
     expect(fetchMock).toHaveBeenCalledTimes(2);
-  });
-});
-
-describe("higher-priority navigation check state", () => {
-  it.each([
-    ["checking", null],
-    ["unavailable", null],
-    ["checked", "reviewed candidate"],
-  ] as const)("gates the reviewed fallback while the authority state is %s", (state, expected) => {
-    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBe(expected);
-  });
-
-  it("keeps fallbacks closed until both exact online checks finish", () => {
-    expect(higherPriorityNavigationCheckState({
-      online: true,
-      approvedRouteAvailable: false,
-      statusRequestSettled: false,
-      statusChecked: false,
-      releaseRequestSettled: true,
-      releaseChecked: true,
-    })).toBe("checking");
-  });
-
-  it.each([
-    [{ releaseRequestSettled: false, releaseChecked: false }, "checking"],
-    [{ releaseRequestSettled: true, releaseChecked: false }, "unavailable"],
-  ] as const)("keeps the fallback closed when the release-side check resolves as %s", (release, expectedState) => {
-    const state = higherPriorityNavigationCheckState({
-      online: true,
-      approvedRouteAvailable: false,
-      statusRequestSettled: true,
-      statusChecked: true,
-      ...release,
-    });
-    expect(state).toBe(expectedState);
-    expect(navigationFallbackAfterHigherPriorityCheck(state, "reviewed candidate")).toBeNull();
-  });
-
-  it("distinguishes a completed absence from an authority-check failure", () => {
-    expect(higherPriorityNavigationCheckState({
-      online: true,
-      approvedRouteAvailable: false,
-      statusRequestSettled: true,
-      statusChecked: true,
-      releaseRequestSettled: true,
-      releaseChecked: true,
-    })).toBe("checked");
-    expect(higherPriorityNavigationCheckState({
-      online: true,
-      approvedRouteAvailable: false,
-      statusRequestSettled: true,
-      statusChecked: false,
-      releaseRequestSettled: true,
-      releaseChecked: true,
-    })).toBe("unavailable");
-  });
-
-  it("lets a current approved route win immediately and preserves offline fallbacks", () => {
-    const pending = {
-      statusRequestSettled: false,
-      statusChecked: false,
-      releaseRequestSettled: false,
-      releaseChecked: false,
-    };
-    expect(higherPriorityNavigationCheckState({ online: true, approvedRouteAvailable: true, ...pending })).toBe("checked");
-    expect(higherPriorityNavigationCheckState({ online: false, approvedRouteAvailable: false, ...pending })).toBe("checked");
   });
 });
