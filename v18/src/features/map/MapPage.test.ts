@@ -159,6 +159,13 @@ describe("map viewer authority boundary", () => {
     }>;
   };
 
+  it("keeps a complete saved directory visible while live directory refresh is unavailable", () => {
+    expect(pageSource).toContain('if (!snapshot) return <section className="page-state"><h1>Map unavailable</h1>');
+    expect(pageSource).not.toContain("if (!snapshot || error)");
+    expect(pageSource).toContain('className="map-render-notice map-render-degraded map-directory-warning"');
+    expect(pageSource).toContain("Saved directory shown. {error}");
+  });
+
   it("keeps the published approved-road overlay teal and separable in every map mode", () => {
     expect(pageSource).toContain("companyRoads.selectRoads(requestedRoadSelection)");
     expect(pageSource).toContain('companyRoads.availability.state === "ready"');
@@ -194,6 +201,14 @@ describe("map viewer authority boundary", () => {
     expect(pageSource).toContain("no approved-route geometry is being claimed");
     expect(pageSource).toContain("if (basemapReady || styleReady || fallbackApplied) return");
     expect(pageSource).toContain("slow road tiles have not completed");
+    expect(pageSource).toContain("ascentPadRoadLayerIdsInPaintOrder.slice(0, 6)");
+    expect(pageSource).toContain("ascentPadRoadLayerIdsInPaintOrder.slice(6)");
+    expect(pageSource.indexOf("ascentPadRoadLayerIdsInPaintOrder.slice(0, 6)")).toBeLessThan(
+      pageSource.indexOf("map.moveLayer(highwayReferenceCasingLayerId)"),
+    );
+    expect(pageSource.indexOf("map.moveLayer(companyRoadLineLayerId)")).toBeLessThan(
+      pageSource.indexOf("ascentPadRoadLayerIdsInPaintOrder.slice(6)"),
+    );
     expect(appCss).toContain(".legend-line.highway");
   });
 

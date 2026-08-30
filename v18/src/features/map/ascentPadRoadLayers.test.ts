@@ -2,6 +2,7 @@ import type { Map as MapLibreMap } from "maplibre-gl";
 import { describe, expect, it, vi } from "vitest";
 import type { AscentPadApproachMapDisplay } from "./ascentPadApproaches";
 import type { AscentPadRoadDisplay } from "./ascentPadRoadDisplays";
+import { highwayReferenceCasingLayerId } from "./highwayReference";
 import {
   ascentPadRoadCollection,
   ascentPadRoadGpsCasingLayerId,
@@ -61,14 +62,15 @@ const display: AscentPadRoadDisplay = {
   redDecision: { state: "not_drawn", reason: "No proof" },
 };
 
-function mapHarness() {
+function mapHarness(highwayReferenceReady = false) {
   const sources = new Map<string, { setData: ReturnType<typeof vi.fn> }>();
   const layers = new Map<string, unknown>();
+  if (highwayReferenceReady) layers.set(highwayReferenceCasingLayerId, { id: highwayReferenceCasingLayerId });
   const addSource = vi.fn((sourceId: string) => {
     sources.set(sourceId, { setData: vi.fn() });
   });
   const removeSource = vi.fn((sourceId: string) => sources.delete(sourceId));
-  const addLayer = vi.fn((layer: { id: string }) => layers.set(layer.id, layer));
+  const addLayer = vi.fn((layer: { id: string }, _beforeLayerId?: string) => layers.set(layer.id, layer));
   const removeLayer = vi.fn((layerId: string) => layers.delete(layerId));
   const setFilter = vi.fn();
   const setLayoutProperty = vi.fn();
@@ -193,6 +195,33 @@ describe("Ascent native road-line layers", () => {
     expect(unverifiedLine.paint["line-color"]).toBe("#94a3b8");
     expect(unverifiedLine.paint).not.toHaveProperty("line-dasharray");
     expect(unverifiedLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
+  });
+
+  it("places red and neutral pad lines below the highway reference", () => {
+    const harness = mapHarness(true);
+    expect(syncAscentPadRoadLayers(harness.map, [display], null)).toBe(true);
+    const beforeLayerById = new Map(
+      harness.addLayer.mock.calls.map(([layer, beforeLayerId]) => [layer.id, beforeLayerId]),
+    );
+
+    for (const layerId of [
+      ascentPadRoadRedCasingLayerId,
+      ascentPadRoadRedLineLayerId,
+      ascentPadRoadGpsCasingLayerId,
+      ascentPadRoadGpsLineLayerId,
+      ascentPadRoadUnverifiedCasingLayerId,
+      ascentPadRoadUnverifiedLineLayerId,
+    ]) {
+      expect(beforeLayerById.get(layerId)).toBe(highwayReferenceCasingLayerId);
+    }
+    for (const layerId of [
+      ascentPadRoadTealCasingLayerId,
+      ascentPadRoadTealLineLayerId,
+      ascentPadRoadSelectedCasingLayerId,
+      ascentPadRoadSelectedLineLayerId,
+    ]) {
+      expect(beforeLayerById.get(layerId)).toBe("labels");
+    }
   });
 
   it("updates a complete native source in place instead of rebuilding its layers", () => {

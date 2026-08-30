@@ -142,6 +142,8 @@ export function syncAscentPadRoadLayers(
     if (!map.getSource(ascentPadRoadSourceId)) throw new Error("Ascent GPS-line source was rejected");
 
     const firstSymbolLayer = firstSymbolLayerAfterLines(map.getStyle());
+    // Neutral and outbound pad approaches must never cover the structured
+    // highway reference. Exact teal arrivals remain above it below.
     const belowHighways = map.getLayer(highwayReferenceCasingLayerId)
       ? highwayReferenceCasingLayerId
       : firstSymbolLayer;
@@ -172,7 +174,7 @@ export function syncAscentPadRoadLayers(
         "line-opacity": .9,
       },
       layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
+    }, belowHighways);
     map.addLayer({
       id: ascentPadRoadGpsLineLayerId,
       type: "line",
@@ -184,7 +186,7 @@ export function syncAscentPadRoadLayers(
         "line-opacity": .96,
       },
       layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
+    }, belowHighways);
     map.addLayer({
       id: ascentPadRoadUnverifiedCasingLayerId,
       type: "line",
@@ -196,7 +198,7 @@ export function syncAscentPadRoadLayers(
         "line-opacity": .94,
       },
       layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
+    }, belowHighways);
     map.addLayer({
       id: ascentPadRoadUnverifiedLineLayerId,
       type: "line",
@@ -208,7 +210,7 @@ export function syncAscentPadRoadLayers(
         "line-opacity": .98,
       },
       layout: { "line-cap": "round", "line-join": "round" },
-    }, firstSymbolLayer);
+    }, belowHighways);
     map.addLayer({
       id: ascentPadRoadTealCasingLayerId,
       type: "line",
