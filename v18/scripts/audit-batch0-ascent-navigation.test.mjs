@@ -30,7 +30,6 @@ import {
 } from "./audit-batch0-ascent-navigation.mjs";
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
-const canonicalCandidateFingerprint = "e8f4195cd8ba90096e6399a0d1eaf370d6dca2b9f58fe451efee82e788fcbd7d";
 
 const reviewedPadIds = [
   "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
@@ -78,6 +77,10 @@ const reviewedPadIds = [
   "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
   "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
   "3850e94a-826f-4b6b-a54f-d21d482fca46",
+  "952f385d-659a-4f00-80c6-3aff474d5f27",
+  "fcbf5085-4ba2-496d-9c20-516e8b52f9bd",
+  "c09f4dd1-68f9-46d1-90b3-560240550ecd",
+  "be83fc24-5c6a-49cd-88a0-52016ca7b657",
   "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
 ];
 
@@ -110,9 +113,9 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("all forty-six reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 46);
-  assert.equal(new Set(reviewedPadIds).size, 46);
+test("all fifty reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 50);
+  assert.equal(new Set(reviewedPadIds).size, 50);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -136,6 +139,20 @@ test("all forty-six reviewed ledger states require every exact record and destin
     }, binding), false);
     assert.equal(reviewedBindingMatches(row, { ...destination, latitude: destination.latitude + 0.000001 }, binding), false);
     assert.equal(reviewedBindingMatches(row, { ...destination, longitude: destination.longitude - 0.000001 }, binding), false);
+  }
+});
+
+test("four highway-direct receipts preserve their unapproved final GPS handoff without owner authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["952f385d-659a-4f00-80c6-3aff474d5f27", "OH-147"],
+    ["fcbf5085-4ba2-496d-9c20-516e8b52f9bd", "OH-285"],
+    ["c09f4dd1-68f9-46d1-90b3-560240550ecd", "OH-147"],
+    ["be83fc24-5c6a-49cd-88a0-52016ca7b657", "US-22"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad, "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
   }
 });
 
@@ -337,7 +354,7 @@ test("frozen historical substitution produces the canonical Batch 0 fingerprint"
     assert.ok(content, `missing frozen fingerprint input ${relativePath}`);
     return { path: relativePath, content };
   });
-  assert.equal(candidateContentDigest(entries), canonicalCandidateFingerprint);
+  assert.equal(candidateContentDigest(entries), frozen.candidateContentSha256);
 });
 
 test("frozen CI provenance ignores only Netlify's build workspace", () => {
@@ -455,10 +472,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /55 DONE reviewed named-road handoffs \/ 192 GPS_ONLY/u);
+  assert.match(summary, /59 DONE reviewed named-road handoffs \/ 188 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 192 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 188 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

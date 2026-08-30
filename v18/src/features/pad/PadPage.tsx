@@ -277,11 +277,11 @@ export function buildFixedNavigationAction(
     title: "GET DIRECTIONS",
     detail: reviewedCandidate.ownerApproval
       ? `${reviewedCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved named-road directions" : "Owner-approved directions"} in Google Maps · ${reviewedCandidate.detail}`
-      : `Owner-reviewed route in Google Maps · ${reviewedCandidate.detail}`,
+      : `Reviewed route in Google Maps · ${reviewedCandidate.detail}`,
     ariaLabel: [
       reviewedCandidate.ownerApproval
         ? `Open the owner-approved ${pad.padName} directions in Google Maps`
-        : `Open the owner-reviewed ${pad.padName} route in Google Maps`,
+        : `Open the reviewed ${pad.padName} route in Google Maps`,
       reviewedCandidate.detail,
       reviewedCandidate.finalLegNotice,
       "graph route lines, public Google release, and approved-road overlays remain separate",
@@ -328,8 +328,8 @@ export function ReviewedRouteFallback({ candidate, state }: { candidate: Reviewe
   const ownerApproved = Boolean(candidate.ownerApproval);
   const exactNamedRoads = candidate.ownerApproval?.evidence === "exact_named_road_identities";
   return <div className="reviewed-route-fallback">
-    <div className="reviewed-route-fallback-heading"><StatusBadge status={ownerApproved ? "ready" : state} label={ownerApproved ? "Owner approved" : undefined}/><strong>{ownerApproved ? exactNamedRoads ? "Owner-approved named-road sequence" : "Owner-approved direction sequence" : "Owner-reviewed sequence"}</strong></div>
-    {sequenceItems.length ? <ol className="route-step-list reviewed-route-step-list" aria-label={ownerApproved ? "Owner-approved direction steps" : "Owner-reviewed direction steps"}>{sequenceItems.map((item, index) => <li className="route-step step-road" key={`${index}-${item}`}><span className="step-number">{index + 1}</span><div><strong>{item}</strong></div></li>)}</ol>
+    <div className="reviewed-route-fallback-heading"><StatusBadge status={ownerApproved ? "ready" : state} label={ownerApproved ? "Owner approved" : undefined}/><strong>{ownerApproved ? exactNamedRoads ? "Owner-approved named-road sequence" : "Owner-approved direction sequence" : "Reviewed sequence"}</strong></div>
+    {sequenceItems.length ? <ol className="route-step-list reviewed-route-step-list" aria-label={ownerApproved ? "Owner-approved direction steps" : "Reviewed direction steps"}>{sequenceItems.map((item, index) => <li className="route-step step-road" key={`${index}-${item}`}><span className="step-number">{index + 1}</span><div><strong>{item}</strong></div></li>)}</ol>
       : <p className="reviewed-route-sequence-text">No reviewed road sequence is available.</p>}
     {candidate.finalLegNotice && <p className="reviewed-route-boundary"><Icon name="location"/>{candidate.finalLegNotice}</p>}
   </div>;
@@ -568,10 +568,11 @@ export function PadPage() {
   const activeReviewedNavigationCandidate = eligibleReviewedNavigationCandidate;
   const reviewedNavigationSafetyHold = reviewedNavigationSafetyHoldForPad(pad);
   const hasReviewedRouteFallback = !reviewedNavigationSafetyHold && Boolean(activeReviewedNavigationCandidate?.reviewedRoadSequence) && displayedRouteSteps.length === 0;
+  const preserveMeasuredApproachWithReviewedRoute = activeReviewedNavigationCandidate?.preserveMeasuredApproach === true;
   const activeAscentPadApproach = !reviewedNavigationSafetyHold
     && !namedSelectionRequired
     && displayedRouteSteps.length === 0
-    && !hasReviewedRouteFallback
+    && (!hasReviewedRouteFallback || preserveMeasuredApproachWithReviewedRoute)
     ? currentAscentPadApproach
     : null;
   const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
@@ -627,11 +628,11 @@ export function PadPage() {
     </section>}
 
     <section className="route-steps-card">
-      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? `Named roads · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Named roads to handoff" : "Named roads to saved pin" : namedSelectionRequired ? "Choose a reviewed approach" : hasReviewedRouteFallback ? activeReviewedNavigationCandidate?.ownerApproval ? activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions" : "Reviewed route sequence" : activeAscentPadApproach ? "Last highway to saved GPS" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
+      <div className="section-heading"><div><span className="eyebrow">ROAD SEQUENCE</span><h2>{reviewedNavigationSafetyHold ? reviewedNavigationSafetyHold.title : displayedRouteSteps.length ? selectedNamedApproach ? `Named roads · ${selectedNamedApproach.approachLabel}` : status.route.source === "exact_graph_handoff" ? "Named roads to handoff" : "Named roads to saved pin" : namedSelectionRequired ? "Choose a reviewed approach" : hasReviewedRouteFallback ? activeReviewedNavigationCandidate?.ownerApproval ? activeReviewedNavigationCandidate.ownerApproval.evidence === "exact_named_road_identities" ? "Owner-approved road sequence" : "Owner-approved directions" : preserveMeasuredApproachWithReviewedRoute && activeAscentPadApproach ? "Reviewed route + measured approach" : "Reviewed route sequence" : activeAscentPadApproach ? "Last highway to saved GPS" : hasSavedRouteFallback ? "Saved BrineSearch route" : "No structured route"}</h2></div></div>
       {reviewedNavigationSafetyHold ? <div className="inline-warning" role="alert"><Icon name="location"/><strong>{reviewedNavigationSafetyHold.detail}</strong> BILINOVICH navigation is GPS destination only while its replacement route is traced backward from the pad.</div>
         : displayedRouteSteps.length ? <ol className="route-step-list">{displayedRouteSteps.map((step) => <li key={`${step.order}-${step.displayName}`} className={`route-step step-${step.kind}`}><span className="step-number">{step.order}</span><div><strong>{step.displayName}</strong><p>{step.instruction}</p>{(step.verifiedDesignations.length > 0 || semanticLabel(step.kind)) && <div className="designation-row">{step.verifiedDesignations.map((name) => <span key={name}>{name}</span>)}{semanticLabel(step.kind) && <b>{semanticLabel(step.kind)}</b>}</div>}</div>{step.distanceMiles !== null && <small>{step.distanceMiles.toFixed(1)} mi</small>}</li>)}</ol>
         : namedSelectionRequired ? <p className="card-empty">Select one reviewed named approach above. Until then, only GPS destination navigation is available.</p>
-        : hasReviewedRouteFallback && activeReviewedNavigationCandidate ? <ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>
+        : hasReviewedRouteFallback && activeReviewedNavigationCandidate ? <><ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>{activeAscentPadApproach && <AscentPadApproachDirections approach={activeAscentPadApproach}/>}</>
         : activeAscentPadApproach ? <AscentPadApproachDirections approach={activeAscentPadApproach}/>
         : hasSavedRouteFallback ? <div className="readiness-column"><StatusBadge status={status.route.state}/><strong>Legacy saved directions</strong>{pad.structuredRoadSequence && !status.route.writtenDirections && <p>{pad.structuredRoadSequence}</p>}<p>Saved BrineSearch directions remain text. They do not create teal geometry; GPS-only navigation may use Google-selected roads.</p></div>
         : <p className="card-empty">No reviewed named-road sequence is on file. Navigation uses the sourced GPS destination only, and no teal line is inferred.</p>}

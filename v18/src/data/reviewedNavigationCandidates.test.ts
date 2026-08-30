@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { PadSummary } from "./types";
+import { ascentSavedDirectionExactMatchBatch1 } from "./ascentSavedDirectionExactMatchBatch1";
 import {
   ALBATROSS_REVIEWED_GOOGLE_URL,
   ATHENA_REVIEWED_GOOGLE_URL,
@@ -51,6 +52,7 @@ import {
   ownerApprovalPresentationForReceipt,
   ownerApprovalReceiptInputForAudit,
   ownerApprovalReceiptRowsForAudit,
+  reviewedNavigationContractRowsForAudit,
   reviewedNavigationCandidateForPad,
   reviewedNavigationSafetyHoldForPad,
   reviewedNavigationSequenceItems,
@@ -97,6 +99,28 @@ function lawson(): PadSummary {
     address: "23291 Millers Fork Road",
     structuredRoadSequence: "US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → US-250 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd → OR → I-70 → Exit 193 → OH-513 → US-22 → Mc Coy Rd → Tyson Mill Rd → Millers Fork Rd",
     mapReference: { latitude: 40.124991, longitude: -81.295913, role: "reference", kind: "saved_pad_reference" },
+  };
+}
+
+function exactMatchBatch1Pad(record: typeof ascentSavedDirectionExactMatchBatch1[number]): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: record.padId,
+    canonicalId: record.canonicalId,
+    legacyId: record.legacyId,
+    recordRevision: record.recordRevision,
+    company: record.company,
+    padName: record.padName,
+    state: record.state,
+    county: record.county,
+    coordinate: null,
+    mapReference: {
+      latitude: record.trustedDestination.latitude,
+      longitude: record.trustedDestination.longitude,
+      role: "reference",
+      kind: "saved_pad_reference",
+    },
+    structuredRoadSequence: record.structuredRoadSequence,
   };
 }
 
@@ -2271,6 +2295,96 @@ describe("reviewed navigation candidates", () => {
         ...fixture.pad,
         county: fixture.pad.county === "Belmont" ? "Guernsey" : "Belmont",
       }), fixture.name).toBeNull();
+    }
+  });
+
+  it("returns the four exact-match highway-direct handoffs with one terminal-road control", () => {
+    for (const record of ascentSavedDirectionExactMatchBatch1) {
+      const pad = exactMatchBatch1Pad(record);
+      const candidate = reviewedNavigationCandidateForPad(pad);
+      expect(candidate, record.padName).toMatchObject({
+        padId: record.padId,
+        title: record.title,
+        detail: record.detail,
+        reviewedRoadSequence: record.reviewedRoadSequence,
+        finalLegNotice: record.finalLegNotice,
+        preserveMeasuredApproach: true,
+        ownerApproval: undefined,
+      });
+      const expectedUrl = buildReviewedNavigationUrl(record.routeDestination, record.waypoints);
+      expect(candidate?.routeUrl, record.padName).toBe(expectedUrl);
+      expect(reviewedNavigationUrlMatchesContract(
+        candidate!.routeUrl,
+        record.routeDestination,
+        record.waypoints,
+      ), record.padName).toBe(true);
+      const url = new URL(candidate!.routeUrl);
+      expect(url.searchParams.get("origin"), record.padName).toBeNull();
+      expect(url.searchParams.get("destination"), record.padName)
+        .toBe(`${record.routeDestination.latitude},${record.routeDestination.longitude}`);
+      expect(url.searchParams.get("waypoints")?.split("|"), record.padName).toEqual([
+        `${record.waypoints[0].latitude},${record.waypoints[0].longitude}`,
+      ]);
+    }
+  });
+
+  it("fails every exact-match highway-direct handoff closed on record or destination drift", () => {
+    for (const record of ascentSavedDirectionExactMatchBatch1) {
+      const exact = exactMatchBatch1Pad(record);
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${record.padName} EAST`],
+        ["state", "West Virginia"],
+        ["county", record.county === "Belmont" ? "Guernsey" : "Belmont"],
+        ["structuredRoadSequence", `${record.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${record.padName}:${field}`)
+          .toBeNull();
+      }
+      expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), record.padName).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude + 0.000001 },
+      }), record.padName).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+      }), record.padName).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: {
+          latitude: record.trustedDestination.latitude,
+          longitude: record.trustedDestination.longitude,
+          role: "driver_entrance",
+        },
+        mapReference: null,
+      }), record.padName).toBeNull();
+    }
+  });
+
+  it("keeps the four new handoffs outside the 46 owner-approval receipts", () => {
+    const contracts = reviewedNavigationContractRowsForAudit();
+    const receiptRows = ownerApprovalReceiptRowsForAudit();
+    expect(contracts).toHaveLength(50);
+    expect(receiptRows).toHaveLength(46);
+    expect(receiptRows.every((row) => row.matchesCurrentContent)).toBe(true);
+    const receiptIds = new Set<string>(receiptRows.map((row) => row.padId));
+    const ownerReceipted = contracts.filter((contract) => receiptIds.has(contract.padId));
+    expect(ownerReceipted).toHaveLength(46);
+    expect(ownerReceipted.every((contract) => contract.preserveMeasuredApproach === false)).toBe(true);
+    const unreceipted = contracts.filter((contract) => !receiptIds.has(contract.padId));
+    expect(unreceipted.map((contract) => contract.padId).sort()).toEqual(
+      ascentSavedDirectionExactMatchBatch1.map((record) => record.padId).sort(),
+    );
+    for (const contract of unreceipted) {
+      expect(contract.ownerApproval, contract.padName).toBeNull();
+      expect(contract.preserveMeasuredApproach, contract.padName).toBe(true);
+      expect(contract.detail, contract.padName).toMatch(/unapproved/iu);
+      expect(contract.finalLegNotice, contract.padName).toMatch(/not road or navigation geometry/iu);
     }
   });
 });

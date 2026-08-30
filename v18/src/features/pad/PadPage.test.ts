@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary } from "@/data/types";
 import { parseSavedDirectionReference } from "@/data/savedDirectionReference";
+import { ascentSavedDirectionExactMatchBatch1 } from "@/data/ascentSavedDirectionExactMatchBatch1";
 import { BEETLE_REVIEWED_GOOGLE_URL, BILINOVICH_REVIEWED_GOOGLE_URL, reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad } from "@/data/reviewedNavigationCandidates";
 import approachArtifact from "@/features/map/ascentPadApproaches.batch2.json";
 import { parseAscentPadApproachArtifact } from "@/features/map/ascentPadApproaches";
@@ -92,6 +93,29 @@ function beetlePad(): PadSummary {
     coordinate: null,
     mapReference: { latitude: 40.185403, longitude: -80.922718, role: "reference", kind: "saved_pad_reference" },
     structuredRoadSequence: "OH-519 → US-250 → Pad",
+  };
+}
+
+function exactMatchBatch1Pad(padName: typeof ascentSavedDirectionExactMatchBatch1[number]["padName"]): PadSummary {
+  const record = ascentSavedDirectionExactMatchBatch1.find((candidate) => candidate.padName === padName)!;
+  return {
+    ...mappedPad(),
+    padId: record.padId,
+    canonicalId: record.canonicalId,
+    legacyId: record.legacyId,
+    recordRevision: record.recordRevision,
+    company: record.company,
+    padName: record.padName,
+    state: record.state,
+    county: record.county,
+    coordinate: null,
+    mapReference: {
+      latitude: record.trustedDestination.latitude,
+      longitude: record.trustedDestination.longitude,
+      role: "reference",
+      kind: "saved_pad_reference",
+    },
+    structuredRoadSequence: record.structuredRoadSequence,
   };
 }
 
@@ -353,6 +377,54 @@ describe("V18 pad legacy route fallback", () => {
     expect(html).not.toContain("disabled");
     expect(padPage).toContain("Everyday driver navigation does not wait for State-1 receipt checks.");
     expect(padPage).not.toContain("higherPriorityNavigationCheckState");
+  });
+
+  it("shows each non-owner highway-direct Navigate contract beside its sealed measured approach", () => {
+    const catalog = parseAscentPadApproachArtifact(approachArtifact);
+    for (const record of ascentSavedDirectionExactMatchBatch1) {
+      const pad = exactMatchBatch1Pad(record.padName);
+      const candidate = reviewedNavigationCandidateForPad(pad);
+      expect(candidate, record.padName).toMatchObject({
+        padId: record.padId,
+        preserveMeasuredApproach: true,
+        ownerApproval: undefined,
+      });
+      const action = buildFixedNavigationAction(
+        buildGoogleHandoffView(statusWithGoogle(null), false, true),
+        pad,
+        candidate,
+      );
+      expect(action, record.padName).toMatchObject({
+        kind: "reviewed_route",
+        detail: `Reviewed route in Google Maps · ${record.detail}`,
+      });
+      const url = new URL(action.href!);
+      expect(url.searchParams.get("origin"), record.padName).toBeNull();
+      expect(url.searchParams.get("destination"), record.padName)
+        .toBe(`${record.routeDestination.latitude},${record.routeDestination.longitude}`);
+      expect(url.searchParams.get("waypoints"), record.padName)
+        .toBe(`${record.waypoints[0].latitude},${record.waypoints[0].longitude}`);
+
+      const measured = catalog.records.find((approach) => approach.padId === record.padId);
+      expect(measured, record.padName).toMatchObject({ status: "ROUTED_DISPLAY" });
+      expect(measured?.gpsTether, record.padName).toMatchObject({
+        colorRole: "gps",
+        authority: "unapproved_straight_network_snap_to_saved_gps",
+        navigationGeometry: false,
+      });
+      const reviewedHtml = renderToStaticMarkup(createElement(ReviewedRouteFallback, {
+        candidate: candidate!,
+        state: "held",
+      }));
+      expect(reviewedHtml, record.padName).toContain("Reviewed sequence");
+      expect(reviewedHtml, record.padName).not.toContain("Owner-reviewed");
+      expect(reviewedHtml, record.padName).not.toContain("Owner approved");
+    }
+
+    expect(padPage).toContain("const preserveMeasuredApproachWithReviewedRoute = activeReviewedNavigationCandidate?.preserveMeasuredApproach === true;");
+    expect(padPage).toContain("&& (!hasReviewedRouteFallback || preserveMeasuredApproachWithReviewedRoute)");
+    expect(padPage).toContain("Reviewed route + measured approach");
+    expect(padPage).toContain("<><ReviewedRouteFallback candidate={activeReviewedNavigationCandidate} state={status.route.state}/>{activeAscentPadApproach && <AscentPadApproachDirections approach={activeAscentPadApproach}/>}</>");
   });
 
   it("keeps sourced GPS navigation available when no reviewed named-road sequence exists", () => {

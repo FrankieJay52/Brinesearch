@@ -1,6 +1,7 @@
 import { parseCoordinatePair } from "./coordinates";
 import type { PadSummary } from "./types";
 import { trustedPadDestination, type PadDestinationSource } from "./googleDestination";
+import { ascentSavedDirectionExactMatchBatch1 } from "./ascentSavedDirectionExactMatchBatch1";
 
 export interface ReviewedNavigationCandidate {
   padId: string;
@@ -9,6 +10,7 @@ export interface ReviewedNavigationCandidate {
   routeUrl: string;
   reviewedRoadSequence?: string;
   finalLegNotice?: string;
+  preserveMeasuredApproach?: true;
   ownerApproval?: OwnerApprovedNavigationPresentation;
 }
 
@@ -471,7 +473,35 @@ interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   routeDestination: ReviewedNavigationCoordinate;
   routeDestinationOverride?: "bilinovich_reviewed_odnr_pad_surface";
   waypoints: readonly ReviewedNavigationCoordinate[];
+  selectedTerminalPublicRoadSequence?: readonly string[];
 }
+
+const ascentSavedDirectionExactMatchBatch1Contracts: readonly ReviewedNavigationContract[] =
+  ascentSavedDirectionExactMatchBatch1.map((record) => ({
+    padId: record.padId,
+    canonicalId: record.canonicalId,
+    legacyId: record.legacyId,
+    recordRevision: record.recordRevision,
+    company: record.company,
+    padName: record.padName,
+    state: record.state,
+    county: record.county,
+    structuredRoadSequence: record.structuredRoadSequence,
+    title: record.title,
+    detail: record.detail,
+    routeUrl: buildReviewedNavigationUrl(record.routeDestination, record.waypoints),
+    reviewedRoadSequence: record.reviewedRoadSequence,
+    finalLegNotice: record.finalLegNotice,
+    preserveMeasuredApproach: record.preserveMeasuredApproach,
+    trustedDestination: {
+      latitude: record.trustedDestination.latitude,
+      longitude: record.trustedDestination.longitude,
+      source: record.trustedDestination.source,
+    },
+    routeDestination: record.routeDestination,
+    waypoints: record.waypoints,
+    selectedTerminalPublicRoadSequence: record.selectedTerminalPublicRoadSequence,
+  }));
 
 const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
   {
@@ -1548,6 +1578,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     routeDestination: ATHENA_ROUTE_DESTINATION,
     waypoints: ATHENA_WAYPOINTS,
   },
+  ...ascentSavedDirectionExactMatchBatch1Contracts,
 ] as const;
 
 const bilinovichUnsafeBlazeContract = {
@@ -1639,6 +1670,7 @@ export function reviewedNavigationCandidateForPad(
     routeUrl: contract.routeUrl,
     reviewedRoadSequence: contract.reviewedRoadSequence,
     finalLegNotice: contract.finalLegNotice,
+    preserveMeasuredApproach: contract.preserveMeasuredApproach,
     ownerApproval,
   };
 }
@@ -1714,6 +1746,31 @@ export function ownerApprovalPresentationForReceipt(
 
 export function ownerApprovalReceiptInputForAudit(padId: string): OwnerApprovalReceiptInput | null {
   return reviewedNavigationContracts.find((contract) => contract.padId === padId) || null;
+}
+
+export function reviewedNavigationContractRowsForAudit() {
+  return reviewedNavigationContracts.map((contract) => ({
+    padId: contract.padId,
+    canonicalId: contract.canonicalId,
+    legacyId: contract.legacyId,
+    recordRevision: contract.recordRevision,
+    company: contract.company,
+    padName: contract.padName,
+    state: contract.state,
+    county: contract.county,
+    structuredRoadSequence: contract.structuredRoadSequence,
+    title: contract.title,
+    detail: contract.detail,
+    routeUrl: contract.routeUrl,
+    reviewedRoadSequence: contract.reviewedRoadSequence || "",
+    finalLegNotice: contract.finalLegNotice || "",
+    preserveMeasuredApproach: contract.preserveMeasuredApproach === true,
+    trustedDestination: contract.trustedDestination,
+    routeDestination: contract.routeDestination,
+    waypoints: contract.waypoints,
+    selectedTerminalPublicRoadSequence: contract.selectedTerminalPublicRoadSequence || [],
+    ownerApproval: ownerApprovalPresentationForReceipt(contract) || null,
+  }));
 }
 
 export function ownerApprovalReceiptRowsForAudit() {
