@@ -17,7 +17,7 @@ export function MapDestinationPinLink({ pinUrl, padName, sourceLabel = "GPS dest
   </a>;
 }
 
-export function MapReviewedRouteLink({ routeUrl, padName, detail = "Owner-reviewed Google directions", ownerApproval }: { routeUrl: string; padName: string; detail?: string; ownerApproval?: OwnerApprovedNavigationPresentation }) {
+export function MapReviewedRouteLink({ routeUrl, padName, detail = "Reviewed Google directions", ownerApproval }: { routeUrl: string; padName: string; detail?: string; ownerApproval?: OwnerApprovedNavigationPresentation }) {
   const reviewLabel = ownerApproval
     ? ownerApproval.evidence === "exact_named_road_identities" ? "owner-approved named-road directions" : "owner-approved directions"
     : "reviewed route";

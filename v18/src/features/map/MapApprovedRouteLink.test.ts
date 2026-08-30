@@ -49,12 +49,13 @@ describe("map named-road navigation link", () => {
     expect(html).not.toContain("<small");
   });
 
-  it("labels an owner-reviewed candidate without claiming public or graph approval", () => {
+  it("labels a reviewed candidate without claiming owner, public, or graph approval", () => {
     const routeUrl = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.08738445%2C-81.30282620";
     const html = renderToStaticMarkup(createElement(MapReviewedRouteLink, { routeUrl, padName: "BILINOVICH" }));
 
     expect(html.match(/<a\b/g)).toHaveLength(1);
-    expect(html).toContain("Owner-reviewed Google directions");
+    expect(html).toContain("Reviewed Google directions");
+    expect(html).not.toContain("Owner-reviewed");
     expect(html).toContain("display geometry and State-1 authority remain separate");
     expect(html).not.toContain("<small");
     expect(html).not.toContain("Approved route");
