@@ -246,21 +246,18 @@ function syncMapPresentation(map: MapLibreMap, roadMode: boolean) {
     }
 
     // Keep the same truthful road hierarchy in both standard and Roads modes:
-    // red local continuation, highways, released network, neutral GPS tethers,
-    // solid named-road arrivals, then the selected exact Ascent arrival
+    // red and neutral pad approaches below highways, then the released network,
+    // solid named-road arrivals, and finally the selected exact Ascent arrival
     // brightest. BANNOCK's proven outbound reference is the one red feature in
     // this shared source, so it is never rebuilt or double-painted separately.
-    for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(0, 2)) {
+    for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(0, 6)) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
     if (map.getLayer(highwayReferenceCasingLayerId)) map.moveLayer(highwayReferenceCasingLayerId);
     if (map.getLayer(highwayReferenceLineLayerId)) map.moveLayer(highwayReferenceLineLayerId);
     if (map.getLayer(companyRoadCasingLayerId)) map.moveLayer(companyRoadCasingLayerId);
     if (map.getLayer(companyRoadLineLayerId)) map.moveLayer(companyRoadLineLayerId);
-    for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(2, 4)) {
-      if (map.getLayer(layerId)) map.moveLayer(layerId);
-    }
-    for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(4)) {
+    for (const layerId of ascentPadRoadLayerIdsInPaintOrder.slice(6)) {
       if (map.getLayer(layerId)) map.moveLayer(layerId);
     }
 
@@ -1155,7 +1152,7 @@ export function MapPage() {
   }, [companyFilter, companyScopedRows, fullscreen]);
 
   if (loading) return <LoadingState message="Loading the field map…"/>;
-  if (!snapshot || error) return <section className="page-state"><h1>Map unavailable</h1><p>{error || "No complete directory is available."}</p></section>;
+  if (!snapshot) return <section className="page-state"><h1>Map unavailable</h1><p>{error || "No complete directory is available."}</p></section>;
 
   return <section className={`map-page${fullscreen ? " map-fullscreen" : ""}${roadMode ? " map-road-mode" : ""}`} data-viewer-mode={viewerMode}>
     <div className="map-stage">
@@ -1229,6 +1226,7 @@ export function MapPage() {
         </div>
       </div>
       </div>
+      {error && <div className="map-render-notice map-render-degraded map-directory-warning" role="status"><span/>Saved directory shown. {error}</div>}
       <div className={`map-render-notice map-render-${mapRenderState}`} role={mapRenderState === "error" ? "alert" : "status"} data-map-render-state={mapRenderState}>
         <span/>{mapNotice}
       </div>
