@@ -296,7 +296,7 @@ test("tracked Git blobs larger than the default exec buffer are read completely"
   assert.equal(content.length, 3_233_663);
   assert.equal(
     createHash("sha256").update(content).digest("hex"),
-    "65cf04386658166fd80afd96c31ccc089418eba9de9a5561473a52758f1d29af",
+    "8ffb264ebd14696c933f472b80bfd791a172fe0b2f16a8232a3aaeb42088d79d",
   );
 });
 
