@@ -604,12 +604,12 @@ begin
           v_direction_definition,
           'private_verification.brinesearch_driver_safe_clear_v17330'
         )=0
-     or pg_catalog.strpos(v_direction_definition,'directions.pad_id = detail.id')=0
-     or pg_catalog.strpos(v_direction_definition,'detail.id = p_pad_id')=0
+     or pg_catalog.strpos(v_direction_definition,'directions.pad_id=detail.id')=0
+     or pg_catalog.strpos(v_direction_definition,'detail.id=p_pad_id')=0
      or pg_catalog.strpos(
-          v_status_definition,'route_status = ''route_ready'''
+          v_status_definition,'route_status=''route_ready'''
         )=0
-     or pg_catalog.strpos(v_status_definition,'stage = ''ready''')=0
+     or pg_catalog.strpos(v_status_definition,'stage=''ready''')=0
      or pg_catalog.strpos(
           v_status_definition,
           'private_verification.brinesearch_v18_exact_route_projection'

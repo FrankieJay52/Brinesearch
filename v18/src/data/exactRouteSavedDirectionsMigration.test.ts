@@ -108,6 +108,25 @@ describe("V18 exact-route saved-direction migration", () => {
     );
   });
 
+  it("checks the same compact predicate bytes stored by the function bodies", () => {
+    expect(migration).toContain(
+      "pg_catalog.strpos(v_direction_definition,'directions.pad_id=detail.id')=0",
+    );
+    expect(migration).toContain(
+      "pg_catalog.strpos(v_direction_definition,'detail.id=p_pad_id')=0",
+    );
+    expect(migration).toContain(
+      "v_status_definition,'route_status=''route_ready'''",
+    );
+    expect(migration).toContain(
+      "pg_catalog.strpos(v_status_definition,'stage=''ready''')=0",
+    );
+    expect(migration).not.toContain("directions.pad_id = detail.id");
+    expect(migration).not.toContain("detail.id = p_pad_id");
+    expect(migration).not.toContain("route_status = ''route_ready''");
+    expect(migration).not.toContain("stage = ''ready''");
+  });
+
   it("is schema-only and does not rewrite route, geometry, Google, cutover, or pad rows", () => {
     expect(migration).not.toMatch(/\binsert\s+into\b/i);
     expect(migration).not.toMatch(/\bupdate\s+(?:public|private_verification)\./i);
