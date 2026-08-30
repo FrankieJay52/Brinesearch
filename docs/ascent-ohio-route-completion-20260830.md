@@ -42,7 +42,7 @@ SHUTWAY and VANNELLE retain evidence-backed, phone-origin candidates but are `GO
 | migration | pads | normalized SHA-256 | state |
 |---|---|---|---|
 | `20260830105500_ascent_bella_airport_identity.sql` | BELLA | `9c53f20bcd5204b2a8d160bcdf54f3f9dbf1eb7f22c97241f2153a153d58ef5d` | UNAPPLIED |
-| `20260830105506_ascent_howell_occurrence_checkpoint.sql` | HOWELL | `dd1383cae3d98028da365bc4406f6b1161fc4b7e2a840d8d9db2838a0a78bc75` | UNAPPLIED |
+| `20260830105506_ascent_howell_occurrence_checkpoint.sql` | HOWELL | `d3b579584666f67487334faffbc26b2ed58dbc9056d9caf5484c34191e7bd6d4` | UNAPPLIED |
 | `20260830105511_ascent_cricket_foxes_identity_binding.sql` | CRICKET | `4889af4234ee163d74690b154bd23be9f176208404679ae474b6d61e604a9855` | UNAPPLIED |
 
 BELLA's Harrison Airport Rd / CR-38 identity, HOWELL's SR-151/SR-152 occurrence checkpoint, and CRICKET's already-existing Foxes Bottom identity binding are the only migration work independently revalidated from the stale evidence packages. No stale branch was cherry-picked wholesale.

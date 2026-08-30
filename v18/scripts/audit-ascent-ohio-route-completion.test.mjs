@@ -172,6 +172,7 @@ test("prepared SQL is fail-closed, pad-scoped, and creates no route or publicati
   assert.match(bella, /OH:ODOT:NLF:CHASCR00038\*\*C/u);
   assert.match(bella, /approved_by_default[^;]*false/iu);
   assert.match(howell, /2805772b-58c9-4a41-9c75-de5355f2904a/u);
+  assert.match(howell, /st_makepoint\(-80\.7788733, 40\.2739904\)/u);
   assert.match(howell, /route_authority[^;]*false/iu);
   assert.match(howell, /google_publication[^;]*false/iu);
   assert.match(cricket, /3a72c3df-f0a1-4639-a468-019989c78f43/u);

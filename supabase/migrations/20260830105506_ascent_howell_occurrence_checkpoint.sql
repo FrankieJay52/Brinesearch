@@ -328,7 +328,7 @@ begin
          and extensions.st_dwithin(
            junction.geom::extensions.geography,
            extensions.st_setsrid(
-             extensions.st_makepoint(-80.778873, 40.273979), 4326
+             extensions.st_makepoint(-80.7788733, 40.2739904), 4326
            )::extensions.geography,
            1
          )
@@ -349,7 +349,7 @@ begin
   end if;
 
   v_start := extensions.st_setsrid(
-    extensions.st_makepoint(-80.778873, 40.273979), 4326
+    extensions.st_makepoint(-80.7788733, 40.2739904), 4326
   );
   v_end := extensions.st_setsrid(
     extensions.st_makepoint(-80.790569, 40.234383), 4326
@@ -477,7 +477,7 @@ begin
     '519dbc2444698451ad57b1e5eba661d9', v_to_step, v_to_road,
     v_to_identity, 'OH:ODOT:NLF:SJEFSR00152**C:COMP:2025_000000000306854',
     'c63b7db139a671ed3e7e6459ad5ed971',
-    'd1336adcfe1092cd9ff92f3a33f5ec85', -80.778873, 40.273979,
+    'd1336adcfe1092cd9ff92f3a33f5ec85', -80.7788733, 40.2739904,
     -80.790569, 40.234383, 5613.3, 3.488,
     (v_clip->>'miles')::numeric, v_clip_sha256, 3.5, -80.787957,
     40.234171, 222.9755, 'GPS_ONLY', 'neutral_gps_only', false,
