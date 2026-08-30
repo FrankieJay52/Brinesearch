@@ -129,8 +129,8 @@
   "frozenRuntimeGitBlobSha256": {
     "v18/src/data/reviewedNavigationCandidates.ts": "186e64539032216cfcde990379a124d8ce9910fb73b5cbf3aab43f60e3d826e9",
     "v18/src/features/map/ascentPadApproaches.batch2.json": "a04cdc302f578d5d80a7fa8916e529c64e33e1ac3eb68dbf1dcbaf7991e42dd3",
-    "v18/src/features/map/MapPage.tsx": "4ad30f4ad6bd9bb85f4c146b9368cb4108abe35b19c81c0769c71d4d8d139d9b",
-    "v18/src/features/map/ascentPadRoadLayers.ts": "1c586a6ed827352da24fc5963d68cbdc8f0e804a50383b582fb7195a0f35cf13"
+    "v18/src/features/map/MapPage.tsx": "2de9e02dc37d8a83e37fe53fe5c5ac60a09cf08ef8bc27591880f10413abf380",
+    "v18/src/features/map/ascentPadRoadLayers.ts": "9b283b51d707bbf615ff7d9c7f656eef82dd2dd3cc5a8cda020af058a5937f50"
   },
   "productionRegressionEvidence": {
     "mammoth": {
