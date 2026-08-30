@@ -8,6 +8,7 @@ import type {
   PadSummary,
   RouteSource,
   RouteState,
+  WrittenDirectionsSource,
 } from "./types";
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -21,6 +22,7 @@ const maxDesignationsPerStep = 32;
 const unsafeControlPattern = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/;
 const writtenRouteStates = new Set<RouteState>(["written_only", "held", "stale"]);
 const writtenRouteSources = new Set<RouteSource>(["legacy_written", "reviewed_written"]);
+const writtenDirectionsSources = new Set<WrittenDirectionsSource>(["directions_clear", "written_directions"]);
 const stepKinds = new Set<DriverRouteStep["kind"]>(["turn", "continue", "name_change", "shared_begin", "shared_end"]);
 const graphStates = new Set<GraphState>(["active_current", "verified_release", "stale", "held", "unavailable"]);
 
@@ -111,6 +113,8 @@ export interface OfflineRouteContract {
   routeSafeReason: string | null;
   routeLastVerifiedAt: string | null;
   writtenDirections: string | null;
+  writtenDirectionsSource?: WrittenDirectionsSource | null;
+  writtenDirectionsSourceRevision?: string | null;
   graphState: GraphState;
   graphCounty: string | null;
   graphPublicSource: string | null;
@@ -294,10 +298,13 @@ function immutableNavigationUrl(status: DriverPadStatus) {
     : null;
 }
 
-function writtenDirectionsAreCacheable(status: DriverPadStatus) {
-  return writtenRouteStates.has(status.route.state)
-    && writtenRouteSources.has(status.route.source)
-    && isSafePublicText(status.route.writtenDirections, "writtenDirections");
+function writtenDirectionsAreCacheable(status: DriverPadStatus, exactCacheable: boolean) {
+  return isSafePublicText(status.route.writtenDirections, "writtenDirections")
+    && (exactCacheable
+      ? writtenDirectionsSources.has(status.route.writtenDirectionsSource as WrittenDirectionsSource)
+        && validDate(status.route.writtenDirectionsSourceRevision)
+      : writtenRouteStates.has(status.route.state)
+        && writtenRouteSources.has(status.route.source));
 }
 
 export function buildOfflineRouteRecord(
@@ -309,7 +316,8 @@ export function buildOfflineRouteRecord(
   if (status.padId !== pad.padId || status.recordRevision !== pad.recordRevision || !revisionPattern.test(status.recordRevision)) return null;
   if (status.dataState !== "live" || !validDate(savedAt)) return null;
   const cacheExact = exactDirectionsAreCacheable(status);
-  const cacheWritten = writtenDirectionsAreCacheable(status);
+  const cacheWritten = writtenDirectionsAreCacheable(status, cacheExact);
+  if (cacheExact && status.route.writtenDirections !== null && !cacheWritten) return null;
   if (!cacheExact && !cacheWritten) return null;
 
   const routeId = `${pad.padId}:active`;
@@ -361,6 +369,13 @@ export function buildOfflineRouteRecord(
       routeSafeReason: status.route.safeReason,
       routeLastVerifiedAt: nullableDate(status.route.lastVerifiedAt),
       writtenDirections: cacheWritten ? status.route.writtenDirections : null,
+      writtenDirectionsSource: cacheWritten
+        && writtenDirectionsSources.has(status.route.writtenDirectionsSource as WrittenDirectionsSource)
+        ? status.route.writtenDirectionsSource as WrittenDirectionsSource
+        : null,
+      writtenDirectionsSourceRevision: cacheWritten
+        ? nullableDate(status.route.writtenDirectionsSourceRevision)
+        : null,
       graphState: status.graph.state,
       graphCounty: status.graph.county,
       graphPublicSource: status.graph.publicSource,
@@ -399,6 +414,15 @@ function validContract(contract: OfflineRouteContract, pad: PadSummary) {
   if (contract.routeSafeReason !== null && !safeBoundedText(contract.routeSafeReason, 1_024)) return false;
   if (contract.routeLastVerifiedAt !== null && !validDate(contract.routeLastVerifiedAt)) return false;
   if (contract.writtenDirections !== null && !isSafePublicText(contract.writtenDirections, "writtenDirections")) return false;
+  const writtenDirectionsSource = contract.writtenDirectionsSource ?? null;
+  const writtenDirectionsSourceRevision = contract.writtenDirectionsSourceRevision ?? null;
+  if (writtenDirectionsSource !== null && !writtenDirectionsSources.has(writtenDirectionsSource)) return false;
+  if (writtenDirectionsSourceRevision !== null && !validDate(writtenDirectionsSourceRevision)) return false;
+  if (contract.writtenDirections === null
+      && (writtenDirectionsSource !== null || writtenDirectionsSourceRevision !== null)) return false;
+  if ((contract.routeSource === "exact_graph" || contract.routeSource === "exact_graph_handoff")
+      && contract.writtenDirections !== null
+      && (writtenDirectionsSource === null || writtenDirectionsSourceRevision === null)) return false;
   if (!graphStates.has(contract.graphState)) return false;
   if (contract.graphCounty !== null && !isSafePublicText(contract.graphCounty, "county")) return false;
   if (contract.graphPublicSource !== null && !safeBoundedText(contract.graphPublicSource, 256)) return false;
@@ -432,7 +456,6 @@ function validContract(contract: OfflineRouteContract, pad: PadSummary) {
       && contract.destinationLongitude !== null;
     return contract.routeState === "ready"
       && (exactGraph || immutableCore)
-      && contract.writtenDirections === null
       && contract.stepMeta.length > 0;
   }
   return writtenRouteSources.has(contract.routeSource)
@@ -518,6 +541,8 @@ export function restoreOfflinePadStatus(pad: PadSummary, value: unknown): Driver
         : record.contract.routeSafeReason || "Saved reviewed written directions are available on this device.",
       lastVerifiedAt: record.contract.routeLastVerifiedAt,
       writtenDirections: record.contract.writtenDirections,
+      writtenDirectionsSource: record.contract.writtenDirectionsSource ?? null,
+      writtenDirectionsSourceRevision: record.contract.writtenDirectionsSourceRevision ?? null,
     },
     graph: {
       state: immutableCore ? "verified_release" : exact ? "stale" : record.contract.graphState === "unavailable" ? "unavailable" : "held",

@@ -16,6 +16,7 @@ import {
 } from "@/data/releasedGoogleHandoff";
 import { padDestinationNavigationUrl, padDestinationPinUrl, trustedPadDestination } from "@/data/googleDestination";
 import { loadDriverRouteChoices } from "@/data/routeChoices";
+import { parseSavedDirectionReference, type SavedDirectionReference, type SavedDirectionReferenceInput } from "@/data/savedDirectionReference";
 import { reviewedNavigationCandidateForPad, reviewedNavigationSafetyHoldForPad, reviewedNavigationSequenceItems, type ReviewedNavigationCandidate } from "@/data/reviewedNavigationCandidates";
 import { buildPendingPadStatus, graphStateSupportsRoute, loadPadStatus } from "@/data/status";
 import type { DriverNamedApproach, DriverPadStatus, DriverRouteChoice, PadSummary, PadWellIdentifierRow } from "@/data/types";
@@ -47,90 +48,78 @@ function semanticLabel(kind: DriverPadStatus["routeSteps"][number]["kind"]) {
   return null;
 }
 
-function displayWrittenDirections(value: string) {
-  return value.replace(/\\r\\n|\\n|\\r/g, "\n");
-}
-
-export function ReviewedWrittenDirections({ value }: { value: string }) {
-  const lines = displayWrittenDirections(value).split("\n").map((line) => line.trim()).filter(Boolean);
-  const blocks: Array<
-    | { kind: "sequence"; sourceIndex: number; value: string }
-    | { kind: "steps"; sourceIndex: number; steps: Array<{ number: number; instruction: string }> }
-    | { kind: "notes"; sourceIndex: number; values: string[] }
-  > = [];
-  let hasStructuredContent = false;
-  let index = 0;
-  while (index < lines.length) {
-    if (/^road sequence reference:?$/i.test(lines[index]) && index + 1 < lines.length) {
-      blocks.push({ kind: "sequence", sourceIndex: index, value: lines[index + 1] });
-      hasStructuredContent = true;
-      index += 2;
-      continue;
-    }
-    if (/^step-by-step directions:?$/i.test(lines[index])) {
-      hasStructuredContent = true;
-      index += 1;
-      continue;
-    }
-    const numberedMatch = lines[index].match(/^(\d+)\.\s+(.+)$/);
-    if (numberedMatch) {
-      const sourceIndex = index;
-      const steps: Array<{ number: number; instruction: string }> = [];
-      while (index < lines.length) {
-        const match = lines[index].match(/^(\d+)\.\s+(.+)$/);
-        if (!match) break;
-        steps.push({ number: Number.parseInt(match[1], 10), instruction: match[2] });
-        index += 1;
-      }
-      blocks.push({ kind: "steps", sourceIndex, steps });
-      hasStructuredContent = true;
-      continue;
-    }
-    const sourceIndex = index;
-    const values: string[] = [];
-    while (index < lines.length
-      && !/^road sequence reference:?$/i.test(lines[index])
-      && !/^step-by-step directions:?$/i.test(lines[index])
-      && !/^\d+\.\s+/.test(lines[index])) {
-      values.push(lines[index]);
-      index += 1;
-    }
-    if (values.length > 0) blocks.push({ kind: "notes", sourceIndex, values });
-  }
-
-  if (!hasStructuredContent) return <p className="written-directions">{displayWrittenDirections(value)}</p>;
+export function ReviewedWrittenDirections({ value, reference: suppliedReference }: { value?: string; reference?: SavedDirectionReference }) {
+  const reference = suppliedReference ?? parseSavedDirectionReference({ directionsClear: value ?? null });
+  if (!reference) return null;
+  if (!reference.structured) return <p className="written-directions">{reference.displayText}</p>;
   return <div className="reviewed-written-directions">
-    {blocks.map((block) => block.kind === "sequence"
+    {reference.orderedBlocks.map((block) => block.kind === "sequence"
       ? <div className="reviewed-route-sequence" key={`sequence-${block.sourceIndex}`}><small>ROAD SEQUENCE</small><p>{block.value}</p></div>
       : block.kind === "steps"
-        ? <ol aria-label="Saved written driving directions" start={block.steps[0]?.number || 1} key={`steps-${block.sourceIndex}`}>{block.steps.map((step) => <li key={`${step.number}-${step.instruction}`}><span>{step.number}</span><p>{step.instruction}</p></li>)}</ol>
+        ? <ol aria-label="Saved written driving directions" start={block.steps[0].number} key={`steps-${block.sourceIndex}`}>{block.steps.map((step) => <li key={`${step.number}-${step.instruction}`}><span>{step.number}</span><p>{step.instruction}</p></li>)}</ol>
         : <div className="saved-direction-notes" aria-label="Additional saved direction notes" key={`notes-${block.sourceIndex}`}>{block.values.map((note, noteIndex) => <p key={`${noteIndex}-${note}`}>{note}</p>)}</div>)}
   </div>;
 }
 
 export function shouldShowSavedWrittenDirections({
   hasSafetyHold,
-  namedSelectionRequired,
-  displayedRouteStepCount,
   hasWrittenDirections,
 }: {
   hasSafetyHold: boolean;
-  namedSelectionRequired: boolean;
-  displayedRouteStepCount: number;
   hasWrittenDirections: boolean;
 }) {
-  return !hasSafetyHold && !namedSelectionRequired && displayedRouteStepCount === 0 && hasWrittenDirections;
+  return !hasSafetyHold && hasWrittenDirections;
 }
 
-export function savedDirectionsNeedReviewedRouteWarning(candidate: Pick<ReviewedNavigationCandidate, "padId"> | null) {
-  return candidate !== null;
+export function savedDirectionReferenceInputs(
+  route: Pick<DriverPadStatus["route"], "writtenDirections" | "writtenDirectionsSource">,
+  padWrittenDirections: string | null | undefined,
+): SavedDirectionReferenceInput {
+  if (route.writtenDirectionsSource === "directions_clear" && route.writtenDirections) {
+    return { directionsClear: route.writtenDirections };
+  }
+  if (route.writtenDirections) {
+    // A written_directions marker, or an older payload with no marker, must
+    // remain unstructured. Never infer reviewed sections from raw prose.
+    return { writtenDirections: route.writtenDirections };
+  }
+  return { writtenDirections: padWrittenDirections ?? null };
 }
 
-export function SavedFieldDirections({ value, mayDifferFromReviewedRoute = false }: { value: string; mayDifferFromReviewedRoute?: boolean }) {
+export function savedDirectionsNeedReviewedRouteWarning({
+  reviewedCandidate,
+  displayedRouteStepCount,
+  namedApproach,
+  hasMeasuredDisplayRoute,
+}: {
+  reviewedCandidate: Pick<ReviewedNavigationCandidate, "padId"> | null;
+  displayedRouteStepCount: number;
+  namedApproach: Pick<DriverNamedApproach, "approachKey"> | null;
+  hasMeasuredDisplayRoute: boolean;
+}) {
+  return reviewedCandidate !== null || displayedRouteStepCount > 0 || namedApproach !== null || hasMeasuredDisplayRoute;
+}
+
+export function SavedFieldDirections({
+  value,
+  directionsClear,
+  writtenDirections,
+  mayDifferFromReviewedRoute = false,
+}: {
+  value?: string;
+  directionsClear?: string | null;
+  writtenDirections?: string | null;
+  mayDifferFromReviewedRoute?: boolean;
+}) {
+  const reference = parseSavedDirectionReference({
+    directionsClear: directionsClear ?? value ?? null,
+    writtenDirections: writtenDirections ?? null,
+  });
+  if (!reference) return null;
   return <section className="saved-field-directions" aria-labelledby="saved-field-directions-title">
     <header><div><strong id="saved-field-directions-title">Saved field directions</strong><small>Original road wording and mileage</small></div><span>Text only · no teal geometry</span></header>
-    {mayDifferFromReviewedRoute && <p className="saved-directions-mismatch" role="note">Reference only: these older saved directions may not match the reviewed Google handoff shown above.</p>}
-    <ReviewedWrittenDirections value={value}/>
+    {mayDifferFromReviewedRoute && <p className="saved-directions-mismatch" role="note">Reference only: these older saved directions may not match the route display or Google handoff shown above.</p>}
+    <ReviewedWrittenDirections reference={reference}/>
     <p className="saved-directions-boundary">Road names and mileage are shown exactly as saved. No missing mileage or road geometry was inferred.</p>
   </section>;
 }
@@ -586,11 +575,14 @@ export function PadPage() {
     ? currentAscentPadApproach
     : null;
   const hasSavedRouteFallback = !reviewedNavigationSafetyHold && !hasReviewedRouteFallback && displayedRouteSteps.length === 0 && Boolean(pad.structuredRoadSequence || status.route.writtenDirections);
+  const savedDirectionInputs = savedDirectionReferenceInputs(
+    status.route,
+    pad.writtenDirections,
+  );
+  const savedDirectionReference = parseSavedDirectionReference(savedDirectionInputs);
   const hasSavedWrittenDirections = shouldShowSavedWrittenDirections({
     hasSafetyHold: Boolean(reviewedNavigationSafetyHold),
-    namedSelectionRequired,
-    displayedRouteStepCount: displayedRouteSteps.length,
-    hasWrittenDirections: Boolean(status.route.writtenDirections),
+    hasWrittenDirections: Boolean(savedDirectionReference),
   });
 
   return <article className="pad-page has-fixed-navigation">
@@ -647,7 +639,7 @@ export function PadPage() {
         ? <div className="inline-warning" role="note"><Icon name="location"/>The teal named-road display ends at the reviewed handoff. The unnamed final movement to the saved pin is not named or highlighted.</div>
         : status.route.source === "exact_graph_handoff" ? <div className="inline-warning" role="note"><Icon name="location"/>The teal named-road display ends at the reviewed handoff. The saved pad GPS remains the separate destination.</div>
         : null)}
-      {hasSavedWrittenDirections && activeAscentPadApproach?.status !== "ROUTED_DISPLAY" && <SavedFieldDirections value={status.route.writtenDirections!} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning(activeReviewedNavigationCandidate)}/>}
+      {hasSavedWrittenDirections && <SavedFieldDirections {...savedDirectionInputs} mayDifferFromReviewedRoute={savedDirectionsNeedReviewedRouteWarning({ reviewedCandidate: activeReviewedNavigationCandidate, displayedRouteStepCount: displayedRouteSteps.length, namedApproach: selectedNamedApproach, hasMeasuredDisplayRoute: activeAscentPadApproach?.status === "ROUTED_DISPLAY" })}/>}
     </section>
 
     <details className="detail-card pad-readiness-details"><summary><span><strong>Route status</strong><small><b role="status" aria-live="polite" aria-atomic="true">{connectionLabel}</b> · route, graph, and navigation handoff</small></span><span aria-hidden="true">⌄</span></summary>

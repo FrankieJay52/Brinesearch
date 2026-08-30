@@ -586,7 +586,15 @@ describe("public driver status boundary", () => {
     const statusRow = {
       ...exactReadyStatusRow(),
       statusRevision: "f".repeat(32),
-      route: { state: "ready", source: "exact_graph_handoff", steps: exactSteps(), geometry: release.routeGeometry },
+      route: {
+        state: "ready",
+        source: "exact_graph_handoff",
+        steps: exactSteps(),
+        geometry: release.routeGeometry,
+        writtenDirections: "Continue on the original saved route wording.",
+        writtenDirectionsSource: "written_directions",
+        writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+      },
       graph: { state: "verified_release", county: "Belmont", publicSource: "BrineSearch immutable approved release", lastVerifiedAt: "2026-08-24T23:53:01Z" },
       destination: { available: true, role: "saved_pad_destination", latitude: 40.1, longitude: -80.9 },
     };
@@ -601,7 +609,13 @@ describe("public driver status boundary", () => {
     const status = await loadPadStatus(pad());
     const url = new URL(status.google.routeUrl!);
 
-    expect(status.route).toMatchObject({ state: "ready", source: "exact_graph_handoff" });
+    expect(status.route).toMatchObject({
+      state: "ready",
+      source: "exact_graph_handoff",
+      writtenDirections: "Continue on the original saved route wording.",
+      writtenDirectionsSource: "written_directions",
+      writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+    });
     expect(status.destination).toMatchObject({ available: true, role: "saved_pad_destination" });
     expect(status.google.publicState).toBe("ready");
     expect(status.google.safeReason).toMatch(/approved road core/i);
@@ -675,6 +689,63 @@ describe("public driver status boundary", () => {
       safeReason: "No single exact Google handoff is available. Use the BrineSearch map and approved steps.",
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves sanitized saved-direction provenance beside a ready exact route", async () => {
+    const ready = exactReadyStatusRow();
+    publicResponse({
+      ...ready,
+      route: {
+        ...ready.route,
+        writtenDirections: "Road sequence reference:\nOH-7 → CR-10",
+        writtenDirectionsSource: "written_directions",
+        writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+      },
+      google: { publicState: "not_published", safeReason: "No public handoff." },
+    });
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({
+      state: "ready",
+      source: "exact_graph",
+      writtenDirections: "Road sequence reference:\nOH-7 → CR-10",
+      writtenDirectionsSource: "written_directions",
+      writtenDirectionsSourceRevision: "2026-08-29T12:00:00.000Z",
+    });
+    expect(status.route.geometry?.features).toHaveLength(2);
+    expect(status.routeSteps).toEqual(exactSteps());
+  });
+
+  it.each([
+    ["missing source", undefined, "2026-08-29T12:00:00.000Z"],
+    ["invalid source", "nearest_road", "2026-08-29T12:00:00.000Z"],
+    ["missing revision", "directions_clear", undefined],
+    ["invalid revision", "directions_clear", "not-a-date"],
+  ])("drops exact-route prose with %s without changing route authority", async (_label, source, revision) => {
+    const ready = exactReadyStatusRow();
+    publicResponse({
+      ...ready,
+      route: {
+        ...ready.route,
+        writtenDirections: "Road sequence reference:\nOH-7 → CR-10",
+        writtenDirectionsSource: source,
+        writtenDirectionsSourceRevision: revision,
+      },
+      google: { publicState: "not_published", safeReason: "No public handoff." },
+    });
+
+    const status = await loadPadStatus(pad());
+
+    expect(status.route).toMatchObject({
+      state: "ready",
+      source: "exact_graph",
+      writtenDirections: null,
+      writtenDirectionsSource: null,
+      writtenDirectionsSourceRevision: null,
+    });
+    expect(status.route.geometry?.features).toHaveLength(2);
+    expect(status.routeSteps).toEqual(exactSteps());
   });
 
   it("launches one Cologie-style reviewed compact handoff bound to a sixteen-point exact manifest", async () => {

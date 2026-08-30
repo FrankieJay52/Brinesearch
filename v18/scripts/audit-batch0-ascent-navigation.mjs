@@ -971,29 +971,63 @@ function tryGit(...args) {
   }
 }
 
-function gitBlob(relativePath) {
-  try {
-    return execFileSync("git", ["show", `HEAD:${relativePath}`], {
-      cwd: repositoryRoot,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-  } catch {
-    return null;
-  }
+function gitBuffer(execFile, cwd, args, maxBuffer = 1024 * 1024) {
+  return execFile("git", args, {
+    cwd,
+    encoding: null,
+    maxBuffer,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
 }
 
-function gitBlobAt(ref, relativePath) {
-  try {
-    return execFileSync("git", ["show", `${ref}:${relativePath}`], {
-      cwd: repositoryRoot,
-      stdio: ["ignore", "pipe", "ignore"],
-    });
-  } catch {
-    return null;
-  }
+export function gitBlob(relativePath, options = {}) {
+  return gitBlobAt("HEAD", relativePath, options);
 }
 
-function ensureCommitAvailable(commitSha) {
+export function gitBlobAt(ref, relativePath, {
+  cwd = repositoryRoot,
+  execFile = execFileSync,
+} = {}) {
+  const normalizedPath = String(relativePath).replaceAll("\\", "/");
+  const treeOutput = gitBuffer(execFile, cwd, [
+    "ls-tree",
+    "-z",
+    "--full-tree",
+    ref,
+    "--",
+    `:(literal)${normalizedPath}`,
+  ]);
+  assert(Buffer.isBuffer(treeOutput), "Git tree lookup did not return raw bytes");
+  if (treeOutput.length === 0) return null;
+
+  const records = treeOutput.toString("utf8").split("\0").filter(Boolean);
+  assert(records.length === 1, `Git tree lookup returned multiple entries for ${normalizedPath}`);
+  const entry = /^(\d{6}) (\S+) ([0-9a-f]{40}|[0-9a-f]{64})\t([\s\S]+)$/u.exec(records[0]);
+  assert(entry, `Git tree lookup returned an invalid entry for ${normalizedPath}`);
+  assert(entry[2] === "blob", `Git path ${normalizedPath} is not a blob`);
+  assert(entry[4] === normalizedPath, `Git tree lookup returned the wrong path for ${normalizedPath}`);
+
+  const objectId = entry[3];
+  const sizeOutput = gitBuffer(execFile, cwd, ["cat-file", "-s", objectId]);
+  assert(Buffer.isBuffer(sizeOutput), `Git blob size lookup failed for ${normalizedPath}`);
+  const sizeText = sizeOutput.toString("ascii").trim();
+  assert(/^\d+$/u.test(sizeText), `Git blob size is invalid for ${normalizedPath}`);
+  const blobSize = Number(sizeText);
+  assert(Number.isSafeInteger(blobSize), `Git blob size is unsafe for ${normalizedPath}`);
+
+  const content = gitBuffer(
+    execFile,
+    cwd,
+    ["cat-file", "blob", objectId],
+    Math.max(blobSize + 1, 1024),
+  );
+  assert(Buffer.isBuffer(content), `Git blob read did not return raw bytes for ${normalizedPath}`);
+  assert(content.length === blobSize,
+    `Git blob read was incomplete for ${normalizedPath} (${content.length} != ${blobSize})`);
+  return content;
+}
+
+export function ensureCommitAvailable(commitSha) {
   if (tryGit("cat-file", "-e", `${commitSha}^{commit}`) !== null) return;
   execFileSync("git", ["fetch", "--no-tags", "--depth=1", "origin", commitSha], {
     cwd: repositoryRoot,
@@ -1038,18 +1072,25 @@ async function implementationProvenance(baseMainSha, frozen = null) {
   const dirty = new Set(dirtyPaths);
   const entries = [];
   for (const relativePath of implementationPaths) {
-    try {
-      let committed = null;
-      if (frozen && frozenDigestUsesHistoricalContent(relativePath)) {
-        committed = gitBlobAt(frozen.implementationSha, relativePath);
-        assert(committed,
-          `Saved Batch 0 validator content ${relativePath} is unavailable at ${frozen.implementationSha}`);
-      } else if (!dirty.has(relativePath)) {
-        committed = gitBlob(relativePath);
-      }
+    if (frozen && frozenDigestUsesHistoricalContent(relativePath)) {
+      const committed = gitBlobAt(frozen.implementationSha, relativePath);
+      assert(committed !== null,
+        `Saved Batch 0 validator content ${relativePath} is unavailable at ${frozen.implementationSha}`);
+      entries.push({ path: relativePath, content: committed });
+      continue;
+    }
+    if (!dirty.has(relativePath)) {
+      const committed = gitBlob(relativePath);
       entries.push({
         path: relativePath,
-        content: committed || await readFile(path.join(repositoryRoot, ...relativePath.split("/"))),
+        content: committed === null ? "<deleted>" : committed,
+      });
+      continue;
+    }
+    try {
+      entries.push({
+        path: relativePath,
+        content: await readFile(path.join(repositoryRoot, ...relativePath.split("/"))),
       });
     } catch (error) {
       if (error?.code !== "ENOENT") throw error;

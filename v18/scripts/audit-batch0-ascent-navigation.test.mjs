@@ -1,14 +1,23 @@
 import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   auditCoordinatePair,
   candidateContentDigest,
   csv,
   driverRuleStatusForState,
+  ensureCommitAvailable,
   explicitReceiptForPad,
   frozenDigestUsesHistoricalContent,
   frozenProvenanceCheckoutMode,
   frozenProvenanceNeedsBaseHistory,
+  gitBlob,
+  gitBlobAt,
   githubMainRefreshRequired,
   hostedBuildArtifact,
   implementationPathSet,
@@ -19,6 +28,9 @@ import {
   reviewedBindingForPad,
   reviewedBindingMatches,
 } from "./audit-batch0-ascent-navigation.mjs";
+
+const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const canonicalCandidateFingerprint = "e8f4195cd8ba90096e6399a0d1eaf370d6dca2b9f58fe451efee82e788fcbd7d";
 
 const reviewedPadIds = [
   "d7898e8c-1bb6-48f8-b5e0-87bc1898420e",
@@ -255,6 +267,77 @@ test("candidate content digest is deterministic and changes with implementation 
   assert.equal(first, reordered);
   assert.notEqual(first, changed);
   assert.match(first, /^[a-f0-9]{64}$/u);
+});
+
+test("tracked Git blobs larger than the default exec buffer are read completely", () => {
+  const content = gitBlob("v18/src/features/map/ascentPadApproaches.batch2.json");
+  assert.ok(content);
+  assert.equal(content.length, 3_233_663);
+  assert.equal(
+    createHash("sha256").update(content).digest("hex"),
+    "a04cdc302f578d5d80a7fa8916e529c64e33e1ac3eb68dbf1dcbaf7991e42dd3",
+  );
+});
+
+test("Git blob reads ignore CRLF worktree bytes and preserve committed LF bytes", async (context) => {
+  const temporaryRepository = await mkdtemp(path.join(tmpdir(), "brinesearch-batch0-git-blob-"));
+  context.after(() => rm(temporaryRepository, { recursive: true, force: true }));
+  execFileSync("git", ["init", "--quiet"], { cwd: temporaryRepository });
+  execFileSync("git", ["config", "user.name", "BrineSearch test"], { cwd: temporaryRepository });
+  execFileSync("git", ["config", "user.email", "brinesearch-test@example.invalid"], { cwd: temporaryRepository });
+  execFileSync("git", ["config", "core.autocrlf", "false"], { cwd: temporaryRepository });
+  const relativePath = "route.txt";
+  const absolutePath = path.join(temporaryRepository, relativePath);
+  await writeFile(absolutePath, "OH-9\nMaynard\n", "utf8");
+  execFileSync("git", ["add", "--", relativePath], { cwd: temporaryRepository });
+  execFileSync("git", ["commit", "--quiet", "-m", "Add LF route"], { cwd: temporaryRepository });
+  await writeFile(absolutePath, "OH-9\r\nMaynard\r\n", "utf8");
+
+  const committed = gitBlobAt("HEAD", relativePath, { cwd: temporaryRepository });
+  assert.ok(committed);
+  assert.equal(committed.toString("utf8"), "OH-9\nMaynard\n");
+  assert.notDeepEqual(committed, await readFile(absolutePath));
+});
+
+test("Git blob reads return null only for a genuinely missing path", () => {
+  assert.equal(gitBlobAt("HEAD", "v18/this-path-does-not-exist.txt"), null);
+});
+
+test("Git blob reads fail closed for ENOBUFS and other process errors", () => {
+  const objectId = "a".repeat(40);
+  for (const code of ["ENOBUFS", "EACCES"]) {
+    const failure = Object.assign(new Error(`git failed with ${code}`), { code });
+    const execFile = (_command, args) => {
+      if (args[0] === "ls-tree") {
+        return Buffer.from(`100644 blob ${objectId}\tlarge.bin\0`);
+      }
+      if (args[0] === "cat-file" && args[1] === "-s") {
+        return Buffer.from("2000000\n");
+      }
+      throw failure;
+    };
+    assert.throws(
+      () => gitBlobAt("HEAD", "large.bin", { cwd: repositoryRoot, execFile }),
+      (error) => error === failure,
+    );
+  }
+});
+
+test("frozen historical substitution produces the canonical Batch 0 fingerprint", async () => {
+  const markdown = await readFile(
+    path.join(repositoryRoot, "docs", "batch0-ascent-six-county-navigation-ledger-20260827.md"),
+    "utf8",
+  );
+  const frozen = parseMarkdownProvenance(markdown);
+  ensureCommitAvailable(frozen.implementationSha);
+  const entries = frozen.implementationPaths.map((relativePath) => {
+    const content = frozenDigestUsesHistoricalContent(relativePath)
+      ? gitBlobAt(frozen.implementationSha, relativePath)
+      : gitBlob(relativePath);
+    assert.ok(content, `missing frozen fingerprint input ${relativePath}`);
+    return { path: relativePath, content };
+  });
+  assert.equal(candidateContentDigest(entries), canonicalCandidateFingerprint);
 });
 
 test("frozen CI provenance ignores only Netlify's build workspace", () => {
