@@ -78,6 +78,14 @@ import {
   type AscentPadRoadLayerDisplay,
 } from "./ascentPadRoadLayers";
 import { padSearchResultsReadyForQuery, usePadSearchLocation } from "@/features/search/usePadSearchLocation";
+import {
+  clearMainMapSatelliteBasemap,
+  mainMapBasemapModeFromParam,
+  mainMapBasemapSearchParams,
+  mainMapSatelliteSourceId,
+  syncMainMapBasemap,
+  type MainMapBasemapMode,
+} from "./mapBasemap";
 
 const mapStyle = import.meta.env.VITE_MAP_STYLE_URL || "https://tiles.openfreemap.org/styles/liberty";
 const fallbackMapStyle: StyleSpecification = {
@@ -500,6 +508,7 @@ export function MapPage() {
   const companyRoads = useCompanyRoads();
   const [searchParams, setSearchParams] = useSearchParams();
   const [viewerMode, setViewerMode] = useState<MapViewerMode>(() => mapViewerModeFromParam(searchParams.get("view")));
+  const [basemapMode, setBasemapMode] = useState<MainMapBasemapMode>(() => mainMapBasemapModeFromParam(searchParams.get("basemap")));
   const [mapSearch, setMapSearch] = useState("");
   const [mapSearchOpen, setMapSearchOpen] = useState(false);
   const [mapFiltersOpen, setMapFiltersOpen] = useState(false);
@@ -535,8 +544,11 @@ export function MapPage() {
   const hitTargetsRef = useRef<PadHitTarget[]>([]);
   const drawOverlayRef = useRef<(() => void) | null>(null);
   const syncCompanyRoadLayersRef = useRef<(() => void) | null>(null);
+  const syncBasemapRef = useRef<(() => void) | null>(null);
   const companyRoadRenderFailedRef = useRef(false);
+  const satelliteRenderFailedRef = useRef(false);
   const viewerModeRef = useRef<MapViewerMode>(viewerMode);
+  const basemapModeRef = useRef<MainMapBasemapMode>(basemapMode);
   const pendingRouteFitRef = useRef(false);
   const previousCompanyFilterRef = useRef<"all" | string>(companyFilter);
   const navigate = useNavigate();
@@ -731,6 +743,7 @@ export function MapPage() {
   companyRoadRowsRef.current = visibleCompanyRoadOverlay?.rows || [];
   selectedIdRef.current = selectedId;
   viewerModeRef.current = viewerMode;
+  basemapModeRef.current = basemapMode;
 
   const focusPad = useCallback((row: PadSummary) => {
     setLocationChoices(null);
@@ -762,9 +775,16 @@ export function MapPage() {
     setSearchParams(nextParams, { replace: true });
   };
 
+  const changeBasemapMode = (nextMode: MainMapBasemapMode) => {
+    setBasemapMode(nextMode);
+    setSearchParams(mainMapBasemapSearchParams(searchParams, nextMode), { replace: true });
+  };
+
   useEffect(() => {
     const requestedMode = mapViewerModeFromParam(searchParams.get("view"));
     setViewerMode((current) => current === requestedMode ? current : requestedMode);
+    const requestedBasemap = mainMapBasemapModeFromParam(searchParams.get("basemap"));
+    setBasemapMode((current) => current === requestedBasemap ? current : requestedBasemap);
   }, [searchParams]);
 
   useEffect(() => {
@@ -923,7 +943,10 @@ export function MapPage() {
         setMapRenderState(fallbackApplied ? "degraded" : basemapReady ? "ready" : "loading");
         setMapNotice(emptyMapCoordinateNotice(visibleRowsRef.current.length));
       } else if (markerState === "visible") {
-        if (companyRoadRenderFailedRef.current) {
+        if (satelliteRenderFailedRef.current) {
+          setMapRenderState("degraded");
+          setMapNotice("Satellite imagery is unavailable. The street map and mapped locations remain available.");
+        } else if (companyRoadRenderFailedRef.current) {
           setMapRenderState("degraded");
           setMapNotice("Approved route roads could not be drawn. They were hidden; mapped locations remain available.");
         } else {
@@ -987,6 +1010,20 @@ export function MapPage() {
     };
     syncCompanyRoadLayersRef.current = syncRoadLayers;
 
+    const syncBasemap = () => {
+      if (!styleReady) return;
+      const requestedMode = basemapModeRef.current;
+      const synced = syncMainMapBasemap(map, requestedMode);
+      const failed = requestedMode === "satellite" && !synced;
+      satelliteRenderFailedRef.current = failed;
+      if (failed) {
+        setMapRenderState("degraded");
+        setMapNotice("Satellite imagery is unavailable. The street map and mapped locations remain available.");
+      }
+      syncRoadLayers();
+    };
+    syncBasemapRef.current = syncBasemap;
+
     const applyFallbackStyle = () => {
       // `style.load` proves the remote basemap contract is usable even when
       // slow road tiles have not completed the broader MapLibre `load` event.
@@ -1009,7 +1046,7 @@ export function MapPage() {
 
     map.on("style.load", () => {
       styleReady = true;
-      syncRoadLayers();
+      syncBasemap();
       if (fallbackApplied) {
         setMapRenderState("degraded");
         setMapNotice("Basemap unavailable. Mapped locations remain visible on a reference background.");
@@ -1021,6 +1058,14 @@ export function MapPage() {
       scheduleOverlayDraw();
     });
     map.on("error", (event) => {
+      if ((event as typeof event & { sourceId?: string }).sourceId === mainMapSatelliteSourceId) {
+        clearMainMapSatelliteBasemap(map);
+        satelliteRenderFailedRef.current = true;
+        setMapRenderState("degraded");
+        setMapNotice("Satellite imagery is unavailable. The street map and mapped locations remain available.");
+        scheduleOverlayDraw();
+        return;
+      }
       if ((event as typeof event & { sourceId?: string }).sourceId === ascentPadRoadSourceId) {
         clearAscentPadRoadLayers(map);
         setAscentPadRoadsReady(false);
@@ -1111,16 +1156,22 @@ export function MapPage() {
       resizeObserver.disconnect();
       drawOverlayRef.current = null;
       syncCompanyRoadLayersRef.current = null;
+      syncBasemapRef.current = null;
       hitTargetsRef.current = [];
       clearHighwayReferenceLayers(map);
       clearAscentPadRoadLayers(map);
       clearRoadModeFade(map);
+      clearMainMapSatelliteBasemap(map);
       map.remove();
       mapRef.current = null;
     };
   }, [focusPad, loading, navigate]);
 
   useEffect(() => { syncCompanyRoadLayersRef.current?.(); }, [visibleAscentRoadLayerDisplays, visibleCompanyRoadOverlay, viewerMode]);
+  useEffect(() => {
+    satelliteRenderFailedRef.current = false;
+    syncBasemapRef.current?.();
+  }, [basemapMode]);
   useEffect(() => {
     if (mapRef.current) syncAscentPadRoadSelection(mapRef.current, selectedId);
   }, [selectedId]);
@@ -1154,7 +1205,7 @@ export function MapPage() {
   if (loading) return <LoadingState message="Loading the field map…"/>;
   if (!snapshot) return <section className="page-state"><h1>Map unavailable</h1><p>{error || "No complete directory is available."}</p></section>;
 
-  return <section className={`map-page${fullscreen ? " map-fullscreen" : ""}${roadMode ? " map-road-mode" : ""}`} data-viewer-mode={viewerMode}>
+  return <section className={`map-page${fullscreen ? " map-fullscreen" : ""}${roadMode ? " map-road-mode" : ""}`} data-viewer-mode={viewerMode} data-basemap={basemapMode}>
     <div className="map-stage">
       <div ref={mapHost} className="map-canvas" aria-label="BrineSearch pad map"/>
       <canvas ref={padOverlay} className="map-point-overlay" aria-hidden="true"/>
@@ -1180,6 +1231,14 @@ export function MapPage() {
         <span><Icon name={roadMode ? "route" : "map"}/><strong>{roadMode ? "Road network" : fullscreen ? "Full-screen map" : "Map viewer"}</strong></span>
         <div>
           {!fullscreen && <button type="button" aria-pressed="false" onClick={() => changeViewerMode("fullscreen")}><Icon name="expand"/>Full screen</button>}
+          <button
+            type="button"
+            className={`map-basemap-toggle${basemapMode === "satellite" ? " active" : ""}`}
+            aria-label={basemapMode === "satellite" ? "Switch to street map" : "Switch to satellite imagery"}
+            title={basemapMode === "satellite" ? "Switch to street map" : "Switch to satellite imagery"}
+            aria-pressed={basemapMode === "satellite"}
+            onClick={() => changeBasemapMode(basemapMode === "satellite" ? "street" : "satellite")}
+          ><Icon name="map"/><span>Satellite</span></button>
           <button type="button" className={roadMode ? "active" : ""} aria-pressed={roadMode} onClick={() => changeViewerMode("roads")}><Icon name="route"/>Roads</button>
           {fullscreen && <button type="button" className="map-view-exit" onClick={() => changeViewerMode("standard")}><Icon name="close"/>Exit</button>}
         </div>
