@@ -125,8 +125,8 @@ export function validateCompletionLedger(ledger) {
     "written_directions_fallback",
     "structured_road_sequence_historical_only",
   ]);
-  assert.equal(ledger.authority.productionWrites, 0);
-  assert.equal(ledger.authority.migrationsApplied, 0);
+  assert.equal(ledger.authority.productionWrites, 3);
+  assert.equal(ledger.authority.migrationsApplied, 3);
   assert.equal(ledger.authority.graphChanges, 0);
   assert.equal(ledger.authority.publicGooglePublication, 0);
   assert.equal(ledger.authority.cutover, 0);
@@ -274,7 +274,7 @@ export function validateCompletionLedger(ledger) {
 
   assert.equal(ledger.preparedMigrations.length, 3);
   for (const migration of ledger.preparedMigrations) {
-    assert.equal(migration.applicationState, "UNAPPLIED");
+    assert.equal(migration.applicationState, "APPLIED");
     assertDigest(migration.normalizedSha256, migration.file);
   }
   return summary;
@@ -353,8 +353,9 @@ async function main() {
     ...result.summary,
     csvSha256: result.csvSha256,
     markdownSha256: result.markdownSha256,
-    productionWrites: 0,
-    migrationsApplied: 0,
+    productionWrites: ledger.authority.productionWrites,
+    migrationsApplied: ledger.authority.migrationsApplied,
+    releaseState: ledger.productionApplication.releaseState,
     graphChanges: 0,
     publicGooglePublication: 0,
     cutover: 0,

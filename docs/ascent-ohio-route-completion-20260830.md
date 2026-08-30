@@ -37,15 +37,17 @@ Source coverage is 249 cleaned records and 5 written-only fallbacks. The ledger 
 
 SHUTWAY and VANNELLE retain evidence-backed, phone-origin candidates but are `GOOGLE_QA_PENDING`: precise coordinates were not transmitted to Google during this run, so two-origin renderer QA remains a later privacy-confirmed action. Google remains renderer-only.
 
-## Prepared exact evidence work (not applied)
+## Applied exact evidence work and release hold
 
 | migration | pads | normalized SHA-256 | state |
 |---|---|---|---|
-| `20260830105500_ascent_bella_airport_identity.sql` | BELLA | `9c53f20bcd5204b2a8d160bcdf54f3f9dbf1eb7f22c97241f2153a153d58ef5d` | UNAPPLIED |
-| `20260830105506_ascent_howell_occurrence_checkpoint.sql` | HOWELL | `d3b579584666f67487334faffbc26b2ed58dbc9056d9caf5484c34191e7bd6d4` | UNAPPLIED |
-| `20260830105511_ascent_cricket_foxes_identity_binding.sql` | CRICKET | `4889af4234ee163d74690b154bd23be9f176208404679ae474b6d61e604a9855` | UNAPPLIED |
+| `20260830181546_ascent_bella_airport_identity.sql` | BELLA | `9c53f20bcd5204b2a8d160bcdf54f3f9dbf1eb7f22c97241f2153a153d58ef5d` | APPLIED |
+| `20260830182440_ascent_howell_occurrence_checkpoint.sql` | HOWELL | `d3b579584666f67487334faffbc26b2ed58dbc9056d9caf5484c34191e7bd6d4` | APPLIED |
+| `20260830182511_ascent_cricket_foxes_identity_binding.sql` | CRICKET | `4889af4234ee163d74690b154bd23be9f176208404679ae474b6d61e604a9855` | APPLIED |
 
-BELLA's Harrison Airport Rd / CR-38 identity, HOWELL's SR-151/SR-152 occurrence checkpoint, and CRICKET's already-existing Foxes Bottom identity binding are the only migration work independently revalidated from the stale evidence packages. No stale branch was cherry-picked wholesale.
+BELLA's Harrison Airport Rd / CR-38 identity, HOWELL's SR-151/SR-152 non-authority checkpoint, and CRICKET's already-existing Foxes Bottom identity binding were applied once. HOWELL initially failed closed because its rounded junction checkpoint was 1.266 m from the immutable verified junction; the corrected migration uses the stored junction coordinate without widening the 1 m tolerance.
+
+**Release remains blocked.** BELLA's new exact mapping correctly invalidated the active Harrison graph fingerprint. Current read-only postflight shows Harrison build `f4e4d43f-e86c-499c-893f-73f2eef3dc29` is stale and seven pads are fail-closed: CARDINAL, COLOGIE, CONOTTON, DUKE, HAMILTON, LASSO, and SPROULL. No graph rebuild/activation or compensating rollback is authorized by this checkpoint, so PR merge and deployment must not proceed until one of those permanent paths is separately authorized and verified.
 
 ## Every non-ready pad and exact primary hold
 

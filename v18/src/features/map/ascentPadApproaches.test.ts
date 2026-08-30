@@ -110,7 +110,15 @@ describe("Ascent last-highway approach runtime catalog", () => {
       expect(display.lines.every((line) => (
         line.colorRole === "teal" || line.colorRole === "unverified" || line.colorRole === "gps"
       ))).toBe(true);
+      const padName = catalog.byPadId.get(display.padId)?.padName;
+      for (const line of display.lines.filter((candidate) => candidate.colorRole === "gps")) {
+        expect(line.label).toBe(`${padName} lease road`);
+      }
     }
+    const vannelle = catalog.records.find((record) => record.padName === "VANNELLE");
+    const vannelleDisplay = vannelle ? ascentPadApproachMapDisplay(vannelle) : null;
+    expect(vannelleDisplay?.lines.find((line) => line.colorRole === "gps")?.label)
+      .toBe("VANNELLE lease road");
   });
 
   it("labels graph-named and unresolved runs truthfully while keeping every visible line solid", () => {

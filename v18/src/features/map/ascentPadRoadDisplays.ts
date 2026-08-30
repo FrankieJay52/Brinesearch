@@ -1,6 +1,7 @@
 import type { PadSummary } from "@/data/types";
 import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 import artifactJson from "./ascentPadRoadDisplays.batch1.json";
+import { padLeaseRoadLabel } from "./padLeaseRoadLabel";
 
 export type AscentPadRoadCoordinate = [number, number];
 export type AscentPadRoadColorRole = "teal" | "gps" | "red";
@@ -220,6 +221,7 @@ function validGpsLeg(
   value: unknown,
   arrivalEndpoint: AscentPadRoadCoordinate,
   destination: AscentPadRoadCoordinate,
+  padName: string,
 ): AscentPadGpsLeg | null {
   const line = object(value);
   const artifactLineStyle = artifact.schemaVersion === 2 ? "dashed" : "solid";
@@ -249,7 +251,7 @@ function validGpsLeg(
     approvedRoad: false,
     navigationGeometry: false,
     visibility: "main-map-all-and-ascent",
-    label: line.label,
+    label: padLeaseRoadLabel(padName),
     coordinates: line.coordinates,
   };
 }
@@ -288,7 +290,7 @@ function buildDisplay(value: unknown): AscentPadRoadDisplay | null {
   const arrivalEndpoint = arrival.coordinates.at(-1) as AscentPadRoadCoordinate;
   const gpsLeg = route.gpsLeg === null
     ? null
-    : validGpsLeg(route.gpsLeg, arrivalEndpoint, destination);
+    : validGpsLeg(route.gpsLeg, arrivalEndpoint, destination, route.padName);
   if (route.gpsLeg !== null && !gpsLeg) return null;
   if (!gpsLeg && !sameCoordinate(arrivalEndpoint, destination)) return null;
 

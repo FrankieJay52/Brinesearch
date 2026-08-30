@@ -11,6 +11,7 @@ import {
   ascentPadRoadRedCasingLayerId,
   ascentPadRoadRedLineLayerId,
   ascentPadRoadSelectedCasingLayerId,
+  ascentPadRoadSelectedGpsLabelLayerId,
   ascentPadRoadSelectedLineLayerId,
   ascentPadRoadSourceId,
   ascentPadRoadTealCasingLayerId,
@@ -55,7 +56,7 @@ const display: AscentPadRoadDisplay = {
     approvedRoad: false,
     navigationGeometry: false,
     visibility: "main-map-all-and-ascent",
-    label: "GPS tether",
+    label: "PAD ONE lease road",
     coordinates: [[-80.9, 40.2], [-80.89, 40.2]],
   },
   redContinuation: null,
@@ -116,7 +117,7 @@ describe("Ascent native road-line layers", () => {
             padId: "pad-1",
             company: "Ascent",
             colorRole: "gps",
-            label: "GPS tether",
+            label: "PAD ONE lease road",
           },
           geometry: {
             type: "LineString",
@@ -157,6 +158,7 @@ describe("Ascent native road-line layers", () => {
       ascentPadRoadTealLineLayerId,
       ascentPadRoadSelectedCasingLayerId,
       ascentPadRoadSelectedLineLayerId,
+      ascentPadRoadSelectedGpsLabelLayerId,
     ]);
   });
 
@@ -171,6 +173,12 @@ describe("Ascent native road-line layers", () => {
     expect(gpsLine.paint["line-color"]).toBe("#94a3b8");
     expect(gpsLine.paint).not.toHaveProperty("line-dasharray");
     expect(gpsLine.paint["line-width"]).toEqual(expect.arrayContaining(["interpolate"]));
+    const gpsLabel = harness.layers.get(ascentPadRoadSelectedGpsLabelLayerId) as {
+      filter: unknown;
+      layout: Record<string, unknown>;
+    };
+    expect(JSON.stringify(gpsLabel.filter)).toContain("gps");
+    expect(gpsLabel.layout["text-field"]).toEqual(["get", "label"]);
   });
 
   it("draws unresolved approach sections as wider solid neutral lines", () => {
@@ -222,6 +230,7 @@ describe("Ascent native road-line layers", () => {
     ]) {
       expect(beforeLayerById.get(layerId)).toBe("labels");
     }
+    expect(beforeLayerById.get(ascentPadRoadSelectedGpsLabelLayerId)).toBeUndefined();
   });
 
   it("updates a complete native source in place instead of rebuilding its layers", () => {

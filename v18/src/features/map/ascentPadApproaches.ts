@@ -1,5 +1,6 @@
 import { mapDisplayCoordinate } from "@/data/mapDisplayCoordinates";
 import type { PadSummary } from "@/data/types";
+import { padLeaseRoadLabel } from "./padLeaseRoadLabel";
 
 export type AscentPadApproachCoordinate = [number, number];
 export type AscentPadApproachStatus = "ROUTED_DISPLAY" | "ROUTED_FAIL_CLOSED" | "PIN_ONLY";
@@ -1202,7 +1203,7 @@ export function ascentPadApproachMapDisplay(record: AscentPadApproachRecord): As
     lines.push({
       type: "LineString",
       colorRole: "gps",
-      label: "Straight GPS tether · not road geometry",
+      label: padLeaseRoadLabel(record.padName),
       coordinates: [...record.gpsTether.coordinates],
     });
   }

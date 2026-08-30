@@ -29,8 +29,8 @@ test("the checked-in 254-pad completion package is internally consistent", async
 test("the immutable start and production snapshot are exact", () => {
   assert.deepEqual(ledger.generatedFrom.startMain, { sha: START_MAIN_SHA, tree: START_MAIN_TREE });
   assert.deepEqual(ledger.productionSnapshot, PRODUCTION_SNAPSHOT);
-  assert.equal(ledger.authority.productionWrites, 0);
-  assert.equal(ledger.authority.migrationsApplied, 0);
+  assert.equal(ledger.authority.productionWrites, 3);
+  assert.equal(ledger.authority.migrationsApplied, 3);
   assert.equal(ledger.authority.graphChanges, 0);
   assert.equal(ledger.authority.publicGooglePublication, 0);
   assert.equal(ledger.authority.cutover, 0);
@@ -150,14 +150,18 @@ test("SHUTWAY and VANNELLE candidates omit origin and remain Google QA pending",
   }
 });
 
-test("only three exact-evidence migrations are prepared and all remain unapplied", () => {
+test("the three exact-evidence migrations match the applied production history", () => {
   assert.deepEqual(ledger.preparedMigrations.map((migration) => migration.file), [
-    "20260830105500_ascent_bella_airport_identity.sql",
-    "20260830105506_ascent_howell_occurrence_checkpoint.sql",
-    "20260830105511_ascent_cricket_foxes_identity_binding.sql",
+    "20260830181546_ascent_bella_airport_identity.sql",
+    "20260830182440_ascent_howell_occurrence_checkpoint.sql",
+    "20260830182511_ascent_cricket_foxes_identity_binding.sql",
   ]);
-  assert.ok(ledger.preparedMigrations.every((migration) => migration.applicationState === "UNAPPLIED"));
+  assert.ok(ledger.preparedMigrations.every((migration) => migration.applicationState === "APPLIED"));
   assert.ok(ledger.preparedMigrations.every((migration) => /^[0-9a-f]{64}$/u.test(migration.normalizedSha256)));
+  assert.equal(ledger.productionApplication.releaseState, "BLOCKED_HARRISON_GRAPH_STALE");
+  assert.deepEqual(ledger.productionApplication.stalePadNames, [
+    "CARDINAL", "COLOGIE", "CONOTTON", "DUKE", "HAMILTON", "LASSO", "SPROULL",
+  ]);
 });
 
 test("prepared SQL is fail-closed, pad-scoped, and creates no route or publication authority", async () => {
@@ -165,9 +169,9 @@ test("prepared SQL is fail-closed, pad-scoped, and creates no route or publicati
     migration.file,
     await readFile(path.join(repositoryRoot, "supabase/migrations", migration.file), "utf8"),
   ])));
-  const bella = sqlByFile["20260830105500_ascent_bella_airport_identity.sql"];
-  const howell = sqlByFile["20260830105506_ascent_howell_occurrence_checkpoint.sql"];
-  const cricket = sqlByFile["20260830105511_ascent_cricket_foxes_identity_binding.sql"];
+  const bella = sqlByFile["20260830181546_ascent_bella_airport_identity.sql"];
+  const howell = sqlByFile["20260830182440_ascent_howell_occurrence_checkpoint.sql"];
+  const cricket = sqlByFile["20260830182511_ascent_cricket_foxes_identity_binding.sql"];
   assert.match(bella, /807ccb15-6f57-4c7a-978d-ab02e7a7c4ba/u);
   assert.match(bella, /OH:ODOT:NLF:CHASCR00038\*\*C/u);
   assert.match(bella, /approved_by_default[^;]*false/iu);

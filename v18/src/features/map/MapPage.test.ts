@@ -356,7 +356,7 @@ describe("map viewer authority boundary", () => {
     expect(ascentLayerSource).toContain('"line-color": "#94a3b8"');
     expect(ascentLayerSource).not.toContain('"line-dasharray"');
     expect(ascentLayerSource).toContain('"line-width": ["interpolate", ["linear"], ["zoom"]');
-    expect(pageSource).toContain("GPS-only tether · thin solid neutral · not road geometry");
+    expect(pageSource).toContain("lease road · thin solid neutral · unapproved");
     expect(pageSource).toContain("Graph-identified or unverified access · solid neutral · unapproved");
     expect(appCss).toContain(".legend-line.gps-tether");
     expect(appCss).toContain(".legend-line.unverified");
