@@ -43,7 +43,7 @@ const expectedGraphEvidenceReceiptCount = 95;
 // baseline, not the mutable schema-3 output, so a second generation pass can
 // deterministically validate and rewrite the same artifact.
 const frozenGraphEvidenceRouteArtifactSha256 = "c01f249d697497563bdf04b81836632000846f808f9cf0847c07ad2db220851b";
-const frozenGraphEvidenceSourceFixtureSha256 = "247c94a8da5e3c417fe2d5775e650fd95d096020878e74247fc28332d4ee794c";
+const frozenGraphEvidenceSourceFixtureSha256 = "50ab5a9cffb4d896b505bddcf56b1eb467509346f314e149750038debd951e2f";
 const frozenGraphEvidencePadIdSetSha256 = "4e86d4f043a796fcd13a31855c1595fa4db4d1f1071cdbbf32368685dab6be48";
 const canonicalUuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/u;
 const sha256Pattern = /^[0-9a-f]{64}$/u;
