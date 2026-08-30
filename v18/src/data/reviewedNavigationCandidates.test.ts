@@ -2298,7 +2298,7 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
-  it("returns the four exact-match highway-direct handoffs with one terminal-road control", () => {
+  it("returns the six exact-match highway-direct handoffs with one terminal-road control", () => {
     for (const record of ascentSavedDirectionExactMatchBatch1) {
       const pad = exactMatchBatch1Pad(record);
       const candidate = reviewedNavigationCandidateForPad(pad);
@@ -2366,10 +2366,10 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
-  it("keeps the four new handoffs outside the 46 owner-approval receipts", () => {
+  it("keeps the six new handoffs outside the 46 owner-approval receipts", () => {
     const contracts = reviewedNavigationContractRowsForAudit();
     const receiptRows = ownerApprovalReceiptRowsForAudit();
-    expect(contracts).toHaveLength(50);
+    expect(contracts).toHaveLength(52);
     expect(receiptRows).toHaveLength(46);
     expect(receiptRows.every((row) => row.matchesCurrentContent)).toBe(true);
     const receiptIds = new Set<string>(receiptRows.map((row) => row.padId));

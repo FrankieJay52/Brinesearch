@@ -48,11 +48,11 @@ in teal, including when graph, State-1, or public-Google authority remains held.
 The highlight is presentation only. It does not create an official road,
 public-Google publication, graph membership, or route-release authority.
 
-The exact current Ascent navigable set contains **59 pads**: **50 exact-record
-reviewed Google handoffs** plus **9 existing database releases**. The 50
+The exact current Ascent navigable set contains **61 pads**: **52 exact-record
+reviewed Google handoffs** plus **9 existing database releases**. The 52
 reviewed handoffs consist of the unchanged **46 owner-approved handoffs** and
-four additional highway-direct handoffs: HELLER, JENNINGS, KEMPER, and
-RED-HILL-FARM. Those four have reviewed Google controls but no owner-approval
+six additional highway-direct handoffs: HELLER, JENNINGS, KEMPER,
+RED-HILL-FARM, AXLE, and KALDOR. Those six have reviewed Google controls but no owner-approval
 receipt. The frozen build-time display catalog remains exactly **55 entries**:
 the 46 owner-approved handoffs plus the 9 database releases. It reuses existing
 exact public graph geometry where present and uses offline routed reconstruction
@@ -69,13 +69,13 @@ loop before any reviewed step, so it fails closed with no visible false-teal
 candidate route. These outcomes keep all 55 records
 inspectable without coloring an unreviewed road teal.
 
-The four additional reviewed handoffs are not copied into or reconstructed by
+The six additional reviewed handoffs are not copied into or reconstructed by
 that 55-entry catalog. Each is exact-record-bound to its existing batch-2
 terminal-highway receipt and frozen saved GPS. Its exact ordered terminal
-highway segment may remain teal, while its separate straight GPS tether remains
-solid neutral, unapproved, excluded from road mileage, and unavailable as
-navigation geometry. The current navigation accounting is therefore **59
-navigable** and **188 GPS-only** Ascent pads, while the two map artifacts remain
+highway prefix may remain teal, while any post-receipt mapped remainder and its
+separate straight GPS tether remain solid neutral, unapproved, excluded from
+route authority, and unavailable as navigation geometry. The current navigation
+accounting is therefore **61 navigable** and **186 GPS-only** Ascent pads, while the two map artifacts remain
 55 static displays and 192 batch-2 approach records.
 
 All 55 catalog entries remain visible on the main **All pads + all approved
@@ -94,9 +94,9 @@ updates the existing source data and selection filter instead.
 ## Remaining Ascent highway-to-pad approaches
 
 The separate batch-2 catalog still contains **192 Ascent approach records**
-without changing the frozen 55-pad catalog above. Four of those records now
+without changing the frozen 55-pad catalog above. Six of those records now
 also support the exact-record reviewed handoffs for HELLER, JENNINGS, KEMPER,
-and RED-HILL-FARM; the other **188 remain GPS-only for navigation**. The
+RED-HILL-FARM, AXLE, and KALDOR; the other **186 remain GPS-only for navigation**. The
 batch-2 artifact remains field display and direction evidence only. It does not
 replace any of the 46 immutable owner-approved Google handoffs, the 9 existing
 database releases, their URLs or controls, or any parked state or promotion

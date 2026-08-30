@@ -77,6 +77,8 @@ const reviewedPadIds = [
   "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
   "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
   "3850e94a-826f-4b6b-a54f-d21d482fca46",
+  "fa2d692c-4f3a-4a28-8985-3809c9dbd15d",
+  "85d74b99-da49-4a5a-aadf-1ce2b461071c",
   "952f385d-659a-4f00-80c6-3aff474d5f27",
   "fcbf5085-4ba2-496d-9c20-516e8b52f9bd",
   "c09f4dd1-68f9-46d1-90b3-560240550ecd",
@@ -113,9 +115,9 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("all fifty reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 50);
-  assert.equal(new Set(reviewedPadIds).size, 50);
+test("all fifty-two reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 52);
+  assert.equal(new Set(reviewedPadIds).size, 52);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -142,8 +144,10 @@ test("all fifty reviewed ledger states require every exact record and destinatio
   }
 });
 
-test("four highway-direct receipts preserve their unapproved final GPS handoff without owner authority", () => {
+test("six highway-direct receipts preserve their unapproved final GPS handoff without owner authority", () => {
   for (const [padId, expectedRoad] of [
+    ["fa2d692c-4f3a-4a28-8985-3809c9dbd15d", "OH-147"],
+    ["85d74b99-da49-4a5a-aadf-1ce2b461071c", "OH-147"],
     ["952f385d-659a-4f00-80c6-3aff474d5f27", "OH-147"],
     ["fcbf5085-4ba2-496d-9c20-516e8b52f9bd", "OH-285"],
     ["c09f4dd1-68f9-46d1-90b3-560240550ecd", "OH-147"],
@@ -472,10 +476,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /59 DONE reviewed named-road handoffs \/ 188 GPS_ONLY/u);
+  assert.match(summary, /61 DONE reviewed named-road handoffs \/ 186 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 188 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 186 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

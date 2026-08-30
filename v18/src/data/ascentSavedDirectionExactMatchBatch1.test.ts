@@ -10,14 +10,16 @@ function sha256(value: string) {
 }
 
 describe("Ascent saved-direction exact-match Batch 1", () => {
-  it("freezes exactly four deterministic highway-direct record bindings", () => {
+  it("freezes exactly six deterministic highway-direct record bindings", () => {
     expect(ascentSavedDirectionExactMatchBatch1.map((record) => record.padName)).toEqual([
       "HELLER",
       "JENNINGS",
       "KEMPER",
       "RED-HILL-FARM",
+      "AXLE",
+      "KALDOR",
     ]);
-    expect(new Set(ascentSavedDirectionExactMatchBatch1.map((record) => record.padId)).size).toBe(4);
+    expect(new Set(ascentSavedDirectionExactMatchBatch1.map((record) => record.padId)).size).toBe(6);
 
     for (const record of ascentSavedDirectionExactMatchBatch1) {
       expect(record.canonicalId).toBe(record.padId);
@@ -73,8 +75,12 @@ describe("Ascent saved-direction exact-match Batch 1", () => {
       ]);
 
       const roadSections = batch2.sections.filter((section: any) => section.matchState !== "structural_zero_distance");
-      expect(roadSections.length, record.padName).toBeGreaterThan(0);
-      for (const section of roadSections) {
+      const firstNeutralIndex = roadSections.findIndex((section: any) =>
+        section.matchState !== "matched_ordered_source_and_exact_graph_receipt");
+      const exactPrefix = firstNeutralIndex === -1 ? roadSections : roadSections.slice(0, firstNeutralIndex);
+      const neutralRemainder = firstNeutralIndex === -1 ? [] : roadSections.slice(firstNeutralIndex);
+      expect(exactPrefix.length, record.padName).toBeGreaterThan(0);
+      for (const section of exactPrefix) {
         expect(section, record.padName).toMatchObject({
           matchState: "matched_ordered_source_and_exact_graph_receipt",
           lineStyle: "solid",
@@ -84,6 +90,22 @@ describe("Ascent saved-direction exact-match Batch 1", () => {
           sourceIdentityId: record.measuredApproachEvidence.identityId,
           matchedIdentitySha256: record.measuredApproachEvidence.matchedIdentitySha256,
         });
+      }
+      for (const section of neutralRemainder) {
+        expect(section.matchState, record.padName).toMatch(/^unverified_/u);
+        expect(section, record.padName).toMatchObject({
+          lineStyle: "solid",
+          colorRole: "unverified",
+          sourceRoadId: null,
+          sourceIdentityId: null,
+          sourceDisplayRoad: null,
+          routerReportedUnverifiedLabel: null,
+          matchedIdentitySha256: null,
+        });
+        expect([
+          "unverified_graph_evidence",
+          "permanent_stop_after_source_or_graph_gap",
+        ], record.padName).toContain(section.authority);
       }
       expect(batch2.diagnostics, record.padName).toMatchObject({
         graphEvidenceReceiptApplied: true,
@@ -122,5 +144,32 @@ describe("Ascent saved-direction exact-match Batch 1", () => {
     expect(redHill.measuredApproachEvidence.gpsTetherNavigationGeometry).toBe(false);
     expect(redHill.finalLegNotice).toMatch(/unnamed, unapproved GPS\/access handoff/u);
     expect(redHill.finalLegNotice).toMatch(/not road or navigation geometry/u);
+  });
+
+  it("stops AXLE and KALDOR teal at their receipt-backed OH-147 prefix", () => {
+    for (const [padName, expectedNeutralMeters, expectedTetherMeters] of [
+      ["AXLE", 357.2756756756757, 299.9090977139086],
+      ["KALDOR", 774.5712328767123, 538.3996263081775],
+    ] as const) {
+      const record = ascentSavedDirectionExactMatchBatch1.find((candidate) => candidate.padName === padName)!;
+      const batch2 = rawBatch2Records.find((candidate) => candidate.padId === record.padId);
+      const roadSections = batch2.sections.filter((section: any) => section.matchState !== "structural_zero_distance");
+      const firstNeutralIndex = roadSections.findIndex((section: any) => section.colorRole !== "teal");
+      expect(firstNeutralIndex, padName).toBeGreaterThan(0);
+      expect(roadSections.slice(0, firstNeutralIndex).every((section: any) =>
+        section.authority === "immutable_graph_evidence_receipt" && section.colorRole === "teal"), padName).toBe(true);
+      expect(roadSections.slice(firstNeutralIndex).every((section: any) =>
+        section.colorRole === "unverified"
+          && section.sourceRoadId === null
+          && section.sourceIdentityId === null), padName).toBe(true);
+      expect(batch2.diagnostics.unapprovedDistanceMeters, padName).toBeCloseTo(expectedNeutralMeters, 9);
+      expect(batch2.diagnostics.solidStopsPermanentlyAtFirstMismatch, padName).toBe(true);
+      expect(batch2.sourceDirections.slice(1).every((step: any) =>
+        step.sourceDisplayRoad === null && step.instructionRole === "generic_unapproved_access"), padName).toBe(true);
+      expect(batch2.gpsTether.distanceMeters, padName).toBeCloseTo(expectedTetherMeters, 9);
+      expect(batch2.gpsTether.navigationGeometry, padName).toBe(false);
+      expect(record.finalLegNotice, padName).toMatch(/solid neutral and unapproved/u);
+      expect(record.finalLegNotice, padName).toMatch(/not road or navigation geometry/u);
+    }
   });
 });

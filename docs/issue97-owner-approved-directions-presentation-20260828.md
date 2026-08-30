@@ -10,10 +10,10 @@
 
 The owner explicitly approved 46 exact-record reviewed Google handoffs for
 driver use. Together with the 9 existing database releases, they remain the
-exact frozen 55-entry Ascent display catalog. Four additional exact-record
-reviewed handoffs—HELLER, JENNINGS, KEMPER, and RED-HILL-FARM—use existing
+exact frozen 55-entry Ascent display catalog. Six additional exact-record
+reviewed handoffs—HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and KALDOR—use existing
 batch-2 terminal-highway evidence and bring the current navigation count to
-**59**, with **188 pads still GPS-only**. Those four do not inherit an
+**61**, with **186 pads still GPS-only**. Those six do not inherit an
 owner-approval receipt and must not be presented as **Owner-approved
 directions**.
 
@@ -31,13 +31,14 @@ PORTERFIELD GAS UNIT, PORTERFIELD B, ROCK RIDGE, CROWIE, CASTON, LAKE, THOMAS, T
 
 Both groups may display **Owner-approved directions** under the same everyday driver rule. The evidence description may still distinguish exact identities from a validated Google handoff, but that distinction does not withhold Navigate. One build-time catalog covers the frozen 55-entry display set: it reuses existing exact public graph geometry where present and performs offline routed reconstruction through frozen destinations and ordered controls for the remaining static reviewed contracts. It does not modify or replace any frozen Google URL, destination, or waypoint.
 
-HELLER, JENNINGS, KEMPER, and RED-HILL-FARM are a separate reviewed-handoff
+HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and KALDOR are a separate reviewed-handoff
 group. Their phone-origin Google links are exact-record-bound, but no row was
 added to the 46 owner-approval receipts and no row was added to the frozen
 55-entry static display catalog. Their map presentation continues to come from
 the existing batch-2 record: exact ordered terminal-highway geometry may be
-teal, and the separate GPS/access tether remains solid neutral, unapproved,
-excluded from road mileage, and explicitly not navigation geometry.
+teal, while any post-receipt mapped remainder and the separate GPS/access tether
+remain solid neutral, unapproved, excluded from route authority, and explicitly
+not navigation geometry.
 
 The catalog's routable named-road portion is solid teal and display only. When a routable network line stops short of the frozen GPS, an optional thin solid neutral `unapproved_gps_tether` may reach the destination without asserting a road name, lease shape, or approval. In the current batch, 31 reconstructed handoffs stay solid through the network endpoint, 13 stop at the first unreviewed step and continue with solid neutral unapproved geometry, and BEETLE fails closed with no visible false-teal line because its candidate path left the reviewed road order. Exact database and frozen geometries are outside those reconstruction counts. All 55 entries persist on the All map and Ascent filter and brighten on selection; other-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation. Red beyond any other final pad remains held unless exact no-downstream-pad proof and exact geometry to the next highway junction are supplied. Interstate, U.S., and state routes are never red. None of these displays creates graph, public-Google, or approved-road-overlay authority.
 
@@ -47,9 +48,9 @@ Each approval is frozen to the complete reviewed contract content: exact pad and
 
 The additive batch-2 highway-to-pad catalog is not itself part of the 46
 owner-approved Google handoffs or the 9 database releases. It still covers 192
-Ascent records as separate field display and direction evidence. Four of those
+Ascent records as separate field display and direction evidence. Six of those
 records are now cross-bound to the additional reviewed handoffs for HELLER,
-JENNINGS, KEMPER, and RED-HILL-FARM; the other **188 remain GPS-only for
+JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and KALDOR; the other **186 remain GPS-only for
 navigation**. The original 55-record catalog, 46 owner receipts, URLs, controls,
 receipt hashes, database releases, and parked states remain unchanged.
 
