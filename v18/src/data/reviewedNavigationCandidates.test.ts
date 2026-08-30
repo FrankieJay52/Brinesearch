@@ -187,7 +187,7 @@ function pickens(): PadSummary {
     padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     canonicalId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     legacyId: "ascent--pickens",
-    recordRevision: "1787615581785257",
+    recordRevision: "1788117937351112",
     padName: "PICKENS",
     county: "Harrison",
     structuredRoadSequence: "OH-9 south → Turn left onto OH-519 east → Turn right onto Lease Road",

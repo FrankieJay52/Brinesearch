@@ -316,8 +316,16 @@ h2 { letter-spacing: -.035em; }
   cursor: pointer;
 }
 .map-view-toolbar button svg { width: 1rem; }
+.map-view-toolbar button.map-basemap-toggle { min-width: 44px; min-height: 44px; }
 .map-view-toolbar button.active { color: #07131f; border-color: var(--teal); background: var(--teal); }
 .map-view-toolbar button.map-view-exit { color: var(--text); border-color: color-mix(in srgb, var(--amber) 35%, var(--line)); }
+@media (max-width: 460px) {
+  .map-view-toolbar { gap: 5px; }
+  .map-view-toolbar > span { padding-left: 3px; }
+  .map-view-toolbar > div { gap: 3px; }
+  .map-view-toolbar button { padding-inline: 8px; }
+  .map-view-toolbar button.map-basemap-toggle span { display: none; }
+}
 .map-search-card {
   width: 100%;
   padding: 6px;

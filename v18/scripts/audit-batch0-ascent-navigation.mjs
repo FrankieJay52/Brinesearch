@@ -464,7 +464,7 @@ const explicitStates = new Map([
     reviewedBinding: {
       padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
       legacyId: "ascent--pickens",
-      recordRevision: "1787615581785257",
+      recordRevision: "1788117937351112",
       company: "Ascent",
       padName: "PICKENS",
       state: "Ohio",

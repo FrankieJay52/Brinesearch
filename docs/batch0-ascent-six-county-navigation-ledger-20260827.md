@@ -1,19 +1,29 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `4bfba0d2a07e2c7318c1227743c5765e6dce9094`
-- Candidate implementation HEAD: `2069a763814c3c8ca2dd67f785556e842cd56e77`
-- Candidate content SHA-256: `dc13a165bf93f05c812d96372cfe1a590a2f7e7afbede3406dc48a47c68f72a8`
+- Base origin/main SHA: `4ca9a97c91acee1f14c11b9a32880ab3c19fbad5`
+- Candidate implementation HEAD: `cbc110afad38ab1bdca7e454431405e4fcc4654d`
+- Candidate content SHA-256: `fac2dc0340e71c9b91b6dcfb5a4a59477a087f2fd6d17f5218737a7ea68fb47b`
 - Uncommitted non-generated changes: **no**
 - 247 / 61 DONE reviewed named-road handoffs / 186 GPS_ONLY
 - Production writes zero
 
-This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `f5cf25b5-e130-47a1-8d20-17ebb59f4b64` and source revision `12`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
+This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `549719ed-d269-4b2b-a954-8ce97e5036c1` and source revision `13`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
 ## Candidate implementation files
 
-- `v18/src/features/map/MapPage.test.ts`
+- `v18/scripts/audit-ascent-pad-approaches-batch2.mjs`
+- `v18/scripts/audit-batch0-ascent-navigation.mjs`
+- `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
+- `v18/scripts/fixtures/ascent-pad-approach-source-20260829.json`
+- `v18/scripts/fixtures/ascent-pad-graph-runs-20260829.json`
+- `v18/scripts/generate-ascent-pad-approaches-batch2.mjs`
+- `v18/src/data/reviewedNavigationCandidates.test.ts`
+- `v18/src/data/reviewedNavigationCandidates.ts`
 - `v18/src/features/map/MapPage.tsx`
-- `v18/src/features/map/ascentPadRoadLayers.test.ts`
-- `v18/src/features/map/ascentPadRoadLayers.ts`
+- `v18/src/features/map/ascentPadApproaches.batch2.json`
+- `v18/src/features/map/ascentPadRoadDisplays.batch1.json`
+- `v18/src/features/map/mapBasemap.test.ts`
+- `v18/src/features/map/mapBasemap.ts`
+- `v18/src/styles/app.css`
 
 ## Counts
 
@@ -55,7 +65,7 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 - The legacy `reviewed_handoff_authority_held` token remains parked provenance for 52 record-bound handoffs: 46 immutable owner-receipted handoffs plus 6 reviewed highway-direct handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
-- The generated CSV SHA-256 is `851ec847eaa3e33fd13cf7546f78c89250cee53041fee39cfc17b86d9e91a9ca`.
+- The generated CSV SHA-256 is `3523a704866a060575d212bb6b561ee8212fc1f721c9d95ecd1cfc1e6db0374d`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with `npm --prefix v18 run audit:batch0-navigation -- --write`. The audit performs one request per page/contract and has no retry path.

@@ -68,7 +68,7 @@ const ownerApprovedNavigationReceiptEntries = [
   ["691fb27b-2b35-471d-81fa-9239f6bd4081", "exact_named_road_identities", "96e1bb037b953a31"], // LODESTAR
   ["0b7ed9a5-7748-4d92-992a-7f2cecf9dd08", "exact_named_road_identities", "6577e418dbac20e4"], // WINSTON SMITH
   ["4c73e244-6132-4d40-83fc-3fe5e6e65bf6", "exact_named_road_identities", "23e0287b45f6ff57"], // BRAVO
-  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", "exact_named_road_identities", "80d1d23b209f87cd"], // PICKENS
+  ["75600d0c-17b8-488b-96c9-4b7b8ffc8b1b", "exact_named_road_identities", "76cc6d6b7d882699"], // PICKENS
   ["0b7105a0-1b36-4182-8d10-1f2e297c8bab", "validated_google_handoff", "4675fb363ebe71b6"], // PORTERFIELD GAS UNIT
   ["41f0bfc3-7be1-450f-abfc-96dce544547b", "validated_google_handoff", "e0d0cf0742dd637b"], // PORTERFIELD B
   ["19a4f7ef-4334-4b1c-8443-2c5ccb323d1d", "validated_google_handoff", "9dfaaa8c5c191624"], // ROCK RIDGE
@@ -1536,7 +1536,7 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     padId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     canonicalId: "75600d0c-17b8-488b-96c9-4b7b8ffc8b1b",
     legacyId: "ascent--pickens",
-    recordRevision: "1787615581785257",
+    recordRevision: "1788117937351112",
     company: "Ascent",
     padName: "PICKENS",
     state: "Ohio",
