@@ -102,6 +102,7 @@ describe("Ascent reviewed all-55 road-line artifact", () => {
         expect(display.gpsLeg.pattern).toBe("solid");
         expect(display.gpsLeg.authority).toBe("unapproved_gps_tether");
         expect(display.gpsLeg.navigationGeometry).toBe(false);
+        expect(display.gpsLeg.label).toBe(`${display.padName} lease road`);
         expect(display.gpsLeg.coordinates[0]).toEqual(display.arrival.coordinates.at(-1));
         expect(display.gpsLeg.coordinates.at(-1)).toEqual(display.savedPin);
       } else {

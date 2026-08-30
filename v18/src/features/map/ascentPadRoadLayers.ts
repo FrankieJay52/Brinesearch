@@ -16,6 +16,7 @@ export const ascentPadRoadTealCasingLayerId = "brinesearch-ascent-pad-road-teal-
 export const ascentPadRoadTealLineLayerId = "brinesearch-ascent-pad-road-teal-line";
 export const ascentPadRoadSelectedCasingLayerId = "brinesearch-ascent-pad-road-selected-casing";
 export const ascentPadRoadSelectedLineLayerId = "brinesearch-ascent-pad-road-selected-line";
+export const ascentPadRoadSelectedGpsLabelLayerId = "brinesearch-ascent-pad-road-selected-gps-label";
 
 export const ascentPadRoadLayerIdsInPaintOrder = [
   ascentPadRoadRedCasingLayerId,
@@ -28,6 +29,7 @@ export const ascentPadRoadLayerIdsInPaintOrder = [
   ascentPadRoadTealLineLayerId,
   ascentPadRoadSelectedCasingLayerId,
   ascentPadRoadSelectedLineLayerId,
+  ascentPadRoadSelectedGpsLabelLayerId,
 ] as const;
 
 const redFilter: FilterSpecification = ["==", ["get", "colorRole"], "red"];
@@ -68,6 +70,14 @@ function selectedFilter(selectedPadId: string | null): FilterSpecification {
   ];
 }
 
+function selectedGpsFilter(selectedPadId: string | null): FilterSpecification {
+  return [
+    "all",
+    ["==", ["get", "colorRole"], "gps"],
+    ["==", ["get", "padId"], selectedPadId || "__none__"],
+  ];
+}
+
 function allLayersExist(map: MapLibreMap) {
   return ascentPadRoadLayerIdsInPaintOrder.every((layerId) => Boolean(map.getLayer(layerId)));
 }
@@ -99,12 +109,16 @@ export function clearAscentPadRoadLayers(map: MapLibreMap) {
 
 export function syncAscentPadRoadSelection(map: MapLibreMap, selectedPadId: string | null) {
   const filter = selectedFilter(selectedPadId);
+  const gpsFilter = selectedGpsFilter(selectedPadId);
   try {
     if (map.getLayer(ascentPadRoadSelectedCasingLayerId)) {
       map.setFilter(ascentPadRoadSelectedCasingLayerId, filter);
     }
     if (map.getLayer(ascentPadRoadSelectedLineLayerId)) {
       map.setFilter(ascentPadRoadSelectedLineLayerId, filter);
+    }
+    if (map.getLayer(ascentPadRoadSelectedGpsLabelLayerId)) {
+      map.setFilter(ascentPadRoadSelectedGpsLabelLayerId, gpsFilter);
     }
   } catch {
     // Losing optional emphasis never changes the persistent verified line.
@@ -243,6 +257,24 @@ export function syncAscentPadRoadLayers(
       paint: { "line-color": "#7ef8d8", "line-width": 6, "line-opacity": 1 },
       layout: { "line-cap": "round", "line-join": "round" },
     }, firstSymbolLayer);
+    map.addLayer({
+      id: ascentPadRoadSelectedGpsLabelLayerId,
+      type: "symbol",
+      source: ascentPadRoadSourceId,
+      filter: selectedGpsFilter(selectedPadId),
+      layout: {
+        "symbol-placement": "line-center",
+        "text-field": ["get", "label"],
+        "text-size": 12,
+        "text-allow-overlap": true,
+        "text-ignore-placement": true,
+      },
+      paint: {
+        "text-color": "#334155",
+        "text-halo-color": "rgba(255, 255, 255, .96)",
+        "text-halo-width": 2,
+      },
+    });
     if (ascentPadRoadLayerIdsInPaintOrder.some((layerId) => !map.getLayer(layerId))) {
       throw new Error("Ascent GPS-line layers were rejected");
     }

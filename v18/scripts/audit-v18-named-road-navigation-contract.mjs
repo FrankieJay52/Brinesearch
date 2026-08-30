@@ -18,6 +18,7 @@ const bannockRoadDisplay = JSON.parse(read("v18/src/features/map/bannockRoadDisp
 const ascentPadRoadDisplays = read("v18/src/features/map/ascentPadRoadDisplays.ts");
 const ascentPadRoadLayers = read("v18/src/features/map/ascentPadRoadLayers.ts");
 const ascentPadApproaches = read("v18/src/features/map/ascentPadApproaches.ts");
+const padLeaseRoadLabel = read("v18/src/features/map/padLeaseRoadLabel.ts");
 const ascentPadApproachArtifact = JSON.parse(read("v18/src/features/map/ascentPadApproaches.batch2.json"));
 const artifactImport = ascentPadRoadDisplays.match(/import artifactJson from "\.\/([^"\n]+\.json)";/u)?.[1];
 let ascentPadRoadArtifact = null;
@@ -265,7 +266,8 @@ requireText(ascentPadApproaches, 'if (record.status !== "ROUTED_DISPLAY") return
 requireText(ascentPadApproaches, 'colorRole: exact ? "teal" : "unverified"', "batch-2 exact teal and unresolved neutral map split");
 requireText(ascentPadApproaches, 'displayName: "Unverified / unapproved access"', "batch-2 truthful unverified label");
 requireText(ascentPadApproaches, 'displayName: "Unnamed / unapproved access"', "batch-2 truthful unnamed label");
-requireText(ascentPadApproaches, 'label: "Straight GPS tether · not road geometry"', "batch-2 straight tether map label");
+requireText(ascentPadApproaches, "label: padLeaseRoadLabel(record.padName)", "batch-2 pad-specific lease-road map label");
+requireText(padLeaseRoadLabel, 'return `${padName.trim()} lease road`;', "pad-specific lease-road label format");
 
 forbid(ascentPadRoadDisplays, /sha256|createHash|crypto\.subtle|TextEncoder/u, "Ascent browser runtime performs coordinate hashing");
 forbid(`${map}\n${pad}\n${ascentPadRoadDisplays}\n${ascentPadRoadLayers}\n${ascentPadApproaches}`, /router\.project-osrm\.org|\/route\/v1\/driving/u, "Ascent browser runtime contains a route-service call");
