@@ -186,7 +186,7 @@ assert.match(appJavascript, /No bounded highway start passed the identity and di
 assert.match(appJavascript, /The exact last-highway anchor was more than 25 air miles from the saved GPS/, "Built V18 app is missing the remote-start pin-only disclosure");
 assert.match(appJavascript, /Fail-closed and pin-only records add no line/, "Built V18 app is missing the batch-2 pin-only map boundary");
 assert.match(appJavascript, /No approach line or measured mileage is shown because this record failed closed/, "Built V18 app is missing selected batch-2 fail-closed disclosure");
-assert.match(appJavascript, /Straight GPS tether · not road geometry/, "Built V18 app is missing the separate batch-2 GPS tether label");
+assert.match(appJavascript, /lease road · thin solid neutral · unapproved/, "Built V18 app is missing the pad-specific neutral lease-road label");
 assert.match(appJavascript, /unapproved_gps_tether/, "Built V18 app is missing the explicit GPS tether authority");
 assert.match(appJavascript, /brinesearch-ascent-pad-road-lines/, "Built V18 app is missing the shared all-55 native source");
 assert.match(appJavascript, /No red continuation is drawn:/, "Built V18 app is missing the evidence-gated red-tail disclosure");
