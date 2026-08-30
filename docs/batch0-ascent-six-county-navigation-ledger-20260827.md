@@ -1,29 +1,19 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
-- Base origin/main SHA: `313967a8014bfb358d796c415183e39d3ad31fbf`
-- Candidate implementation HEAD: `edd831e05c3e0a689b0a2a042cada74c05fef4c0`
-- Candidate content SHA-256: `00d64f443cdc3f4d849511a478bbeb4c8df79a13555aff73c5a9f11d0421712d`
+- Base origin/main SHA: `4bfba0d2a07e2c7318c1227743c5765e6dce9094`
+- Candidate implementation HEAD: `2069a763814c3c8ca2dd67f785556e842cd56e77`
+- Candidate content SHA-256: `dc13a165bf93f05c812d96372cfe1a590a2f7e7afbede3406dc48a47c68f72a8`
 - Uncommitted non-generated changes: **no**
 - 247 / 61 DONE reviewed named-road handoffs / 186 GPS_ONLY
 - Production writes zero
 
-This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `68f1d076-fe03-4519-a5cd-c68f8a28b06c` and source revision `8`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
+This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `f5cf25b5-e130-47a1-8d20-17ebb59f4b64` and source revision `12`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
 
 ## Candidate implementation files
 
-- `docs/V18_NAMED_ROAD_NAVIGATION_CONTRACT.md`
-- `docs/issue97-owner-approved-directions-presentation-20260828.md`
-- `v18/scripts/audit-batch0-ascent-navigation.mjs`
-- `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
-- `v18/scripts/audit-v18-named-road-navigation-contract.mjs`
-- `v18/src/data/ascentBatch0NavigationLedger.test.ts`
-- `v18/src/data/ascentSavedDirectionExactMatchBatch1.test.ts`
-- `v18/src/data/ascentSavedDirectionExactMatchBatch1.ts`
-- `v18/src/data/reviewedNavigationCandidates.test.ts`
-- `v18/src/data/reviewedNavigationCandidates.ts`
-- `v18/src/features/map/MapApprovedRouteLink.test.ts`
-- `v18/src/features/map/MapApprovedRouteLink.tsx`
-- `v18/src/features/pad/PadPage.test.ts`
-- `v18/src/features/pad/PadPage.tsx`
+- `v18/src/features/map/MapPage.test.ts`
+- `v18/src/features/map/MapPage.tsx`
+- `v18/src/features/map/ascentPadRoadLayers.test.ts`
+- `v18/src/features/map/ascentPadRoadLayers.ts`
 
 ## Counts
 
