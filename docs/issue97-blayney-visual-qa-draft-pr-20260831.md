@@ -26,9 +26,13 @@ https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&de
 
 Google satellite at the saved pin shows the labeled Blayney pad deck. The public-road approach is I-70 → Exit 213 → OH-331 → Lafferty-Bannock / CR-10. The last movement from CR-10 onto the deck is the lease / approach road. Google may render that connector as Gas Station Road / Pamela Ave; those labels are not new road identities.
 
-## Two-origin Google QA — 2026-08-31
+## Two-origin Google QA — summary capture only; maneuver transcript pending
 
 Same two shaping points and the same saved pin. Phone remains the production origin. These named-origin checks only prove road order.
+
+**Current QA status: incomplete.** The observations below preserve Google's
+route summaries, stop labels, and Exit 213 map label. They are not the expanded
+road-by-road maneuver transcript requested for final visual QA.
 
 ### West origin (I-70 eastbound toward Exit 213)
 
@@ -54,9 +58,18 @@ Same two shaping points and the same saved pin. Phone remains the production ori
 - Map label at the interstate departure: **213**
 - Check URL: https://www.google.com/maps/dir/40.072,-80.860/40.105927699,-80.975684341/40.108586794,-80.978877279/40.115603,-80.992706
 
-### What this does and does not prove
+### What this evidence does and does not prove
 
-Proved: both directions leave I-70 at Exit 213, continue on OH-331, take Lafferty-Bannock / CR-10, then finish at the saved pin.
+Observed in the captured summaries and stop order: both directions use I-70,
+OH-331, the Lafferty-Bannock / CR-10 control, and the saved pin, with Exit 213
+shown on the map.
+
+Still pending: open **Details** for both named-origin checks and record the
+complete road-by-road maneuver lists, or attach screenshots of both expanded
+step lists. The pass condition remains that both origins leave I-70 at Exit
+213, stay on the intended OH-331 occurrence, take Lafferty-Bannock / CR-10,
+and finish at the saved pin without a wrong-road substitution. Stop labels by
+themselves are not a complete maneuver transcript.
 
 Not proved / not published: lease geometry, verified entrance, graph membership, public-Google authority, owner-approval receipt, or a change to PR #212.
 

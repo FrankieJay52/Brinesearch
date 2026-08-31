@@ -8,6 +8,7 @@ import {
   BANNOCK_REVIEWED_GOOGLE_URL,
   BEETLE_REVIEWED_GOOGLE_URL,
   BILINOVICH_REVIEWED_GOOGLE_URL,
+  BLAYNEY_REVIEWED_GOOGLE_URL,
   BRAVO_REVIEWED_GOOGLE_URL,
   CASTON_REVIEWED_GOOGLE_URL,
   CIRCLE_OAKS_REVIEWED_GOOGLE_URL,
@@ -283,6 +284,26 @@ function bannock(): PadSummary {
     structuredRoadSequence: "I-70 → Exit 213 → OH-331 → Lafferty-bannock Rd → Lease Road → OR → OH-9 → OH-149 → OH-331 → Lafferty-bannock Rd",
     coordinate: { latitude: 40.111003, longitude: -81.002932, role: "driver_entrance" },
     mapReference: null,
+  };
+}
+
+function blayney(): PadSummary {
+  return {
+    ...bilinovich(),
+    padId: "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
+    canonicalId: "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
+    legacyId: "ascent--blayney",
+    recordRevision: "1788117937351112",
+    padName: "BLAYNEY",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → OR → OH-9 → OH-149 → OH-331",
+    coordinate: null,
+    mapReference: {
+      latitude: 40.115603,
+      longitude: -80.992706,
+      role: "reference",
+      kind: "saved_pad_reference",
+    },
   };
 }
 
@@ -2298,6 +2319,62 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
+  it("returns BLAYNEY's exact phone-origin OH-331 and CR-10 handoff and fails closed on record or destination drift", () => {
+    const exact = blayney();
+    const candidate = reviewedNavigationCandidateForPad(exact);
+    expect(candidate).toMatchObject({
+      padId: "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
+      title: "Navigate reviewed route",
+      detail: "OH-331 → Lafferty-Bannock Rd / CR-10 → unapproved GPS handoff",
+      routeUrl: BLAYNEY_REVIEWED_GOOGLE_URL,
+      reviewedRoadSequence: "I-70 both ways → Exit 213 → OH-331 → Lafferty-Bannock Rd / CR-10 → unapproved lease/GPS handoff → saved pad GPS",
+      ownerApproval: undefined,
+      preserveMeasuredApproach: undefined,
+    });
+    expect(candidate?.finalLegNotice).toMatch(/lease \/ approach road.*unapproved GPS handoff/iu);
+    expect(candidate?.finalLegNotice).toMatch(/Gas Station Road, Pamela Ave, or GAS WELL PAD.*renderer context/iu);
+    expect(BLAYNEY_REVIEWED_GOOGLE_URL).toBe("https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.115603%2C-80.992706&waypoints=40.105927699%2C-80.975684341%7C40.108586794%2C-80.978877279");
+
+    const url = new URL(candidate!.routeUrl);
+    expect(url.searchParams.get("origin")).toBeNull();
+    expect(url.searchParams.get("api")).toBe("1");
+    expect(url.searchParams.get("travelmode")).toBe("driving");
+    expect(url.searchParams.get("dir_action")).toBe("navigate");
+    expect(url.searchParams.get("destination")).toBe("40.115603,-80.992706");
+    expect(url.searchParams.get("waypoints")?.split("|")).toEqual([
+      "40.105927699,-80.975684341",
+      "40.108586794,-80.978877279",
+    ]);
+
+    for (const [field, value] of [
+      ["padId", "11111111-1111-4111-8111-111111111111"],
+      ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+      ["legacyId", "ascent--other"],
+      ["recordRevision", "changed"],
+      ["company", "Other"],
+      ["padName", "BLAYNEY EAST"],
+      ["state", "West Virginia"],
+      ["county", "Guernsey"],
+      ["structuredRoadSequence", `${exact.structuredRoadSequence} → changed`],
+    ] as const) {
+      expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), field).toBeNull();
+    }
+    expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, latitude: exact.mapReference!.latitude + 0.000001 },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+    })).toBeNull();
+    expect(reviewedNavigationCandidateForPad({
+      ...exact,
+      coordinate: { latitude: 40.115603, longitude: -80.992706, role: "driver_entrance" },
+      mapReference: null,
+    })).toBeNull();
+  });
+
   it("returns the six exact-match highway-direct handoffs with one terminal-road control", () => {
     for (const record of ascentSavedDirectionExactMatchBatch1) {
       const pad = exactMatchBatch1Pad(record);
@@ -2366,10 +2443,10 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
-  it("keeps the six new handoffs outside the 46 owner-approval receipts", () => {
+  it("keeps all seven additional handoffs outside the 46 owner-approval receipts", () => {
     const contracts = reviewedNavigationContractRowsForAudit();
     const receiptRows = ownerApprovalReceiptRowsForAudit();
-    expect(contracts).toHaveLength(52);
+    expect(contracts).toHaveLength(53);
     expect(receiptRows).toHaveLength(46);
     expect(receiptRows.every((row) => row.matchesCurrentContent)).toBe(true);
     const receiptIds = new Set<string>(receiptRows.map((row) => row.padId));
@@ -2378,13 +2455,21 @@ describe("reviewed navigation candidates", () => {
     expect(ownerReceipted.every((contract) => contract.preserveMeasuredApproach === false)).toBe(true);
     const unreceipted = contracts.filter((contract) => !receiptIds.has(contract.padId));
     expect(unreceipted.map((contract) => contract.padId).sort()).toEqual(
-      ascentSavedDirectionExactMatchBatch1.map((record) => record.padId).sort(),
+      [
+        ...ascentSavedDirectionExactMatchBatch1.map((record) => record.padId),
+        "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
+      ].sort(),
     );
     for (const contract of unreceipted) {
       expect(contract.ownerApproval, contract.padName).toBeNull();
-      expect(contract.preserveMeasuredApproach, contract.padName).toBe(true);
       expect(contract.detail, contract.padName).toMatch(/unapproved/iu);
-      expect(contract.finalLegNotice, contract.padName).toMatch(/not road or navigation geometry/iu);
+      if (contract.padName === "BLAYNEY") {
+        expect(contract.preserveMeasuredApproach).toBe(false);
+        expect(contract.finalLegNotice).toMatch(/not official road or navigation geometry/iu);
+      } else {
+        expect(contract.preserveMeasuredApproach, contract.padName).toBe(true);
+        expect(contract.finalLegNotice, contract.padName).toMatch(/not road or navigation geometry/iu);
+      }
     }
   });
 });
