@@ -852,6 +852,23 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.278613, longitude: -80.765988 },
     },
   }],
+  ["f896d00c-da26-41b6-bf5b-e9d91afbdbc6", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists without an owner-approval receipt; route/graph promotion and public-Google authority remain held.",
+    receipt: "BLAYNEY exact-record I-70 Exit 213 → OH-331 → Lafferty-Bannock Rd / CR-10 reviewed handoff; final lease approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
+      legacyId: "ascent--blayney",
+      recordRevision: "1788117937351112",
+      company: "Ascent",
+      padName: "BLAYNEY",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 213 → OH-331 → OR → OH-9 → OH-149 → OH-331",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.115603, longitude: -80.992706 },
+    },
+  }],
   ["fa2d692c-4f3a-4a28-8985-3809c9dbd15d", {
     state: "reviewed_handoff_authority_held",
     blocker: "An exact-record reviewed highway-direct Google handoff exists; owner approval, route/graph promotion, and public-Google authority remain held.",
@@ -1404,7 +1421,7 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 61 DONE reviewed named-road handoffs / 186 GPS_ONLY
+- 247 / 62 DONE reviewed named-road handoffs / 185 GPS_ONLY
 - Production writes zero
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
@@ -1438,14 +1455,14 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
-- The 61 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining 186 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
+- The 62 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining 185 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
 - The frozen build-time Ascent display catalog remains exactly 55 pads: 46 immutable owner-receipted reviewed handoffs plus 9 existing database releases. Six additional reviewed highway-direct handoffs remain linked to their existing records in the separate 192-record batch-2 approach catalog; that does not add them to or modify the 55-pad display catalog. The frozen catalog reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only exact receipt-backed road geometry; a post-receipt mapped remainder and the optional thin solid neutral \`unapproved_gps_tether\` stay neutral without a road name or approval. All 55 catalog entries persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- The legacy \`reviewed_handoff_authority_held\` token remains parked provenance for 52 record-bound handoffs: 46 immutable owner-receipted handoffs plus 6 reviewed highway-direct handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
+- The legacy \`reviewed_handoff_authority_held\` token remains parked provenance for 53 record-bound handoffs: 46 immutable owner-receipted handoffs, 6 reviewed highway-direct handoffs with no owner receipt, and BLAYNEY's separate reviewed handoff with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1588,11 +1605,11 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 186
-    && stateCounts.reviewed_handoff_authority_held === 52,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 185
+    && stateCounts.reviewed_handoff_authority_held === 53,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   const driverRuleCounts = countBy(ledger, "driver_rule_status");
-  assert(driverRuleCounts.DONE === 61 && driverRuleCounts.GPS_ONLY === 186,
+  assert(driverRuleCounts.DONE === 62 && driverRuleCounts.GPS_ONLY === 185,
     `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 
