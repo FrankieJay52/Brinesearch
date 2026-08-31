@@ -100,6 +100,16 @@ const reviewedPadIds = [
   "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb",
   "23053421-06d5-47a2-bf77-5c3fdea4939b",
   "83499ca1-3c45-4502-b7c2-688e88343093",
+  "ce1bff99-9c64-435e-a517-e5b8f1a102b7",
+  "b8490b6c-0924-4b1d-a46e-6dc54e7e7267",
+  "5484ef9c-cc1f-4eca-9527-63d4a64183fb",
+  "638487d0-2ef4-4e5c-8a16-cbb478c490c6",
+  "8698112a-c3b4-453e-94d0-bcf4b2476cfb",
+  "fc8a81c6-ccd5-4d1c-9eb6-507f05317688",
+  "88709ded-fda7-42df-ba94-b6bb6c04e45a",
+  "4b0b99b7-da77-4b27-a2f7-7e8d3a9875d3",
+  "314652b0-0abb-47cb-a263-88ca23582144",
+  "3e31e56b-6c85-4f0c-9a38-0554b42581a5",
 ];
 
 function rowFor(binding) {
@@ -131,9 +141,9 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("all sixty-eight reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 68);
-  assert.equal(new Set(reviewedPadIds).size, 68);
+test("all seventy-eight reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 78);
+  assert.equal(new Set(reviewedPadIds).size, 78);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -204,6 +214,26 @@ test("ten second-wave audit receipts preserve reviewed roads without owner autho
     ["b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb", "Elm States Rd"],
     ["23053421-06d5-47a2-bf77-5c3fdea4939b", "Shepherstown Rd"],
     ["83499ca1-3c45-4502-b7c2-688e88343093", "Campbell-johnson Hill Rd"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
+  }
+});
+
+test("ten third-wave audit receipts preserve reviewed roads without owner authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["ce1bff99-9c64-435e-a517-e5b8f1a102b7", "CR-26"],
+    ["b8490b6c-0924-4b1d-a46e-6dc54e7e7267", "Old Gas Station Wegee Rd"],
+    ["5484ef9c-cc1f-4eca-9527-63d4a64183fb", "TR-107A"],
+    ["638487d0-2ef4-4e5c-8a16-cbb478c490c6", "TR-107A"],
+    ["8698112a-c3b4-453e-94d0-bcf4b2476cfb", "Oxford Rd"],
+    ["fc8a81c6-ccd5-4d1c-9eb6-507f05317688", "Sparrow Rd"],
+    ["88709ded-fda7-42df-ba94-b6bb6c04e45a", "Mel Franks Rd"],
+    ["4b0b99b7-da77-4b27-a2f7-7e8d3a9875d3", "City Rd 36"],
+    ["314652b0-0abb-47cb-a263-88ca23582144", "TR-910"],
+    ["3e31e56b-6c85-4f0c-9a38-0554b42581a5", "Piney Fork Rd"],
   ]) {
     const receipt = explicitReceiptForPad(padId);
     assert.match(receipt, new RegExp(expectedRoad.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
@@ -528,10 +558,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /77 DONE reviewed named-road handoffs \/ 170 GPS_ONLY/u);
+  assert.match(summary, /87 DONE reviewed named-road handoffs \/ 160 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 170 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 160 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

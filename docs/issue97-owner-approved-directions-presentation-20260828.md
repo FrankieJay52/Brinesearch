@@ -10,15 +10,21 @@
 
 The owner explicitly approved 46 exact-record reviewed Google handoffs for
 driver use. Together with the 9 existing database releases, they remain the
-exact frozen 55-entry Ascent display catalog. Twenty-two additional exact-record
+exact frozen 55-entry Ascent display catalog. Thirty-two additional exact-record
 reviewed handoffs remain outside that owner-approved set. Six—HELLER, JENNINGS,
 KEMPER, RED-HILL-FARM, AXLE, and KALDOR—use existing batch-2 terminal-highway
 evidence. Six—RICHLAND B, LAVADA, WAMPUM, SLABAUGH, RECTOR-C, and TARPLEY—use
 separate two-direction Google and satellite-reviewed controls. Ten—ALABASTER,
 COOK, SIDWELL, DONNA, CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and
 KURTH—use the same exact-record, opposite-direction, and satellite gate.
-Together they bring the current navigation count to **77**, with **170 pads
-still GPS-only**. Those twenty-two do not inherit an owner-approval receipt and must not be presented as
+Ten—PUGGLE, REITZ, ELITE, MARQUARD, J BARR J, MOHOROVICH, WATSON, CRAVAT
+COAL, MONROE NORTH, and CERMAK—form the third wave under that same gate. On
+this unmerged and undeployed Draft branch, the proposed accounting is **87
+navigable**, **160 GPS-only**, and **78 exact-record reviewed handoffs**: the
+unchanged **46 receipt-bound** handoffs plus these **32 independent** handoffs.
+The **46 owner receipts**, **55-entry static display catalog**, and **192
+batch-2 approach records** remain unchanged. Those 32 independent handoffs do
+not inherit an owner-approval receipt and must not be presented as
 **Owner-approved directions**.
 
 This approval does not create graph geometry, a public-Google release, or an approved-road overlay. Cologie is the first working example, not a higher grade. A separately verified named-road highlight is display only and creates none of those authorities. The existing destination, waypoint order, and Google URL for every working pad remain unchanged unless evidence proves that Google uses the wrong road.
@@ -38,7 +44,9 @@ Both groups may display **Owner-approved directions** under the same everyday dr
 HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, KALDOR, RICHLAND B, LAVADA,
 WAMPUM, SLABAUGH, RECTOR-C, TARPLEY, ALABASTER, COOK, SIDWELL, DONNA,
 CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and KURTH are a separate
-reviewed-handoff group. Their
+reviewed-handoff group. PUGGLE, REITZ, ELITE, MARQUARD, J BARR J, MOHOROVICH,
+WATSON, CRAVAT COAL, MONROE NORTH, and CERMAK join that independent group in
+the third wave. Their
 phone-origin Google links are exact-record-bound, but no row was
 added to the 46 owner-approval receipts and no row was added to the frozen
 55-entry static display catalog. Their map presentation continues to come from
@@ -55,13 +63,15 @@ Each approval is frozen to the complete reviewed contract content: exact pad and
 
 The additive batch-2 highway-to-pad catalog is not itself part of the 46
 owner-approved Google handoffs or the 9 database releases. It still covers 192
-Ascent records as separate field display and direction evidence. Twenty-two of
+Ascent records as separate field display and direction evidence. Thirty-two of
 those records correspond to additional reviewed handoffs. Six remain
 cross-bound to terminal-highway evidence for HELLER, JENNINGS, KEMPER,
 RED-HILL-FARM, AXLE, and KALDOR. The records for RICHLAND B, LAVADA, WAMPUM,
 SLABAUGH, RECTOR-C, TARPLEY, ALABASTER, COOK, SIDWELL, DONNA, CECELIA,
-DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and KURTH remain display-only evidence
-separate from their reviewed Navigate controls. The other **170 remain GPS-only
+DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, KURTH, PUGGLE, REITZ, ELITE,
+MARQUARD, J BARR J, MOHOROVICH, WATSON, CRAVAT COAL, MONROE NORTH, and CERMAK
+remain display-only evidence separate from their reviewed Navigate controls.
+The other **160 remain GPS-only
 for navigation**. The
 original 55-record catalog, 46 owner receipts, URLs, controls,
 receipt hashes, database releases, and parked states remain unchanged.
