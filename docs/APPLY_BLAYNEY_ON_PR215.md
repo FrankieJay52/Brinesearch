@@ -8,9 +8,11 @@ Batch-0 generator binding, and the matching runtime, ledger, and audit tests. Th
 46 owner-approval receipts, frozen 55-entry display catalog, and 192 Batch-2
 approach records remain unchanged.
 
-The westbound and eastbound Google summaries and stop controls are recorded in
-the evidence note. Expanded road-by-road maneuver transcripts or screenshots are
-still pending and must not be represented as complete until captured.
+The westbound and eastbound Google summaries, stop controls, and expanded Details
+maneuver transcripts are recorded in the evidence note. Both routes pass Exit
+213, the intended OH-331 occurrence, and Lafferty-Bannock / CR-10 before using
+the same unlabeled lease / approach turns to reach the saved pin. Those final
+turns remain maneuver evidence only, not road identities or approved geometry.
 
 These counts remain proposed until a human merges the Draft PR. PR #212, owner
 receipts, production data, ALBERT, CROSS CREEK, HINDMAN, and COLEMAN remain
