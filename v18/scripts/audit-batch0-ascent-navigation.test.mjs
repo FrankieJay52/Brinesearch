@@ -77,6 +77,7 @@ const reviewedPadIds = [
   "4c73e244-6132-4d40-83fc-3fe5e6e65bf6",
   "7dcd1f71-fa32-4edc-ae3d-aa9717d0c72c",
   "3850e94a-826f-4b6b-a54f-d21d482fca46",
+  "f896d00c-da26-41b6-bf5b-e9d91afbdbc6",
   "fa2d692c-4f3a-4a28-8985-3809c9dbd15d",
   "85d74b99-da49-4a5a-aadf-1ce2b461071c",
   "952f385d-659a-4f00-80c6-3aff474d5f27",
@@ -115,9 +116,9 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("all fifty-two reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 52);
-  assert.equal(new Set(reviewedPadIds).size, 52);
+test("all fifty-three reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 53);
+  assert.equal(new Set(reviewedPadIds).size, 53);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -144,7 +145,7 @@ test("all fifty-two reviewed ledger states require every exact record and destin
   }
 });
 
-test("six highway-direct receipts preserve their unapproved final GPS handoff without owner authority", () => {
+test("six highway-direct receipts and BLAYNEY preserve unapproved final handoffs without owner authority", () => {
   for (const [padId, expectedRoad] of [
     ["fa2d692c-4f3a-4a28-8985-3809c9dbd15d", "OH-147"],
     ["85d74b99-da49-4a5a-aadf-1ce2b461071c", "OH-147"],
@@ -158,6 +159,11 @@ test("six highway-direct receipts preserve their unapproved final GPS handoff wi
     assert.match(receipt, /unapproved/iu);
     assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
   }
+
+  const blayneyReceipt = explicitReceiptForPad("f896d00c-da26-41b6-bf5b-e9d91afbdbc6");
+  assert.match(blayneyReceipt, /I-70 Exit 213 → OH-331 → Lafferty-Bannock Rd \/ CR-10 reviewed handoff/u);
+  assert.match(blayneyReceipt, /final lease approach and GPS movement unapproved/iu);
+  assert.doesNotMatch(blayneyReceipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
 });
 
 test("BAKOS audit receipt exposes a reviewed handoff without promoting route authority", () => {
@@ -476,10 +482,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /61 DONE reviewed named-road handoffs \/ 186 GPS_ONLY/u);
+  assert.match(summary, /62 DONE reviewed named-road handoffs \/ 185 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 186 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 185 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {

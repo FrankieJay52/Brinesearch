@@ -48,12 +48,13 @@ in teal, including when graph, State-1, or public-Google authority remains held.
 The highlight is presentation only. It does not create an official road,
 public-Google publication, graph membership, or route-release authority.
 
-The exact current Ascent navigable set contains **61 pads**: **52 exact-record
-reviewed Google handoffs** plus **9 existing database releases**. The 52
-reviewed handoffs consist of the unchanged **46 owner-approved handoffs** and
-six additional highway-direct handoffs: HELLER, JENNINGS, KEMPER,
-RED-HILL-FARM, AXLE, and KALDOR. Those six have reviewed Google controls but no owner-approval
-receipt. The frozen build-time display catalog remains exactly **55 entries**:
+The exact current Ascent navigable set contains **62 pads**: **53 exact-record
+reviewed Google handoffs** plus **9 existing database releases**. The 53
+reviewed handoffs consist of the unchanged **46 owner-approved handoffs**, six
+highway-direct handoffs—HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and
+KALDOR—and BLAYNEY's separate two-control I-70 Exit 213 → OH-331 →
+Lafferty-Bannock Road / CR-10 handoff. Those seven reviewed handoffs have no
+owner-approval receipt. The frozen build-time display catalog remains exactly **55 entries**:
 the 46 owner-approved handoffs plus the 9 database releases. It reuses existing
 exact public graph geometry where present and uses offline routed reconstruction
 through the frozen action destination and ordered controls for the remaining
@@ -69,14 +70,17 @@ loop before any reviewed step, so it fails closed with no visible false-teal
 candidate route. These outcomes keep all 55 records
 inspectable without coloring an unreviewed road teal.
 
-The six additional reviewed handoffs are not copied into or reconstructed by
-that 55-entry catalog. Each is exact-record-bound to its existing batch-2
-terminal-highway receipt and frozen saved GPS. Its exact ordered terminal
-highway prefix may remain teal, while any post-receipt mapped remainder and its
-separate straight GPS tether remain solid neutral, unapproved, excluded from
-route authority, and unavailable as navigation geometry. The current navigation
-accounting is therefore **61 navigable** and **186 GPS-only** Ascent pads, while the two map artifacts remain
-55 static displays and 192 batch-2 approach records.
+The seven additional reviewed handoffs are not copied into or reconstructed by
+that 55-entry catalog. The six highway-direct handoffs remain exact-record-bound
+to their existing batch-2 terminal-highway receipts and frozen saved GPS.
+BLAYNEY is independently exact-record-bound to its saved GPS and two reviewed
+controls, while its existing batch-2 map record remains display evidence only.
+Any exact ordered terminal-highway prefix may remain teal, while a post-receipt
+mapped remainder and separate straight GPS tether remain solid neutral,
+unapproved, excluded from route authority, and unavailable as navigation
+geometry. The current navigation accounting is therefore **62 navigable** and
+**185 GPS-only** Ascent pads, while the two map artifacts remain 55 static
+displays and 192 batch-2 approach records.
 
 All 55 catalog entries remain visible on the main **All pads + all approved
 roads** map and under the **Ascent** company filter. Selecting one of those pads
@@ -94,10 +98,12 @@ updates the existing source data and selection filter instead.
 ## Remaining Ascent highway-to-pad approaches
 
 The separate batch-2 catalog still contains **192 Ascent approach records**
-without changing the frozen 55-pad catalog above. Six of those records now
-also support the exact-record reviewed handoffs for HELLER, JENNINGS, KEMPER,
-RED-HILL-FARM, AXLE, and KALDOR; the other **186 remain GPS-only for navigation**. The
-batch-2 artifact remains field display and direction evidence only. It does not
+without changing the frozen 55-pad catalog above. Seven of those records now
+correspond to the additional exact-record reviewed handoffs: HELLER, JENNINGS,
+KEMPER, RED-HILL-FARM, AXLE, KALDOR, and BLAYNEY. The first six cross-bind
+their terminal-highway receipts; BLAYNEY's two-control Navigate contract stays
+independent of its display-only batch-2 record. The other **185 remain GPS-only
+for navigation**. The batch-2 artifact remains field display and direction evidence only. It does not
 replace any of the 46 immutable owner-approved Google handoffs, the 9 existing
 database releases, their URLs or controls, or any parked state or promotion
 receipt.

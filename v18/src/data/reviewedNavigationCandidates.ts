@@ -2,6 +2,17 @@ import { parseCoordinatePair } from "./coordinates";
 import type { PadSummary } from "./types";
 import { trustedPadDestination, type PadDestinationSource } from "./googleDestination";
 import { ascentSavedDirectionExactMatchBatch1 } from "./ascentSavedDirectionExactMatchBatch1";
+import {
+  BLAYNEY_DETAIL,
+  BLAYNEY_LEGACY_ID,
+  BLAYNEY_PAD_ID,
+  BLAYNEY_RECORD_REVISION,
+  BLAYNEY_REVIEWED_GOOGLE_URL as BOUND_BLAYNEY_REVIEWED_GOOGLE_URL,
+  BLAYNEY_REVIEWED_ROAD_SEQUENCE,
+  BLAYNEY_ROUTE_DESTINATION,
+  BLAYNEY_STRUCTURED_ROAD_SEQUENCE,
+  BLAYNEY_WAYPOINTS,
+} from "./blayneyReviewedHandoff";
 
 export interface ReviewedNavigationCandidate {
   padId: string;
@@ -455,6 +466,7 @@ export const BRAVO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BRAVO_ROUTE_
 export const RUTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RUTH_ROUTE_DESTINATION, RUTH_WAYPOINTS);
 export const PICKENS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PICKENS_ROUTE_DESTINATION, PICKENS_WAYPOINTS);
 export const ATHENA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ATHENA_ROUTE_DESTINATION, ATHENA_WAYPOINTS);
+export const BLAYNEY_REVIEWED_GOOGLE_URL = BOUND_BLAYNEY_REVIEWED_GOOGLE_URL;
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -1577,6 +1589,33 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: ATHENA_ROUTE_DESTINATION,
     waypoints: ATHENA_WAYPOINTS,
+  },
+  {
+    // The phone stays the origin. These two shaping points keep Google on the
+    // exact OH-331 occurrence and then Lafferty-Bannock Road / CR-10 before
+    // the saved BLAYNEY pin. Google renderer aliases for the final approach
+    // are context only and do not create a road identity or approved geometry.
+    padId: BLAYNEY_PAD_ID,
+    canonicalId: BLAYNEY_PAD_ID,
+    legacyId: BLAYNEY_LEGACY_ID,
+    recordRevision: BLAYNEY_RECORD_REVISION,
+    company: "Ascent",
+    padName: "BLAYNEY",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: BLAYNEY_STRUCTURED_ROAD_SEQUENCE,
+    title: "Navigate reviewed route",
+    detail: BLAYNEY_DETAIL,
+    routeUrl: BLAYNEY_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: BLAYNEY_REVIEWED_ROAD_SEQUENCE,
+    finalLegNotice: "The reviewed shaping points keep BLAYNEY on OH-331 and Lafferty-Bannock Road / CR-10 before the saved GPS. The last movement off CR-10 is the pad's lease / approach road and remains an unapproved GPS handoff, not official road or navigation geometry. Google may render Gas Station Road, Pamela Ave, or GAS WELL PAD; those labels are renderer context only and are not promoted to road identities.",
+    trustedDestination: {
+      latitude: BLAYNEY_ROUTE_DESTINATION.latitude,
+      longitude: BLAYNEY_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: BLAYNEY_ROUTE_DESTINATION,
+    waypoints: BLAYNEY_WAYPOINTS,
   },
   ...ascentSavedDirectionExactMatchBatch1Contracts,
 ] as const;
