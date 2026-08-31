@@ -2592,7 +2592,7 @@ describe("reviewed navigation candidates", () => {
         ...firstI70WaveRouteFixtures().map((fixture) => fixture.pad.padId),
       ].sort(),
     );
-    const measuredApproachIds = new Set(ascentSavedDirectionExactMatchBatch1.map((record) => record.padId));
+    const measuredApproachIds = new Set<string>(ascentSavedDirectionExactMatchBatch1.map((record) => record.padId));
     for (const contract of unreceipted) {
       expect(contract.ownerApproval, contract.padName).toBeNull();
       expect(contract.detail, contract.padName).toMatch(/unapproved/iu);
