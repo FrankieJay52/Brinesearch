@@ -405,6 +405,36 @@ const ATHENA_ROUTE_DESTINATION = { latitude: 40.278613, longitude: -80.765988 } 
 const ATHENA_WAYPOINTS = [
   { latitude: 40.2799914, longitude: -80.7619003 },
 ] as const;
+const RICHLAND_B_ROUTE_DESTINATION = { latitude: 40.077481, longitude: -80.995772 } as const;
+const RICHLAND_B_WAYPOINTS = [
+  { latitude: 40.075237, longitude: -80.990567 },
+  { latitude: 40.076936, longitude: -80.994184 },
+] as const;
+const LAVADA_ROUTE_DESTINATION = { latitude: 39.97411, longitude: -81.412098 } as const;
+const LAVADA_WAYPOINTS = [
+  { latitude: 39.981189, longitude: -81.414833 },
+] as const;
+const WAMPUM_ROUTE_DESTINATION = { latitude: 39.962923, longitude: -81.440117 } as const;
+const WAMPUM_WAYPOINTS = [
+  { latitude: 39.941409, longitude: -81.446907 },
+  { latitude: 39.953452, longitude: -81.440293 },
+  { latitude: 39.961901, longitude: -81.441644 },
+] as const;
+const SLABAUGH_ROUTE_DESTINATION = { latitude: 39.95541, longitude: -81.4408 } as const;
+const SLABAUGH_WAYPOINTS = [
+  { latitude: 39.941409, longitude: -81.446907 },
+  { latitude: 39.952222, longitude: -81.440069 },
+] as const;
+const RECTOR_C_ROUTE_DESTINATION = { latitude: 39.955552, longitude: -81.395087 } as const;
+const RECTOR_C_WAYPOINTS = [
+  { latitude: 39.941409, longitude: -81.446907 },
+  { latitude: 39.9652842, longitude: -81.3804816 },
+] as const;
+const TARPLEY_ROUTE_DESTINATION = { latitude: 40.063839, longitude: -81.293734 } as const;
+const TARPLEY_WAYPOINTS = [
+  { latitude: 40.05541, longitude: -81.319658 },
+  { latitude: 40.058189, longitude: -81.295487 },
+] as const;
 
 // Existing phone-validated handoffs are intentionally byte-for-byte stable.
 // Building them from JavaScript numbers can drop reviewed trailing zeroes even
@@ -455,6 +485,12 @@ export const BRAVO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BRAVO_ROUTE_
 export const RUTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RUTH_ROUTE_DESTINATION, RUTH_WAYPOINTS);
 export const PICKENS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PICKENS_ROUTE_DESTINATION, PICKENS_WAYPOINTS);
 export const ATHENA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ATHENA_ROUTE_DESTINATION, ATHENA_WAYPOINTS);
+export const RICHLAND_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RICHLAND_B_ROUTE_DESTINATION, RICHLAND_B_WAYPOINTS);
+export const LAVADA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(LAVADA_ROUTE_DESTINATION, LAVADA_WAYPOINTS);
+export const WAMPUM_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WAMPUM_ROUTE_DESTINATION, WAMPUM_WAYPOINTS);
+export const SLABAUGH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SLABAUGH_ROUTE_DESTINATION, SLABAUGH_WAYPOINTS);
+export const RECTOR_C_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RECTOR_C_ROUTE_DESTINATION, RECTOR_C_WAYPOINTS);
+export const TARPLEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TARPLEY_ROUTE_DESTINATION, TARPLEY_WAYPOINTS);
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -1577,6 +1613,144 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: ATHENA_ROUTE_DESTINATION,
     waypoints: ATHENA_WAYPOINTS,
+  },
+  {
+    padId: "73f48788-9990-435a-adee-999740e958de",
+    canonicalId: "73f48788-9990-435a-adee-999740e958de",
+    legacyId: "ascent--richland-b",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "RICHLAND B",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 213 → OH-331 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → I-70 → Exit 208 → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd",
+    title: "Navigate reviewed route",
+    detail: "US-40 → Lloydsville-Bannock Rd / CR-80 → Lude Rd / TR-264 → unapproved GPS handoff",
+    routeUrl: RICHLAND_B_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → US-40 → Lloydsville-Bannock Rd / CR-80 → Lude Rd / TR-264 → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions preserve an exact written alternative through US-40, Lloydsville-Bannock Road / CR-80, and Lude Road / TR-264 without a pass-and-return. Satellite confirms the visible connector west of Lude Road as RICHLAND B's pad approach to the saved GPS; it remains an unapproved GPS handoff, not official road or navigation geometry. POGUE RD is graph and renderer context only and is not promoted to a replacement road identity.",
+    trustedDestination: {
+      latitude: RICHLAND_B_ROUTE_DESTINATION.latitude,
+      longitude: RICHLAND_B_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: RICHLAND_B_ROUTE_DESTINATION,
+    waypoints: RICHLAND_B_WAYPOINTS,
+  },
+  {
+    padId: "883420b3-07b9-4682-912e-42ba278d1132",
+    canonicalId: "883420b3-07b9-4682-912e-42ba278d1132",
+    legacyId: "ascent--lavada",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "LAVADA",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 → Exit 186 → OH-285 → OH-265 → Salem Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-265 / Leatherwood Rd → Salem Rd / CR-74 → unapproved lease/GPS handoff",
+    routeUrl: LAVADA_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → OH-265 / Leatherwood Rd → Salem Rd / CR-74 → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The two reviewed directions reach the written Salem Road / CR-74 occurrence from approved Ohio routes and continue to LAVADA's saved GPS. Satellite confirms the visible private connector north from Salem Road as this pad's approach; it remains an unapproved GPS handoff, not official road or navigation geometry. Leatherwood Road is renderer context for OH-265 only and is not promoted to a new road identity.",
+    trustedDestination: {
+      latitude: LAVADA_ROUTE_DESTINATION.latitude,
+      longitude: LAVADA_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: LAVADA_ROUTE_DESTINATION,
+    waypoints: LAVADA_WAYPOINTS,
+  },
+  {
+    padId: "8e823835-2c10-4275-84e9-4067376fa364",
+    canonicalId: "8e823835-2c10-4275-84e9-4067376fa364",
+    legacyId: "ascent--wampum",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "WAMPUM",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 → OH-285 → OH-313 → Salem Rd → Nighthawk Rd → Keep Right Onto Divison Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "Salem Rd / CR-74 → Nighthawk Rd → Division-rendered occurrence → unapproved lease/GPS handoff",
+    routeUrl: WAMPUM_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → Salem Rd / CR-74 → Nighthawk Rd → keep right onto the Division-rendered occurrence → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The reviewed controls bind the pre-fork Nighthawk occurrence, the post-fork Division-rendered occurrence, and WAMPUM's saved GPS in that order. Satellite confirms the two occurrences and the continuing approach to the saved pin. Google corrects the written Divison spelling to Division; that renderer label is context only and does not rewrite the exact directory record or create official road geometry.",
+    trustedDestination: {
+      latitude: WAMPUM_ROUTE_DESTINATION.latitude,
+      longitude: WAMPUM_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: WAMPUM_ROUTE_DESTINATION,
+    waypoints: WAMPUM_WAYPOINTS,
+  },
+  {
+    padId: "eae4741b-7fb4-4bc3-8b20-26043032acda",
+    canonicalId: "eae4741b-7fb4-4bc3-8b20-26043032acda",
+    legacyId: "ascent--slabaugh",
+    recordRevision: "1786265512886177",
+    company: "Ascent",
+    padName: "SLABAUGH",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "I-70 → OH-285 → OH-313 → Salem Rd → Nighthawk Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "Salem Rd / CR-74 → Nighthawk Rd → unapproved lease/GPS handoff",
+    routeUrl: SLABAUGH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → Salem Rd / CR-74 → Nighthawk Rd → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions preserve the written Salem Road / CR-74 then Nighthawk Road order before SLABAUGH's saved GPS. Satellite confirms the visible facility connector beside the saved pin as this pad's approach; it remains an unapproved GPS handoff, not official road or navigation geometry. DIVISION RD is graph and renderer context only and does not replace Nighthawk Road in the exact record.",
+    trustedDestination: {
+      latitude: SLABAUGH_ROUTE_DESTINATION.latitude,
+      longitude: SLABAUGH_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: SLABAUGH_ROUTE_DESTINATION,
+    waypoints: SLABAUGH_WAYPOINTS,
+  },
+  {
+    padId: "0a2a4a64-6e64-4b7d-9652-e1a97db4fc4f",
+    canonicalId: "0a2a4a64-6e64-4b7d-9652-e1a97db4fc4f",
+    legacyId: "ascent--rector-c",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "RECTOR-C",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-285 → OH-313E → Salem Rd → New Gottengen Rd → Meadowlark Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "Salem Rd / CR-74 → New Gottengen Rd → Meadowlark Rd → unapproved lease/GPS handoff",
+    routeUrl: RECTOR_C_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → Salem Rd / CR-74 → New Gottengen Rd → Meadowlark Rd → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The passed two-control route preserves the written Salem Road / CR-74, New Gottengen Road, and Meadowlark Road order before RECTOR-C's saved GPS. Satellite confirms the short visible connector beside the pin as this pad's approach; it remains an unapproved GPS handoff, not official road or navigation geometry. Earlier one-control attempts that stayed on OH-313 or rendered Locust Grove are rejected and grant no identity or route authority.",
+    trustedDestination: {
+      latitude: RECTOR_C_ROUTE_DESTINATION.latitude,
+      longitude: RECTOR_C_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: RECTOR_C_ROUTE_DESTINATION,
+    waypoints: RECTOR_C_WAYPOINTS,
+  },
+  {
+    padId: "25dc64b5-4a52-4cef-8b2c-62e7e36d64c7",
+    canonicalId: "25dc64b5-4a52-4cef-8b2c-62e7e36d64c7",
+    legacyId: "ascent--tarpley",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "TARPLEY",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "Route 70 → OH-513 → Bridgewater Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-513 → Bridgewater Rd → Pisgah Rd / CR-94 → unapproved lease/GPS handoff",
+    routeUrl: TARPLEY_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-70 approach → Exit 193 → OH-513 N → Bridgewater Rd → written Pisgah Rd / CR-94 occurrence → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions preserve I-70 Exit 193, OH-513, Bridgewater Road, and the written Pisgah Road / CR-94 occurrence before TARPLEY's saved GPS. Satellite confirms the winding connector from the written corridor to the large pad deck as this pad's approach; it remains an unapproved GPS handoff, not official road or navigation geometry. Google's Morris Ln destination label is renderer context only and is not promoted to a road identity.",
+    trustedDestination: {
+      latitude: TARPLEY_ROUTE_DESTINATION.latitude,
+      longitude: TARPLEY_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: TARPLEY_ROUTE_DESTINATION,
+    waypoints: TARPLEY_WAYPOINTS,
   },
   ...ascentSavedDirectionExactMatchBatch1Contracts,
 ] as const;

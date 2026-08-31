@@ -25,6 +25,7 @@ import {
   KUNGLE_B_REVIEWED_GOOGLE_URL,
   LAKE_REVIEWED_GOOGLE_URL,
   LAWSON_REVIEWED_GOOGLE_URL,
+  LAVADA_REVIEWED_GOOGLE_URL,
   LODESTAR_REVIEWED_GOOGLE_URL,
   LODGE_REVIEWED_GOOGLE_URL,
   LORRAINE_REVIEWED_GOOGLE_URL,
@@ -36,10 +37,14 @@ import {
   PICKENS_REVIEWED_GOOGLE_URL,
   PORTERFIELD_B_REVIEWED_GOOGLE_URL,
   PORTERFIELD_REVIEWED_GOOGLE_URL,
+  RECTOR_C_REVIEWED_GOOGLE_URL,
   RUTH_REVIEWED_GOOGLE_URL,
   ROCK_RIDGE_REVIEWED_GOOGLE_URL,
+  RICHLAND_B_REVIEWED_GOOGLE_URL,
   SADLER_REVIEWED_GOOGLE_URL,
+  SLABAUGH_REVIEWED_GOOGLE_URL,
   SKULL_FORK_REVIEWED_GOOGLE_URL,
+  TARPLEY_REVIEWED_GOOGLE_URL,
   THOMAS_REVIEWED_GOOGLE_URL,
   TOWE_REVIEWED_GOOGLE_URL,
   TRUCHAN_NW_REVIEWED_GOOGLE_URL,
@@ -47,6 +52,7 @@ import {
   TROYER_REVIEWED_GOOGLE_URL,
   WITHEY_REVIEWED_GOOGLE_URL,
   WHEELING_VALLEY_REVIEWED_GOOGLE_URL,
+  WAMPUM_REVIEWED_GOOGLE_URL,
   WINSTON_SMITH_REVIEWED_GOOGLE_URL,
   buildReviewedNavigationUrl,
   ownerApprovalPresentationForReceipt,
@@ -122,6 +128,145 @@ function exactMatchBatch1Pad(record: typeof ascentSavedDirectionExactMatchBatch1
     },
     structuredRoadSequence: record.structuredRoadSequence,
   };
+}
+
+function firstI70WaveRouteFixtures() {
+  const savedPad = (
+    padId: string,
+    legacyId: string,
+    recordRevision: string,
+    padName: string,
+    county: string,
+    structuredRoadSequence: string,
+    latitude: number,
+    longitude: number,
+  ): PadSummary => ({
+    ...bilinovich(),
+    padId,
+    canonicalId: padId,
+    legacyId,
+    recordRevision,
+    padName,
+    county,
+    structuredRoadSequence,
+    coordinate: null,
+    mapReference: { latitude, longitude, role: "reference", kind: "saved_pad_reference" },
+  });
+
+  return [
+    {
+      name: "RICHLAND B",
+      pad: savedPad(
+        "73f48788-9990-435a-adee-999740e958de",
+        "ascent--richland-b",
+        "1786258360881449",
+        "RICHLAND B",
+        "Belmont",
+        "I-70 → Exit 213 → OH-331 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd → OR → I-70 → Exit 208 → OH-149 → US-40 → Lloydsville Bannock Rd → Lude Rd",
+        40.077481,
+        -80.995772,
+      ),
+      routeUrl: RICHLAND_B_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.077481%2C-80.995772&waypoints=40.075237%2C-80.990567%7C40.076936%2C-80.994184",
+      destination: "40.077481,-80.995772",
+      waypoints: ["40.075237,-80.990567", "40.076936,-80.994184"],
+      notice: /POGUE RD.*context only.*not promoted/iu,
+    },
+    {
+      name: "LAVADA",
+      pad: savedPad(
+        "883420b3-07b9-4682-912e-42ba278d1132",
+        "ascent--lavada",
+        "1786265812046205",
+        "LAVADA",
+        "Guernsey",
+        "I-70 → Exit 186 → OH-285 → OH-265 → Salem Rd → Lease Road",
+        39.97411,
+        -81.412098,
+      ),
+      routeUrl: LAVADA_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.97411%2C-81.412098&waypoints=39.981189%2C-81.414833",
+      destination: "39.97411,-81.412098",
+      waypoints: ["39.981189,-81.414833"],
+      notice: /Leatherwood Road.*renderer context.*not promoted/iu,
+    },
+    {
+      name: "WAMPUM",
+      pad: savedPad(
+        "8e823835-2c10-4275-84e9-4067376fa364",
+        "ascent--wampum",
+        "1786258360881449",
+        "WAMPUM",
+        "Guernsey",
+        "I-70 → OH-285 → OH-313 → Salem Rd → Nighthawk Rd → Keep Right Onto Divison Rd → Lease Road",
+        39.962923,
+        -81.440117,
+      ),
+      routeUrl: WAMPUM_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.962923%2C-81.440117&waypoints=39.941409%2C-81.446907%7C39.953452%2C-81.440293%7C39.961901%2C-81.441644",
+      destination: "39.962923,-81.440117",
+      waypoints: [
+        "39.941409,-81.446907",
+        "39.953452,-81.440293",
+        "39.961901,-81.441644",
+      ],
+      notice: /pre-fork Nighthawk.*post-fork Division.*Divison spelling.*context only/iu,
+    },
+    {
+      name: "SLABAUGH",
+      pad: savedPad(
+        "eae4741b-7fb4-4bc3-8b20-26043032acda",
+        "ascent--slabaugh",
+        "1786265512886177",
+        "SLABAUGH",
+        "Guernsey",
+        "I-70 → OH-285 → OH-313 → Salem Rd → Nighthawk Rd → Lease Road",
+        39.95541,
+        -81.4408,
+      ),
+      routeUrl: SLABAUGH_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.95541%2C-81.4408&waypoints=39.941409%2C-81.446907%7C39.952222%2C-81.440069",
+      destination: "39.95541,-81.4408",
+      waypoints: ["39.941409,-81.446907", "39.952222,-81.440069"],
+      notice: /DIVISION RD.*context only.*does not replace Nighthawk Road/iu,
+    },
+    {
+      name: "RECTOR-C",
+      pad: savedPad(
+        "0a2a4a64-6e64-4b7d-9652-e1a97db4fc4f",
+        "ascent--rector-c",
+        "1786265812046205",
+        "RECTOR-C",
+        "Guernsey",
+        "OH-285 → OH-313E → Salem Rd → New Gottengen Rd → Meadowlark Rd → Lease Road",
+        39.955552,
+        -81.395087,
+      ),
+      routeUrl: RECTOR_C_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.955552%2C-81.395087&waypoints=39.941409%2C-81.446907%7C39.9652842%2C-81.3804816",
+      destination: "39.955552,-81.395087",
+      waypoints: ["39.941409,-81.446907", "39.9652842,-81.3804816"],
+      notice: /Earlier one-control attempts.*OH-313.*Locust Grove.*rejected/iu,
+    },
+    {
+      name: "TARPLEY",
+      pad: savedPad(
+        "25dc64b5-4a52-4cef-8b2c-62e7e36d64c7",
+        "ascent--tarpley",
+        "1786265812046205",
+        "TARPLEY",
+        "Guernsey",
+        "Route 70 → OH-513 → Bridgewater Rd → Lease Road",
+        40.063839,
+        -81.293734,
+      ),
+      routeUrl: TARPLEY_REVIEWED_GOOGLE_URL,
+      expectedUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.063839%2C-81.293734&waypoints=40.05541%2C-81.319658%7C40.058189%2C-81.295487",
+      destination: "40.063839,-81.293734",
+      waypoints: ["40.05541,-81.319658", "40.058189,-81.295487"],
+      notice: /Pisgah Road \/ CR-94.*Morris Ln.*context only.*not promoted/iu,
+    },
+  ] as const;
 }
 
 function correctedBilinovich(): PadSummary {
@@ -2298,6 +2443,70 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
+  it("returns the six evidence-passing first-wave handoffs with exact phone-origin controls", () => {
+    for (const fixture of firstI70WaveRouteFixtures()) {
+      const candidate = reviewedNavigationCandidateForPad(fixture.pad);
+      expect(candidate, fixture.name).toMatchObject({
+        padId: fixture.pad.padId,
+        title: "Navigate reviewed route",
+        routeUrl: fixture.routeUrl,
+        ownerApproval: undefined,
+        preserveMeasuredApproach: undefined,
+      });
+      expect(candidate?.detail, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate?.reviewedRoadSequence, fixture.name).toMatch(/unapproved/iu);
+      expect(candidate?.finalLegNotice, fixture.name).toMatch(/not official road or navigation geometry|does not rewrite the exact directory record or create official road geometry/iu);
+      expect(candidate?.finalLegNotice, fixture.name).toMatch(fixture.notice);
+      expect(fixture.routeUrl, fixture.name).toBe(fixture.expectedUrl);
+
+      const url = new URL(candidate!.routeUrl);
+      expect(url.searchParams.get("origin"), fixture.name).toBeNull();
+      expect(url.searchParams.get("api"), fixture.name).toBe("1");
+      expect(url.searchParams.get("travelmode"), fixture.name).toBe("driving");
+      expect(url.searchParams.get("dir_action"), fixture.name).toBe("navigate");
+      expect(url.searchParams.get("destination"), fixture.name).toBe(fixture.destination);
+      expect(url.searchParams.get("waypoints")?.split("|"), fixture.name).toEqual(fixture.waypoints);
+    }
+  });
+
+  it("fails every first-wave handoff closed on exact record or saved-destination drift", () => {
+    for (const fixture of firstI70WaveRouteFixtures()) {
+      const exact = fixture.pad;
+      for (const [field, value] of [
+        ["padId", "11111111-1111-4111-8111-111111111111"],
+        ["canonicalId", "11111111-1111-4111-8111-111111111111"],
+        ["legacyId", "ascent--other"],
+        ["recordRevision", "changed"],
+        ["company", "Other"],
+        ["padName", `${fixture.name} EAST`],
+        ["state", "West Virginia"],
+        ["county", fixture.pad.county === "Belmont" ? "Guernsey" : "Belmont"],
+        ["structuredRoadSequence", `${fixture.pad.structuredRoadSequence} → changed`],
+      ] as const) {
+        expect(reviewedNavigationCandidateForPad({ ...exact, [field]: value }), `${fixture.name}:${field}`)
+          .toBeNull();
+      }
+      expect(reviewedNavigationCandidateForPad({ ...exact, mapReference: null }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, longitude: exact.mapReference!.longitude + 0.000001 },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        mapReference: { ...exact.mapReference!, kind: "official_pad_reference" },
+      }), fixture.name).toBeNull();
+      expect(reviewedNavigationCandidateForPad({
+        ...exact,
+        coordinate: {
+          latitude: exact.mapReference!.latitude,
+          longitude: exact.mapReference!.longitude,
+          role: "driver_entrance",
+        },
+        mapReference: null,
+      }), fixture.name).toBeNull();
+    }
+  });
+
   it("returns the six exact-match highway-direct handoffs with one terminal-road control", () => {
     for (const record of ascentSavedDirectionExactMatchBatch1) {
       const pad = exactMatchBatch1Pad(record);
@@ -2366,10 +2575,10 @@ describe("reviewed navigation candidates", () => {
     }
   });
 
-  it("keeps the six new handoffs outside the 46 owner-approval receipts", () => {
+  it("keeps all twelve additional handoffs outside the 46 owner-approval receipts", () => {
     const contracts = reviewedNavigationContractRowsForAudit();
     const receiptRows = ownerApprovalReceiptRowsForAudit();
-    expect(contracts).toHaveLength(52);
+    expect(contracts).toHaveLength(58);
     expect(receiptRows).toHaveLength(46);
     expect(receiptRows.every((row) => row.matchesCurrentContent)).toBe(true);
     const receiptIds = new Set<string>(receiptRows.map((row) => row.padId));
@@ -2378,13 +2587,22 @@ describe("reviewed navigation candidates", () => {
     expect(ownerReceipted.every((contract) => contract.preserveMeasuredApproach === false)).toBe(true);
     const unreceipted = contracts.filter((contract) => !receiptIds.has(contract.padId));
     expect(unreceipted.map((contract) => contract.padId).sort()).toEqual(
-      ascentSavedDirectionExactMatchBatch1.map((record) => record.padId).sort(),
+      [
+        ...ascentSavedDirectionExactMatchBatch1.map((record) => record.padId),
+        ...firstI70WaveRouteFixtures().map((fixture) => fixture.pad.padId),
+      ].sort(),
     );
+    const measuredApproachIds = new Set(ascentSavedDirectionExactMatchBatch1.map((record) => record.padId));
     for (const contract of unreceipted) {
       expect(contract.ownerApproval, contract.padName).toBeNull();
-      expect(contract.preserveMeasuredApproach, contract.padName).toBe(true);
       expect(contract.detail, contract.padName).toMatch(/unapproved/iu);
-      expect(contract.finalLegNotice, contract.padName).toMatch(/not road or navigation geometry/iu);
+      if (measuredApproachIds.has(contract.padId)) {
+        expect(contract.preserveMeasuredApproach, contract.padName).toBe(true);
+        expect(contract.finalLegNotice, contract.padName).toMatch(/not road or navigation geometry/iu);
+      } else {
+        expect(contract.preserveMeasuredApproach, contract.padName).toBe(false);
+        expect(contract.selectedTerminalPublicRoadSequence, contract.padName).toEqual([]);
+      }
     }
   });
 });
