@@ -1,5 +1,10 @@
 # Ascent I-70 navigation wave evidence board — 2026-08-31
 
+> **Historical planning snapshot:** This board predates the exact-record
+> implementations on Draft PR #216. Its research buckets remain provenance,
+> not current branch status. Current second-wave decisions and controls are in
+> [`issue97-ascent-navigation-wave2-google-qa-draft-pr-20260831.md`](issue97-ascent-navigation-wave2-google-qa-draft-pr-20260831.md).
+
 ## Status and safety boundary
 
 This is a documentation-only research board for the next Ascent Google Navigate wave. It is **not a reviewed navigation contract**, it does **not publish a Google Navigate URL**, and it does **not approve any coordinate below as a waypoint**. A pad remains GPS-only unless its exact current directory record, intended road occurrences, one-to-three waypoint budget, two-origin Google road order, and satellite-confirmed final approach all pass the reviewed-handoff gate in the same implementation tree.

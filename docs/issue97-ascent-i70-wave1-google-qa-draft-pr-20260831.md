@@ -190,9 +190,9 @@ The west proof used OH-149 S → Palmer → John → E Main → OH-149 E / Belmo
 
 The west proof used Exit 215 → US-40 → Barton Road. The east proof used Exit 220 → US-40 → Barton Road. Neither used written Exit 218 / Mall Road. THREE DADS remains GPS-only and has no reviewed phone URL in this Draft.
 
-## Draft accounting
+## First-wave checkpoint accounting
 
-This independent main-based Draft adds six reviewed handoffs:
+This first-wave checkpoint added six reviewed handoffs:
 
 - 67 navigable
 - 180 GPS-only
@@ -201,4 +201,4 @@ This independent main-based Draft adds six reviewed handoffs:
 - frozen 55-entry static display catalog unchanged
 - 192 batch-2 approach records unchanged
 
-Main remains 61 / 186 / 52 until a human merge. BLAYNEY remains isolated on PR #215 and is not included here.
+The later second-wave checkpoint on the same Draft branch is documented in [`issue97-ascent-navigation-wave2-google-qa-draft-pr-20260831.md`](issue97-ascent-navigation-wave2-google-qa-draft-pr-20260831.md) and brings the branch total to 77 / 170 / 68. Main remains 61 / 186 / 52 until a human merge. BLAYNEY remains isolated on PR #215 and is not included here.

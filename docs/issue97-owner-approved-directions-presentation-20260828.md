@@ -10,13 +10,15 @@
 
 The owner explicitly approved 46 exact-record reviewed Google handoffs for
 driver use. Together with the 9 existing database releases, they remain the
-exact frozen 55-entry Ascent display catalog. Twelve additional exact-record
+exact frozen 55-entry Ascent display catalog. Twenty-two additional exact-record
 reviewed handoffs remain outside that owner-approved set. Six—HELLER, JENNINGS,
 KEMPER, RED-HILL-FARM, AXLE, and KALDOR—use existing batch-2 terminal-highway
 evidence. Six—RICHLAND B, LAVADA, WAMPUM, SLABAUGH, RECTOR-C, and TARPLEY—use
-separate two-direction Google and satellite-reviewed controls. Together they
-bring the current navigation count to **67**, with **180 pads still GPS-only**.
-Those twelve do not inherit an owner-approval receipt and must not be presented as
+separate two-direction Google and satellite-reviewed controls. Ten—ALABASTER,
+COOK, SIDWELL, DONNA, CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and
+KURTH—use the same exact-record, opposite-direction, and satellite gate.
+Together they bring the current navigation count to **77**, with **170 pads
+still GPS-only**. Those twenty-two do not inherit an owner-approval receipt and must not be presented as
 **Owner-approved directions**.
 
 This approval does not create graph geometry, a public-Google release, or an approved-road overlay. Cologie is the first working example, not a higher grade. A separately verified named-road highlight is display only and creates none of those authorities. The existing destination, waypoint order, and Google URL for every working pad remain unchanged unless evidence proves that Google uses the wrong road.
@@ -34,7 +36,9 @@ PORTERFIELD GAS UNIT, PORTERFIELD B, ROCK RIDGE, CROWIE, CASTON, LAKE, THOMAS, T
 Both groups may display **Owner-approved directions** under the same everyday driver rule. The evidence description may still distinguish exact identities from a validated Google handoff, but that distinction does not withhold Navigate. One build-time catalog covers the frozen 55-entry display set: it reuses existing exact public graph geometry where present and performs offline routed reconstruction through frozen destinations and ordered controls for the remaining static reviewed contracts. It does not modify or replace any frozen Google URL, destination, or waypoint.
 
 HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, KALDOR, RICHLAND B, LAVADA,
-WAMPUM, SLABAUGH, RECTOR-C, and TARPLEY are a separate reviewed-handoff group. Their
+WAMPUM, SLABAUGH, RECTOR-C, TARPLEY, ALABASTER, COOK, SIDWELL, DONNA,
+CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and KURTH are a separate
+reviewed-handoff group. Their
 phone-origin Google links are exact-record-bound, but no row was
 added to the 46 owner-approval receipts and no row was added to the frozen
 55-entry static display catalog. Their map presentation continues to come from
@@ -51,12 +55,14 @@ Each approval is frozen to the complete reviewed contract content: exact pad and
 
 The additive batch-2 highway-to-pad catalog is not itself part of the 46
 owner-approved Google handoffs or the 9 database releases. It still covers 192
-Ascent records as separate field display and direction evidence. Twelve of
+Ascent records as separate field display and direction evidence. Twenty-two of
 those records correspond to additional reviewed handoffs. Six remain
 cross-bound to terminal-highway evidence for HELLER, JENNINGS, KEMPER,
 RED-HILL-FARM, AXLE, and KALDOR. The records for RICHLAND B, LAVADA, WAMPUM,
-SLABAUGH, RECTOR-C, and TARPLEY remain display-only evidence separate from their reviewed
-Navigate controls. The other **180 remain GPS-only for navigation**. The
+SLABAUGH, RECTOR-C, TARPLEY, ALABASTER, COOK, SIDWELL, DONNA, CECELIA,
+DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and KURTH remain display-only evidence
+separate from their reviewed Navigate controls. The other **170 remain GPS-only
+for navigation**. The
 original 55-record catalog, 46 owner receipts, URLs, controls,
 receipt hashes, database releases, and parked states remain unchanged.
 

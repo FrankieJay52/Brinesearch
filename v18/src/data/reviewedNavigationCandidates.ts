@@ -435,6 +435,60 @@ const TARPLEY_WAYPOINTS = [
   { latitude: 40.05541, longitude: -81.319658 },
   { latitude: 40.058189, longitude: -81.295487 },
 ] as const;
+const ALABASTER_ROUTE_DESTINATION = { latitude: 39.753932, longitude: -81.340877 } as const;
+const ALABASTER_WAYPOINTS = [
+  { latitude: 39.781098, longitude: -81.326968 },
+  { latitude: 39.764877, longitude: -81.318449 },
+  { latitude: 39.759918, longitude: -81.333307 },
+] as const;
+const COOK_ROUTE_DESTINATION = { latitude: 40.002019, longitude: -80.875167 } as const;
+const COOK_WAYPOINTS = [
+  { latitude: 40.002767, longitude: -80.875883 },
+  { latitude: 40.002715, longitude: -80.875455 },
+] as const;
+const SIDWELL_ROUTE_DESTINATION = { latitude: 40.146316, longitude: -80.979282 } as const;
+const SIDWELL_WAYPOINTS = [
+  { latitude: 40.137945, longitude: -80.952025 },
+  { latitude: 40.149932, longitude: -80.974296 },
+] as const;
+const DONNA_ROUTE_DESTINATION = { latitude: 40.123656, longitude: -81.252093 } as const;
+const DONNA_WAYPOINTS = [
+  { latitude: 40.142887, longitude: -81.262548 },
+  { latitude: 40.120272, longitude: -81.254445 },
+] as const;
+const CECELIA_ROUTE_DESTINATION = { latitude: 40.282447, longitude: -80.756322 } as const;
+const CECELIA_WAYPOINTS = [
+  { latitude: 40.28077, longitude: -80.758898 },
+  { latitude: 40.282425, longitude: -80.757726 },
+] as const;
+const DICKSON_ROUTE_DESTINATION = { latitude: 40.307082, longitude: -80.694744 } as const;
+const DICKSON_WAYPOINTS = [
+  { latitude: 40.355752, longitude: -80.808421 },
+  { latitude: 40.346345, longitude: -80.814842 },
+  { latitude: 40.316061, longitude: -80.716008 },
+] as const;
+const SHUTWAY_ROUTE_DESTINATION = { latitude: 40.113559, longitude: -81.076149 } as const;
+const SHUTWAY_WAYPOINTS = [
+  { latitude: 40.113608, longitude: -81.077486 },
+] as const;
+const CARLOS_ROUTE_DESTINATION = { latitude: 40.042305, longitude: -80.972809 } as const;
+const CARLOS_WAYPOINTS = [
+  { latitude: 40.0295248, longitude: -81.0390724 },
+  { latitude: 40.03522, longitude: -80.974717 },
+  { latitude: 40.03788, longitude: -80.975034 },
+] as const;
+const CRAVAT_NORTH_ROUTE_DESTINATION = { latitude: 40.158191, longitude: -80.913312 } as const;
+const CRAVAT_NORTH_WAYPOINTS = [
+  { latitude: 40.0691313, longitude: -80.9002496 },
+  { latitude: 40.151952334248, longitude: -80.961064815011 },
+  { latitude: 40.165847, longitude: -80.936123 },
+] as const;
+const KURTH_ROUTE_DESTINATION = { latitude: 40.031709, longitude: -80.841961 } as const;
+const KURTH_WAYPOINTS = [
+  { latitude: 40.0537082, longitude: -80.9182359 },
+  { latitude: 40.039338, longitude: -80.857119 },
+  { latitude: 40.03185, longitude: -80.842057 },
+] as const;
 
 // Existing phone-validated handoffs are intentionally byte-for-byte stable.
 // Building them from JavaScript numbers can drop reviewed trailing zeroes even
@@ -491,6 +545,16 @@ export const WAMPUM_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(WAMPUM_ROUT
 export const SLABAUGH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SLABAUGH_ROUTE_DESTINATION, SLABAUGH_WAYPOINTS);
 export const RECTOR_C_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(RECTOR_C_ROUTE_DESTINATION, RECTOR_C_WAYPOINTS);
 export const TARPLEY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(TARPLEY_ROUTE_DESTINATION, TARPLEY_WAYPOINTS);
+export const ALABASTER_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(ALABASTER_ROUTE_DESTINATION, ALABASTER_WAYPOINTS);
+export const COOK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(COOK_ROUTE_DESTINATION, COOK_WAYPOINTS);
+export const SIDWELL_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SIDWELL_ROUTE_DESTINATION, SIDWELL_WAYPOINTS);
+export const DONNA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DONNA_ROUTE_DESTINATION, DONNA_WAYPOINTS);
+export const CECELIA_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CECELIA_ROUTE_DESTINATION, CECELIA_WAYPOINTS);
+export const DICKSON_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DICKSON_ROUTE_DESTINATION, DICKSON_WAYPOINTS);
+export const SHUTWAY_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(SHUTWAY_ROUTE_DESTINATION, SHUTWAY_WAYPOINTS);
+export const CARLOS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CARLOS_ROUTE_DESTINATION, CARLOS_WAYPOINTS);
+export const CRAVAT_NORTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(CRAVAT_NORTH_ROUTE_DESTINATION, CRAVAT_NORTH_WAYPOINTS);
+export const KURTH_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(KURTH_ROUTE_DESTINATION, KURTH_WAYPOINTS);
 
 interface ReviewedNavigationContract extends ReviewedNavigationCandidate {
   canonicalId: string;
@@ -1751,6 +1815,236 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: TARPLEY_ROUTE_DESTINATION,
     waypoints: TARPLEY_WAYPOINTS,
+  },
+  {
+    padId: "0f848006-4c09-4c7f-b9f2-4743d5ccd37f",
+    canonicalId: "0f848006-4c09-4c7f-b9f2-4743d5ccd37f",
+    legacyId: "ascent--alabaster",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "ALABASTER",
+    state: "Ohio",
+    county: "Noble",
+    structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Bean Ridge Rd / CR-54 → Curtis Ridge Rd / TR-233 → Buckingham Rd / TR-232 → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "I-77 Exit 25 → OH-78 → Bean Ridge Rd / CR-54 → Curtis Ridge Rd / TR-233 → Buckingham Rd / TR-232 → unapproved entrance handoff",
+    routeUrl: ALABASTER_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-77 approach → Exit 25 → OH-78 → Bean Ridge Rd / CR-54 → Curtis Ridge Rd / TR-233 → Buckingham Rd / TR-232 → unapproved pad-approach handoff → verified driver entrance",
+    finalLegNotice: "Both reviewed directions preserve I-77 Exit 25, OH-78, Bean Ridge Road / CR-54, Curtis Ridge Road / TR-233, and Buckingham Road / TR-232 before ALABASTER's verified driver entrance. Google's final movement is about 30 feet, and satellite confirms a continuous connector to the pad; that connector is this pad's approach, not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: ALABASTER_ROUTE_DESTINATION.latitude,
+      longitude: ALABASTER_ROUTE_DESTINATION.longitude,
+      source: "verified_driver_entrance",
+    },
+    routeDestination: ALABASTER_ROUTE_DESTINATION,
+    waypoints: ALABASTER_WAYPOINTS,
+  },
+  {
+    padId: "4213711f-0f23-440a-b0ec-42a1f9be4db0",
+    canonicalId: "4213711f-0f23-440a-b0ec-42a1f9be4db0",
+    legacyId: "ascent--cook",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "COOK",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "St Bellaire Exit On St → OH-149 → Tar Run Rd → Cumberland Run Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "OH-149 → Tar Run Rd → Cumberland Run Rd → unapproved lease/GPS handoff",
+    routeUrl: COOK_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → OH-149 → Tar Run Rd → Cumberland Run Rd → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The Bellaire and Belmont proofs both preserve OH-149, Tar Run Road, and Cumberland Run Road before COOK's saved GPS. Google's final movement is about 39 feet, and satellite shows the short visible gravel spur as this pad's approach; it is not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: COOK_ROUTE_DESTINATION.latitude,
+      longitude: COOK_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: COOK_ROUTE_DESTINATION,
+    waypoints: COOK_WAYPOINTS,
+  },
+  {
+    padId: "5a0ede1b-4586-4edc-9438-7cb29a24e58e",
+    canonicalId: "5a0ede1b-4586-4edc-9438-7cb29a24e58e",
+    legacyId: "ascent--sidwell",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "SIDWELL",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "OH-1 → OH-9 → Unity Church Rd → Pad → OR → I-70 → Exit 216 → OH-9 → Newell Ave → OH-9N → Unity Church Rd → OR → OH-1 → OH-331S → OH-149N → OH-9S → Unity Church Rd",
+    title: "Navigate reviewed route",
+    detail: "OH-9 → Unity Church Rd → unapproved GPS handoff",
+    routeUrl: SIDWELL_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → intended OH-9 occurrence → Unity Church Rd → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The Cadiz and St Clairsville proofs both preserve the intended OH-9 occurrence followed by Unity Church Road before SIDWELL's saved GPS. Satellite confirms the short visible site access as this pad's approach; it is not official road or navigation geometry and does not rewrite the exact three-alternative directory record.",
+    trustedDestination: {
+      latitude: SIDWELL_ROUTE_DESTINATION.latitude,
+      longitude: SIDWELL_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: SIDWELL_ROUTE_DESTINATION,
+    waypoints: SIDWELL_WAYPOINTS,
+  },
+  {
+    padId: "8a7b9669-169d-45a5-bf55-b9be5cbd51e2",
+    canonicalId: "8a7b9669-169d-45a5-bf55-b9be5cbd51e2",
+    legacyId: "ascent--donna",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "DONNA",
+    state: "Ohio",
+    county: "Guernsey",
+    structuredRoadSequence: "OH-800 → US-22 → Skull Fork Rd → Bond Ln → OR → I-77 → Exit 47 → US-22 → Skull Fork Rd → Bond Ln → OR → I-70 → Exit 193 → OH-513 → US-22 → Skull Fork Rd → Bond Ln",
+    title: "Navigate reviewed route",
+    detail: "US-22 → Skull Fork Rd → Bond Ln → unapproved GPS handoff",
+    routeUrl: DONNA_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → US-22 → Skull Fork Rd → Bond Ln → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The Cambridge and Cadiz proofs both preserve US-22, Skull Fork Road, and Bond Lane before DONNA's saved GPS. Satellite places the saved pin at the site entrance on Bond Lane with the pad visible; any final site movement remains this pad's approach, not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: DONNA_ROUTE_DESTINATION.latitude,
+      longitude: DONNA_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: DONNA_ROUTE_DESTINATION,
+    waypoints: DONNA_WAYPOINTS,
+  },
+  {
+    padId: "45b2cfd7-1936-406d-bf6c-de0b8acc8e88",
+    canonicalId: "45b2cfd7-1936-406d-bf6c-de0b8acc8e88",
+    legacyId: "ascent--cecelia",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "CECELIA",
+    state: "Ohio",
+    county: "Jefferson",
+    structuredRoadSequence: "US-22 → OH-151 → A Left Onto County Rd → CR-25 → Pad",
+    title: "Navigate reviewed route",
+    detail: "OH-151 → CR-25 → unapproved GPS handoff",
+    routeUrl: CECELIA_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected US-22 approach → OH-151 → intended CR-25 occurrence → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The Hopedale and Smithfield proofs both preserve OH-151 followed by the intended CR-25 occurrence before CECELIA's saved GPS. Google renders the local control as Weems Road / 3990 County Road 25; that label is context only and is not promoted to a new identity. Satellite shows the clear pad deck immediately off CR-25; the final access is not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: CECELIA_ROUTE_DESTINATION.latitude,
+      longitude: CECELIA_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: CECELIA_ROUTE_DESTINATION,
+    waypoints: CECELIA_WAYPOINTS,
+  },
+  {
+    padId: "18257dbf-d681-46dd-be38-a8e4a6aab56f",
+    canonicalId: "18257dbf-d681-46dd-be38-a8e4a6aab56f",
+    legacyId: "ascent--dickson",
+    recordRevision: "1787459253071652",
+    company: "Ascent",
+    padName: "DICKSON",
+    state: "Ohio",
+    county: "Jefferson",
+    structuredRoadSequence: "OH-1 → OH-152 → Steubenville St → Bloomingdale- Smithfield- Chandl/high St → Fernwood Bloomingdale Rd → Dawson Rd → Township Hwy → TR-187",
+    title: "Navigate reviewed route",
+    detail: "OH-152 → Steubenville St → Bloomingdale-Smithfield-Chandl / High St → Fernwood Bloomingdale Rd → Dawson Rd → TR-187 approach → unapproved GPS handoff",
+    routeUrl: DICKSON_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected approved public-highway approach → OH-152 → Steubenville St → Bloomingdale-Smithfield-Chandl / High St → Fernwood Bloomingdale Rd → Dawson Rd → toward TR-187 → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions preserve the written Steubenville, Bloomingdale-Smithfield-Chandl / High, Fernwood Bloomingdale, and Dawson road order after OH-152, then continue toward TR-187 and DICKSON's saved GPS. Satellite confirms a clear pad deck and continuous approach; the final connector is not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: DICKSON_ROUTE_DESTINATION.latitude,
+      longitude: DICKSON_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: DICKSON_ROUTE_DESTINATION,
+    waypoints: DICKSON_WAYPOINTS,
+  },
+  {
+    padId: "69c63442-de05-4d15-95da-07da587bc070",
+    canonicalId: "69c63442-de05-4d15-95da-07da587bc070",
+    legacyId: "ascent--shutway",
+    recordRevision: "1788117937351112",
+    company: "Ascent",
+    padName: "SHUTWAY",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 208 → OH-149 → Pad",
+    title: "Navigate reviewed route",
+    detail: "I-70 Exit 208 → OH-149 → unapproved GPS handoff",
+    routeUrl: SHUTWAY_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-70 approach → Exit 208 → OH-149 N → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The Cambridge and east-origin proofs explicitly use I-70 Exit 208 in opposite directions and then OH-149 N to SHUTWAY's saved GPS. Satellite centers the pin on the labeled pad deck with a direct driveway off OH-149; that driveway is this pad's approach, not official road or navigation geometry.",
+    trustedDestination: {
+      latitude: SHUTWAY_ROUTE_DESTINATION.latitude,
+      longitude: SHUTWAY_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: SHUTWAY_ROUTE_DESTINATION,
+    waypoints: SHUTWAY_WAYPOINTS,
+  },
+  {
+    padId: "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb",
+    canonicalId: "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb",
+    legacyId: "ascent--carlos",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "CARLOS",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70E → Exit 208 → OH-149 → Elm States Rd → Pad",
+    title: "Navigate reviewed route",
+    detail: "I-70 Exit 208 → OH-149 → Elm States Rd occurrence → unapproved GPS handoff",
+    routeUrl: CARLOS_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-70 approach → Exit 208 → OH-149 S and its Belmont continuation → intended Elm States Rd occurrence → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "The west and east-coordinate proofs both explicitly preserve I-70 Exit 208 and OH-149 S. Google renders the short official Belmont continuation as Palmer, John, and East Main before OH-149 E, and renders written Elm States Road as Elm Station Road; those labels are context only and are not promoted to new identities. Satellite shows the saved pin on the road at the driveway into the clear deck; that driveway is not official road or navigation geometry. Earlier rejected waypoint variants remain excluded.",
+    trustedDestination: {
+      latitude: CARLOS_ROUTE_DESTINATION.latitude,
+      longitude: CARLOS_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: CARLOS_ROUTE_DESTINATION,
+    waypoints: CARLOS_WAYPOINTS,
+  },
+  {
+    padId: "23053421-06d5-47a2-bf77-5c3fdea4939b",
+    canonicalId: "23053421-06d5-47a2-bf77-5c3fdea4939b",
+    legacyId: "ascent--cravat-north",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "CRAVAT NORTH",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherstown Rd → CR-36",
+    title: "Navigate reviewed route",
+    detail: "I-70 Exit 216 → OH-9 → Shepherstown Rd → CR-36 → unapproved restricted approach/GPS handoff",
+    routeUrl: CRAVAT_NORTH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-70 approach → Exit 216 → OH-9 N → Shepherstown Rd → CR-36 → unapproved restricted pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions explicitly preserve I-70 Exit 216, OH-9 N, Shepherdstown, and City Road 36 before the restricted approach to CRAVAT NORTH's saved GPS. Google's Shepherdstown spelling and Stiers label are renderer context only and do not rewrite written Shepherstown Road or promote a new identity. Satellite confirms a clear deck and continuous connector; that connector is not official road or navigation geometry. Earlier rejected waypoint variants remain excluded.",
+    trustedDestination: {
+      latitude: CRAVAT_NORTH_ROUTE_DESTINATION.latitude,
+      longitude: CRAVAT_NORTH_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: CRAVAT_NORTH_ROUTE_DESTINATION,
+    waypoints: CRAVAT_NORTH_WAYPOINTS,
+  },
+  {
+    padId: "83499ca1-3c45-4502-b7c2-688e88343093",
+    canonicalId: "83499ca1-3c45-4502-b7c2-688e88343093",
+    legacyId: "ascent--kurth",
+    recordRevision: "1786258360881449",
+    company: "Ascent",
+    padName: "KURTH",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "I-70 → Exit 216 → OH-9 → CR-5 → Methodist Ridge Rd → Campbell-johnson Hill Rd → Lease Road",
+    title: "Navigate reviewed route",
+    detail: "I-70 Exit 216 → OH-9 → CR-5 → Methodist Ridge Rd → Campbell-johnson Hill Rd → unapproved lease/GPS handoff",
+    routeUrl: KURTH_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "Google-selected I-70 approach → Exit 216 → OH-9 S → CR-5 / Glencoe Rd → Methodist Ridge Rd → Campbell-johnson Hill Rd → unapproved pad-approach/GPS handoff → saved pad GPS",
+    finalLegNotice: "Both reviewed directions preserve I-70 Exit 216 and OH-9 S to the Google-canonical OH-9 / Glencoe Road CR-5 junction, then physical CR-5, Methodist Ridge Road, and Campbell-Johnson Hill Road to KURTH's saved GPS. Satellite confirms the clear entrance split and pad deck; the final connector is not official road or navigation geometry. Glencoe is renderer context for CR-5 only, and earlier rejected waypoint variants remain excluded.",
+    trustedDestination: {
+      latitude: KURTH_ROUTE_DESTINATION.latitude,
+      longitude: KURTH_ROUTE_DESTINATION.longitude,
+      source: "saved_pad_gps",
+    },
+    routeDestination: KURTH_ROUTE_DESTINATION,
+    waypoints: KURTH_WAYPOINTS,
   },
   ...ascentSavedDirectionExactMatchBatch1Contracts,
 ] as const;

@@ -48,13 +48,15 @@ in teal, including when graph, State-1, or public-Google authority remains held.
 The highlight is presentation only. It does not create an official road,
 public-Google publication, graph membership, or route-release authority.
 
-The exact current Ascent navigable set contains **67 pads**: **58 exact-record
-reviewed Google handoffs** plus **9 existing database releases**. The 58
+The exact current Ascent navigable set contains **77 pads**: **68 exact-record
+reviewed Google handoffs** plus **9 existing database releases**. The 68
 reviewed handoffs consist of the unchanged **46 owner-approved handoffs** and
-twelve additional handoffs without owner receipts. Six are the highway-direct
+twenty-two additional handoffs without owner receipts. Six are the highway-direct
 handoffs HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and KALDOR. Six are
 the two-direction and satellite-reviewed handoffs RICHLAND B, LAVADA, WAMPUM,
-SLABAUGH, RECTOR-C, and TARPLEY. The frozen build-time display catalog remains exactly **55 entries**:
+SLABAUGH, RECTOR-C, and TARPLEY. Ten are the second-wave handoffs ALABASTER,
+COOK, SIDWELL, DONNA, CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and
+KURTH. The frozen build-time display catalog remains exactly **55 entries**:
 the 46 owner-approved handoffs plus the 9 database releases. It reuses existing
 exact public graph geometry where present and uses offline routed reconstruction
 through the frozen action destination and ordered controls for the remaining
@@ -70,16 +72,17 @@ loop before any reviewed step, so it fails closed with no visible false-teal
 candidate route. These outcomes keep all 55 records
 inspectable without coloring an unreviewed road teal.
 
-The twelve additional reviewed handoffs are not copied into or reconstructed by
+The twenty-two additional reviewed handoffs are not copied into or reconstructed by
 that 55-entry catalog. The original six remain exact-record-bound to their
 existing batch-2 terminal-highway receipts and frozen saved GPS. The six
 first-wave handoffs are independently exact-record-bound to their reviewed
-controls and saved GPS; their existing batch-2 records remain display evidence
-only. An exact ordered terminal-highway prefix may remain teal, while any
+controls and saved GPS. The ten second-wave handoffs are likewise exact-record-
+bound to their reviewed controls and trusted destinations. Their existing
+batch-2 records remain display evidence only. An exact ordered terminal-highway prefix may remain teal, while any
 post-receipt or separately mapped remainder and its GPS movement remain neutral,
 unapproved, excluded from route authority, and unavailable as navigation
-geometry. The current navigation accounting is therefore **67 navigable** and
-**180 GPS-only** Ascent pads, while the two map artifacts remain 55 static
+geometry. The current navigation accounting is therefore **77 navigable** and
+**170 GPS-only** Ascent pads, while the two map artifacts remain 55 static
 displays and 192 batch-2 approach records.
 
 All 55 catalog entries remain visible on the main **All pads + all approved
@@ -98,12 +101,14 @@ updates the existing source data and selection filter instead.
 ## Remaining Ascent highway-to-pad approaches
 
 The separate batch-2 catalog still contains **192 Ascent approach records**
-without changing the frozen 55-pad catalog above. Twelve of those records now
+without changing the frozen 55-pad catalog above. Twenty-two of those records now
 correspond to additional exact-record reviewed handoffs. Six cross-bind the
 terminal-highway receipts for HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE,
-and KALDOR. Five remain display-only evidence beside the independent Navigate
-contracts for RICHLAND B, LAVADA, WAMPUM, SLABAUGH, RECTOR-C, and TARPLEY. The other
-**180 remain GPS-only for navigation**. The batch-2 artifact remains field display and direction evidence only. It does not
+and KALDOR. Sixteen remain display-only evidence beside the independent
+Navigate contracts for RICHLAND B, LAVADA, WAMPUM, SLABAUGH, RECTOR-C,
+TARPLEY, ALABASTER, COOK, SIDWELL, DONNA, CECELIA, DICKSON, SHUTWAY, CARLOS,
+CRAVAT NORTH, and KURTH. The other **170 remain GPS-only for navigation**. The
+batch-2 artifact remains field display and direction evidence only. It does not
 replace any of the 46 immutable owner-approved Google handoffs, the 9 existing
 database releases, their URLs or controls, or any parked state or promotion
 receipt.

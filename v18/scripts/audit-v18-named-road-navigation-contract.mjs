@@ -50,11 +50,12 @@ requireText(contract, "Cologie is the first working example, not a higher grade"
 requireText(contract, "The origin is the phone's current location", "phone-current-location origin");
 requireText(contract, "The destination is the pad's saved GPS", "saved GPS destination");
 requireText(contract, "Every supplied, separately reviewed named-road geometry feature is highlighted", "all supplied named roads are teal");
-requireText(contract, "**67 pads**: **58 exact-record\nreviewed Google handoffs** plus **9 existing database releases**", "exact 67 / 58 / 9 Ascent navigation composition");
+requireText(contract, "**77 pads**: **68 exact-record\nreviewed Google handoffs** plus **9 existing database releases**", "exact 77 / 68 / 9 Ascent navigation composition");
 requireText(contract, "frozen build-time display catalog remains exactly **55 entries**", "frozen 55-entry Ascent display catalog");
 requireText(contract, "unchanged **46 owner-approved handoffs**", "unchanged 46 owner-approved handoffs");
 requireText(contract, "handoffs HELLER, JENNINGS, KEMPER, RED-HILL-FARM, AXLE, and KALDOR. Six are\nthe two-direction and satellite-reviewed handoffs RICHLAND B, LAVADA, WAMPUM,\nSLABAUGH, RECTOR-C, and TARPLEY", "six highway-direct plus six first-wave handoffs");
-requireText(contract, "**67 navigable** and\n**180 GPS-only** Ascent pads", "67 navigable / 180 GPS-only accounting");
+requireText(contract, "Ten are the second-wave handoffs ALABASTER,\nCOOK, SIDWELL, DONNA, CECELIA, DICKSON, SHUTWAY, CARLOS, CRAVAT NORTH, and\nKURTH", "ten second-wave handoffs");
+requireText(contract, "**77 navigable** and\n**170 GPS-only** Ascent pads", "77 navigable / 170 GPS-only accounting");
 requireText(contract, "offline routed reconstruction\nthrough the frozen action destination and ordered controls", "frozen-control offline reconstruction");
 requireText(contract, "`unapproved_gps_tether`", "unapproved GPS tether authority");
 requireText(contract, "thin solid neutral segment", "solid neutral GPS tether display");
@@ -63,7 +64,7 @@ requireText(contract, "Another company filter or disposal-only view hides\nthe A
 requireText(contract, "makes no route-service call,\nperforms no coordinate hashing", "no browser routing or hashing");
 requireText(contract, "updates the existing source data and selection filter instead", "no ordinary layer rebuild");
 requireText(contract, "separate batch-2 catalog still contains **192 Ascent approach records**", "unchanged 192-record batch-2 catalog");
-requireText(contract, "other\n**180 remain GPS-only for navigation**", "batch-2 180 GPS-only navigation remainder");
+requireText(contract, "other **170 remain GPS-only for navigation**", "batch-2 170 GPS-only navigation remainder");
 requireText(contract, "last Interstate, U.S., or\nstate highway whose **road identity** is exactly supported", "exact last-highway identity boundary");
 requireText(contract, "32 start at a stored exact highway-to-next-road intersection and 79\nstart at a build-time nearest-highway candidate", "exact-versus-candidate approach starts");
 requireText(contract, "passed the bounded\n100-metre snap gate", "candidate highway-start distance gate");
@@ -102,11 +103,11 @@ requireText(contract, "byte-stable Google Navigate link", "BANNOCK working URL r
 requireText(contract, "PROMOTE <PAD NAME> TO STATE 1", "explicit promotion trigger");
 
 requireText(ownerPresentation, "exact frozen 55-entry Ascent display catalog", "owner presentation frozen 55-entry catalog");
-requireText(ownerPresentation, "current navigation count to **67**, with **180 pads still GPS-only**", "owner presentation 67 / 180 navigation accounting");
-requireText(ownerPresentation, "Those twelve do not inherit an owner-approval receipt", "twelve handoffs remain outside owner approval");
-requireText(ownerPresentation, "no row was\nadded to the 46 owner-approval receipts and no row was added to the frozen\n55-entry static display catalog", "eleven handoffs preserve receipts and static catalog");
+requireText(ownerPresentation, "current navigation count to **77**, with **170 pads\nstill GPS-only**", "owner presentation 77 / 170 navigation accounting");
+requireText(ownerPresentation, "Those twenty-two do not inherit an owner-approval receipt", "twenty-two handoffs remain outside owner approval");
+requireText(ownerPresentation, "no row was\nadded to the 46 owner-approval receipts and no row was added to the frozen\n55-entry static display catalog", "twenty-two handoffs preserve receipts and static catalog");
 requireText(ownerPresentation, "still covers 192\nAscent records", "owner presentation unchanged batch-2 count");
-requireText(ownerPresentation, "other **180 remain GPS-only for navigation**", "owner presentation 180 GPS-only remainder");
+requireText(ownerPresentation, "other **170 remain GPS-only\nfor navigation**", "owner presentation 170 GPS-only remainder");
 requireText(ownerPresentation, "32 start at a stored exact\nhighway-to-next-road intersection", "owner presentation exact-intersection count");
 requireText(ownerPresentation, "other 79 use a build-time\nnearest-highway candidate", "owner presentation candidate-start count");
 requireText(ownerPresentation, "not an approved or exact intersection", "owner presentation candidate authority boundary");
@@ -414,10 +415,11 @@ if (routes.filter((route) => route.redContinuation !== null).length !== 1
   errors.push("BANNOCK's separately proved exit is no longer the sole red feature in the shared catalog");
 }
 
-// Load all 58 exact-record contracts through Vite. The 46 receipt-bound rows
+// Load all 68 exact-record contracts through Vite. The 46 receipt-bound rows
 // must still match the frozen 55-entry catalog. The original six additional
-// handoffs retain their sealed terminal-highway evidence, while the five
-// first-wave handoffs remain separate from display-only batch-2 geometry.
+// handoffs retain their sealed terminal-highway evidence, while the six
+// first-wave and ten second-wave handoffs remain independent of display-only
+// batch-2 geometry.
 let viteServer;
 try {
   const { createServer } = await import("vite");
@@ -432,8 +434,8 @@ try {
   const contractIds = new Set(contractRows.map((row) => row.padId));
   const receiptRows = navigationModule.ownerApprovalReceiptRowsForAudit();
   const receiptIds = new Set(receiptRows.map((row) => row.padId));
-  if (contractRows.length !== 58 || contractIds.size !== 58) {
-    errors.push("The reviewed navigation source is not exactly 58 unique exact-record handoffs");
+  if (contractRows.length !== 68 || contractIds.size !== 68) {
+    errors.push("The reviewed navigation source is not exactly 68 unique exact-record handoffs");
   }
   if (receiptRows.length !== 46 || receiptIds.size !== 46 || receiptRows.some((row) => !row.matchesCurrentContent)) {
     errors.push("The 46 immutable reviewed navigation receipts are incomplete or have content drift");
@@ -512,17 +514,115 @@ try {
       ],
     }],
   ]);
-  const expectedAdditionalNames = new Set([...sealedApproachNames, ...firstWaveExpected.keys()]);
+  const secondWaveExpected = new Map([
+    ["ALABASTER", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=39.753932%2C-81.340877&waypoints=39.781098%2C-81.326968%7C39.764877%2C-81.318449%7C39.759918%2C-81.333307",
+      destinationSource: "verified_driver_entrance",
+      directoryCoordinateRole: "verified driver entrance",
+      waypoints: [
+        { latitude: 39.781098, longitude: -81.326968 },
+        { latitude: 39.764877, longitude: -81.318449 },
+        { latitude: 39.759918, longitude: -81.333307 },
+      ],
+    }],
+    ["COOK", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.002019%2C-80.875167&waypoints=40.002767%2C-80.875883%7C40.002715%2C-80.875455",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.002767, longitude: -80.875883 },
+        { latitude: 40.002715, longitude: -80.875455 },
+      ],
+    }],
+    ["SIDWELL", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.146316%2C-80.979282&waypoints=40.137945%2C-80.952025%7C40.149932%2C-80.974296",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.137945, longitude: -80.952025 },
+        { latitude: 40.149932, longitude: -80.974296 },
+      ],
+    }],
+    ["DONNA", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.123656%2C-81.252093&waypoints=40.142887%2C-81.262548%7C40.120272%2C-81.254445",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.142887, longitude: -81.262548 },
+        { latitude: 40.120272, longitude: -81.254445 },
+      ],
+    }],
+    ["CECELIA", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.282447%2C-80.756322&waypoints=40.28077%2C-80.758898%7C40.282425%2C-80.757726",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.28077, longitude: -80.758898 },
+        { latitude: 40.282425, longitude: -80.757726 },
+      ],
+    }],
+    ["DICKSON", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.307082%2C-80.694744&waypoints=40.355752%2C-80.808421%7C40.346345%2C-80.814842%7C40.316061%2C-80.716008",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.355752, longitude: -80.808421 },
+        { latitude: 40.346345, longitude: -80.814842 },
+        { latitude: 40.316061, longitude: -80.716008 },
+      ],
+    }],
+    ["SHUTWAY", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.113559%2C-81.076149&waypoints=40.113608%2C-81.077486",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [{ latitude: 40.113608, longitude: -81.077486 }],
+    }],
+    ["CARLOS", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.042305%2C-80.972809&waypoints=40.0295248%2C-81.0390724%7C40.03522%2C-80.974717%7C40.03788%2C-80.975034",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.0295248, longitude: -81.0390724 },
+        { latitude: 40.03522, longitude: -80.974717 },
+        { latitude: 40.03788, longitude: -80.975034 },
+      ],
+    }],
+    ["CRAVAT NORTH", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.158191%2C-80.913312&waypoints=40.0691313%2C-80.9002496%7C40.151952334248%2C-80.961064815011%7C40.165847%2C-80.936123",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.0691313, longitude: -80.9002496 },
+        { latitude: 40.151952334248, longitude: -80.961064815011 },
+        { latitude: 40.165847, longitude: -80.936123 },
+      ],
+    }],
+    ["KURTH", {
+      routeUrl: "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.031709%2C-80.841961&waypoints=40.0537082%2C-80.9182359%7C40.039338%2C-80.857119%7C40.03185%2C-80.842057",
+      destinationSource: "saved_pad_gps",
+      directoryCoordinateRole: "saved pad reference",
+      waypoints: [
+        { latitude: 40.0537082, longitude: -80.9182359 },
+        { latitude: 40.039338, longitude: -80.857119 },
+        { latitude: 40.03185, longitude: -80.842057 },
+      ],
+    }],
+  ]);
+  const expectedAdditionalNames = new Set([
+    ...sealedApproachNames,
+    ...firstWaveExpected.keys(),
+    ...secondWaveExpected.keys(),
+  ]);
   const approachRecords = Array.isArray(ascentPadApproachArtifact?.records)
     ? ascentPadApproachArtifact.records
     : [];
-  if (additionalHandoffs.length !== 12
+  if (additionalHandoffs.length !== 22
     || additionalHandoffs.some((row) => !expectedAdditionalNames.has(row.padName))
-    || new Set(additionalHandoffs.map((row) => row.padName)).size !== 12
+    || new Set(additionalHandoffs.map((row) => row.padName)).size !== 22
     || approachRecords.length !== 192
-    || contractRows.length + 9 !== 67
-    || approachRecords.length - additionalHandoffs.length !== 180) {
-    errors.push("Ascent navigation accounting is not exactly 67 navigable, 55 static displays, and 180 GPS-only");
+    || contractRows.length + 9 !== 77
+    || approachRecords.length - additionalHandoffs.length !== 170) {
+    errors.push("Ascent navigation accounting is not exactly 77 navigable, 55 static displays, and 170 GPS-only");
   }
 
   const firstWaveHandoffs = additionalHandoffs.filter((row) => firstWaveExpected.has(row.padName));
@@ -564,6 +664,48 @@ try {
       || approach.destination?.coordinates?.[1] !== handoff.trustedDestination.latitude
       || approach.status !== "ROUTED_DISPLAY") {
       errors.push(`${handoff.padName} no longer has its independent exact-record first-wave handoff while remaining outside receipts and static displays`);
+    }
+  }
+
+  const secondWaveHandoffs = additionalHandoffs.filter((row) => secondWaveExpected.has(row.padName));
+  if (secondWaveHandoffs.length !== 10) {
+    errors.push("The second reviewed navigation wave is not exactly ten unique handoffs");
+  }
+  for (const handoff of secondWaveHandoffs) {
+    const expected = secondWaveExpected.get(handoff.padName);
+    const approach = approachRecords.find((record) => record.padId === handoff.padId);
+    if (!expected
+      || handoff.ownerApproval !== null
+      || handoff.preserveMeasuredApproach !== false
+      || handoff.selectedTerminalPublicRoadSequence?.length !== 0
+      || receiptIds.has(handoff.padId)
+      || routes.some((route) => route.padId === handoff.padId)
+      || handoff.routeUrl !== expected.routeUrl
+      || JSON.stringify(handoff.waypoints) !== JSON.stringify(expected.waypoints)
+      || !navigationModule.reviewedNavigationUrlMatchesContract(
+        handoff.routeUrl,
+        handoff.routeDestination,
+        handoff.waypoints,
+      )
+      || handoff.trustedDestination?.source !== expected.destinationSource
+      || handoff.routeDestination?.latitude !== handoff.trustedDestination?.latitude
+      || handoff.routeDestination?.longitude !== handoff.trustedDestination?.longitude
+      || !approach
+      || approach.padId !== handoff.padId
+      || approach.canonicalId !== handoff.canonicalId
+      || approach.legacyId !== handoff.legacyId
+      || approach.recordRevision !== handoff.recordRevision
+      || approach.company !== handoff.company
+      || approach.padName !== handoff.padName
+      || approach.state !== handoff.state
+      || approach.county !== handoff.county
+      || approach.structuredRoadSequence !== handoff.structuredRoadSequence
+      || approach.destination?.gpsSource !== "saved"
+      || approach.destination?.directoryCoordinateRole !== expected.directoryCoordinateRole
+      || approach.destination?.coordinates?.[0] !== handoff.trustedDestination.longitude
+      || approach.destination?.coordinates?.[1] !== handoff.trustedDestination.latitude
+      || approach.status !== "ROUTED_DISPLAY") {
+      errors.push(`${handoff.padName} no longer has its independent exact-record second-wave handoff while remaining outside receipts and static displays`);
     }
   }
 
@@ -731,4 +873,4 @@ if (errors.length) {
   process.exit(1);
 }
 
-process.stdout.write("V18 named-road navigation audit passed: 67 Ascent pads are navigable, 180 remain GPS-only, 58 exact-record reviewed handoffs are active, the frozen 55 static displays and 192 batch-2 approaches remain unchanged, 46 owner-approved receipts remain byte-stable, six first-wave handoffs remain independent of display-only geometry, six highway-direct handoffs cross-bind sealed terminal-highway evidence, post-receipt mapped remainders and GPS tethers stay neutral and unapproved, and State-1 gates are parked.\n");
+process.stdout.write("V18 named-road navigation audit passed: 77 Ascent pads are navigable, 170 remain GPS-only, 68 exact-record reviewed handoffs are active, the frozen 55 static displays and 192 batch-2 approaches remain unchanged, 46 owner-approved receipts remain byte-stable, six first-wave and ten second-wave handoffs remain independent of display-only geometry, six highway-direct handoffs cross-bind sealed terminal-highway evidence, post-receipt mapped remainders and GPS tethers stay neutral and unapproved, and State-1 gates are parked.\n");

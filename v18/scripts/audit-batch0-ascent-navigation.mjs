@@ -1056,6 +1056,176 @@ const explicitStates = new Map([
       directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.063839, longitude: -81.293734 },
     },
   }],
+  ["0f848006-4c09-4c7f-b9f2-4743d5ccd37f", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "ALABASTER exact-record I-77 Exit 25 → OH-78 → Bean Ridge Rd / CR-54 → Curtis Ridge Rd / TR-233 → Buckingham Rd / TR-232 reviewed handoff; final pad approach unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "0f848006-4c09-4c7f-b9f2-4743d5ccd37f",
+      legacyId: "ascent--alabaster",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "ALABASTER",
+      state: "Ohio",
+      county: "Noble",
+      structuredRoadSequence: "I-77 → Exit 25 → OH-78 → Bean Ridge Rd / CR-54 → Curtis Ridge Rd / TR-233 → Buckingham Rd / TR-232 → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "verified driver entrance", latitude: 39.753932, longitude: -81.340877 },
+    },
+  }],
+  ["4213711f-0f23-440a-b0ec-42a1f9be4db0", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "COOK exact-record OH-149 → Tar Run Rd → Cumberland Run Rd reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "4213711f-0f23-440a-b0ec-42a1f9be4db0",
+      legacyId: "ascent--cook",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "COOK",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "St Bellaire Exit On St → OH-149 → Tar Run Rd → Cumberland Run Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.002019, longitude: -80.875167 },
+    },
+  }],
+  ["5a0ede1b-4586-4edc-9438-7cb29a24e58e", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "SIDWELL exact-record OH-9 → Unity Church Rd reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "5a0ede1b-4586-4edc-9438-7cb29a24e58e",
+      legacyId: "ascent--sidwell",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "SIDWELL",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "OH-1 → OH-9 → Unity Church Rd → Pad → OR → I-70 → Exit 216 → OH-9 → Newell Ave → OH-9N → Unity Church Rd → OR → OH-1 → OH-331S → OH-149N → OH-9S → Unity Church Rd",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.146316, longitude: -80.979282 },
+    },
+  }],
+  ["8a7b9669-169d-45a5-bf55-b9be5cbd51e2", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "DONNA exact-record US-22 → Skull Fork Rd → Bond Ln reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "8a7b9669-169d-45a5-bf55-b9be5cbd51e2",
+      legacyId: "ascent--donna",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "DONNA",
+      state: "Ohio",
+      county: "Guernsey",
+      structuredRoadSequence: "OH-800 → US-22 → Skull Fork Rd → Bond Ln → OR → I-77 → Exit 47 → US-22 → Skull Fork Rd → Bond Ln → OR → I-70 → Exit 193 → OH-513 → US-22 → Skull Fork Rd → Bond Ln",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.123656, longitude: -81.252093 },
+    },
+  }],
+  ["45b2cfd7-1936-406d-bf6c-de0b8acc8e88", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "CECELIA exact-record OH-151 → CR-25 reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "45b2cfd7-1936-406d-bf6c-de0b8acc8e88",
+      legacyId: "ascent--cecelia",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "CECELIA",
+      state: "Ohio",
+      county: "Jefferson",
+      structuredRoadSequence: "US-22 → OH-151 → A Left Onto County Rd → CR-25 → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.282447, longitude: -80.756322 },
+    },
+  }],
+  ["18257dbf-d681-46dd-be38-a8e4a6aab56f", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "DICKSON exact-record OH-152 → Steubenville St → Fernwood Bloomingdale Rd → Dawson Rd → TR-187 reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "18257dbf-d681-46dd-be38-a8e4a6aab56f",
+      legacyId: "ascent--dickson",
+      recordRevision: "1787459253071652",
+      company: "Ascent",
+      padName: "DICKSON",
+      state: "Ohio",
+      county: "Jefferson",
+      structuredRoadSequence: "OH-1 → OH-152 → Steubenville St → Bloomingdale- Smithfield- Chandl/high St → Fernwood Bloomingdale Rd → Dawson Rd → Township Hwy → TR-187",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.307082, longitude: -80.694744 },
+    },
+  }],
+  ["69c63442-de05-4d15-95da-07da587bc070", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "SHUTWAY exact-record I-70 Exit 208 → OH-149 reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "69c63442-de05-4d15-95da-07da587bc070",
+      legacyId: "ascent--shutway",
+      recordRevision: "1788117937351112",
+      company: "Ascent",
+      padName: "SHUTWAY",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 208 → OH-149 → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.113559, longitude: -81.076149 },
+    },
+  }],
+  ["b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "CARLOS exact-record I-70 Exit 208 → OH-149 → Elm States Rd reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb",
+      legacyId: "ascent--carlos",
+      recordRevision: "1786265812046205",
+      company: "Ascent",
+      padName: "CARLOS",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70E → Exit 208 → OH-149 → Elm States Rd → Pad",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.042305, longitude: -80.972809 },
+    },
+  }],
+  ["23053421-06d5-47a2-bf77-5c3fdea4939b", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "CRAVAT NORTH exact-record I-70 Exit 216 → OH-9 → Shepherstown Rd → CR-36 reviewed handoff; final restricted pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "23053421-06d5-47a2-bf77-5c3fdea4939b",
+      legacyId: "ascent--cravat-north",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "CRAVAT NORTH",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 216 → OH-9 → Shepherstown Rd → CR-36",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.158191, longitude: -80.913312 },
+    },
+  }],
+  ["83499ca1-3c45-4502-b7c2-688e88343093", {
+    state: "reviewed_handoff_authority_held",
+    blocker: "An exact-record reviewed Google handoff exists; no owner-approval receipt, route/graph promotion, or public-Google authority is created.",
+    receipt: "KURTH exact-record I-70 Exit 216 → OH-9 → CR-5 → Methodist Ridge Rd → Campbell-johnson Hill Rd reviewed handoff; final pad approach and GPS movement unapproved",
+    navigationLabel: "Reviewed route in Google Maps",
+    reviewedBinding: {
+      padId: "83499ca1-3c45-4502-b7c2-688e88343093",
+      legacyId: "ascent--kurth",
+      recordRevision: "1786258360881449",
+      company: "Ascent",
+      padName: "KURTH",
+      state: "Ohio",
+      county: "Belmont",
+      structuredRoadSequence: "I-70 → Exit 216 → OH-9 → CR-5 → Methodist Ridge Rd → Campbell-johnson Hill Rd → Lease Road",
+      directoryDestination: { gpsSource: "saved", coordinateRole: "saved pad reference", latitude: 40.031709, longitude: -80.841961 },
+    },
+  }],
   ["0b675c3f-2c04-4901-955d-8629e7dba05e", {
     state: "3",
     blocker: "The West Grove lease-end receipt does not approve route geometry or a Google handoff; use the saved GPS destination only.",
@@ -1506,7 +1676,7 @@ export function markdownSummary({ provenance, snapshot, rows, referenceDigest, c
 - Candidate implementation HEAD: \`${provenance.implementationSha}\`
 - Candidate content SHA-256: \`${provenance.candidateContentSha256}\`
 - Uncommitted non-generated changes: **${provenance.uncommittedChanges ? "yes" : "no"}**
-- 247 / 67 DONE reviewed named-road handoffs / 180 GPS_ONLY
+- 247 / 77 DONE reviewed named-road handoffs / 170 GPS_ONLY
 - Production writes zero
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot \`${snapshot.snapshotId}\` and source revision \`${snapshot.sourceRevision}\`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
@@ -1540,14 +1710,14 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
-- The 67 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining 180 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
+- The 77 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining 170 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- The frozen build-time Ascent display catalog remains exactly 55 pads: 46 immutable owner-receipted reviewed handoffs plus 9 existing database releases. Twelve additional reviewed handoffs — the six existing highway-direct handoffs and the six first-wave handoffs — remain linked to their existing records in the separate 192-record batch-2 approach catalog; that does not add them to or modify the 55-pad display catalog. The frozen catalog reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only exact receipt-backed road geometry; a post-receipt mapped remainder and the optional thin solid neutral \`unapproved_gps_tether\` stay neutral without a road name or approval. All 55 catalog entries persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- The frozen build-time Ascent display catalog remains exactly 55 pads: 46 immutable owner-receipted reviewed handoffs plus 9 existing database releases. Twenty-two additional reviewed handoffs — the six existing highway-direct handoffs, six first-wave handoffs, and ten second-wave handoffs — remain linked to their existing records in the separate 192-record batch-2 approach catalog; that does not add them to or modify the 55-pad display catalog. The frozen catalog reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only exact receipt-backed road geometry; a post-receipt mapped remainder and the optional thin solid neutral \`unapproved_gps_tether\` stay neutral without a road name or approval. All 55 catalog entries persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- The legacy \`reviewed_handoff_authority_held\` token remains parked provenance for 58 record-bound handoffs: 46 immutable owner-receipted handoffs plus 12 reviewed handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
+- The legacy \`reviewed_handoff_authority_held\` token remains parked provenance for 68 record-bound handoffs: 46 immutable owner-receipted handoffs plus 22 reviewed handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is \`${referenceDigest}\`.
 - The generated CSV SHA-256 is \`${csvDigest}\`.
@@ -1690,11 +1860,11 @@ async function main() {
     || left.name.localeCompare(right.name));
 
   const stateCounts = countBy(ledger, "current_state");
-  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 180
-    && stateCounts.reviewed_handoff_authority_held === 58,
+  assert(stateCounts["1"] === 1 && stateCounts["2"] === 8 && stateCounts["3"] === 170
+    && stateCounts.reviewed_handoff_authority_held === 68,
     `State counts diverged: ${JSON.stringify(stateCounts)}`);
   const driverRuleCounts = countBy(ledger, "driver_rule_status");
-  assert(driverRuleCounts.DONE === 67 && driverRuleCounts.GPS_ONLY === 180,
+  assert(driverRuleCounts.DONE === 77 && driverRuleCounts.GPS_ONLY === 170,
     `Driver-rule counts diverged: ${JSON.stringify(driverRuleCounts)}`);
   assert(ledger.every((row) => row.gps_source !== "missing"), "At least one target lacks a trusted Navigate destination");
 
