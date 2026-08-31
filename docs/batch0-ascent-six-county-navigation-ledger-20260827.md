@@ -1,9 +1,9 @@
 # Batch 0 Ascent six-county navigation ledger — 2026-08-27
 - Base origin/main SHA: `46a4710a33aa713843749038886aac55ab08e489`
-- Candidate implementation HEAD: `876e771f5a17df4855f78f1fc22b073fddb7eb1b`
-- Candidate content SHA-256: `7d7a683c0315bb625fa5fc2e603392df781f29ed4016ff7cdc12b99354132691`
+- Candidate implementation HEAD: `c95bd16b671c3cfdcda1d36fc037ba42e157a9ef`
+- Candidate content SHA-256: `7e93328bb7f1287b89e306490d9a45f6c73333747b9848795211064805416e78`
 - Uncommitted non-generated changes: **no**
-- 247 / 67 DONE reviewed named-road handoffs / 180 GPS_ONLY
+- 247 / 77 DONE reviewed named-road handoffs / 170 GPS_ONLY
 - Production writes zero
 
 This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Harrison, Jefferson, Monroe, and Noble counties to production directory snapshot `549719ed-d269-4b2b-a954-8ce97e5036c1` and source revision `13`. It describes candidate implementation content based on origin/main; it does not claim that unmerged work is already on main.
@@ -17,6 +17,7 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 - `docs/ascent-navigation-first-ten-i70-qa-20260831.csv`
 - `docs/ascent-navigation-first-ten-i70-qa-20260831.md`
 - `docs/issue97-ascent-i70-wave1-google-qa-draft-pr-20260831.md`
+- `docs/issue97-ascent-navigation-wave2-google-qa-draft-pr-20260831.md`
 - `docs/issue97-owner-approved-directions-presentation-20260828.md`
 - `v18/scripts/audit-batch0-ascent-navigation.mjs`
 - `v18/scripts/audit-batch0-ascent-navigation.test.mjs`
@@ -27,23 +28,23 @@ This candidate ledger binds the 247 current Ascent pads in Belmont, Guernsey, Ha
 
 ## Counts
 
-- DONE — reviewed ordered named roads to the saved or frozen destination pin: **67**
-- GPS_ONLY — no reviewed named-road sequence yet: **180**
+- DONE — reviewed ordered named roads to the saved or frozen destination pin: **77**
+- GPS_ONLY — no reviewed named-road sequence yet: **170**
 - No trusted GPS: **0**
 - Exactly one navigation action destination: **247**
 
 | County | Pads | DONE | GPS_ONLY | No GPS |
 | --- | ---: | ---: | ---: | ---: |
-| Belmont | 77 | 24 | 53 | 0 |
-| Guernsey | 44 | 20 | 24 | 0 |
+| Belmont | 77 | 30 | 47 | 0 |
+| Guernsey | 44 | 21 | 23 | 0 |
 | Harrison | 49 | 17 | 32 | 0 |
-| Jefferson | 66 | 2 | 64 | 0 |
+| Jefferson | 66 | 4 | 62 | 0 |
 | Monroe | 1 | 0 | 1 | 0 |
-| Noble | 10 | 4 | 6 | 0 |
+| Noble | 10 | 5 | 5 | 0 |
 
 ## Parked promotion provenance
 
-The retained `current_state` values are audit provenance only: State 1 **1**, State 2 **8**, legacy GPS state **180**, and reviewed-handoff / graph-held **58**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says `PROMOTE <PAD NAME> TO STATE 1`.
+The retained `current_state` values are audit provenance only: State 1 **1**, State 2 **8**, legacy GPS state **170**, and reviewed-handoff / graph-held **68**. They are not everyday driver grades or Navigate blockers. The twenty State-1 gates stay parked unless a later owner instruction explicitly says `PROMOTE <PAD NAME> TO STATE 1`.
 
 ## GPS source accounting
 
@@ -55,17 +56,17 @@ BILINOVICH is the one deliberate distinction: its frozen PR #174 handoff navigat
 
 - The phone's current location is the origin. GPS_ONLY URLs contain no origin or waypoint.
 - One everyday rule applies to every pad: if Google follows the reviewed directed named public roads in order to the saved pin, the pad is DONE. Cologie is the first working pad, not a higher grade.
-- The 67 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
-- The remaining 180 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
+- The 77 existing reviewed named-road handoffs are DONE for everyday navigation. Missing graph occurrence counts, survey geometry, junction receipts, private manifests, State-1 owner release, or exact-graph geometry do not withhold Navigate.
+- The remaining 170 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY. This audit does not stamp a route onto any of them.
 - After the last reviewed named public road, an unnamed lease or dirt tail may continue to the destination pin. The ledger does not name, approve, or invent that tail.
-- The frozen build-time Ascent display catalog remains exactly 55 pads: 46 immutable owner-receipted reviewed handoffs plus 9 existing database releases. Twelve additional reviewed handoffs — the six existing highway-direct handoffs and the six first-wave handoffs — remain linked to their existing records in the separate 192-record batch-2 approach catalog; that does not add them to or modify the 55-pad display catalog. The frozen catalog reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only exact receipt-backed road geometry; a post-receipt mapped remainder and the optional thin solid neutral `unapproved_gps_tether` stay neutral without a road name or approval. All 55 catalog entries persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
+- The frozen build-time Ascent display catalog remains exactly 55 pads: 46 immutable owner-receipted reviewed handoffs plus 9 existing database releases. Twenty-two additional reviewed handoffs — the six existing highway-direct handoffs, six first-wave handoffs, and ten second-wave handoffs — remain linked to their existing records in the separate 192-record batch-2 approach catalog; that does not add them to or modify the 55-pad display catalog. The frozen catalog reuses exact public graph geometry where present and otherwise reconstructs the routable network offline through frozen controls without changing a Google URL or waypoint. Solid teal shows only exact receipt-backed road geometry; a post-receipt mapped remainder and the optional thin solid neutral `unapproved_gps_tether` stay neutral without a road name or approval. All 55 catalog entries persist on All/Ascent and brighten on selection; another-company and disposal-only filters hide them. BANNOCK's separately proved exit is the only red continuation, and Interstate, US, and state routes are never red. Browser routing, coordinate hashing, production writes, graph/public-Google promotion, and cutover remain zero.
 - Named-road-to-pin driver rule: a reviewed handoff succeeds when Google stays on the directed state, US, county, or township roads in order and then reaches the exact trusted pin. A different road before those directed roads finish is a failure; add an exact turn control on the named road only when that failure is proven. Do not invent a pad-deck coordinate or name/approve lease geometry.
 - SKULL FORK remains frozen at Cadiz Road / US-22 → Repik Lane / TR-9876 → its exact trusted pin. Owner live proof and current Google turn-list QA both followed that sequence. Its URL, destination, and control are unchanged.
 - The reviewed-handoff scan found no current frozen link with evidence that Google leaves a required named road. Superseded or rejected failures remain excluded/GPS-only; working reviewed links remain unchanged.
-- The legacy `reviewed_handoff_authority_held` token remains parked provenance for 58 record-bound handoffs: 46 immutable owner-receipted handoffs plus 12 reviewed handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
+- The legacy `reviewed_handoff_authority_held` token remains parked provenance for 68 record-bound handoffs: 46 immutable owner-receipted handoffs plus 22 reviewed handoffs with no owner receipt. It does not hold everyday Navigate or make those working handoffs a lower grade.
 - Written directions are not converted into geometry, and ODNR points are never labeled as entrances.
 - The public reference projection SHA-256 is `1dfa303193d52cff7e6cefe358afca52d1e4406e9378d16ac993f1482e0f3e45`.
-- The generated CSV SHA-256 is `b099b4ab65a7a87559b97c34456eb347a4f778cd03bf998fa7046f0b71500168`.
+- The generated CSV SHA-256 is `c3463f2f55c8b165b5d011c9b9eac9fc95c4eddd0023db6e956dad54dbd6b206`.
 - Production database writes for this ledger: **0**.
 
 Regenerate from the current live public contracts with `npm --prefix v18 run audit:batch0-navigation -- --write`. The audit performs one request per page/contract and has no retry path.
