@@ -1,0 +1,254 @@
+name: Issue97 Gates 2+3 static verification
+
+on:
+  push:
+    branches:
+      - fix/issue97-gates-2-3-county-terminal-access
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    if: ${{ !contains(github.event.head_commit.message, '[gates2-3-static-verified]') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out work branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/issue97-gates-2-3-county-terminal-access
+          fetch-depth: 0
+
+      - name: Configure Git
+        run: |
+          git config user.name "FrankieJay52"
+          git config user.email "87081892+FrankieJay52@users.noreply.github.com"
+
+      - name: Tighten verified-road grouping and SQL regression syntax
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          migration = Path('supabase/migrations/20260903193000_issue97_county_scoped_physical_road_resolution.sql')
+          text = migration.read_text()
+          old = "      mapping.road_id,\n      mapping.mapping_method,"
+          new = "      road.id as road_id,\n      mapping.mapping_method,"
+          if text.count(old) != 1:
+              raise SystemExit(f'migration verified-road replacement count={text.count(old)}')
+          text = text.replace(old, new, 1)
+          migration.write_text(text)
+
+          impact = Path('ops/issue97-gates-2-3/sql/01-gates2-3-impact-readonly.sql')
+          text = impact.read_text()
+          if text.count('mapping.road_id as verified_canonical_road_id') != 2:
+              raise SystemExit('impact physical-road selection count drifted')
+          text = text.replace(
+              'mapping.road_id as verified_canonical_road_id',
+              'road.id as verified_canonical_road_id',
+          )
+          old_join_1 = """  left join public.brinesearch_road_identity_mappings mapping
+    on mapping.identity_id=identity.id
+   and mapping.mapping_status='verified'
+  where scope.county_match_count=1"""
+          new_join_1 = """  left join public.brinesearch_road_identity_mappings mapping
+    on mapping.identity_id=identity.id
+   and mapping.mapping_status='verified'
+  left join public.brinesearch_roads road
+    on road.id=mapping.road_id
+   and road.verification_status='verified'
+   and not road.candidate_only
+  where scope.county_match_count=1"""
+          if text.count(old_join_1) != 1:
+              raise SystemExit('impact county-candidate join anchor drifted')
+          text = text.replace(old_join_1, new_join_1, 1)
+          old_join_2 = """  left join public.brinesearch_road_identity_mappings mapping
+    on mapping.identity_id=identity.id and mapping.mapping_status='verified'
+)"""
+          new_join_2 = """  left join public.brinesearch_road_identity_mappings mapping
+    on mapping.identity_id=identity.id and mapping.mapping_status='verified'
+  left join public.brinesearch_roads road
+    on road.id=mapping.road_id
+   and road.verification_status='verified'
+   and not road.candidate_only
+)"""
+          if text.count(old_join_2) != 1:
+              raise SystemExit('impact pressure-case join anchor drifted')
+          text = text.replace(old_join_2, new_join_2, 1)
+          impact.write_text(text)
+
+          test = Path('supabase/tests/issue97_county_scoped_physical_road_resolution.sql')
+          text = test.read_text()
+          prefix_pattern = re.compile(
+              r"select pg_catalog\.md5\(pg_catalog\.pg_get_functiondef\(.*?\\endif\n\n",
+              re.S,
+          )
+          replacement = """do $issue97_gate2_test_baseline$
+begin
+  if pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)'::pg_catalog.regprocedure
+     ))<>'0f139df2a01f68722958ff10f1dd6f49'
+     or pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_refresh_route_receipt(uuid)'::pg_catalog.regprocedure
+     ))<>'8283a543bf42f939296d32e5e5a92b4f' then
+    raise exception 'Issue #97 Gate 2 database test baseline function contract drifted';
+  end if;
+end
+$issue97_gate2_test_baseline$;
+
+"""
+          text, count = prefix_pattern.subn(replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'test baseline replacement count={count}')
+          text = text.replace("=:'before_route_md5'", "='8283a543bf42f939296d32e5e5a92b4f'")
+
+          rollback_pattern = re.compile(
+              r"-- Rollback proof: old function bodies return exactly and helper disappears\..*?\nbegin;\nset local statement_timeout='15min';",
+              re.S,
+          )
+          rollback_replacement = """-- Rollback proof: old function bodies return exactly and helper disappears.
+do $issue97_gate2_test_rollback$
+begin
+  if pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)'::pg_catalog.regprocedure
+     ))<>'0f139df2a01f68722958ff10f1dd6f49'
+     or pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_refresh_route_receipt(uuid)'::pg_catalog.regprocedure
+     ))<>'8283a543bf42f939296d32e5e5a92b4f'
+     or pg_catalog.to_regprocedure(
+       'private_verification.brinesearch_issue97_county_scope_candidate_set(uuid)'
+     ) is not null then
+    raise exception 'Issue #97 Gate 2 rollback did not restore the baseline contract exactly';
+  end if;
+end
+$issue97_gate2_test_rollback$;
+
+begin;
+set local statement_timeout='15min';"""
+          text, count = rollback_pattern.subn(rollback_replacement, text, count=1)
+          if count != 1:
+              raise SystemExit(f'test rollback replacement count={count}')
+
+          bad_helper = """select case
+  when pg_catalog.to_regprocedure(
+    'private_verification.brinesearch_issue97_county_scope_candidate_set(uuid)'
+  ) is null then pg_catalog.pg_catalog.raise_exception('Gate 2 helper absent after reapply')
+  else true
+end;"""
+          good_helper = """do $issue97_gate2_test_reapply$
+begin
+  if pg_catalog.to_regprocedure(
+       'private_verification.brinesearch_issue97_county_scope_candidate_set(uuid)'
+     ) is null
+     or pg_catalog.md5(pg_catalog.pg_get_functiondef(
+       'private_verification.brinesearch_issue97_refresh_route_receipt(uuid)'::pg_catalog.regprocedure
+     ))<>'8283a543bf42f939296d32e5e5a92b4f' then
+    raise exception 'Issue #97 Gate 2 reapply contract failed';
+  end if;
+end
+$issue97_gate2_test_reapply$;"""
+          if text.count(bad_helper) != 1:
+              raise SystemExit('test bad helper assertion anchor drifted')
+          text = text.replace(bad_helper, good_helper, 1)
+
+          tail_pattern = re.compile(
+              r"\nselect pg_catalog\.md5\(pg_catalog\.pg_get_functiondef\(\n  'private_verification\.brinesearch_issue97_refresh_route_receipt\(uuid\)'.*?\\endif\n",
+              re.S,
+          )
+          text, count = tail_pattern.subn('\n', text, count=1)
+          if count != 1:
+              raise SystemExit(f'test reapply variable cleanup count={count}')
+          if '\\if' in text or '\\endif' in text or "pg_catalog.pg_catalog.raise_exception" in text:
+              raise SystemExit('invalid psql conditional/helper syntax survived')
+          test.write_text(text)
+          PY
+
+      - name: Static Gate 2 and Gate 3 scope assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          migration=supabase/migrations/20260903193000_issue97_county_scoped_physical_road_resolution.sql
+          impact=ops/issue97-gates-2-3/sql/01-gates2-3-impact-readonly.sql
+          test=supabase/tests/issue97_county_scoped_physical_road_resolution.sql
+          gate3=docs/operations/checkpoints/2026-09-03-issue97-gate3-contract-stop.md
+
+          grep -Fq "road.id as road_id" "$migration"
+          grep -Fq "road.verification_status='verified'" "$migration"
+          grep -Fq "not road.candidate_only" "$migration"
+          grep -Fq "county_scoped_exact_road" "$migration"
+          grep -Fq "physical_road_unique_identity_variant_unresolved" "$migration"
+          grep -Fq "normalized_name_grouping_used',false" "$migration"
+          grep -Fq "v_candidate_count>50" "$migration"
+          grep -Fq "explicit_authoritative_source_receipt" "$migration"
+          grep -Fq "8283a543bf42f939296d32e5e5a92b4f" "$migration"
+          ! grep -Fq "road.id=mapping.road_id and road.verification_status='verified' and not road.candidate_only" /dev/null
+          grep -Fq "road.id as verified_canonical_road_id" "$impact"
+          grep -Fq "Washington County" "$test"
+          grep -Fq "32151137-5710-e8d5-f106-83f5059b1d1d" "$test"
+          grep -Fq "54c74ce8-54b5-69c9-f8ef-2bc5a59e6a3e" "$test"
+          grep -Fq "rollback" "$test"
+          grep -Fq "google_to_saved_gps_unapproved" "$gate3"
+          grep -Fq "fullRouteReadinessClaimed=false" "$gate3"
+          if grep -Fq "pg_catalog.pg_catalog.raise_exception" "$test"; then exit 1; fi
+          git diff --check
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install root and V18 locked dependencies
+        run: |
+          npm ci
+          npm ci --prefix v18 --include=dev
+
+      - name: Full repository verify
+        env:
+          BRINESEARCH_VERIFY_BASE: 46a4710a33aa713843749038886aac55ab08e489
+        run: npm run verify
+
+      - name: Production build
+        env:
+          BRINESEARCH_VERIFY_BASE: 46a4710a33aa713843749038886aac55ab08e489
+        run: npm run build:netlify
+
+      - name: Record static verification checkpoint
+        shell: bash
+        run: |
+          cat >> docs/operations/checkpoints/2026-09-03-issue97-gates-2-3-preflight.md <<'EOF'
+
+          ## Static implementation verification
+
+          The Gate 2 draft was tightened so a physical-road grouping counts a
+          canonical road only when the joined `brinesearch_roads` row itself is
+          currently `verification_status='verified'` and `candidate_only=false`.
+          A stale mapping's road UUID is not enough.
+
+          A database-bound transactional regression was added at
+          `supabase/tests/issue97_county_scoped_physical_road_resolution.sql`.
+          It is designed to prove, on an isolated Issue #97 database:
+
+          - explicit-source priority remains ahead of Gate 2;
+          - the >50 candidate bail remains ahead of Gate 2;
+          - null county is fail-closed and does not prune candidates;
+          - Washington County is state+county scoped;
+          - Belmont SR-7 C/N identities mapping to one canonical road are not
+            arbitrarily collapsed to one identity;
+          - one exact county-scoped identity + one verified canonical road is
+            eligible for `county_scoped_exact_road`;
+          - Gate 3 route-receipt function remains byte-identical;
+          - migration apply -> rollback -> reapply is transactionally checked.
+
+          GitHub CI runs repository verification and the production build, but
+          this checkpoint does **not** claim the SQL regression has run until an
+          isolated database executes it.
+          EOF
+          rm -f .github/workflows/issue97-gates2-3-static-verify.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(issue97): harden county-scoped Gate 2 draft [gates2-3-static-verified]"
+          git push origin HEAD:fix/issue97-gates-2-3-county-terminal-access
