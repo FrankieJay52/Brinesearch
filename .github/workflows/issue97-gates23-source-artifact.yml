@@ -1,0 +1,44 @@
+name: Issue 97 Gates 2 and 3 source artifact
+
+on:
+  push:
+    branches:
+      - fix/issue97-gates-2-3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package-source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue97-gates-2-3
+          fetch-depth: 0
+      - name: Record source identity
+        run: |
+          git rev-parse HEAD > SOURCE_HEAD.txt
+          git rev-parse origin/main > SOURCE_MAIN.txt
+          git status --short > SOURCE_STATUS.txt
+      - name: Upload checked-out source
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue97-gates23-source
+          path: |
+            .github
+            docs
+            ops
+            scripts
+            supabase
+            v18
+            package.json
+            package-lock.json
+            netlify.toml
+            SOURCE_HEAD.txt
+            SOURCE_MAIN.txt
+            SOURCE_STATUS.txt
+          if-no-files-found: error
+          retention-days: 7
