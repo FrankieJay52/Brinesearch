@@ -1,0 +1,127 @@
+name: Issue 97 Gates 2 and 3 reconstruct current functions
+
+on:
+  push:
+    branches:
+      - fix/issue97-gates-2-3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: issue97
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d issue97"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+    env:
+      PGHOST: 127.0.0.1
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: issue97
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue97-gates-2-3
+          fetch-depth: 0
+
+      - name: Generate exact reconstruction SQL from committed migrations
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          initial = (root/'supabase/migrations/20260811233508_issue97_route_corpus_reconciliation.sql').read_text()
+          dark = (root/'supabase/migrations/20260817010000_issue97_dark_google_readiness_stage_semantics.sql').read_text()
+
+          def section(text: str, start: str, end: str) -> str:
+              a = text.index(start)
+              b = text.index(end, a)
+              return text[a:b].rstrip() + '\n'
+
+          def do_block(path: str, tag: str) -> str:
+              text = (root/path).read_text()
+              start = f'do ${tag}$'
+              end = f'${tag}$;'
+              a = text.index(start)
+              b = text.index(end, a) + len(end)
+              return text[a:b] + '\n'
+
+          occurrence = section(
+              initial,
+              'create or replace function private_verification.brinesearch_issue97_refresh_occurrence_candidate(',
+              'revoke all on function private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)',
+          )
+          route_receipt = section(
+              dark,
+              'CREATE OR REPLACE FUNCTION private_verification.brinesearch_issue97_refresh_route_receipt(',
+              'revoke all on function private_verification.brinesearch_issue97_refresh_route_receipt(uuid)',
+          )
+
+          patches = [
+              ('supabase/migrations/20260812032822_issue97_route_scope_freshness_cache.sql', 'issue97_patch_occurrence_scope_cache'),
+              ('supabase/migrations/20260812183104_issue97_route_occurrence_indexed_exact_candidate_lookup.sql', 'issue97_patch_oh_indexed_candidate_lookup'),
+              ('supabase/migrations/20260812190621_issue97_oh_structured_route_candidate_cleanup.sql', 'issue97_patch_oh_structured_candidate_cleanup'),
+              ('supabase/migrations/20260812221230_issue97_wv_pa_exact_name_candidate_performance.sql', 'issue97_patch_wv_pa_exact_candidate_lookup'),
+              ('supabase/migrations/20260812221704_issue97_wv_pa_indexed_exact_name_candidates.sql', 'issue97_patch_wv_pa_indexed_exact_name_candidates'),
+              ('supabase/migrations/20260812221717_issue97_wv_pa_designation_candidate_cache.sql', 'issue97_patch_wv_pa_designation_candidates'),
+              ('supabase/migrations/20260817020000_issue97_terminal_private_access_path_isolation.sql', 'issue97_patch_terminal_candidate'),
+              ('supabase/migrations/20260817030000_issue97_exact_directional_highway_designation_candidates.sql', 'issue97_patch_directional_designation_candidates'),
+          ]
+
+          out = [
+              "\\set ON_ERROR_STOP on",
+              "set check_function_bodies=off;",
+              "create schema if not exists private_verification;",
+              "do $$ begin create role anon; exception when duplicate_object then null; end $$;",
+              "do $$ begin create role authenticated; exception when duplicate_object then null; end $$;",
+              "do $$ begin create role service_role; exception when duplicate_object then null; end $$;",
+              occurrence,
+          ]
+          out.extend(do_block(path, tag) for path, tag in patches)
+          out.append(route_receipt)
+          out.append("\\pset format unaligned")
+          out.append("\\pset tuples_only on")
+          out.append("\\o reconstructed-function-hashes.txt")
+          out.append("select 'occurrence='||md5(pg_get_functiondef('private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)'::regprocedure));")
+          out.append("select 'route_receipt='||md5(pg_get_functiondef('private_verification.brinesearch_issue97_refresh_route_receipt(uuid)'::regprocedure));")
+          out.append("\\o reconstructed-occurrence.sql")
+          out.append("select pg_get_functiondef('private_verification.brinesearch_issue97_refresh_occurrence_candidate(uuid)'::regprocedure);")
+          out.append("\\o reconstructed-route-receipt.sql")
+          out.append("select pg_get_functiondef('private_verification.brinesearch_issue97_refresh_route_receipt(uuid)'::regprocedure);")
+          out.append("\\o")
+          Path('reconstruct.sql').write_text('\n\n'.join(out)+'\n')
+          PY
+
+      - name: Reconstruct current definitions and assert frozen hashes
+        run: |
+          psql -X -f reconstruct.sql
+          cat reconstructed-function-hashes.txt
+          grep -Fx 'occurrence=0f139df2a01f68722958ff10f1dd6f49' reconstructed-function-hashes.txt
+          grep -Fx 'route_receipt=8283a543bf42f939296d32e5e5a92b4f' reconstructed-function-hashes.txt
+
+      - name: Upload reconstructed definitions
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue97-gates23-current-functions
+          path: |
+            reconstructed-function-hashes.txt
+            reconstructed-occurrence.sql
+            reconstructed-route-receipt.sql
+            reconstruct.sql
+          if-no-files-found: error
+          retention-days: 7
