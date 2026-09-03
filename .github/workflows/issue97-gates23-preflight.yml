@@ -1,0 +1,189 @@
+name: Issue 97 Gates 2 and 3 preflight
+
+on:
+  push:
+    branches:
+      - fix/issue97-gates-2-3
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PROJECT_REF: wvxzqtoiwhrgovzddtvz
+  SECRET_SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+  SECRET_SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+  SECRET_SUPABASE_DATABASE_PASSWORD: ${{ secrets.SUPABASE_DATABASE_PASSWORD }}
+  SECRET_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+  SECRET_SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+  SECRET_SUPABASE_DATABASE_URL: ${{ secrets.SUPABASE_DATABASE_URL }}
+  SECRET_POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
+  SECRET_PROD_DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+  SECRET_BRINESEARCH_DATABASE_URL: ${{ secrets.BRINESEARCH_DATABASE_URL }}
+  SECRET_PGSERVICE_FILE_B64: ${{ secrets.PGSERVICE_FILE_B64 }}
+  SECRET_PGPASSFILE_B64: ${{ secrets.PGPASSFILE_B64 }}
+  VAR_DATABASE_URL: ${{ vars.DATABASE_URL }}
+  VAR_SUPABASE_DB_URL: ${{ vars.SUPABASE_DB_URL }}
+  VAR_SUPABASE_DATABASE_URL: ${{ vars.SUPABASE_DATABASE_URL }}
+  VAR_POSTGRES_URL: ${{ vars.POSTGRES_URL }}
+  VAR_PROD_DATABASE_URL: ${{ vars.PROD_DATABASE_URL }}
+  VAR_BRINESEARCH_DATABASE_URL: ${{ vars.BRINESEARCH_DATABASE_URL }}
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/issue97-gates-2-3
+          fetch-depth: 0
+
+      - name: Record repository gate and credential availability
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, os, subprocess
+          names = [
+              'SECRET_SUPABASE_ACCESS_TOKEN',
+              'SECRET_SUPABASE_DB_PASSWORD',
+              'SECRET_SUPABASE_DATABASE_PASSWORD',
+              'SECRET_DATABASE_URL',
+              'SECRET_SUPABASE_DB_URL',
+              'SECRET_SUPABASE_DATABASE_URL',
+              'SECRET_POSTGRES_URL',
+              'SECRET_PROD_DATABASE_URL',
+              'SECRET_BRINESEARCH_DATABASE_URL',
+              'SECRET_PGSERVICE_FILE_B64',
+              'SECRET_PGPASSFILE_B64',
+              'VAR_DATABASE_URL',
+              'VAR_SUPABASE_DB_URL',
+              'VAR_SUPABASE_DATABASE_URL',
+              'VAR_POSTGRES_URL',
+              'VAR_PROD_DATABASE_URL',
+              'VAR_BRINESEARCH_DATABASE_URL',
+          ]
+          payload = {
+              'repository': 'FrankieJay52/Brinesearch',
+              'branch': subprocess.check_output(['git','branch','--show-current'], text=True).strip(),
+              'head': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+              'main': subprocess.check_output(['git','rev-parse','origin/main'], text=True).strip(),
+              'project_ref': os.environ['PROJECT_REF'],
+              'credentials_present': {name: bool(os.environ.get(name)) for name in names},
+          }
+          with open('issue97-gates23-preflight.json','w',encoding='utf-8') as handle:
+              json.dump(payload, handle, indent=2)
+              handle.write('\n')
+          print(json.dumps(payload, indent=2))
+          PY
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client
+
+      - name: Select configured read-only production connection
+        id: connection
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_URL="${SECRET_BRINESEARCH_DATABASE_URL:-${SECRET_SUPABASE_DB_URL:-${SECRET_SUPABASE_DATABASE_URL:-${SECRET_DATABASE_URL:-${SECRET_POSTGRES_URL:-${SECRET_PROD_DATABASE_URL:-${VAR_BRINESEARCH_DATABASE_URL:-${VAR_SUPABASE_DB_URL:-${VAR_SUPABASE_DATABASE_URL:-${VAR_DATABASE_URL:-${VAR_POSTGRES_URL:-${VAR_PROD_DATABASE_URL:-}}}}}}}}}}}}"
+          if [[ -n "$DB_URL" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+            printf '%s' "$DB_URL" > "$RUNNER_TEMP/issue97-db-url"
+            chmod 600 "$RUNNER_TEMP/issue97-db-url"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "No recognized database URL secret or variable is configured." | tee issue97-gates23-database-blocker.txt
+          fi
+
+      - name: Capture production baseline in a read-only transaction
+        if: steps.connection.outputs.available == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          DB_URL="$(cat "$RUNNER_TEMP/issue97-db-url")"
+          cat > "$RUNNER_TEMP/baseline.sql" <<'SQL'
+          \set ON_ERROR_STOP on
+          begin;
+          set transaction read only;
+          set local statement_timeout = '120s';
+          set local lock_timeout = '5s';
+          \pset format unaligned
+          \pset tuples_only on
+          \o issue97-gates23-production-baseline.jsonl
+          select jsonb_build_object('metric','pads','count',count(*))
+          from public.pads;
+          select jsonb_build_object('metric','pads_with_latitude_longitude','count',count(*))
+          from public.pads where latitude is not null and longitude is not null;
+          select jsonb_build_object('metric','pads_gps_verified','count',count(*))
+          from public.pads where gps_verified is true;
+          select jsonb_build_object('metric','occurrence_receipts_total','count',count(*))
+          from private_verification.brinesearch_route_occurrence_receipts_issue97;
+          select jsonb_build_object('metric','occurrence_receipts_by_status','status',resolution_status,'count',count(*))
+          from private_verification.brinesearch_route_occurrence_receipts_issue97
+          group by resolution_status order by resolution_status;
+          select jsonb_build_object('metric','route_receipts_route_ready','count',count(*))
+          from private_verification.brinesearch_route_reconciliation_receipts_issue97
+          where route_status='route_ready';
+          select jsonb_build_object('metric','public_google_routes','count',count(*))
+          from public.brinesearch_driver_google_routes_public;
+          select jsonb_build_object('metric','verified_identity_mappings','count',count(*))
+          from public.brinesearch_road_identity_mappings where mapping_status='verified';
+          select jsonb_build_object(
+            'metric','hold_reason','hold_reason',hold_reason,
+            'occurrences',count(*),'pads',count(distinct pad_id)
+          )
+          from private_verification.brinesearch_route_occurrence_receipts_issue97
+          where resolution_status='held'
+          group by hold_reason order by count(*) desc, hold_reason;
+          select jsonb_build_object(
+            'metric','private_segment_occurrences','occurrences',count(*),'pads',count(distinct pad_id)
+          )
+          from private_verification.brinesearch_route_occurrence_receipts_issue97
+          where step_kind='private_segment';
+          select jsonb_build_object(
+            'metric','pads_missing_county','count',count(*)
+          )
+          from public.pads where nullif(btrim(county),'') is null;
+          \o issue97-gates23-function-contracts-before.jsonl
+          with target as (
+            select p.oid,p.*,n.nspname,
+              pg_get_userbyid(p.proowner) as owner_name,
+              pg_get_function_identity_arguments(p.oid) as identity_arguments,
+              pg_get_function_result(p.oid) as result_type,
+              pg_get_functiondef(p.oid) as definition,
+              coalesce(array_to_json(p.proconfig),'null'::json)::jsonb as configuration
+            from pg_proc p
+            join pg_namespace n on n.oid=p.pronamespace
+            where n.nspname='private_verification'
+              and p.proname in (
+                'brinesearch_issue97_refresh_occurrence_candidate',
+                'brinesearch_issue97_refresh_route_receipt'
+              )
+          )
+          select jsonb_build_object(
+            'schema',nspname,'name',proname,'identity_arguments',identity_arguments,
+            'result_type',result_type,'owner',owner_name,
+            'language',(select lanname from pg_language where oid=prolang),
+            'volatility',provolatile,'parallel',proparallel,'security_definer',prosecdef,
+            'strict',proisstrict,'configuration',configuration,
+            'acl',coalesce(proacl::text,'null'),'definition',definition,
+            'definition_md5',md5(definition)
+          ) from target order by proname;
+          \o
+          rollback;
+          SQL
+          psql "$DB_URL" -X -f "$RUNNER_TEMP/baseline.sql"
+
+      - name: Upload preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue97-gates23-preflight
+          path: |
+            issue97-gates23-preflight.json
+            issue97-gates23-database-blocker.txt
+            issue97-gates23-production-baseline.jsonl
+            issue97-gates23-function-contracts-before.jsonl
+          if-no-files-found: warn
+          retention-days: 7
