@@ -9,9 +9,17 @@ export interface ReviewedNavigationCandidate {
   detail: string;
   routeUrl: string;
   reviewedRoadSequence?: string;
+  roadIdentityHook?: readonly ReviewedRoadIdentityHookEntry[];
   finalLegNotice?: string;
   preserveMeasuredApproach?: true;
   ownerApproval?: OwnerApprovedNavigationPresentation;
+}
+
+export interface ReviewedRoadIdentityHookEntry {
+  roadId: string;
+  county: string;
+  roadName: string;
+  routeNumber: string;
 }
 
 // These record-bound handoffs are ordinary driver navigation once Google has
@@ -199,6 +207,15 @@ const PORTERFIELD_WAYPOINTS = [
   { latitude: 40.073689, longitude: -80.945041 },
   { latitude: 40.088246, longitude: -80.944086 },
   { latitude: 40.090469, longitude: -80.928294 },
+] as const;
+const GEOFLO_ROUTE_DESTINATION = { latitude: 40.120221, longitude: -80.921817 } as const;
+// Each control is inside the already-loaded official centerline for the
+// supplied Road Manager identity. This shapes only the phone handoff; it does
+// not rebuild Belmont or manufacture display geometry.
+const GEOFLO_WAYPOINTS = [
+  { latitude: 40.109237274184004, longitude: -80.91325906265725 }, // Maynard / CR-56
+  { latitude: 40.115672477696755, longitude: -80.91308332822535 }, // Kagg Hill / TR-431
+  { latitude: 40.12014725394503, longitude: -80.91847966433866 }, // Fairpoint Maynard / CR-10
 ] as const;
 const PORTERFIELD_B_ROUTE_DESTINATION = { latitude: 40.090438, longitude: -80.921210 } as const;
 const PORTERFIELD_B_WAYPOINTS = [
@@ -414,6 +431,7 @@ export const BILINOVICH_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?
 export const BEETLE_REVIEWED_GOOGLE_URL = "https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination=40.185403%2C-80.922718&waypoints=40.1869745925099%2C-80.9192177275288%7C40.185340499%2C-80.919294431%7C40.185025%2C-80.920500";
 export const DUKE_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(DUKE_ROUTE_DESTINATION, DUKE_WAYPOINTS);
 export const PORTERFIELD_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_ROUTE_DESTINATION, PORTERFIELD_WAYPOINTS);
+export const GEOFLO_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(GEOFLO_ROUTE_DESTINATION, GEOFLO_WAYPOINTS);
 export const PORTERFIELD_B_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(PORTERFIELD_B_ROUTE_DESTINATION, PORTERFIELD_B_WAYPOINTS);
 export const BAKOS_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BAKOS_ROUTE_DESTINATION, BAKOS_WAYPOINTS);
 export const BANNOCK_REVIEWED_GOOGLE_URL = buildReviewedNavigationUrl(BANNOCK_ROUTE_DESTINATION, BANNOCK_WAYPOINTS);
@@ -626,6 +644,49 @@ const reviewedNavigationContracts: readonly ReviewedNavigationContract[] = [
     },
     routeDestination: PORTERFIELD_ROUTE_DESTINATION,
     waypoints: PORTERFIELD_WAYPOINTS,
+  },
+  {
+    padId: "ed1df007-6cd9-4704-9d48-f72209cefa29",
+    canonicalId: "ed1df007-6cd9-4704-9d48-f72209cefa29",
+    legacyId: "ascent--geoflo",
+    recordRevision: "1786265812046205",
+    company: "Ascent",
+    padName: "GEOFLO",
+    state: "Ohio",
+    county: "Belmont",
+    structuredRoadSequence: "Exit 216 → OH-9 → Maynard Rd → Kagg Hill Rd → Fairpoint-maynard Rd → Lease Road",
+    title: "Navigate named roads",
+    detail: "OH-9 → Maynard → Kagg Hill → Fairpoint Maynard → saved GPS",
+    routeUrl: GEOFLO_REVIEWED_GOOGLE_URL,
+    reviewedRoadSequence: "OH-9 → Maynard Rd / CR-56 → Kagg Hill Rd / TR-431 → Fairpoint Maynard Rd / CR-10 → saved GEOFLO GPS",
+    roadIdentityHook: [
+      {
+        roadId: "2f974a5a-a9da-4be1-8110-efa64a226b44",
+        county: "Belmont",
+        roadName: "Maynard Rd",
+        routeNumber: "CR-56",
+      },
+      {
+        roadId: "c19792f3-aeb4-423c-8c65-70f16266f9bd",
+        county: "Belmont",
+        roadName: "Kagg Hill Rd",
+        routeNumber: "TR-431",
+      },
+      {
+        roadId: "22274ee1-8377-44b7-b395-3c511f8e720e",
+        county: "Belmont",
+        roadName: "Fairpoint Maynard Rd",
+        routeNumber: "CR-10",
+      },
+    ],
+    finalLegNotice: "The driver handoff uses the existing Belmont Road Manager identities in the reviewed order and ends at GEOFLO's saved GPS. Lease geometry remains unapproved. Map teal remains governed by already-receipted identity geometry; this hook creates no line and rebuilds no graph.",
+    trustedDestination: {
+      latitude: 40.120221,
+      longitude: -80.921817,
+      source: "saved_pad_gps",
+    },
+    routeDestination: GEOFLO_ROUTE_DESTINATION,
+    waypoints: GEOFLO_WAYPOINTS,
   },
   {
     padId: "41f0bfc3-7be1-450f-abfc-96dce544547b",
@@ -1669,6 +1730,7 @@ export function reviewedNavigationCandidateForPad(
     detail: contract.detail,
     routeUrl: contract.routeUrl,
     reviewedRoadSequence: contract.reviewedRoadSequence,
+    roadIdentityHook: contract.roadIdentityHook,
     finalLegNotice: contract.finalLegNotice,
     preserveMeasuredApproach: contract.preserveMeasuredApproach,
     ownerApproval,
