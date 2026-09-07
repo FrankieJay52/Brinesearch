@@ -84,6 +84,32 @@ const reviewedPadIds = [
   "c09f4dd1-68f9-46d1-90b3-560240550ecd",
   "be83fc24-5c6a-49cd-88a0-52016ca7b657",
   "0b7ed9a5-7748-4d92-992a-7f2cecf9dd08",
+  "73f48788-9990-435a-adee-999740e958de",
+  "883420b3-07b9-4682-912e-42ba278d1132",
+  "8e823835-2c10-4275-84e9-4067376fa364",
+  "eae4741b-7fb4-4bc3-8b20-26043032acda",
+  "0a2a4a64-6e64-4b7d-9652-e1a97db4fc4f",
+  "25dc64b5-4a52-4cef-8b2c-62e7e36d64c7",
+  "0f848006-4c09-4c7f-b9f2-4743d5ccd37f",
+  "4213711f-0f23-440a-b0ec-42a1f9be4db0",
+  "5a0ede1b-4586-4edc-9438-7cb29a24e58e",
+  "8a7b9669-169d-45a5-bf55-b9be5cbd51e2",
+  "45b2cfd7-1936-406d-bf6c-de0b8acc8e88",
+  "18257dbf-d681-46dd-be38-a8e4a6aab56f",
+  "69c63442-de05-4d15-95da-07da587bc070",
+  "b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb",
+  "23053421-06d5-47a2-bf77-5c3fdea4939b",
+  "83499ca1-3c45-4502-b7c2-688e88343093",
+  "ce1bff99-9c64-435e-a517-e5b8f1a102b7",
+  "b8490b6c-0924-4b1d-a46e-6dc54e7e7267",
+  "5484ef9c-cc1f-4eca-9527-63d4a64183fb",
+  "638487d0-2ef4-4e5c-8a16-cbb478c490c6",
+  "8698112a-c3b4-453e-94d0-bcf4b2476cfb",
+  "fc8a81c6-ccd5-4d1c-9eb6-507f05317688",
+  "88709ded-fda7-42df-ba94-b6bb6c04e45a",
+  "4b0b99b7-da77-4b27-a2f7-7e8d3a9875d3",
+  "314652b0-0abb-47cb-a263-88ca23582144",
+  "3e31e56b-6c85-4f0c-9a38-0554b42581a5",
 ];
 
 function rowFor(binding) {
@@ -115,9 +141,9 @@ test("everyday driver status treats all reviewed named-road handoffs as DONE", (
   assert.equal(driverRuleStatusForState("unknown"), "UNAVAILABLE");
 });
 
-test("all fifty-two reviewed ledger states require every exact record and destination field", () => {
-  assert.equal(reviewedPadIds.length, 52);
-  assert.equal(new Set(reviewedPadIds).size, 52);
+test("all seventy-eight reviewed ledger states require every exact record and destination field", () => {
+  assert.equal(reviewedPadIds.length, 78);
+  assert.equal(new Set(reviewedPadIds).size, 78);
   for (const padId of reviewedPadIds) {
     const binding = reviewedBindingForPad(padId);
     assert.ok(binding, `missing binding for ${padId}`);
@@ -155,6 +181,62 @@ test("six highway-direct receipts preserve their unapproved final GPS handoff wi
   ]) {
     const receipt = explicitReceiptForPad(padId);
     assert.match(receipt, new RegExp(expectedRoad, "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
+  }
+});
+
+test("six first-wave audit receipts preserve reviewed roads without owner authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["73f48788-9990-435a-adee-999740e958de", "Lloydsville-Bannock Rd / CR-80"],
+    ["883420b3-07b9-4682-912e-42ba278d1132", "Salem Rd / CR-74"],
+    ["8e823835-2c10-4275-84e9-4067376fa364", "Nighthawk Rd"],
+    ["eae4741b-7fb4-4bc3-8b20-26043032acda", "Nighthawk Rd"],
+    ["0a2a4a64-6e64-4b7d-9652-e1a97db4fc4f", "New Gottengen Rd"],
+    ["25dc64b5-4a52-4cef-8b2c-62e7e36d64c7", "Bridgewater Rd"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
+  }
+});
+
+test("ten second-wave audit receipts preserve reviewed roads without owner authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["0f848006-4c09-4c7f-b9f2-4743d5ccd37f", "Buckingham Rd / TR-232"],
+    ["4213711f-0f23-440a-b0ec-42a1f9be4db0", "Cumberland Run Rd"],
+    ["5a0ede1b-4586-4edc-9438-7cb29a24e58e", "Unity Church Rd"],
+    ["8a7b9669-169d-45a5-bf55-b9be5cbd51e2", "Bond Ln"],
+    ["45b2cfd7-1936-406d-bf6c-de0b8acc8e88", "CR-25"],
+    ["18257dbf-d681-46dd-be38-a8e4a6aab56f", "Dawson Rd"],
+    ["69c63442-de05-4d15-95da-07da587bc070", "OH-149"],
+    ["b9d1a8de-2ddd-4345-82a1-7e2a1f6ff2cb", "Elm States Rd"],
+    ["23053421-06d5-47a2-bf77-5c3fdea4939b", "Shepherstown Rd"],
+    ["83499ca1-3c45-4502-b7c2-688e88343093", "Campbell-johnson Hill Rd"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
+    assert.match(receipt, /unapproved/iu);
+    assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
+  }
+});
+
+test("ten third-wave audit receipts preserve reviewed roads without owner authority", () => {
+  for (const [padId, expectedRoad] of [
+    ["ce1bff99-9c64-435e-a517-e5b8f1a102b7", "CR-26"],
+    ["b8490b6c-0924-4b1d-a46e-6dc54e7e7267", "Old Gas Station Wegee Rd"],
+    ["5484ef9c-cc1f-4eca-9527-63d4a64183fb", "TR-107A"],
+    ["638487d0-2ef4-4e5c-8a16-cbb478c490c6", "TR-107A"],
+    ["8698112a-c3b4-453e-94d0-bcf4b2476cfb", "Oxford Rd"],
+    ["fc8a81c6-ccd5-4d1c-9eb6-507f05317688", "Sparrow Rd"],
+    ["88709ded-fda7-42df-ba94-b6bb6c04e45a", "Mel Franks Rd"],
+    ["4b0b99b7-da77-4b27-a2f7-7e8d3a9875d3", "City Rd 36"],
+    ["314652b0-0abb-47cb-a263-88ca23582144", "TR-910"],
+    ["3e31e56b-6c85-4f0c-9a38-0554b42581a5", "Piney Fork Rd"],
+  ]) {
+    const receipt = explicitReceiptForPad(padId);
+    assert.match(receipt, new RegExp(expectedRoad.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
     assert.match(receipt, /unapproved/iu);
     assert.doesNotMatch(receipt, /owner[- ](?:approved|reviewed)|approved public|public Google|graph approved/iu);
   }
@@ -476,10 +558,10 @@ test("durable summary identifies candidate content without claiming it is on mai
   assert.doesNotMatch(summary, /on main `/u);
   assert.match(summary, /Uncommitted non-generated changes: \*\*yes\*\*/u);
   assert.match(summary, /generated CSV SHA-256/u);
-  assert.match(summary, /61 DONE reviewed named-road handoffs \/ 186 GPS_ONLY/u);
+  assert.match(summary, /87 DONE reviewed named-road handoffs \/ 160 GPS_ONLY/u);
   assert.match(summary, /Cologie is the first working pad, not a higher grade/u);
   assert.match(summary, /They are not everyday driver grades or Navigate blockers/u);
-  assert.match(summary, /remaining 186 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
+  assert.match(summary, /remaining 160 pads have no reviewed named-road sequence yet and therefore remain GPS_ONLY/u);
 });
 
 test("saved provenance safely carries the exact implementation files into shallow CI", () => {
