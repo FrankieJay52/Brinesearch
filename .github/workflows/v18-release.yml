@@ -63,7 +63,7 @@ jobs:
           sha256sum BrineSearch-V18.zip > BrineSearch-V18.sha256
 
       - name: Upload exact-head V18 artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: BrineSearch-V18
           path: |
