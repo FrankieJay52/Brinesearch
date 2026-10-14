@@ -7,5 +7,7 @@ Screenshots sent to Frank for his go. The work is on `claude/card-wells-20261014
   Kurtz, Hammack).
 - `new-wells-lasso-sadler.png`: Sadler gets the state's three new permits. Lasso already lists all three of its wells.
 - `new-wells-more.png`: new wells on David Stalder (with the Herrick wells on its pad), NEFF and Bears.
+- `producing-only.png`: only producing wells on the main page, the rest under More info (Sadler, Lasso, Bears, Honus
+  Wagner).
 
 Before is live brinesearch.com; after is a local build of that branch.
